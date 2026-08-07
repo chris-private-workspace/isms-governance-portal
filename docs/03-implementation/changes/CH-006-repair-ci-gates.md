@@ -122,8 +122,38 @@ ADR-0001 已經定案指令形狀，所以現在就寫得出真指令。差別�
 
 | 檔案 | 類型 | 說明 |
 |------|------|------|
-| `.github/workflows/ci.yml:22-55` | 修改 | 重排步驟；五個 `run:` 改為存在性 guard + 真實指令 |
+| `.github/workflows/ci.yml` | 修改 | 重排步驟（`run_all` 第一）；五個 `run:` 改為存在性 guard + 真實指令 |
 | `.github/workflows/security-scan.yml` | **不改** | 已正確處理未填狀態；只手動觸發一次 |
+| `CLAUDE.md:145` | 修改 | 加 `path-check: ignore` pragma —— 見下方 §實作中發現 ① |
+| `.github/workflows/ci.yml` | 修改 | `run_all.py` 加 `--verbose` —— 見下方 §實作中發現 ② |
+
+### 實作中發現（R3 —— 範圍內的兩處增補）
+
+**① `path-references` 在 CI 失敗，本機永遠不會失敗。** 修好 `ci.yml` 之後 `run_all.py`
+第一次在 CI 執行，結果是 **4/5** 而非本機的 5/5：
+
+```
+path-references: 1 stale reference(s):
+  CLAUDE.md:145 -> docs/reference/
+```
+
+`CLAUDE.md:145` 引用 `docs/reference/`，而該目錄**刻意排除於版控之外**（那一行的內容講的
+正是這件事）。本機磁碟上存在 → `Path.exists()` 為真 → PASS；CI checkout 後不存在 → FAIL。
+
+**這是環境差異，與本 CH 的變更無關** —— 它是既存問題第一次被看見，而它之所以到今天才被
+看見，正是因為 CI 從來沒跑到那一步。修法用 detector 自己建議的 pragma，語義完全吻合
+（`intentional? add 'path-check: ignore'` —— 它確實是 intentional）。
+
+> 本機重現方式：`Rename-Item docs\reference reference__ci_sim` → 跑 detector → 還原。
+> 不重現就無法確認根因，只能猜。
+
+**② `run_all.py` 在失敗時丟掉最有用的資訊。** `run_all.py:80` 只保留每個 detector 輸出的
+**最後一行**，而 `check_path_references.py:218` 的最後一行是提示語，真正的違規清單在
+`:217`。所以 CI 只顯示 `[FAIL] path-references:   (intentional? add …)` —— **沒有路徑**。
+
+定位這一個路徑花了數個步驟。加 `--verbose` 到 workflow 即可，**不必改 `run_all.py`**
+（範圍更小的解法）。若同一問題再出現，正確的結構性修法是讓 `run_all.py` 在失敗時
+自動印完整輸出 —— 記入 BACKLOG 而非現在做。
 
 ---
 
