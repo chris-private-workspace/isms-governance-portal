@@ -117,7 +117,7 @@ Beyond RBAC, the design specifies: **access requests** (requester, requested acc
 **Legal hold** is a first-class concept (records can be held from disposal) — this was missing from `05` and must be added: a hold suspends retention disposal and is itself auditable.
 
 ### 5.4 Integrations named
-Jira, ServiceNow, Splunk, Okta, AWS Config, Microsoft 365, Slack — with connected state and last-sync. Useful targets for the Wave 3 connector framework; Okta/M365 also inform the identity ADR (ADR-0007).
+Jira, ServiceNow, Splunk, Okta, AWS Config, Microsoft 365, Slack — with connected state and last-sync. Useful targets for the Wave 3 connector framework. ⚠️ **Okta is no longer the IdP** — see §8.6 and ADR-0007; it may still appear here as an *integration target* if any OpCo runs it, but it is not this platform's authentication path.
 
 ### 5.5 ISMS profile — the agreed field list
 The design states this list is agreed and should be kept exactly:
@@ -241,3 +241,20 @@ Wave 1 proof modules** — strip it at port time.
 admin, 30 min idle / 12 h absolute, JIT auditor expiry, two break-glass accounts raising a P1 to
 the Group CISO. Okta is a direct input to **ADR-0007**. `accessRequests.js` also shows requests
 must support an **external party with no OpCo** and a **time-boxed grant**.
+
+> ### ✅ RESOLVED 2026-08-07 (CH-005) — 已核可的偏離：Okta → Entra ID, SAML → OIDC
+>
+> [`ADR-0007`](../14-adr/0007-identity-provider.md) supersedes the deliverable's vendor and
+> protocol. This is a **recorded deviation under 約束 6**, not an approximation — logged here
+> because `CLAUDE.md` 約束 6 makes this file the single source for fidelity exceptions.
+>
+> | | Deliverable | Decided | 偏離? |
+> |---|---|---|---|
+> | Vendor | Okta | **Microsoft Entra ID** | ✅ organisational asset — all three sibling projects run it |
+> | Protocol | SAML 2.0 | **OIDC** | ✅ `04:49` + `06:21` specify OIDC; design docs outrank deliverables |
+> | hardware key (Platform admin) · 30 min idle / 12 h absolute · IP restriction · JIT auditor expiry · 2 break-glass → P1 to Group CISO | required | **all retained** | ❌ none |
+>
+> **Only the vendor and protocol change; every policy requirement survives.** That distinction is
+> what makes this a substitution rather than a scope reduction — the latter is what 約束 6 exists
+> to prevent. Note also that Entra provides authentication strength and conditional access but
+> **not SoD** — `05:9`'s "an auditor cannot edit the controls they assure" stays application-layer.
