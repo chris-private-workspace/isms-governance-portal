@@ -52,6 +52,11 @@
 | AD-CssToken-1 | **`mockup-fidelity.md:38` 紅線 7 在本專案是錯的**：它規定一律 `oklch(var(--token))`，但交付物 token 是 HEX（`styles/tokens.css:24` `--primary: #2A5BD7`）。`oklch(#2A5BD7)` 是無效 CSS 且**靜默失效**。同一缺陷在 playbook §4.2 Layer 3 | CH-005 | 🟡 P1 | ⚠️ **W01 前端第一頁之前必修**（一行）。CLAUDE.md 約束 6「不做色彩空間轉換」在本專案亦不適用 —— 那是模板帶來的通用警語 |
 | AD-DocIndex-1 | **`docs/02-architecture/README.md` §核心設計文件 仍是未填模板**：列的 `00-vision.md` / `01-architecture.md` / `02-tech-stack-decisions.md` 全部不存在，實際是 `00-project-charter.md` 等 27 份。**五個 detector 全部抓不到** —— 那些幻影檔名是純表格文字不是連結 | CH-005 | 🟢 P2 | 使用者反映「文件很多不知從何看起」的直接成因 |
 | AD-Decider-1 | **`03` §Questions for Legal 的四個問題仍無接觸途徑**：ADR-0006 已用最保守預設繞過（拓撲不受影響），但 `cross_border_max_tier` 因此鎖在最嚴 → 旗艦比較矩陣覆蓋 **13/14 OpCo** | CH-005 | 🟡 P1 | 放寬是設定變更非重架構。已向 **Regional ISO / Group CISO** 表面化（`03:137` 要求）記於 ADR-0006 §Consequences |
+| AD-CIRequired-1 | **CI 尚未設為 required status check** —— `required_status_checks` 仍是 `null`，所以綠燈不擋任何東西。`07:31` 的 M0 DoD 要求它 | CH-006 | 🟡 P1 | W01 M0 骨架建立後設。現在設 = 用沒有實質內容的 gate 擋住所有 PR |
+| AD-SecScan-1 | **SCA / SAST / 容器掃描是 skip 不是 clean** —— 首次 security-scan 只有 gitleaks 真的執行（9 commits, no leaks）。三者未經任何檢查，guardrail 7 尚未滿足 | CH-006 | 🟡 P1 | 需 `package.json`（W01 M0）。推進時**必須依 `security-scan.yml:19-25` 的五步次序**，跳步會造成長期紅或假綠 |
+| AD-LintOutput-1 | **`run_all.py:80` 失敗時只保留 detector 輸出的最後一行**，而那通常是提示語不是違規清單 —— CI 失敗訊息無法診斷 | CH-006 | 🟢 P2 | 目前用 workflow 的 `--verbose` 繞過。同型再現 → 改成 `returncode != 0` 時保留完整輸出 |
+| AD-Placeholder-1 | ⭐ **「模板佔位符未與本專案對齊」已發生 6 次**（`AD-RuleBoundary-1` / `AD-CssToken-1` / `AD-DocIndex-1` / ADR 檔名 / `CLAUDE.md` byte 預算 / `ci.yml`），**沒有任何 detector 會抓** | CH-006 | 🟡 P1 | 依 `.claude/rules/README.md` 強度階梯，同型 ≥3 次應改結構性解法：寫一個掃全 repo 未填佔位符（`<…指令>` / `<你的…>` / `{NNN}` / `YYYY-MM-DD`）的 detector 加進 `run_all.py` |
+| AD-ActionsNode-1 | `actions/checkout@v4` 用 Node 20，GitHub 已標 deprecated 並強制跑在 Node 24（4 個 security-scan job 皆有此 annotation） | CH-006 | 🟢 P2 | 現在只是警告；GitHub 移除 Node 20 支援時會直接壞掉 |
 
 **優先度判準**：
 
@@ -79,6 +84,7 @@
 | — | 2026-08-07 | CH-003：`02a` §0 實體索引 + 三項 P0 模型決策（關閉 `AD-DesignAlign-3/4`、`AD-Mockup-4`、`AD-Model-Vendor`、`AD-Model-AuditIssue`）| `docs/03-implementation/changes/CH-003-entity-index-and-p0-model-decisions.md` |
 | — | 2026-08-07 | CH-004：30 個 screen fragment 對照規格審計（純發現）| `docs/09-analysis/screen-fragment-audit-20260807.md` |
 | — | 2026-08-07 | CH-005：三份基礎 ADR 拍板（0001 NestJS+Prisma · 0006 Azure 分區 · 0007 Entra ID）—— **解封 M0**；關閉 OQ-1/2/5 | `docs/03-implementation/changes/CH-005-foundation-adrs/` |
+| — | 2026-08-07 | CH-006：修好 `ci.yml`（自第一個 PR 起 11/12 次 run 失敗）—— **CI 首次綠燈**，`run_all` 首次在 CI 執行，gitleaks 首次掃描全歷史 | `docs/03-implementation/changes/CH-006-repair-ci-gates.md` |
 
 ---
 
@@ -88,8 +94,8 @@
 
 | 決策 | 選項 | 卡在哪 | 誰決定 |
 |------|------|-------|--------|
-| **中國跨境資料層級**（→ ADR-0006）| T1 可出境 / 只有 `posture_rag` / 完全不可 | **M0、M1 全部** —— 拓撲決定資料庫在哪 | ⚠️ Legal / DPO；問題已備妥於 `03` §Questions for Legal |
-| 其餘 7 項開放決策 | 見 [`../decision-form.md`](../decision-form.md) | 各範疇 | ⚠️ **全部未指定決策者** —— 這本身是第一個要解的問題 |
+| **中國跨境資料層級** | T1 可出境 / 只有 `posture_rag` / 完全不可 | ~~M0、M1 全部~~ → **已不再阻斷**（ADR-0006 用最保守預設拍板了拓撲）。現在只卡 `cross_border_max_tier` 能否放寬，即旗艦矩陣是 13/14 還是 14/14 | ⚠️ Legal / DPO；四個問題已備妥於 `03` §Questions for Legal。見 `AD-Decider-1` |
+| 其餘 **5** 項開放決策（OQ-3/4/6/7/8）| 見 [`../decision-form.md`](../decision-form.md) | 各範疇 | 卡的是**證據不是決策者** —— OQ-3/4/6 需 W01 spike 的實測，OQ-7 需 spike，OQ-8 屬 Wave 3 |
 
 ---
 
