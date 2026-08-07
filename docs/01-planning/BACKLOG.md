@@ -41,7 +41,13 @@
 | AD-Mockup-2 | **`data.js` 不可原樣移植** —— 旗艦儀表板以**國家**為鍵，結構上無法容納 14 OpCo（新加坡 2 家、香港 2 家）。約束 6 的 STOP-and-ask | CH-002 | 🔴 P0 | 阻斷 M8 |
 | AD-Mockup-3 | OpCo fixture 需重建：`opcos.js` 有 `RIN` 印度、缺 `RCN` 中國，與 `15` §1 完全相反；`Japan` 在 5 個檔案被當成營運實體 | CH-002 | 🔴 P0 | 移植前必做 |
 | AD-Model-Gaps | `02a` 待決欄位級缺口：business unit 是階層節點還是自由文字、治理機構（ISC/ITSC）能否作為核准者、報告排程、通知規則、Policy 的檔案 metadata / TOC / 版本陣列、OrgEntity 的 OpCo function 欄位 | CH-002 | 🟡 P1 | 全數列在 `02a` §0.1 與 §0「未規格化」表 |
-| AD-Port-BFSI | 移植時須剝除金融業殘留：AML/CTF/制裁/對帳內容與 `juris` 的審慎監理機關。集中在 **Wave 1 的證明模組**檔案裡 | CH-002 | 🟡 P1 | `00` D3：technology & services |
+| AD-RiskForm-1 | **風險表單實作的是另一套方法論**，不是欄位不足：僅 7 欄、**完全沒有 before/after 結構**、缺整條 asset→threat→vulnerability→CIA 鏈、`Owner` 是自由文字非 user 參照 | CH-004 | 🔴 P0 | `15` §4 已更新 |
+| AD-Incident-1 | **事件表單完全沒有 `11` 要求的 restricted block**（violating acts / motives / disciplinary action / president view）—— 連同它的 CISO/HR 權限隔離與存取稽核一併缺席 | CH-004 | 🔴 P0 | 隱私控制，`11` §Access control 明訂 |
+| AD-Nav-1 | **Wave 3 的 AI agent 是導航第一項**（自成 Intelligence 組，在旗艦儀表板之上）。Wave 1–2 會出現顯眼的死連結或空群組 | CH-004 | 🟡 P1 | 產品定位決策，尚未有人做過 |
+| AD-Switcher-1 | 實體/角色切換器把兩個正交軸壓成 7 個預組合的扁平清單（含國旗）。`15` §5.1 要求 entity scope 疊在 role 之上 | CH-004 | 🟡 P1 | 14 OpCo × 6 角色無法用扁平清單 |
+| AD-Auth-1 | 註冊畫面帶著 pre-`15` 詞彙：Entity 是 6 個國家（含 Japan）、Requested role 是 `Risk Owner / Control Owner / Auditor (read-only) / Regional Governance`——**都不是已確認的六角色** | CH-004 | 🟡 P1 | 是 `AccessRequest` 的自助入口，非裝飾 |
+| AD-Nav-2 | 導航計數徽章（Assessments `5`、Incidents `2`）未在任何規格中定義：算什麼、誰的範疇、多久刷新 | CH-004 | 🟢 P2 | |
+| AD-Port-BFSI | 移植時須剝除金融業殘留：AML/CTF/制裁/對帳內容與 `juris` 的審慎監理機關。**CH-004 已確認僅存在於 `data/*.js` 與 standalone prototype——markup 乾淨**，所以這是資料 fixture 工作，不是全庫掃描 | CH-002 | 🟢 P2 | 成本已下修（原 🟡 P1）|
 
 **優先度判準**：
 
@@ -67,6 +73,7 @@
 | — | 2026-08-07 | CH-001：跨境欄位分級，residency 邊界改為設定 | `docs/03-implementation/changes/CH-001-cross-border-field-classification.md` |
 | — | 2026-08-07 | CH-002：24 個設計交付物資料檔對照規格審計（關閉 `AD-Mockup-1`）| `docs/09-analysis/mockup-data-vs-spec-audit-20260807.md` |
 | — | 2026-08-07 | CH-003：`02a` §0 實體索引 + 三項 P0 模型決策（關閉 `AD-DesignAlign-3/4`、`AD-Mockup-4`、`AD-Model-Vendor`、`AD-Model-AuditIssue`）| `docs/03-implementation/changes/CH-003-entity-index-and-p0-model-decisions.md` |
+| — | 2026-08-07 | CH-004：30 個 screen fragment 對照規格審計（純發現）| `docs/09-analysis/screen-fragment-audit-20260807.md` |
 
 ---
 

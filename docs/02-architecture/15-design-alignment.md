@@ -76,6 +76,16 @@ The risk form in the design captures a **single impact value** (`imp`, `lik`, `i
 
 **Build to `02a`, not to the design's simplification**: the risk form must capture all five impact dimensions and both score sets. The design's visual treatment (live score computation, score chips, 5×5 heat matrix) still applies — it just needs five inputs feeding the max rather than one.
 
+> ⚠️ **The gap is larger than this section originally stated** (found 2026-08-07, CH-004 — full
+> detail in [`../09-analysis/screen-fragment-audit-20260807.md`](../09-analysis/screen-fragment-audit-20260807.md) §1).
+> Screen 05 has **seven fields total** and **no before/after-control structure at all** — a single
+> readout labelled "Residual". It is also missing the entire **asset → threat → vulnerability →
+> CIA** chain, which confirmed parameter #8 places in Wave 1, and `Owner` is a free-text input
+> rather than a user reference (so no FK, no SoD enforcement, no notification routing).
+>
+> This is not "add four inputs to an existing form" — the screen implements a **different risk
+> methodology**. The ruling above stands; the scope of the rebuild does not.
+
 *(The design's sample data is also arithmetically inconsistent in places — e.g. `imp:4, lik:4, inh:20`. Treat sample data as illustrative only.)*
 
 ---
@@ -129,7 +139,23 @@ Plus, per OpCo: certification state (Certified / In scope / Not in scope), **cer
 
 `09-ui-design-brief.md` was written to commission the design. The handoff now supersedes it as the UI specification: it fixes design tokens (light + dark), typography (**IBM Plex Sans**, with **IBM Plex Mono for every identifier, date, percentage, count and filename**), spacing, radius, density, iconography, the app shell, and all 30 screens.
 
-Navigation groups: **Oversight** (Dashboard, Risks, Risk programme, Controls, Policies, Issues, Assessments, Audit issues) · **Operations** (ISMS AI Agent, Security incidents, Suppliers) · **Compliance** (APAC ISMS profiles, OS portfolio) · **System** (Admin).
+Navigation groups — **corrected 2026-08-07 (CH-004) against `02-app-shell.html`. There are five
+groups, not four, and the AI agent has its own.**
+
+| Group | Items |
+|---|---|
+| **Intelligence** | ISMS AI Agent — badged `AI`, **first item in the sidebar** |
+| **Oversight** | Dashboard · Risks · Risk programme · Controls · Policies · Issues · Assessments · Audit issues |
+| **Operations** | Incidents · Suppliers |
+| **Compliance** | ISMS profiles · OS portfolio |
+| **System** | Admin |
+
+> ⚠️ **The Wave 3 AI agent is the top nav item, above the flagship dashboard.** Waves 1–2 ship
+> with either a prominent dead entry or a visibly empty first group. That is a product-positioning
+> decision sitting inside a nav structure, and it has not been made anywhere — see `AD-Nav-1`.
+
+Labels in the shell differ from the earlier prose here: **"Incidents"** (not "Security
+incidents"), **"ISMS profiles"** (not "APAC ISMS profiles").
 
 Accessibility conventions to preserve: **status is never colour alone** (always a word or number beside the dot); real `<table>` semantics; row click target duplicated as a focusable link.
 
