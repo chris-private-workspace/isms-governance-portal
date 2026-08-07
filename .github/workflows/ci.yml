@@ -1,8 +1,6 @@
 # CI — 專案 gate
 #
-# ⚠️ 這是骨架，需要依你的技術棧調整（bootstrap 會依 profile 填入指令）。
-#
-# 設計決策：**不使用 paths filter。**
+# 設計決策 1：**不使用 paths filter。**
 #
 # Why: 有 paths filter 時，docs-only PR 不會觸發被過濾的 job → required status
 # check 從未回報 → PR 永遠卡在 BLOCKED。這在原專案造成過反覆的手動繞道。
@@ -10,6 +8,23 @@
 #
 # 若你的 PR 量大到這個代價無法忍受，正確做法是把 required check 設成
 # 能正確處理 skip 的 job，而不是加回 paths filter。
+#
+# 設計決策 2（CH-006）：**未就緒的步驟用「存在性 guard + 真實指令」，不用佔位符。**
+#
+# Why: 指令形狀已由 ADR-0001 定案（NestJS monorepo），所以現在就寫得出真指令 ——
+# 差別只在 monorepo 骨架（W01 M0）還沒建立。用 `[ ! -f package.json ]` 守著，
+# **骨架出現的那一刻 CI 自動開始檢查，不需要有人記得回來改這個檔**。
+#
+# 留佔位符（即使加 guard）或註解掉步驟，都會產生一個「骨架好了要回來填」的待辦，
+# 而沒有任何東西會叫。那正是 CH-006 要修的問題本身。
+#
+# 設計決策 3（CH-006）：**架構 lint 排第一。**
+#
+# 它是本 repo 目前唯一不依賴技術棧的有效 gate。CH-006 之前它排第 5，
+# 被前面四個未填步驟擋住，從專案第一個 PR 起就從未在 CI 執行過。
+#
+# Modification History:
+#   - 2026-08-07: Repair unfilled placeholders + reorder so run_all runs first (CH-006)
 
 name: CI
 
@@ -25,31 +40,56 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      # --- 環境設置（依 profile 替換）---
-      # <你的環境設置步驟>
+      # === 現在就有效的 gate ==========================================
+      # 這一步會擋住 always-loaded 規則檔的膨脹、斷掉的文件連結、
+      # 失效的路徑引用、pre-doc 的 status 漂移、mockup 保真度。
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
 
-      # --- Format ---
-      - name: Format check
-        run: <format check 指令>
-
-      # --- Lint ---
-      # ⚠️ 絕不加 --silent —— 它會連錯誤輸出一起吞掉
-      - name: Lint
-        run: <lint 指令>
-
-      # --- Type check ---
-      - name: Type check
-        run: <type check 指令；無型別系統則填 echo 'n/a'>
-
-      # --- Tests ---
-      - name: Tests
-        run: <test 指令>
-
-      # --- 架構 lint（規則 hygiene + 自訂 detector）---
-      # 這一步會擋住 always-loaded 規則檔的膨脹
       - name: Architecture lints
         run: python scripts/lint/run_all.py
 
-      # --- Build ---
+      # === 以下在 monorepo 骨架（W01 M0）建立前自動略過 =================
+      # 指令由 ADR-0001 定案。骨架一出現就自動生效。
+
+      - name: Format check
+        run: |
+          if [ ! -f package.json ]; then
+            echo "::notice::monorepo scaffold absent — skipped until W01 M0 (ADR-0001)"
+            exit 0
+          fi
+          npm run format:check -w apps/api -w apps/web
+
+      # ⚠️ 絕不加 --silent —— 它會連錯誤輸出一起吞掉
+      - name: Lint
+        run: |
+          if [ ! -f package.json ]; then
+            echo "::notice::monorepo scaffold absent — skipped until W01 M0 (ADR-0001)"
+            exit 0
+          fi
+          npm run lint -w apps/api -w apps/web
+
+      - name: Type check
+        run: |
+          if [ ! -f package.json ]; then
+            echo "::notice::monorepo scaffold absent — skipped until W01 M0 (ADR-0001)"
+            exit 0
+          fi
+          npm run type-check -w apps/api -w apps/web
+
+      - name: Tests
+        run: |
+          if [ ! -f package.json ]; then
+            echo "::notice::monorepo scaffold absent — skipped until W01 M0 (ADR-0001)"
+            exit 0
+          fi
+          npm run test -w apps/api -w apps/web
+
       - name: Build
-        run: <build 指令>
+        run: |
+          if [ ! -f package.json ]; then
+            echo "::notice::monorepo scaffold absent — skipped until W01 M0 (ADR-0001)"
+            exit 0
+          fi
+          npm run build -w apps/api -w apps/web
