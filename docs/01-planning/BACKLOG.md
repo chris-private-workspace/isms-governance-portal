@@ -40,7 +40,13 @@
 | AD-DesignAlign-5 | `15` §7 #5：Risk programme 與 OS portfolio 加進模組計畫 | `15` | 🟡 P1 | |
 | AD-DesignAlign-2 | `15` §7 #2：確認語言集與日本地位 —— i18n 從 M0 就要在位 | `15` | 🟡 P1 | |
 | AD-DesignAlign-7 | `15` §7 #7：確認 ISMS profile 的 certifier-comment / company-reply 欄位是否保留 | `15` | 🟢 P2 | |
-| AD-Mockup-1 | 24 個 `design_handoff/data/*.js` 尚未逐一對照 `02a`。抽查 `risks.js` 已發現三處矛盾（單一 `imp`、`5×4=25` 算術錯誤、`entity:'Japan'` 與 `15` §1 確認範圍衝突）| CH-001 | 🟡 P1 | 全面對照可在 ADR 未定時先做 |
+| AD-Mockup-2 | **`data.js` 不可原樣移植** —— 旗艦儀表板以**國家**為鍵，結構上無法容納 14 OpCo（新加坡 2 家、香港 2 家）。約束 6 的 STOP-and-ask | CH-002 | 🔴 P0 | 阻斷 M8 |
+| AD-Mockup-3 | OpCo fixture 需重建：`opcos.js` 有 `RIN` 印度、缺 `RCN` 中國，與 `15` §1 完全相反；`Japan` 在 5 個檔案被當成營運實體 | CH-002 | 🔴 P0 | 移植前必做 |
+| AD-Mockup-4 | 三種不相容的風險表示法並存（`risks.js` 的 `{imp,lik,inh}`、`riskRegister.js` 的純 `score`、`osServices.js` 的 RAG）。需決定 RM Report 註冊表與即時登記冊的關係 | CH-002 | 🔴 P0 | `15` §3.1 相關 |
+| AD-Model-Vendor | `02a` §3 **完全沒有 Vendor / ExternalParty 實體**，但 `07` 已宣稱「defined in the model now」。`suppliers.js` 有 16 個欄位可依據 | CH-002 | 🔴 P0 | 與 `07` 的敘述矛盾 |
+| AD-Model-AuditIssue | `auditIssues` enum 需放寬：grade 加 `Observation`、src 加 `Customer audit`、status 加 `Overdue`/`Accepted`、`clause` 需支援 **ISO 主文條款且可多值** | CH-002 | 🟡 P1 | 與 AD-DesignAlign-3 同批處理 |
+| AD-Model-Gaps | `02a` 缺：business unit 是階層節點還是自由文字、治理機構（ISC/ITSC）核准者、報告排程、通知規則、Policy 的檔案 metadata / TOC / 版本陣列 | CH-002 | 🟡 P1 | 逐項決定，不要照抄樣本 |
+| AD-Port-BFSI | 移植時須剝除金融業殘留：AML/CTF/制裁/對帳內容與 `juris` 的審慎監理機關。集中在 **Wave 1 的證明模組**檔案裡 | CH-002 | 🟡 P1 | `00` D3：technology & services |
 
 **優先度判準**：
 
@@ -63,7 +69,8 @@
 
 | Phase | Date | 一句話 | Detail |
 |--------|------|--------|--------|
-| | | | `memory/project_wNN_<topic>.md` |
+| — | 2026-08-07 | CH-001：跨境欄位分級，residency 邊界改為設定 | `docs/03-implementation/changes/CH-001-cross-border-field-classification.md` |
+| — | 2026-08-07 | CH-002：24 個設計交付物資料檔對照規格審計（關閉 `AD-Mockup-1`）| `docs/09-analysis/mockup-data-vs-spec-audit-20260807.md` |
 
 ---
 
