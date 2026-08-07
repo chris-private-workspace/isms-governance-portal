@@ -43,13 +43,15 @@ isms-governance-portal/
 │   ├── INFORMATION-FLOW.md   ★   What to read / produce / update, by scenario
 │   ├── architecture.md           Thin pointer → the real spec is 02-architecture/01 and /02
 │   ├── 01-planning/          ★   PROCESS · BACKLOG · ROADMAP · STATUS_AUDIT · registers · templates · W{NN}-*/
-│   ├── 02-architecture/      ★   THE 18 DOMAIN SPECS LIVE HERE:
-│   │     00-project-charter · 01-architecture-overview · 02-core-data-model ★ · 02a-data-model-spec
+│   ├── 02-architecture/      ★   THE 19 DOMAIN SPECS LIVE HERE:
+│   │     00-project-charter · 01-architecture-overview · 02-core-data-model ★ · 02a-data-model-spec ★
 │   │     03-multi-entity-and-jurisdiction · 04-security-by-design ★ · 05-platform-foundation-services
 │   │     06-tech-stack-and-decisions · 07-wave1-build-plan · 08-rollup-dashboard-spec
 │   │     09-ui-design-brief · 10-wave2-compliance-and-obligations · 11-security-incident-module
 │   │     12-supplier-management-module · 13-isms-profile-module · 14-ai-agent
-│   │     15-design-alignment ★ · 16-secure-development-dod ★
+│   │     15-design-alignment ★ · 16-secure-development-dod ★ · 17-audit-issues-module
+│   │     ⚠️ The data model is split across 02a and the module docs.
+│   │        02a §0 is the complete entity index — read it before creating any table.
 │   ├── 03-implementation/        changes/CH-NNN-* · bugs/BUG-NNN-*
 │   ├── 06-reference/         ★   design_handoff_isms_grc_platform/ (authoritative UI) + mockup playbook
 │   ├── 14-adr/               ★   Architecture Decision Records — 9 open, none written yet

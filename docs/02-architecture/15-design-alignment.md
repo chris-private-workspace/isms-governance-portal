@@ -143,14 +143,14 @@ Accessibility conventions to preserve: **status is never colour alone** (always 
 |---|---|---|
 | 1 | ~~Resolve the jurisdiction conflict~~ → ✅ **Resolved: India out, China in.** ADR-0006 (per-region deployment for PIPL) is now blocking for M0 | **Done — ADR-0006 blocking** |
 | 2 | Confirm the language set (and Japan's status) | Medium |
-| 3 | Accept the fuller audit-issues module (revises W2-2) | High |
-| 4 | Add access management + legal hold to the foundation (`05`) | High |
+| 3 | ~~Accept the fuller audit-issues module (revises W2-2)~~ → ✅ **Accepted 2026-08-07 (CH-003).** Specified in [`17-audit-issues-module.md`](17-audit-issues-module.md) | **Done** |
+| 4 | ~~Add access management + legal hold to the foundation (`05`)~~ → ✅ **Already done** — `05` §Access management and §Records retention carry both. This row was stale. Entities now specified in `02a` §3.2 (CH-003) | **Done** |
 | 5 | Add Risk programme and OS portfolio to the module plan | Medium |
 | 6 | Build the risk form to five impact dimensions per `02a`, not the design's single value | Medium |
 | 7 | Confirm whether certifier-comment / company-reply fields remain in the ISMS profile | Low |
 | 8 | **`data.js` cannot be ported as-is** — the flagship dashboard is keyed by country, which structurally cannot hold 14 OpCos across 12 jurisdictions (§8) | **Blocking for M8** |
 | 9 | Rebuild the OpCo fixture: `opcos.js` has India and lacks China — inverted from §1 (§8) | **High** |
-| 10 | Decide how the RM Report register sheet relates to the live register — two incompatible risk shapes exist (§8) | High |
+| 10 | ~~Decide how the RM Report register sheet relates to the live register~~ → ✅ **Decided 2026-08-07 (CH-003): versioned snapshot over the live register, not a second store.** Entities in `02a` §3.1 | **Done** |
 
 ---
 
