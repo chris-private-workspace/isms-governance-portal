@@ -1,0 +1,103 @@
+<!--
+  Fragment: OS PORTFOLIO
+  Source: design/ISMS Governance Platform.dc.html
+  Template syntax: {{ value }} holes, <sc-if>, <sc-for> — see fragments/README.md
+-->
+<!-- ============ OS PORTFOLIO ============ -->
+      <sc-if value="{{ isOsPortfolio }}" hint-placeholder-val="{{ false }}">
+      <div data-screen-label="OS portfolio">
+      <div style="display:flex;align-items:flex-end;justify-content:space-between;gap:20px;margin-bottom:18px;flex-wrap:wrap;">
+        <div>
+          <div style="font-size:11px;font-weight:600;letter-spacing:.5px;color:var(--text-3);text-transform:uppercase;margin-bottom:6px;">Office Service portfolio</div>
+          <h1 style="margin:0;font-size:22px;font-weight:700;letter-spacing:-.3px;">OS portfolio</h1>
+          <div style="font-size:13px;color:var(--text-2);margin-top:5px;max-width:700px;text-wrap:pretty;">The office services offered across APAC, the operating companies delivering each one, the classification of customer data it touches, and whether it sits inside the certified ISMS scope.</div>
+        </div>
+        <button style="display:inline-flex;align-items:center;gap:8px;height:38px;padding:0 16px;border:none;border-radius:9px;background:var(--primary);color:#fff;font-family:inherit;font-size:13px;font-weight:600;cursor:pointer;"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>Add service</button>
+      </div>
+
+      <div style="display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;margin-bottom:16px;">
+        <div style="background:var(--surface);border:1px solid var(--border);border-radius:12px;box-shadow:var(--shadow);padding:14px 16px;"><div style="font-size:11px;color:var(--text-3);font-weight:600;">Services in portfolio</div><div style="font-size:26px;font-weight:700;letter-spacing:-.6px;margin-top:5px;">{{ osp.total }}</div><div style="font-size:11px;color:var(--text-3);margin-top:3px;">across 14 operating companies</div></div>
+        <div style="background:var(--surface);border:1px solid var(--border);border-radius:12px;box-shadow:var(--shadow);padding:14px 16px;"><div style="font-size:11px;color:var(--text-3);font-weight:600;">In certified ISMS scope</div><div style="font-size:26px;font-weight:700;letter-spacing:-.6px;margin-top:5px;color:var(--rag-g-ink);">{{ osp.kInScope }}</div><div style="font-size:11px;color:var(--text-3);margin-top:3px;">remainder assessed as supplier SaaS</div></div>
+        <div style="background:var(--surface);border:1px solid var(--border);border-radius:12px;box-shadow:var(--shadow);padding:14px 16px;"><div style="font-size:11px;color:var(--text-3);font-weight:600;">Needs attention</div><div style="font-size:26px;font-weight:700;letter-spacing:-.6px;margin-top:5px;color:var(--rag-r-ink);">{{ osp.kAttention }}</div><div style="font-size:11px;color:var(--text-3);margin-top:3px;">high residual risk or out of scope</div></div>
+        <div style="background:var(--surface);border:1px solid var(--border);border-radius:12px;box-shadow:var(--shadow);padding:14px 16px;"><div style="font-size:11px;color:var(--text-3);font-weight:600;">Customer contracts</div><div style="font-size:26px;font-weight:700;letter-spacing:-.6px;margin-top:5px;">{{ osp.kClients }}</div><div style="font-size:11px;color:var(--text-3);margin-top:3px;">active across the region</div></div>
+      </div>
+
+      <div style="display:flex;align-items:center;gap:7px;margin-bottom:14px;flex-wrap:wrap;">
+        <sc-for list="{{ osp.filters }}" as="f" hint-placeholder-count="10">
+          <button onClick="{{ f.onSel }}" style="height:30px;padding:0 13px;border:1px solid {{ f.bd }};border-radius:8px;background:{{ f.bg }};color:{{ f.ink }};font-family:inherit;font-size:12px;font-weight:600;cursor:pointer;">{{ f.label }}</button>
+        </sc-for>
+      </div>
+
+      <div style="display:grid;grid-template-columns:minmax(0,1.35fr) minmax(0,1fr);gap:16px;align-items:start;">
+        <div style="background:var(--surface);border:1px solid var(--border);border-radius:12px;box-shadow:var(--shadow);overflow:auto;">
+          <div style="display:grid;grid-template-columns:82px minmax(0,2fr) 116px 96px 110px 92px;min-width:720px;gap:12px;padding:9px 16px;background:var(--surface-2);border-bottom:1px solid var(--border);font-size:10px;font-weight:700;letter-spacing:.45px;text-transform:uppercase;color:var(--text-3);">
+            <span>Code</span><span>Service</span><span>Category</span><span>OpCos</span><span>Stage</span><span>Risk</span>
+          </div>
+          <sc-for list="{{ osp.list }}" as="s" hint-placeholder-count="11">
+            <div onClick="{{ s.onSel }}" style="display:grid;grid-template-columns:82px minmax(0,2fr) 116px 96px 110px 92px;min-width:720px;gap:12px;padding:11px 16px;border-bottom:1px solid var(--border);border-left:3px solid {{ s.bd }};background:{{ s.bg }};align-items:center;font-size:12.5px;cursor:pointer;" style-hover="background:var(--surface-2);">
+              <span style="font-family:var(--mono);font-size:11px;color:var(--primary-ink);font-weight:600;">{{ s.code }}</span>
+              <span><b style="display:block;font-weight:600;line-height:1.35;text-wrap:pretty;">{{ s.name }}</b><span style="display:block;font-size:10.5px;color:var(--text-3);margin-top:2px;">owner {{ s.owner }} · {{ s.clients }} contracts</span></span>
+              <span style="color:var(--text-2);font-size:12px;">{{ s.cat }}</span>
+              <span style="font-family:var(--mono);font-size:11.5px;color:var(--text-2);">{{ s.opcoCount }}</span>
+              <span style="display:inline-flex;align-items:center;height:21px;padding:0 9px;border-radius:6px;background:{{ s.sBg }};color:{{ s.sInk }};font-size:11px;font-weight:600;justify-self:start;">{{ s.stage }}</span>
+              <span style="display:inline-flex;align-items:center;gap:6px;font-size:11.5px;font-weight:600;color:{{ s.rInk }};"><span style="width:7px;height:7px;border-radius:50%;background:{{ s.rDot }};"></span>{{ s.rLabel }}</span>
+            </div>
+          </sc-for>
+          <div style="padding:11px 16px;background:var(--surface-2);font-size:11.5px;color:var(--text-3);">{{ osp.count }} services shown · select a row to see its security profile.</div>
+        </div>
+
+        <div style="display:flex;flex-direction:column;gap:14px;position:sticky;top:76px;">
+          <div style="background:var(--surface);border:1px solid var(--border);border-radius:12px;box-shadow:var(--shadow);padding:18px 20px;">
+            <div style="display:flex;align-items:center;gap:9px;margin-bottom:7px;flex-wrap:wrap;">
+              <span style="font-family:var(--mono);font-size:12px;font-weight:700;color:var(--primary-ink);">{{ osp.sel.code }}</span>
+              <span style="display:inline-flex;align-items:center;height:21px;padding:0 9px;border-radius:6px;background:{{ osp.sel.sBg }};color:{{ osp.sel.sInk }};font-size:11px;font-weight:700;">{{ osp.sel.stage }}</span>
+              <span style="display:inline-flex;align-items:center;gap:6px;font-size:11.5px;font-weight:600;color:{{ osp.sel.rInk }};"><span style="width:7px;height:7px;border-radius:50%;background:{{ osp.sel.rDot }};"></span>{{ osp.sel.rLabel }} residual risk</span>
+            </div>
+            <h2 style="margin:0;font-size:18px;font-weight:700;letter-spacing:-.2px;line-height:1.3;text-wrap:pretty;">{{ osp.sel.name }}</h2>
+            <div style="font-size:12.5px;line-height:1.65;color:var(--text-2);margin-top:9px;text-wrap:pretty;">{{ osp.sel.note }}</div>
+            <div style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px 18px;margin-top:16px;padding-top:14px;border-top:1px solid var(--border);">
+              <div><div style="font-size:10.5px;color:var(--text-3);margin-bottom:3px;">Portfolio owner</div><div style="font-size:12.5px;font-weight:600;">{{ osp.sel.owner }}</div></div>
+              <div><div style="font-size:10.5px;color:var(--text-3);margin-bottom:3px;">Category</div><div style="font-size:12.5px;font-weight:600;">{{ osp.sel.cat }}</div></div>
+              <div><div style="font-size:10.5px;color:var(--text-3);margin-bottom:3px;">Data classification handled</div><div style="font-size:12.5px;font-weight:600;">{{ osp.sel.data }}</div></div>
+              <div><div style="font-size:10.5px;color:var(--text-3);margin-bottom:3px;">Customer contracts</div><div style="font-size:12.5px;font-weight:600;font-family:var(--mono);">{{ osp.sel.clients }}</div></div>
+              <div><div style="font-size:10.5px;color:var(--text-3);margin-bottom:3px;">Primary control</div><div style="font-size:12.5px;font-weight:600;font-family:var(--mono);">{{ osp.sel.ctl }}</div></div>
+              <div><div style="font-size:10.5px;color:var(--text-3);margin-bottom:3px;">Last security review</div><div style="font-size:12.5px;font-weight:600;font-family:var(--mono);">{{ osp.sel.rev }}</div></div>
+            </div>
+          </div>
+
+          <div style="background:var(--surface);border:1px solid var(--border);border-radius:12px;box-shadow:var(--shadow);padding:16px 18px;">
+            <div style="font-size:12px;font-weight:700;margin-bottom:9px;">Certification position</div>
+            <div style="font-size:12.5px;color:var(--text-2);line-height:1.6;">{{ osp.sel.cert }}</div>
+            <sc-if value="{{ osp.sel.notInScope }}" hint-placeholder-val="{{ false }}">
+              <div style="display:flex;gap:9px;align-items:flex-start;margin-top:11px;padding:10px 12px;border-radius:9px;background:var(--rag-a-bg);">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--rag-a-ink)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;margin-top:2px;"><circle cx="12" cy="12" r="9"/><path d="M12 8v4.5"/><circle cx="12" cy="16" r=".7" fill="currentColor" stroke="none"/></svg>
+                <span style="font-size:11.5px;color:var(--rag-a-ink);line-height:1.55;">This service sits outside the certified ISMS scope. An ISMS profile extension and a service risk assessment are required before it can be sold as a certified offering.</span>
+              </div>
+            </sc-if>
+          </div>
+
+          <div style="background:var(--surface);border:1px solid var(--border);border-radius:12px;box-shadow:var(--shadow);padding:16px 18px;">
+            <div style="font-size:12px;font-weight:700;margin-bottom:10px;">Delivered by ({{ osp.sel.opcoCount }})</div>
+            <div style="display:flex;flex-direction:column;gap:8px;">
+              <sc-for list="{{ osp.sel.opcoList }}" as="o" hint-placeholder-count="4">
+                <div style="display:flex;align-items:center;gap:10px;padding:8px 10px;border:1px solid var(--border);border-radius:9px;">
+                  <span style="width:34px;height:22px;border-radius:5px;background:var(--surface-3);color:var(--text-2);display:flex;align-items:center;justify-content:center;font-family:var(--mono);font-size:10px;font-weight:700;flex-shrink:0;">{{ o.code }}</span>
+                  <span style="min-width:0;flex:1;font-size:12px;font-weight:600;line-height:1.3;">{{ o.name }}</span>
+                  <span style="font-size:10.5px;color:var(--text-3);">{{ o.country }}</span>
+                </div>
+              </sc-for>
+            </div>
+          </div>
+
+          <div style="background:var(--surface);border:1px solid var(--border);border-radius:12px;box-shadow:var(--shadow);padding:16px 18px;">
+            <div style="font-size:12px;font-weight:700;margin-bottom:10px;">Security requirements for delivery</div>
+            <div style="display:flex;flex-direction:column;gap:8px;">
+              <sc-for list="{{ osp.sel.reqs }}" as="r" hint-placeholder-count="5">
+                <div style="display:flex;gap:9px;font-size:12px;color:var(--text-2);line-height:1.55;"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="var(--rag-g)" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;margin-top:3px;"><path d="M20 6L9 17l-5-5"/></svg><span style="text-wrap:pretty;">{{ r }}</span></div>
+              </sc-for>
+            </div>
+          </div>
+        </div>
+      </div>
+      </div>
+      </sc-if>

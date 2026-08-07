@@ -1,0 +1,198 @@
+<!--
+  Fragment: DASHBOARD
+  Source: design/ISMS Governance Platform.dc.html
+  Template syntax: {{ value }} holes, <sc-if>, <sc-for> — see fragments/README.md
+-->
+<!-- ============ DASHBOARD ============ -->
+      <sc-if value="{{ isDashboard }}" hint-placeholder-val="{{ true }}">
+      <div data-screen-label="Dashboard — ISMS posture">
+      <div style="display:flex;align-items:flex-end;justify-content:space-between;gap:24px;margin-bottom:20px;flex-wrap:wrap;">
+        <div>
+          <div style="display:flex;align-items:center;gap:8px;font-size:11px;font-weight:600;letter-spacing:.5px;color:var(--text-3);text-transform:uppercase;margin-bottom:7px;">
+            <span>APAC Region</span><span style="color:var(--border-strong);">/</span><span>{{ periodLabel }}</span><span style="color:var(--border-strong);">/</span><span>6 jurisdictions</span>
+          </div>
+          <h1 style="margin:0;font-size:25px;font-weight:700;letter-spacing:-.3px;line-height:1.1;">ISMS posture — APAC region</h1>
+          <div style="margin-top:5px;font-size:13px;color:var(--text-2);font-weight:500;">Information security management posture across the APAC operating companies</div>
+        </div>
+        <div style="display:flex;align-items:center;gap:14px;">
+          <div style="text-align:right;">
+            <div style="font-size:10.5px;font-weight:600;letter-spacing:.4px;color:var(--text-3);text-transform:uppercase;margin-bottom:5px;">Overall posture</div>
+            <div style="display:inline-flex;align-items:center;gap:8px;padding:6px 13px;border-radius:9px;background:var(--rag-a-bg);border:1px solid var(--rag-a);">
+              <span style="width:9px;height:9px;border-radius:50%;background:var(--rag-a);"></span>
+              <span style="font-size:14px;font-weight:700;color:var(--rag-a-ink);">Watch</span>
+              <span style="font-size:11px;font-weight:600;color:var(--rag-a-ink);opacity:.75;font-family:var(--mono);">A</span>
+            </div>
+          </div>
+          <div style="width:1px;height:38px;background:var(--border);"></div>
+          <div style="display:flex;flex-direction:column;gap:6px;">
+            <button style="display:flex;align-items:center;gap:7px;height:34px;padding:0 13px;border:1px solid var(--border-strong);border-radius:8px;background:var(--surface);color:var(--text);font-family:inherit;font-size:12.5px;font-weight:600;cursor:pointer;" style-hover="background:var(--surface-3);">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12M7 10l5 5 5-5M4 20h16"/></svg>
+              Export
+            </button>
+            <div style="font-size:10.5px;color:var(--text-3);text-align:center;">Updated 2h ago</div>
+          </div>
+        </div>
+      </div>
+
+      <div style="display:grid;grid-template-columns:repeat(6,1fr);gap:12px;margin-bottom:20px;">
+        <sc-for list="{{ kpis }}" as="k" hint-placeholder-count="6">
+          <div style="background:var(--surface);border:1px solid var(--border);border-radius:11px;padding:14px 15px;box-shadow:var(--shadow);">
+            <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:6px;margin-bottom:11px;">
+              <div style="line-height:1.25;">
+                <div style="font-size:12px;font-weight:600;color:var(--text-2);">{{ k.label }}</div>
+                <div style="font-size:10.5px;color:var(--text-3);">{{ k.sub }}</div>
+              </div>
+              <span style="display:inline-flex;align-items:center;gap:4px;padding:2px 6px;border-radius:20px;background:{{ k.chipBg }};flex-shrink:0;">
+                <span style="width:6px;height:6px;border-radius:50%;background:{{ k.dot }};"></span>
+                <span style="font-size:9.5px;font-weight:700;color:{{ k.chipInk }};font-family:var(--mono);">{{ k.ragLetter }}</span>
+              </span>
+            </div>
+            <div style="display:flex;align-items:baseline;gap:2px;">
+              <span style="font-size:27px;font-weight:600;font-family:var(--mono);letter-spacing:-1px;color:var(--text);">{{ k.value }}</span>
+              <span style="font-size:15px;font-weight:600;color:var(--text-3);font-family:var(--mono);">{{ k.unit }}</span>
+            </div>
+            <div style="display:flex;align-items:baseline;gap:7px;margin-top:8px;">
+              <span style="font-size:11px;font-weight:600;color:var(--text-2);font-family:var(--mono);white-space:nowrap;flex-shrink:0;">{{ k.delta }}</span>
+              <span style="font-size:10.5px;color:var(--text-3);line-height:1.3;">{{ k.foot }}</span>
+            </div>
+          </div>
+        </sc-for>
+      </div>
+
+      <div style="background:var(--surface);border:1px solid var(--border);border-radius:12px;box-shadow:var(--shadow);overflow:hidden;">
+        <div style="display:flex;align-items:center;justify-content:space-between;gap:16px;padding:15px 18px;border-bottom:1px solid var(--border);flex-wrap:wrap;">
+          <div>
+            <div style="font-size:15px;font-weight:700;letter-spacing:-.2px;">Entity comparison matrix</div>
+            <div style="font-size:12px;color:var(--text-3);margin-top:2px;">6 entities · {{ periodLabel }} · click a row to drill into a single entity</div>
+          </div>
+          <div style="display:flex;align-items:center;gap:16px;">
+            <div style="display:flex;align-items:center;gap:12px;">
+              <span style="display:flex;align-items:center;gap:5px;font-size:11px;font-weight:600;color:var(--text-2);"><span style="width:9px;height:9px;border-radius:3px;background:var(--rag-r);"></span>Critical</span>
+              <span style="display:flex;align-items:center;gap:5px;font-size:11px;font-weight:600;color:var(--text-2);"><span style="width:9px;height:9px;border-radius:3px;background:var(--rag-a);"></span>Watch</span>
+              <span style="display:flex;align-items:center;gap:5px;font-size:11px;font-weight:600;color:var(--text-2);"><span style="width:9px;height:9px;border-radius:3px;background:var(--rag-g);"></span>Good</span>
+            </div>
+            <div style="width:1px;height:20px;background:var(--border);"></div>
+            <div style="display:flex;align-items:center;gap:2px;background:var(--surface-3);border-radius:8px;padding:3px;">
+              <button onClick="{{ setHeatmap }}" style="height:28px;padding:0 12px;border:none;border-radius:6px;background:{{ tabHeatBg }};color:{{ tabHeatInk }};font-family:inherit;font-size:12px;font-weight:600;cursor:pointer;display:flex;align-items:center;gap:6px;"><span style="font-size:10px;opacity:.7;">A</span>Heatmap</button>
+              <button onClick="{{ setScorecard }}" style="height:28px;padding:0 12px;border:none;border-radius:6px;background:{{ tabScoreBg }};color:{{ tabScoreInk }};font-family:inherit;font-size:12px;font-weight:600;cursor:pointer;display:flex;align-items:center;gap:6px;"><span style="font-size:10px;opacity:.7;">B</span>Scorecard</button>
+            </div>
+          </div>
+        </div>
+
+        <sc-if value="{{ isHeatmap }}" hint-placeholder-val="{{ true }}">
+          <div style="overflow-x:auto;">
+            <table style="width:100%;border-collapse:collapse;font-size:12.5px;min-width:840px;">
+              <thead>
+                <tr style="background:var(--surface-2);">
+                  <th style="text-align:left;padding:10px 16px;font-size:10.5px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;color:var(--text-3);border-bottom:1px solid var(--border);position:sticky;left:0;background:var(--surface-2);">Entity</th>
+                  <th style="text-align:center;padding:10px 8px;font-size:10.5px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;color:var(--text-3);border-bottom:1px solid var(--border);">Overall</th>
+                  <th style="text-align:center;padding:10px 8px;font-size:10.5px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;color:var(--text-3);border-bottom:1px solid var(--border);">Risks</th>
+                  <th style="text-align:center;padding:10px 8px;font-size:10.5px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;color:var(--text-3);border-bottom:1px solid var(--border);">High / Crit</th>
+                  <th style="text-align:center;padding:10px 8px;font-size:10.5px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;color:var(--text-3);border-bottom:1px solid var(--border);">Ctrl cov.</th>
+                  <th style="text-align:center;padding:10px 8px;font-size:10.5px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;color:var(--text-3);border-bottom:1px solid var(--border);">Overdue</th>
+                  <th style="text-align:center;padding:10px 8px;font-size:10.5px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;color:var(--text-3);border-bottom:1px solid var(--border);">Open crit.</th>
+                  <th style="text-align:center;padding:10px 8px;font-size:10.5px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;color:var(--text-3);border-bottom:1px solid var(--border);">RCSA %</th>
+                  <th style="width:28px;border-bottom:1px solid var(--border);"></th>
+                </tr>
+              </thead>
+              <tbody>
+                <sc-for list="{{ entities }}" as="e" hint-placeholder-count="6">
+                  <tr onClick="{{ e.onSelect }}" style="cursor:pointer;border-bottom:1px solid var(--border);" style-hover="background:var(--surface-2);">
+                    <td style="padding:var(--row-py) 16px;position:sticky;left:0;background:var(--surface);">
+                      <div style="display:flex;align-items:center;gap:10px;">
+                        <span style="width:26px;height:20px;border-radius:4px;background:var(--surface-3);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;font-size:9.5px;font-weight:700;font-family:var(--mono);color:var(--text-2);flex-shrink:0;">{{ e.flag }}</span>
+                        <span style="line-height:1.2;"><span style="display:block;font-size:13px;font-weight:600;color:var(--text);">{{ e.name }}</span><span style="display:block;font-size:10.5px;color:var(--text-3);">{{ e.local }}</span></span>
+                      </div>
+                    </td>
+                    <td style="text-align:center;padding:var(--row-py) 8px;">
+                      <span style="display:inline-flex;align-items:center;gap:5px;padding:3px 9px;border-radius:20px;background:{{ e.ovBg }};"><span style="width:7px;height:7px;border-radius:50%;background:{{ e.ovDot }};"></span><span style="font-size:11px;font-weight:700;color:{{ e.ovInk }};">{{ e.ovLabel }}</span></span>
+                    </td>
+                    <sc-for list="{{ e.cells }}" as="c" hint-placeholder-count="6">
+                      <td style="text-align:center;padding:var(--row-py) 8px;background:{{ c.bg }};font-family:var(--mono);font-weight:600;font-size:13px;color:{{ c.ink }};">{{ c.display }}</td>
+                    </sc-for>
+                    <td style="text-align:center;color:var(--text-3);font-size:13px;">›</td>
+                  </tr>
+                </sc-for>
+              </tbody>
+            </table>
+          </div>
+        </sc-if>
+
+        <sc-if value="{{ isScorecard }}" hint-placeholder-val="{{ false }}">
+          <div style="padding:12px 14px;display:flex;flex-direction:column;gap:8px;">
+            <sc-for list="{{ entities }}" as="e" hint-placeholder-count="6">
+              <div onClick="{{ e.onSelect }}" style="display:flex;align-items:stretch;gap:0;border:1px solid var(--border);border-radius:11px;overflow:hidden;cursor:pointer;background:var(--surface);" style-hover="border-color:var(--border-strong);background:var(--surface-2);">
+                <span style="width:4px;background:{{ e.ovDot }};flex-shrink:0;"></span>
+                <div style="display:flex;align-items:center;gap:13px;padding:12px 16px;width:210px;flex-shrink:0;border-right:1px solid var(--border);">
+                  <span style="width:30px;height:23px;border-radius:5px;background:var(--surface-3);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;font-family:var(--mono);color:var(--text-2);flex-shrink:0;">{{ e.flag }}</span>
+                  <div style="line-height:1.25;min-width:0;">
+                    <div style="font-size:13.5px;font-weight:600;color:var(--text);">{{ e.name }}</div>
+                    <div style="display:flex;align-items:center;gap:6px;margin-top:2px;"><span style="font-size:10.5px;font-weight:700;color:{{ e.ovInk }};">{{ e.ovLabel }}</span><span style="font-size:10.5px;color:var(--text-3);">· {{ e.risks }} risks</span></div>
+                  </div>
+                </div>
+                <div style="flex:1;display:grid;grid-template-columns:repeat(5,1fr);gap:0;">
+                  <sc-for list="{{ e.metrics }}" as="m" hint-placeholder-count="5">
+                    <div style="padding:11px 14px;border-right:1px solid var(--border);">
+                      <div style="font-size:10px;font-weight:600;letter-spacing:.3px;text-transform:uppercase;color:var(--text-3);margin-bottom:6px;white-space:nowrap;">{{ m.label }}</div>
+                      <div style="display:flex;align-items:baseline;gap:6px;">
+                        <span style="width:8px;height:8px;border-radius:50%;background:{{ m.dot }};flex-shrink:0;align-self:center;"></span>
+                        <span style="font-size:16px;font-weight:600;font-family:var(--mono);color:var(--text);">{{ m.display }}</span>
+                        <span style="font-size:10.5px;font-weight:600;font-family:var(--mono);color:var(--text-3);">{{ m.delta }}</span>
+                      </div>
+                      <div style="height:3px;border-radius:2px;background:var(--surface-3);margin-top:7px;overflow:hidden;{{ m.barHide }}"><div style="height:100%;width:{{ m.barW }};background:{{ m.dot }};border-radius:2px;"></div></div>
+                    </div>
+                  </sc-for>
+                </div>
+              </div>
+            </sc-for>
+          </div>
+        </sc-if>
+
+        <div style="display:flex;align-items:center;gap:8px;padding:11px 18px;border-top:1px solid var(--border);background:var(--surface-2);">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--text-3)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><line x1="12" y1="11" x2="12" y2="16"/><circle cx="12" cy="8" r=".6" fill="var(--text-3)" stroke="none"/></svg>
+          <span style="font-size:11.5px;color:var(--text-3);">RAG colour encodes <b style="color:var(--text-2);">status only</b> (threshold-based). Neutral figures such as total risk count are shown without colour. Thresholds are configurable in Admin.</span>
+        </div>
+      </div>
+
+      <div style="display:grid;grid-template-columns:1.5fr 1fr 1fr;gap:16px;margin-top:16px;">
+        <div style="background:var(--surface);border:1px solid var(--border);border-radius:12px;box-shadow:var(--shadow);overflow:hidden;">
+          <div style="display:flex;align-items:center;justify-content:space-between;padding:14px 16px;border-bottom:1px solid var(--border);"><div style="font-size:14px;font-weight:700;">Top residual risks</div><span style="font-size:11.5px;color:var(--text-3);">region-wide</span></div>
+          <div>
+            <sc-for list="{{ topRisks }}" as="r" hint-placeholder-count="5">
+              <div onClick="{{ r.onOpen }}" style="display:flex;align-items:center;gap:12px;padding:11px 16px;border-bottom:1px solid var(--border);cursor:pointer;" style-hover="background:var(--surface-2);">
+                <span style="min-width:30px;height:24px;padding:0 7px;border-radius:6px;background:{{ r.sevBg }};color:{{ r.sevInk }};font-family:var(--mono);font-weight:700;font-size:13px;display:flex;align-items:center;justify-content:center;flex-shrink:0;">{{ r.residual }}</span>
+                <div style="min-width:0;flex:1;"><div style="font-size:12.5px;font-weight:600;color:var(--text);line-height:1.3;">{{ r.title }}</div><div style="font-size:11px;color:var(--text-3);font-family:var(--mono);margin-top:1px;">{{ r.id }} · {{ r.entity }}</div></div>
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="var(--text-3)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;"><path d="M9 6l6 6-6 6"/></svg>
+              </div>
+            </sc-for>
+          </div>
+        </div>
+
+        <div style="background:var(--surface);border:1px solid var(--border);border-radius:12px;box-shadow:var(--shadow);padding:16px;">
+          <div style="font-size:14px;font-weight:700;margin-bottom:2px;">Issues by severity</div>
+          <div style="font-size:11.5px;color:var(--text-3);margin-bottom:16px;">10 total · {{ periodLabel }}</div>
+          <div style="display:flex;flex-direction:column;gap:14px;">
+            <sc-for list="{{ issuesBySeverity }}" as="s" hint-placeholder-count="4">
+              <div>
+                <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:5px;"><span style="display:flex;align-items:center;gap:7px;font-size:12px;font-weight:600;color:var(--text-2);"><span style="width:8px;height:8px;border-radius:2px;background:{{ s.dot }};"></span>{{ s.label }}</span><span style="font-size:13px;font-weight:700;font-family:var(--mono);color:{{ s.ink }};">{{ s.n }}</span></div>
+                <div style="height:6px;border-radius:3px;background:var(--surface-3);overflow:hidden;"><div style="height:100%;width:{{ s.w }};background:{{ s.dot }};border-radius:3px;"></div></div>
+              </div>
+            </sc-for>
+          </div>
+        </div>
+
+        <div style="background:var(--surface);border:1px solid var(--border);border-radius:12px;box-shadow:var(--shadow);padding:16px;">
+          <div style="font-size:14px;font-weight:700;margin-bottom:2px;">Control effectiveness</div>
+          <div style="font-size:11.5px;color:var(--text-3);margin-bottom:16px;">10 controls tested</div>
+          <div style="display:flex;height:9px;border-radius:5px;overflow:hidden;margin-bottom:16px;">
+            <sc-for list="{{ controlEff }}" as="e" hint-placeholder-count="3"><div style="width:{{ e.w }};background:{{ e.dot }};"></div></sc-for>
+          </div>
+          <div style="display:flex;flex-direction:column;gap:11px;">
+            <sc-for list="{{ controlEff }}" as="e" hint-placeholder-count="3">
+              <div style="display:flex;align-items:center;justify-content:space-between;"><span style="display:flex;align-items:center;gap:7px;font-size:12px;font-weight:600;color:var(--text-2);"><span style="width:8px;height:8px;border-radius:50%;background:{{ e.dot }};"></span>{{ e.label }}</span><span style="font-size:12px;color:var(--text-3);"><b style="font-family:var(--mono);color:{{ e.ink }};">{{ e.n }}</b> · {{ e.pct }}</span></div>
+            </sc-for>
+          </div>
+        </div>
+      </div>
+      </div>
+      </sc-if>

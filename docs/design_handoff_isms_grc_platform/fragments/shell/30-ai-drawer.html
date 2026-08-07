@@ -1,0 +1,66 @@
+<!--
+  Fragment: AI DRAWER
+  Source: design/ISMS Governance Platform.dc.html
+  Template syntax: {{ value }} holes, <sc-if>, <sc-for> — see fragments/README.md
+-->
+<!-- ============ AI DRAWER ============ -->
+  <sc-if value="{{ drawerClosed }}" hint-placeholder-val="{{ true }}">
+  <button onClick="{{ toggleDrawer }}" title="ISMS AI Agent" style="position:fixed;right:22px;bottom:22px;z-index:60;height:44px;padding:0 18px 0 15px;border:1px solid var(--border-strong);border-radius:22px;background:var(--surface);color:var(--text);font-family:inherit;font-size:13px;font-weight:600;cursor:pointer;box-shadow:0 8px 28px rgba(16,24,40,.18);display:flex;align-items:center;gap:9px;" style-hover="background:var(--surface-3);">
+    <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="var(--primary)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 5h16v11H9l-5 4V5z"/><path d="M12 8.2l.9 2.1 2.1.9-2.1.9-.9 2.1-.9-2.1-2.1-.9 2.1-.9.9-2.1z"/></svg>
+    ISMS AI Agent
+  </button>
+  </sc-if>
+
+  <sc-if value="{{ drawerOpen }}" hint-placeholder-val="{{ false }}">
+  <div style="position:fixed;top:0;right:0;bottom:0;width:392px;z-index:70;background:var(--surface);border-left:1px solid var(--border-strong);box-shadow:-12px 0 40px rgba(16,24,40,.14);display:flex;flex-direction:column;">
+    <div style="display:flex;align-items:center;gap:11px;padding:14px 16px;border-bottom:1px solid var(--border);">
+      <span style="width:30px;height:30px;border-radius:8px;background:var(--primary-tint);display:flex;align-items:center;justify-content:center;flex-shrink:0;"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="var(--primary-ink)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 5h16v11H9l-5 4V5z"/><path d="M12 8.2l.9 2.1 2.1.9-2.1.9-.9 2.1-.9-2.1-2.1-.9 2.1-.9.9-2.1z"/></svg></span>
+      <div style="flex:1;min-width:0;"><div style="font-size:13px;font-weight:700;">ISMS AI Agent</div><div style="font-size:10.5px;color:var(--text-3);">Copilot Studio · grounded on 7 sources</div></div>
+      <button onClick="{{ nav.assistant.go }}" title="Open full page" style="width:30px;height:30px;border:1px solid var(--border);border-radius:7px;background:var(--surface);color:var(--text-2);cursor:pointer;display:flex;align-items:center;justify-content:center;" style-hover="background:var(--surface-3);"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M9 5h10v10"/><path d="M19 5L9.5 14.5"/><path d="M15 19H5V9"/></svg></button>
+      <button onClick="{{ toggleDrawer }}" title="Close" style="width:30px;height:30px;border:1px solid var(--border);border-radius:7px;background:var(--surface);color:var(--text-2);cursor:pointer;display:flex;align-items:center;justify-content:center;" style-hover="background:var(--surface-3);"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round"><line x1="6" y1="6" x2="18" y2="18"/><line x1="18" y1="6" x2="6" y2="18"/></svg></button>
+    </div>
+
+    <div style="flex:1;overflow-y:auto;padding:16px;display:flex;flex-direction:column;gap:16px;">
+      <sc-if value="{{ ai.empty }}" hint-placeholder-val="{{ true }}">
+      <div style="display:flex;flex-direction:column;gap:9px;">
+        <div style="font-size:11px;font-weight:700;letter-spacing:.4px;text-transform:uppercase;color:var(--text-3);">Try asking</div>
+        <sc-for list="{{ ai.suggested }}" as="s" hint-placeholder-count="4">
+          <button onClick="{{ s.onAsk }}" style="text-align:left;padding:11px 13px;border:1px solid var(--border);border-radius:9px;background:var(--surface-2);font-family:inherit;font-size:12px;line-height:1.5;color:var(--text);cursor:pointer;text-wrap:pretty;" style-hover="background:var(--surface-3);">{{ s.label }}</button>
+        </sc-for>
+      </div>
+      </sc-if>
+
+      <sc-for list="{{ ai.msgs }}" as="m" hint-placeholder-count="0">
+        <div style="display:flex;flex-direction:column;gap:8px;">
+          <sc-if value="{{ m.isUser }}" hint-placeholder-val="{{ false }}">
+            <div style="align-self:flex-end;max-width:88%;background:var(--primary-tint);border:1px solid var(--primary);border-radius:11px 11px 4px 11px;padding:9px 12px;font-size:12.5px;line-height:1.5;">{{ m.text }}</div>
+          </sc-if>
+          <sc-if value="{{ m.isBot }}" hint-placeholder-val="{{ false }}">
+            <div>
+              <div style="font-size:12.5px;font-weight:600;line-height:1.55;margin-bottom:8px;text-wrap:pretty;">{{ m.text }}</div>
+              <div style="display:flex;flex-direction:column;gap:6px;margin-bottom:10px;">
+                <sc-for list="{{ m.bullets }}" as="b" hint-placeholder-count="3">
+                  <div style="display:flex;gap:8px;font-size:12px;line-height:1.55;color:var(--text-2);text-wrap:pretty;"><span style="width:3px;height:3px;border-radius:50%;background:var(--text-3);flex-shrink:0;margin-top:8px;"></span><span>{{ b }}</span></div>
+                </sc-for>
+              </div>
+              <div style="display:flex;gap:6px;flex-wrap:wrap;">
+                <sc-for list="{{ m.cites }}" as="c" hint-placeholder-count="2">
+                  <span style="display:inline-flex;align-items:center;gap:5px;padding:3px 8px;border:1px solid var(--border);border-radius:6px;background:var(--surface-2);font-size:10.5px;color:var(--text-2);"><b style="font-family:var(--mono);font-size:10px;color:var(--primary-ink);">{{ c.id }}</b>{{ c.meta }}</span>
+                </sc-for>
+              </div>
+            </div>
+          </sc-if>
+        </div>
+      </sc-for>
+    </div>
+
+    <div style="border-top:1px solid var(--border);padding:12px 14px;background:var(--surface-2);">
+      <div style="display:flex;align-items:center;gap:8px;background:var(--surface);border:1px solid var(--border-strong);border-radius:9px;padding:0 6px 0 12px;height:40px;">
+        <input value="{{ chatText }}" onInput="{{ onChatInput }}" onKeyDown="{{ onChatKey }}" placeholder="Ask about this screen…" style="flex:1;border:none;background:transparent;outline:none;font-family:inherit;font-size:12.5px;color:var(--text);"/>
+        <button onClick="{{ sendChat }}" style="width:28px;height:28px;border:none;border-radius:7px;background:var(--primary);color:#fff;cursor:pointer;display:flex;align-items:center;justify-content:center;"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h13M13 6l6 6-6 6"/></svg></button>
+      </div>
+    </div>
+  </div>
+  </sc-if>
+  </sc-if>
+</div>

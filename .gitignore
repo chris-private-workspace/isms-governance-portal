@@ -1,0 +1,77 @@
+# --- Confidential source material (kept local, never pushed) ---
+# reference/           : Secure-Development Guidance + DoD checklist derived
+#                        from the organisation's own Qualys/Rapid7 scan results
+# docs/reference/      : RCI company procedures, Risk Management Report,
+#                        APAC ISMS profile, and licensed ISO 27001/27002 PDFs
+# The docs/00-16 set carries everything the build needs; these raw artifacts
+# stay on local disk only.
+/reference/
+/docs/reference/
+
+# --- Secrets & local configuration (guardrail 7: no secrets in source) ---
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*.pfx
+*.p12
+*.jks
+*.keystore
+secrets.json
+appsettings.*.local.json
+credentials
+.npmrc
+.netrc
+
+# --- Dependencies & build output ---
+node_modules/
+dist/
+build/
+out/
+.next/
+.nuxt/
+.turbo/
+coverage/
+*.tsbuildinfo
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+target/
+bin/
+obj/
+
+# --- Tooling caches ---
+.cache/
+.parcel-cache/
+.eslintcache
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# --- IDE / editor ---
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# --- OS ---
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+.DS_Store
+
+# --- Office / document lock files ---
+~$*.docx
+~$*.xlsx
+~$*.pptx
+
+# --- Logs & local scratch ---
+*.log
+npm-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+tmp/
+scratch/

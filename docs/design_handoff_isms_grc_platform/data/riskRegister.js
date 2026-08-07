@@ -1,0 +1,8 @@
+// Extracted verbatim from the prototype's logic class.
+// Sample/reference data — replace with real API responses.
+export const riskRegister = [
+    { item:1, tv:'Ransomware / delayed patching of legacy jump host', desc:'Residual exposure on legacy remote-access infrastructure at RMY pending decommission.', existing:'EDR, network segmentation, daily backup with offline copy', add:'Decommission legacy jump host; enforce PAM for all remote administration', who:'R. Abdullah — IT Operations Lead', target:'2026-09-30', status:'In progress', score:16 },
+    { item:2, tv:'Improper disposal / MFP disks returned without wipe', desc:'Reverse-logistics workflow allows a batch to bypass the wipe-certificate step.', existing:'Contracted disposal vendor, wipe certificate per device', add:'System-enforced gate: no dispatch without wipe certificate ID', who:'J. Lim — Vendor Risk Manager', target:'2026-08-31', status:'In progress', score:16 },
+    { item:3, tv:'Cross-border personal data transfer without DPA', desc:'Transfers executed ahead of the data-processing agreement being countersigned.', existing:'DPA review control (CTL-2255), privacy training', add:'Block transfer at gateway until DPA reference recorded', who:'L. Wang — Data Protection Officer', target:'2026-10-15', status:'Open', score:20 },
+    { item:4, tv:'DR failover not tested in FY26', desc:'Annual DR test overdue for the Malaysia and Indonesia environments.', existing:'Documented DR plan, offsite backup', add:'Execute full failover test and record results in the ISMS evidence store', who:'R. Abdullah — IT Operations Lead', target:'2026-09-15', status:'Open', score:20 },
+  ];

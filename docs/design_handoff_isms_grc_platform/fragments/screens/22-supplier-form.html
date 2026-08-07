@@ -1,0 +1,47 @@
+<!--
+  Fragment: SUPPLIER — FORM
+  Source: design/ISMS Governance Platform.dc.html
+  Template syntax: {{ value }} holes, <sc-if>, <sc-for> — see fragments/README.md
+-->
+<!-- ============ SUPPLIER — FORM ============ -->
+      <sc-if value="{{ sup.isForm }}" hint-placeholder-val="{{ false }}">
+      <div data-screen-label="External party assessment form">
+      <button onClick="{{ sup.goList }}" style="display:inline-flex;align-items:center;gap:7px;height:30px;padding:0 10px 0 6px;border:1px solid var(--border-strong);border-radius:8px;background:var(--surface);color:var(--text-2);font-family:inherit;font-size:12px;font-weight:600;cursor:pointer;margin-bottom:14px;" style-hover="background:var(--surface-3);"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 6l-6 6 6 6"/></svg>Supplier register</button>
+      <div style="margin-bottom:18px;">
+        <div style="font-size:11px;font-weight:600;letter-spacing:.5px;color:var(--text-3);text-transform:uppercase;margin-bottom:6px;">External party risk assessment form</div>
+        <h1 style="margin:0;font-size:22px;font-weight:700;letter-spacing:-.3px;">New assessment</h1>
+      </div>
+      <div style="background:var(--surface);border:1px solid var(--border);border-radius:12px;box-shadow:var(--shadow);overflow:hidden;max-width:940px;">
+        <div style="padding:12px 18px;background:var(--surface-2);border-bottom:1px solid var(--border);font-size:12px;font-weight:700;">Party & access</div>
+        <div style="padding:18px;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px 18px;">
+          <label style="display:block;"><span style="display:block;font-size:11.5px;font-weight:600;color:var(--text-2);margin-bottom:6px;">Name of external party</span><input placeholder="Legal entity name" style="width:100%;height:38px;padding:0 11px;border:1px solid var(--border-strong);border-radius:8px;background:var(--surface-2);font-family:inherit;font-size:13px;color:var(--text);outline:none;"/></label>
+          <label style="display:block;"><span style="display:block;font-size:11.5px;font-weight:600;color:var(--text-2);margin-bottom:6px;">Business reason for providing access</span><input placeholder="e.g. Firewall support" style="width:100%;height:38px;padding:0 11px;border:1px solid var(--border-strong);border-radius:8px;background:var(--surface-2);font-family:inherit;font-size:13px;color:var(--text);outline:none;"/></label>
+          <label style="display:block;"><span style="display:block;font-size:11.5px;font-weight:600;color:var(--text-2);margin-bottom:6px;">Information facility or asset to be accessed</span><input placeholder="Systems, records or premises" style="width:100%;height:38px;padding:0 11px;border:1px solid var(--border-strong);border-radius:8px;background:var(--surface-2);font-family:inherit;font-size:13px;color:var(--text);outline:none;"/></label>
+          <label style="display:block;"><span style="display:block;font-size:11.5px;font-weight:600;color:var(--text-2);margin-bottom:6px;">Type of access required</span>
+            <select style="width:100%;height:38px;padding:0 11px;border:1px solid var(--border-strong);border-radius:8px;background:var(--surface-2);font-family:inherit;font-size:13px;color:var(--text);outline:none;"><sc-for list="{{ sup.accessTypes }}" as="a" hint-placeholder-count="4"><option>{{ a }}</option></sc-for></select></label>
+          <label style="display:block;"><span style="display:block;font-size:11.5px;font-weight:600;color:var(--text-2);margin-bottom:6px;">Highest classification of information involved</span>
+            <select style="width:100%;height:38px;padding:0 11px;border:1px solid var(--border-strong);border-radius:8px;background:var(--surface-2);font-family:inherit;font-size:13px;color:var(--text);outline:none;"><sc-for list="{{ sup.classes }}" as="c" hint-placeholder-count="4"><option>{{ c }}</option></sc-for></select></label>
+          <label style="display:block;"><span style="display:block;font-size:11.5px;font-weight:600;color:var(--text-2);margin-bottom:6px;">Duration / frequency of access</span><input placeholder="On demand, realtime, monthly…" style="width:100%;height:38px;padding:0 11px;border:1px solid var(--border-strong);border-radius:8px;background:var(--surface-2);font-family:inherit;font-size:13px;color:var(--text);outline:none;"/></label>
+          <label style="display:block;grid-column:span 2;"><span style="display:block;font-size:11.5px;font-weight:600;color:var(--text-2);margin-bottom:6px;">Which external personnel will handle the data?</span><input placeholder="Roles and approximate headcount" style="width:100%;height:38px;padding:0 11px;border:1px solid var(--border-strong);border-radius:8px;background:var(--surface-2);font-family:inherit;font-size:13px;color:var(--text);outline:none;"/></label>
+        </div>
+        <div style="padding:12px 18px;background:var(--surface-2);border-top:1px solid var(--border);border-bottom:1px solid var(--border);font-size:12px;font-weight:700;">Risk & controls</div>
+        <div style="padding:18px;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px 18px;">
+          <div><div style="font-size:11.5px;font-weight:600;color:var(--text-2);margin-bottom:8px;">Risks of providing access</div>
+            <div style="display:flex;flex-direction:column;gap:7px;">
+              <sc-for list="{{ sup.commonRisks }}" as="r" hint-placeholder-count="5"><label style="display:flex;align-items:center;gap:9px;font-size:12.5px;color:var(--text-2);cursor:pointer;"><input type="checkbox" defaultChecked="true" style="width:15px;height:15px;accent-color:var(--primary);"/>{{ r }}</label></sc-for>
+            </div></div>
+          <div><div style="font-size:11.5px;font-weight:600;color:var(--text-2);margin-bottom:8px;">Existing / available controls</div>
+            <div style="display:flex;flex-direction:column;gap:7px;">
+              <sc-for list="{{ sup.commonControls }}" as="c" hint-placeholder-count="6"><label style="display:flex;align-items:center;gap:9px;font-size:12.5px;color:var(--text-2);cursor:pointer;"><input type="checkbox" defaultChecked="true" style="width:15px;height:15px;accent-color:var(--primary);"/>{{ c }}</label></sc-for>
+            </div></div>
+          <label style="display:block;"><span style="display:block;font-size:11.5px;font-weight:600;color:var(--text-2);margin-bottom:6px;">Are the controls adequate?</span>
+            <select style="width:100%;height:38px;padding:0 11px;border:1px solid var(--border-strong);border-radius:8px;background:var(--surface-2);font-family:inherit;font-size:13px;color:var(--text);outline:none;"><option>Yes</option><option>Partial — new control required</option><option>No</option></select></label>
+          <label style="display:block;"><span style="display:block;font-size:11.5px;font-weight:600;color:var(--text-2);margin-bottom:6px;">Risk assessment performed by</span><input defaultValue="Regional Information Security Officer" style="width:100%;height:38px;padding:0 11px;border:1px solid var(--border-strong);border-radius:8px;background:var(--surface-2);font-family:inherit;font-size:13px;color:var(--text);outline:none;"/></label>
+        </div>
+        <div style="padding:16px 18px;border-top:1px solid var(--border);display:flex;align-items:center;gap:10px;">
+          <button onClick="{{ sup.goList }}" style="height:40px;padding:0 18px;border:none;border-radius:9px;background:var(--primary);color:#fff;font-family:inherit;font-size:13px;font-weight:600;cursor:pointer;">Submit for RISO review</button>
+          <button onClick="{{ sup.goList }}" style="height:40px;padding:0 16px;border:1px solid var(--border-strong);border-radius:9px;background:var(--surface);color:var(--text-2);font-family:inherit;font-size:13px;font-weight:600;cursor:pointer;" style-hover="background:var(--surface-3);">Cancel</button>
+        </div>
+      </div>
+      </div>
+      </sc-if>

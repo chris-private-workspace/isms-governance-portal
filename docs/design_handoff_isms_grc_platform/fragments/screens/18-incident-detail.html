@@ -1,0 +1,152 @@
+<!--
+  Fragment: INCIDENT — DETAIL
+  Source: design/ISMS Governance Platform.dc.html
+  Template syntax: {{ value }} holes, <sc-if>, <sc-for> — see fragments/README.md
+-->
+<!-- ============ INCIDENT — DETAIL ============ -->
+      <sc-if value="{{ inc.isDetail }}" hint-placeholder-val="{{ false }}">
+      <div data-screen-label="Incident detail">
+      <button onClick="{{ ind.back }}" style="display:inline-flex;align-items:center;gap:7px;height:30px;padding:0 10px 0 6px;border:1px solid var(--border-strong);border-radius:8px;background:var(--surface);color:var(--text-2);font-family:inherit;font-size:12px;font-weight:600;cursor:pointer;margin-bottom:14px;" style-hover="background:var(--surface-3);"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 6l-6 6 6 6"/></svg>Incident register</button>
+
+      <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:24px;margin-bottom:16px;flex-wrap:wrap;">
+        <div style="min-width:0;">
+          <div style="display:flex;align-items:center;gap:10px;margin-bottom:7px;flex-wrap:wrap;">
+            <span style="font-family:var(--mono);font-size:12px;font-weight:600;color:var(--primary-ink);">{{ ind.ref }}</span>
+            <span style="display:inline-flex;align-items:center;height:22px;padding:0 10px;border-radius:6px;background:{{ ind.sevBg }};color:{{ ind.sevInk }};font-size:11px;font-weight:700;font-family:var(--mono);">{{ ind.sevLabel }}</span>
+            <span style="display:inline-flex;align-items:center;gap:6px;font-size:12px;font-weight:600;color:{{ ind.stInk }};"><span style="width:7px;height:7px;border-radius:50%;background:{{ ind.stDot }};"></span>{{ ind.status }}</span>
+          </div>
+          <h1 style="margin:0;font-size:21px;font-weight:700;letter-spacing:-.3px;line-height:1.3;max-width:760px;text-wrap:pretty;">{{ ind.title }}</h1>
+          <div style="font-size:12.5px;color:var(--text-2);margin-top:6px;">{{ ind.opcoName }} · {{ ind.bu }} · {{ ind.location }}</div>
+        </div>
+        <div style="display:flex;gap:8px;">
+          <button style="height:34px;padding:0 14px;border:1px solid var(--border-strong);border-radius:8px;background:var(--surface);color:var(--text-2);font-family:inherit;font-size:12.5px;font-weight:600;cursor:pointer;" style-hover="background:var(--surface-3);">Export report</button>
+          <button style="height:34px;padding:0 14px;border:none;border-radius:8px;background:var(--primary);color:#fff;font-family:inherit;font-size:12.5px;font-weight:600;cursor:pointer;">Issue update</button>
+        </div>
+      </div>
+
+      <div style="background:var(--surface);border:1px solid var(--border);border-radius:12px;box-shadow:var(--shadow);padding:18px 20px;margin-bottom:16px;">
+        <div style="font-size:11px;font-weight:700;letter-spacing:.4px;text-transform:uppercase;color:var(--text-3);margin-bottom:14px;">Incident workflow</div>
+        <div style="overflow-x:auto;"><div style="display:grid;grid-template-columns:repeat(8,minmax(0,1fr));gap:8px;min-width:880px;">
+          <sc-for list="{{ ind.steps }}" as="s" hint-placeholder-count="8">
+            <div style="display:flex;flex-direction:column;gap:8px;min-width:0;">
+              <div style="display:flex;align-items:center;gap:6px;">
+                <span style="width:24px;height:24px;border-radius:50%;background:{{ s.bg }};color:{{ s.ink }};display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;font-family:var(--mono);flex-shrink:0;">{{ s.n }}</span>
+                <span style="flex:1;height:2px;background:{{ s.bar }};border-radius:2px;"></span>
+              </div>
+              <div><div style="font-size:11.5px;font-weight:600;line-height:1.35;text-wrap:pretty;">{{ s.label }}</div><div style="font-size:10.5px;color:var(--text-3);margin-top:2px;">{{ s.meta }}</div></div>
+            </div>
+          </sc-for>
+        </div></div>
+      </div>
+
+      <div style="display:flex;align-items:center;gap:3px;background:var(--surface-3);border-radius:9px;padding:3px;margin-bottom:16px;width:fit-content;">
+        <sc-for list="{{ ind.tabs }}" as="t" hint-placeholder-count="4">
+          <button onClick="{{ t.onSel }}" style="height:32px;padding:0 15px;border:1px solid {{ t.bd }};border-radius:7px;background:{{ t.bg }};color:{{ t.ink }};font-family:inherit;font-size:12.5px;font-weight:600;cursor:pointer;">{{ t.label }}</button>
+        </sc-for>
+      </div>
+
+      <sc-if value="{{ ind.tabReport }}" hint-placeholder-val="{{ true }}">
+      <div style="display:grid;grid-template-columns:minmax(0,1fr) 320px;gap:16px;align-items:start;">
+        <div style="display:flex;flex-direction:column;gap:14px;">
+          <div style="background:var(--surface);border:1px solid var(--border);border-radius:12px;box-shadow:var(--shadow);padding:18px 20px;">
+            <div style="font-size:12px;font-weight:700;margin-bottom:12px;">Incident description</div>
+            <div style="font-size:13px;line-height:1.65;color:var(--text-2);text-wrap:pretty;">{{ ind.desc }}</div>
+            <div style="height:1px;background:var(--border);margin:16px 0;"></div>
+            <div style="font-size:12px;font-weight:700;margin-bottom:10px;">Damage / impact</div>
+            <div style="font-size:13px;line-height:1.65;color:var(--text-2);text-wrap:pretty;">{{ ind.impact }}</div>
+          </div>
+          <div style="background:var(--surface);border:1px solid var(--border);border-radius:12px;box-shadow:var(--shadow);overflow:hidden;">
+            <div style="padding:12px 18px;background:var(--surface-2);border-bottom:1px solid var(--border);font-size:12px;font-weight:700;">Incident history</div>
+            <sc-for list="{{ ind.history }}" as="h" hint-placeholder-count="5">
+              <div style="display:grid;grid-template-columns:150px minmax(0,1fr);gap:16px;padding:11px 18px;border-bottom:1px solid var(--border);font-size:12.5px;">
+                <span style="font-family:var(--mono);font-size:11.5px;color:var(--text-3);">{{ h.ts }}</span>
+                <span style="color:var(--text-2);line-height:1.5;text-wrap:pretty;">{{ h.ev }}</span>
+              </div>
+            </sc-for>
+          </div>
+        </div>
+        <div style="background:var(--surface);border:1px solid var(--border);border-radius:12px;box-shadow:var(--shadow);padding:16px 18px;display:flex;flex-direction:column;gap:11px;">
+          <div style="font-size:12px;font-weight:700;margin-bottom:2px;">Record</div>
+          <div style="display:flex;justify-content:space-between;gap:12px;font-size:12px;"><span style="color:var(--text-3);">OpCo</span><span style="font-weight:600;text-align:right;">{{ ind.opcoName }}</span></div>
+          <div style="display:flex;justify-content:space-between;gap:12px;font-size:12px;"><span style="color:var(--text-3);">Business unit</span><span style="font-weight:600;">{{ ind.bu }}</span></div>
+          <div style="display:flex;justify-content:space-between;gap:12px;font-size:12px;"><span style="color:var(--text-3);">Ticket</span><span style="font-family:var(--mono);font-size:11.5px;">{{ ind.ticket }}</span></div>
+          <div style="display:flex;justify-content:space-between;gap:12px;font-size:12px;"><span style="color:var(--text-3);">Occurred</span><span style="font-family:var(--mono);font-size:11.5px;">{{ ind.occurred }}</span></div>
+          <div style="display:flex;justify-content:space-between;gap:12px;font-size:12px;"><span style="color:var(--text-3);">Discovered</span><span style="font-family:var(--mono);font-size:11.5px;">{{ ind.discovered }}</span></div>
+          <div style="display:flex;justify-content:space-between;gap:12px;font-size:12px;"><span style="color:var(--text-3);">Type</span><span style="font-weight:600;text-align:right;">{{ ind.type }}</span></div>
+          <div style="display:flex;justify-content:space-between;gap:12px;font-size:12px;"><span style="color:var(--text-3);">Owner</span><span style="font-weight:600;">{{ ind.owner }}</span></div>
+          <div style="display:flex;justify-content:space-between;gap:12px;font-size:12px;"><span style="color:var(--text-3);">Close date</span><span style="font-family:var(--mono);font-size:11.5px;">{{ ind.close }}</span></div>
+          <div style="display:flex;justify-content:space-between;gap:12px;font-size:12px;"><span style="color:var(--text-3);">ISO 27001 clause</span><span style="font-family:var(--mono);font-size:11px;text-align:right;">{{ ind.clause }}</span></div>
+          <div style="height:1px;background:var(--border);margin:4px 0;"></div>
+          <div style="font-size:11.5px;color:var(--text-2);line-height:1.6;text-wrap:pretty;">{{ ind.sevDefText }}</div>
+        </div>
+      </div>
+      </sc-if>
+
+      <sc-if value="{{ ind.tabWorkflow }}" hint-placeholder-val="{{ false }}">
+      <div style="background:var(--surface);border:1px solid var(--border);border-radius:12px;box-shadow:var(--shadow);overflow:auto;">
+        <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;padding:13px 18px;background:var(--surface-2);border-bottom:1px solid var(--border);">
+          <span style="font-size:12px;font-weight:700;">Notification log</span>
+          <span style="font-size:11.5px;color:var(--text-3);">Initial report {{ ind.init }} · updates {{ ind.upd }}</span>
+        </div>
+        <div style="display:grid;grid-template-columns:minmax(0,2fr) minmax(0,1.4fr) 130px 130px 120px;min-width:820px;gap:14px;padding:10px 18px;border-bottom:1px solid var(--border);font-size:10px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;color:var(--text-3);">
+          <span>Recipient</span><span>Role</span><span>Channel</span><span>Required by</span><span>Delivery</span>
+        </div>
+        <sc-for list="{{ ind.notify }}" as="n" hint-placeholder-count="5">
+          <div style="display:grid;grid-template-columns:minmax(0,2fr) minmax(0,1.4fr) 130px 130px 120px;min-width:820px;gap:14px;padding:11px 18px;border-bottom:1px solid var(--border);font-size:12.5px;align-items:center;">
+            <span style="font-weight:600;">{{ n.who }}</span>
+            <span style="color:var(--text-2);">{{ n.role }}</span>
+            <span style="color:var(--text-2);font-size:12px;">{{ n.ch }}</span>
+            <span style="font-family:var(--mono);font-size:11.5px;color:var(--text-2);">{{ n.sla }}</span>
+            <span style="font-size:11.5px;font-weight:600;color:{{ n.ackInk }};">{{ n.ack }}</span>
+          </div>
+        </sc-for>
+      </div>
+      </sc-if>
+
+      <sc-if value="{{ ind.tabActions }}" hint-placeholder-val="{{ false }}">
+      <div style="display:flex;flex-direction:column;gap:14px;">
+        <div style="background:var(--surface);border:1px solid var(--border);border-radius:12px;box-shadow:var(--shadow);padding:18px 20px;">
+          <div style="display:flex;align-items:center;gap:10px;margin-bottom:11px;"><span style="font-size:12px;font-weight:700;">Root cause analysis</span><span style="font-size:10.5px;font-family:var(--mono);padding:2px 7px;border-radius:5px;background:var(--surface-3);color:var(--text-2);">Mandatory for S1, S2</span></div>
+          <div style="font-size:13px;line-height:1.65;color:var(--text-2);text-wrap:pretty;">{{ ind.rca.cause }}</div>
+          <div style="display:flex;gap:26px;margin-top:13px;font-size:12px;"><span style="color:var(--text-3);">Responsible party <b style="color:var(--text);font-weight:600;">{{ ind.rca.party }}</b></span><span style="color:var(--text-3);">Completed <b style="color:var(--text);font-weight:600;font-family:var(--mono);font-size:11.5px;">{{ ind.rca.done }}</b></span></div>
+        </div>
+        <div style="display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px;">
+          <div style="background:var(--surface);border:1px solid var(--border);border-radius:12px;box-shadow:var(--shadow);padding:16px 18px;">
+            <div style="font-size:12px;font-weight:700;margin-bottom:9px;">Workaround</div>
+            <div style="font-size:12.5px;line-height:1.6;color:var(--text-2);text-wrap:pretty;">{{ ind.work.plan }}</div>
+            <div style="display:flex;flex-direction:column;gap:6px;margin-top:12px;font-size:11.5px;"><span style="color:var(--text-3);">Owner <b style="color:var(--text);font-weight:600;">{{ ind.work.owner }}</b></span><span style="color:var(--text-3);">Execution <b style="color:var(--text);font-weight:600;font-family:var(--mono);">{{ ind.work.exec }}</b></span><span style="color:var(--text-3);">Status <b style="color:var(--text);font-weight:600;">{{ ind.work.status }}</b></span></div>
+          </div>
+          <div style="background:var(--surface);border:1px solid var(--border);border-radius:12px;box-shadow:var(--shadow);padding:16px 18px;">
+            <div style="font-size:12px;font-weight:700;margin-bottom:9px;">Corrective action</div>
+            <div style="font-size:12.5px;line-height:1.6;color:var(--text-2);text-wrap:pretty;">{{ ind.corr.plan }}</div>
+            <div style="display:flex;flex-direction:column;gap:6px;margin-top:12px;font-size:11.5px;"><span style="color:var(--text-3);">Owner <b style="color:var(--text);font-weight:600;">{{ ind.corr.owner }}</b></span><span style="color:var(--text-3);">Execution <b style="color:var(--text);font-weight:600;font-family:var(--mono);">{{ ind.corr.exec }}</b></span><span style="color:var(--text-3);">CAR no. <b style="color:var(--text);font-weight:600;font-family:var(--mono);">{{ ind.corr.car }}</b></span></div>
+          </div>
+          <div style="background:var(--surface);border:1px solid var(--border);border-radius:12px;box-shadow:var(--shadow);padding:16px 18px;">
+            <div style="font-size:12px;font-weight:700;margin-bottom:9px;">Preventive action</div>
+            <div style="font-size:12.5px;line-height:1.6;color:var(--text-2);text-wrap:pretty;">{{ ind.prev.plan }}</div>
+            <div style="display:flex;flex-direction:column;gap:6px;margin-top:12px;font-size:11.5px;"><span style="color:var(--text-3);">Owner <b style="color:var(--text);font-weight:600;">{{ ind.prev.owner }}</b></span><span style="color:var(--text-3);">Execution <b style="color:var(--text);font-weight:600;font-family:var(--mono);">{{ ind.prev.exec }}</b></span><span style="color:var(--text-3);">Status <b style="color:var(--text);font-weight:600;">{{ ind.prev.status }}</b></span></div>
+          </div>
+        </div>
+      </div>
+      </sc-if>
+
+      <sc-if value="{{ ind.tabApproval }}" hint-placeholder-val="{{ false }}">
+      <div style="background:var(--surface);border:1px solid var(--border);border-radius:12px;box-shadow:var(--shadow);padding:20px;max-width:660px;">
+        <div style="font-size:12px;font-weight:700;margin-bottom:16px;">Review & approval</div>
+        <div style="display:flex;flex-direction:column;gap:14px;">
+          <div style="display:flex;align-items:center;gap:13px;padding:14px 16px;border:1px solid var(--border);border-radius:10px;background:var(--surface-2);">
+            <span style="width:32px;height:32px;border-radius:50%;background:var(--primary-tint);color:var(--primary-ink);display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;flex-shrink:0;">1</span>
+            <div style="flex:1;"><div style="font-size:12.5px;font-weight:600;">Reviewed on behalf of the CISO</div><div style="font-size:11.5px;color:var(--text-3);margin-top:2px;">{{ ind.reviewer }}</div></div>
+            <span style="font-family:var(--mono);font-size:11.5px;color:var(--text-2);">{{ ind.reviewDate }}</span>
+          </div>
+          <div style="display:flex;align-items:center;gap:13px;padding:14px 16px;border:1px solid var(--border);border-radius:10px;background:var(--surface-2);">
+            <span style="width:32px;height:32px;border-radius:50%;background:var(--primary-tint);color:var(--primary-ink);display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;flex-shrink:0;">2</span>
+            <div style="flex:1;"><div style="font-size:12.5px;font-weight:600;">Approved for closure</div><div style="font-size:11.5px;color:var(--text-3);margin-top:2px;">{{ ind.approver }}</div></div>
+            <span style="font-family:var(--mono);font-size:11.5px;color:var(--text-2);">{{ ind.approveDate }}</span>
+          </div>
+        </div>
+        <div style="font-size:11.5px;color:var(--text-3);line-height:1.6;margin-top:16px;text-wrap:pretty;">The incident record is retained with the ISMS evidence set. Closure requires the root cause, corrective and preventive action sections to be complete for Level 1 and Level 2 incidents.</div>
+      </div>
+      </sc-if>
+      </div>
+      </sc-if>

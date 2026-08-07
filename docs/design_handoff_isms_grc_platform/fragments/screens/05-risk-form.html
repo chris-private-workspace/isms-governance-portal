@@ -1,0 +1,83 @@
+<!--
+  Fragment: RISK FORM
+  Source: design/ISMS Governance Platform.dc.html
+  Template syntax: {{ value }} holes, <sc-if>, <sc-for> — see fragments/README.md
+-->
+<!-- ============ RISK FORM ============ -->
+      <sc-if value="{{ isRiskForm }}" hint-placeholder-val="{{ false }}">
+      <div data-screen-label="Risk form">
+      <button onClick="{{ closeRiskForm }}" style="display:inline-flex;align-items:center;gap:7px;height:30px;padding:0 10px 0 6px;border:1px solid var(--border-strong);border-radius:8px;background:var(--surface);color:var(--text-2);font-family:inherit;font-size:12px;font-weight:600;cursor:pointer;margin-bottom:14px;" style-hover="background:var(--surface-3);"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 6l-6 6 6 6"/></svg>Cancel</button>
+      <div style="margin-bottom:18px;">
+        <div style="font-size:11px;font-weight:600;letter-spacing:.5px;color:var(--text-3);text-transform:uppercase;margin-bottom:6px;">{{ rf.idLabel }}</div>
+        <h1 style="margin:0;font-size:23px;font-weight:700;letter-spacing:-.3px;">{{ rf.heading }}</h1>
+      </div>
+      <div style="display:grid;grid-template-columns:1.55fr 1fr;gap:16px;align-items:start;max-width:1000px;">
+        <div style="background:var(--surface);border:1px solid var(--border);border-radius:12px;box-shadow:var(--shadow);padding:20px;display:flex;flex-direction:column;gap:18px;">
+          <div>
+            <label style="display:block;font-size:12px;font-weight:600;color:var(--text-2);margin-bottom:6px;">Risk title <span style="color:var(--rag-r);">*</span></label>
+            <input defaultValue="{{ rf.title }}" placeholder="e.g. Unpatched externally-facing systems" style="width:100%;height:38px;padding:0 12px;border:1px solid var(--border-strong);border-radius:8px;background:var(--surface-2);font-family:inherit;font-size:13px;color:var(--text);outline:none;"/>
+          </div>
+          <div>
+            <label style="display:block;font-size:12px;font-weight:600;color:var(--text-2);margin-bottom:6px;">Description</label>
+            <textarea placeholder="Describe the risk, its cause and potential impact…" style="width:100%;min-height:88px;padding:11px 12px;border:1px solid var(--border-strong);border-radius:8px;background:var(--surface-2);font-family:inherit;font-size:13px;color:var(--text);resize:vertical;outline:none;"></textarea>
+          </div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;">
+            <div>
+              <label style="display:block;font-size:12px;font-weight:600;color:var(--text-2);margin-bottom:6px;">Entity <span style="color:var(--rag-r);">*</span></label>
+              <select defaultValue="{{ rf.entity }}" style="width:100%;height:38px;padding:0 10px;border:1px solid var(--border-strong);border-radius:8px;background:var(--surface-2);font-family:inherit;font-size:13px;color:var(--text);outline:none;cursor:pointer;">
+                <option value="">Select entity…</option>
+                <sc-for list="{{ rf.entVals }}" as="ev" hint-placeholder-count="6"><option value="{{ ev }}">{{ ev }}</option></sc-for>
+              </select>
+            </div>
+            <div>
+              <label style="display:block;font-size:12px;font-weight:600;color:var(--text-2);margin-bottom:6px;">Category <span style="color:var(--rag-r);">*</span></label>
+              <select defaultValue="{{ rf.category }}" style="width:100%;height:38px;padding:0 10px;border:1px solid var(--border-strong);border-radius:8px;background:var(--surface-2);font-family:inherit;font-size:13px;color:var(--text);outline:none;cursor:pointer;">
+                <option value="">Select category…</option>
+                <sc-for list="{{ rf.catVals }}" as="cv" hint-placeholder-count="6"><option value="{{ cv }}">{{ cv }}</option></sc-for>
+              </select>
+            </div>
+            <div>
+              <label style="display:block;font-size:12px;font-weight:600;color:var(--text-2);margin-bottom:6px;">Owner</label>
+              <input defaultValue="{{ rf.owner }}" placeholder="e.g. K. Sato" style="width:100%;height:38px;padding:0 12px;border:1px solid var(--border-strong);border-radius:8px;background:var(--surface-2);font-family:inherit;font-size:13px;color:var(--text);outline:none;"/>
+            </div>
+            <div>
+              <label style="display:block;font-size:12px;font-weight:600;color:var(--text-2);margin-bottom:6px;">Treatment status</label>
+              <select defaultValue="{{ rf.status }}" style="width:100%;height:38px;padding:0 10px;border:1px solid var(--border-strong);border-radius:8px;background:var(--surface-2);font-family:inherit;font-size:13px;color:var(--text);outline:none;cursor:pointer;">
+                <sc-for list="{{ rf.statusOpts }}" as="so" hint-placeholder-count="4"><option value="{{ so.val }}">{{ so.label }}</option></sc-for>
+              </select>
+            </div>
+          </div>
+        </div>
+
+        <div style="background:var(--surface);border:1px solid var(--border);border-radius:12px;box-shadow:var(--shadow);padding:20px;">
+          <div style="font-size:13px;font-weight:700;margin-bottom:3px;">Risk assessment</div>
+          <div style="font-size:11.5px;color:var(--text-3);margin-bottom:16px;">Residual = impact × likelihood</div>
+          <div style="margin-bottom:16px;">
+            <label style="display:block;font-size:12px;font-weight:600;color:var(--text-2);margin-bottom:7px;">Impact</label>
+            <div style="display:flex;gap:6px;">
+              <sc-for list="{{ rf.impactScale }}" as="s" hint-placeholder-count="5">
+                <button onClick="{{ s.onSel }}" style="flex:1;height:36px;border:1.5px solid {{ s.border }};border-radius:8px;background:{{ s.bg }};color:{{ s.ink }};font-family:var(--mono);font-size:14px;font-weight:700;cursor:pointer;">{{ s.v }}</button>
+              </sc-for>
+            </div>
+          </div>
+          <div style="margin-bottom:18px;">
+            <label style="display:block;font-size:12px;font-weight:600;color:var(--text-2);margin-bottom:7px;">Likelihood</label>
+            <div style="display:flex;gap:6px;">
+              <sc-for list="{{ rf.likScale }}" as="s" hint-placeholder-count="5">
+                <button onClick="{{ s.onSel }}" style="flex:1;height:36px;border:1.5px solid {{ s.border }};border-radius:8px;background:{{ s.bg }};color:{{ s.ink }};font-family:var(--mono);font-size:14px;font-weight:700;cursor:pointer;">{{ s.v }}</button>
+              </sc-for>
+            </div>
+          </div>
+          <div style="border:1px solid var(--border);border-radius:10px;padding:16px;text-align:center;background:{{ rf.sevBg }};">
+            <div style="font-size:11px;font-weight:600;color:var(--text-3);text-transform:uppercase;letter-spacing:.4px;margin-bottom:4px;">Residual rating</div>
+            <div style="font-size:34px;font-weight:600;font-family:var(--mono);color:{{ rf.sevInk }};line-height:1;">{{ rf.residual }}</div>
+            <div style="display:inline-flex;align-items:center;gap:6px;margin-top:8px;"><span style="width:8px;height:8px;border-radius:50%;background:{{ rf.sevDot }};"></span><span style="font-size:13px;font-weight:700;color:{{ rf.sevInk }};">{{ rf.band }}</span></div>
+          </div>
+        </div>
+      </div>
+      <div style="display:flex;align-items:center;gap:10px;margin-top:16px;max-width:1000px;justify-content:flex-end;">
+        <button onClick="{{ closeRiskForm }}" style="height:38px;padding:0 16px;border:1px solid var(--border-strong);border-radius:8px;background:var(--surface);color:var(--text);font-family:inherit;font-size:12.5px;font-weight:600;cursor:pointer;" style-hover="background:var(--surface-3);">Cancel</button>
+        <button onClick="{{ closeRiskForm }}" style="height:38px;padding:0 18px;border:none;border-radius:8px;background:var(--primary);color:#fff;font-family:inherit;font-size:12.5px;font-weight:600;cursor:pointer;">Save risk</button>
+      </div>
+      </div>
+      </sc-if>

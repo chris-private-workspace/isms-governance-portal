@@ -1,0 +1,66 @@
+<!--
+  Fragment: MY PROFILE
+  Source: design/ISMS Governance Platform.dc.html
+  Template syntax: {{ value }} holes, <sc-if>, <sc-for> — see fragments/README.md
+-->
+<!-- ============ MY PROFILE ============ -->
+      <sc-if value="{{ isProfile }}" hint-placeholder-val="{{ false }}">
+      <div data-screen-label="My profile">
+      <div style="margin-bottom:16px;">
+        <div style="font-size:11px;font-weight:600;letter-spacing:.5px;color:var(--text-3);text-transform:uppercase;margin-bottom:6px;">My profile</div>
+        <h1 style="margin:0;font-size:23px;font-weight:700;letter-spacing:-.3px;">Profile</h1>
+      </div>
+      <div style="display:grid;grid-template-columns:1.5fr 1fr;gap:16px;align-items:start;">
+        <div style="display:flex;flex-direction:column;gap:16px;min-width:0;">
+          <div style="background:var(--surface);border:1px solid var(--border);border-radius:12px;box-shadow:var(--shadow);padding:20px;">
+            <div style="display:flex;align-items:center;gap:16px;">
+              <span style="width:60px;height:60px;border-radius:50%;background:linear-gradient(135deg,var(--primary),var(--primary-ink));color:#fff;display:flex;align-items:center;justify-content:center;font-size:20px;font-weight:700;flex-shrink:0;">{{ profile.init }}</span>
+              <div style="flex:1;min-width:0;"><div style="font-size:18px;font-weight:700;">{{ profile.name }}</div><div style="font-size:13px;color:var(--text-2);">{{ profile.role }}</div></div>
+              <button style="height:34px;padding:0 14px;border:1px solid var(--border-strong);border-radius:8px;background:var(--surface);font-family:inherit;font-size:12.5px;font-weight:600;color:var(--text-2);cursor:pointer;" style-hover="background:var(--surface-3);">Edit profile</button>
+            </div>
+            <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:16px;margin-top:20px;padding-top:18px;border-top:1px solid var(--border);">
+              <div><div style="font-size:10px;font-weight:600;color:var(--text-3);text-transform:uppercase;letter-spacing:.4px;margin-bottom:4px;">Email</div><div style="font-size:12.5px;font-weight:600;font-family:var(--mono);">{{ profile.email }}</div></div>
+              <div><div style="font-size:10px;font-weight:600;color:var(--text-3);text-transform:uppercase;letter-spacing:.4px;margin-bottom:4px;">Phone</div><div style="font-size:12.5px;font-weight:600;">{{ profile.phone }}</div></div>
+              <div><div style="font-size:10px;font-weight:600;color:var(--text-3);text-transform:uppercase;letter-spacing:.4px;margin-bottom:4px;">Timezone</div><div style="font-size:12.5px;font-weight:600;">{{ profile.tz }}</div></div>
+              <div><div style="font-size:10px;font-weight:600;color:var(--text-3);text-transform:uppercase;letter-spacing:.4px;margin-bottom:4px;">Member since</div><div style="font-size:12.5px;font-weight:600;">{{ profile.joined }}</div></div>
+            </div>
+          </div>
+          <div style="background:var(--surface);border:1px solid var(--border);border-radius:12px;box-shadow:var(--shadow);padding:18px;">
+            <div style="font-size:13px;font-weight:700;margin-bottom:12px;">Entity assignments</div>
+            <div style="display:flex;flex-wrap:wrap;gap:8px;">
+              <sc-for list="{{ profile.entitiesAssigned }}" as="ea" hint-placeholder-count="6">
+                <span style="display:inline-flex;align-items:center;gap:8px;padding:7px 12px;border:1px solid var(--border);border-radius:8px;background:var(--surface-2);"><span style="width:22px;height:16px;border-radius:4px;background:var(--surface-3);border:1px solid var(--border);display:inline-flex;align-items:center;justify-content:center;font-size:8.5px;font-weight:700;font-family:var(--mono);color:var(--text-2);">{{ ea.flag }}</span><span style="font-size:12.5px;font-weight:600;color:var(--text);">{{ ea.name }}</span></span>
+              </sc-for>
+            </div>
+          </div>
+          <div style="background:var(--surface);border:1px solid var(--border);border-radius:12px;box-shadow:var(--shadow);padding:18px;">
+            <div style="font-size:13px;font-weight:700;margin-bottom:12px;">Recent activity</div>
+            <div style="display:flex;flex-direction:column;gap:8px;">
+              <sc-for list="{{ profile.activity }}" as="ac" hint-placeholder-count="4">
+                <div style="display:flex;align-items:center;gap:11px;padding:9px 11px;border:1px solid var(--border);border-radius:9px;"><span style="width:7px;height:7px;border-radius:50%;background:var(--primary);flex-shrink:0;"></span><span style="flex:1;font-size:12.5px;color:var(--text-2);">{{ ac.action }}</span><span style="font-size:11px;color:var(--text-3);font-family:var(--mono);white-space:nowrap;">{{ ac.time }}</span></div>
+              </sc-for>
+            </div>
+          </div>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:16px;min-width:0;">
+          <div style="background:var(--surface);border:1px solid var(--border);border-radius:12px;box-shadow:var(--shadow);padding:18px;">
+            <div style="display:flex;align-items:center;gap:8px;margin-bottom:14px;"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--rag-g)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l7 3v5c0 4.5-3 7.5-7 9-4-1.5-7-4.5-7-9V6l7-3z"/><path d="M9 11.5l2 2 3.5-4"/></svg><div style="font-size:13px;font-weight:700;">Security</div></div>
+            <div style="display:flex;flex-direction:column;gap:12px;">
+              <div><div style="font-size:10px;font-weight:600;color:var(--text-3);text-transform:uppercase;letter-spacing:.4px;margin-bottom:4px;">Two-factor authentication</div><div style="display:flex;align-items:center;gap:7px;"><span style="width:7px;height:7px;border-radius:50%;background:var(--rag-g);"></span><span style="font-size:12.5px;font-weight:600;color:var(--text);">{{ profile.mfa }}</span></div></div>
+              <div><div style="font-size:10px;font-weight:600;color:var(--text-3);text-transform:uppercase;letter-spacing:.4px;margin-bottom:4px;">Last sign-in</div><div style="font-size:12px;font-family:var(--mono);color:var(--text-2);">{{ profile.lastLogin }}</div></div>
+              <div><div style="font-size:10px;font-weight:600;color:var(--text-3);text-transform:uppercase;letter-spacing:.4px;margin-bottom:4px;">Sessions</div><div style="font-size:12.5px;font-weight:600;">{{ profile.sessions }}</div></div>
+            </div>
+            <div style="display:flex;gap:8px;margin-top:16px;padding-top:16px;border-top:1px solid var(--border);"><button style="flex:1;height:34px;border:1px solid var(--border-strong);border-radius:8px;background:var(--surface);font-family:inherit;font-size:12px;font-weight:600;color:var(--text-2);cursor:pointer;" style-hover="background:var(--surface-3);">Change password</button><button style="flex:1;height:34px;border:1px solid var(--border-strong);border-radius:8px;background:var(--surface);font-family:inherit;font-size:12px;font-weight:600;color:var(--text-2);cursor:pointer;" style-hover="background:var(--surface-3);">Manage sessions</button></div>
+          </div>
+          <div style="background:var(--surface);border:1px solid var(--border);border-radius:12px;box-shadow:var(--shadow);padding:18px;">
+            <div style="font-size:13px;font-weight:700;margin-bottom:12px;">Permissions</div>
+            <div style="display:flex;flex-direction:column;gap:9px;">
+              <sc-for list="{{ profile.permissions }}" as="pm" hint-placeholder-count="4">
+                <div style="display:flex;align-items:center;gap:9px;font-size:12.5px;color:var(--text-2);"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="var(--rag-g)" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg>{{ pm }}</div>
+              </sc-for>
+            </div>
+          </div>
+        </div>
+      </div>
+      </div>
+      </sc-if>

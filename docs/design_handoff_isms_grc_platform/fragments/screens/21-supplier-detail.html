@@ -1,0 +1,70 @@
+<!--
+  Fragment: SUPPLIER — DETAIL
+  Source: design/ISMS Governance Platform.dc.html
+  Template syntax: {{ value }} holes, <sc-if>, <sc-for> — see fragments/README.md
+-->
+<!-- ============ SUPPLIER — DETAIL ============ -->
+      <sc-if value="{{ sup.isDetail }}" hint-placeholder-val="{{ false }}">
+      <div data-screen-label="Supplier assessment detail">
+      <button onClick="{{ sd.back }}" style="display:inline-flex;align-items:center;gap:7px;height:30px;padding:0 10px 0 6px;border:1px solid var(--border-strong);border-radius:8px;background:var(--surface);color:var(--text-2);font-family:inherit;font-size:12px;font-weight:600;cursor:pointer;margin-bottom:14px;" style-hover="background:var(--surface-3);"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 6l-6 6 6 6"/></svg>Supplier register</button>
+      <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:24px;margin-bottom:16px;flex-wrap:wrap;">
+        <div>
+          <div style="display:flex;align-items:center;gap:10px;margin-bottom:7px;">
+            <span style="font-family:var(--mono);font-size:12px;font-weight:600;color:var(--primary-ink);">{{ sd.ref }}</span>
+            <span style="display:inline-flex;align-items:center;gap:6px;font-size:12px;font-weight:600;color:{{ sd.stInk }};"><span style="width:7px;height:7px;border-radius:50%;background:{{ sd.stDot }};"></span>{{ sd.status }}</span>
+          </div>
+          <h1 style="margin:0;font-size:21px;font-weight:700;letter-spacing:-.3px;">{{ sd.party }}</h1>
+          <div style="font-size:12.5px;color:var(--text-2);margin-top:6px;">{{ sd.reason }} · {{ sd.opcoName }}</div>
+        </div>
+        <div style="display:inline-flex;align-items:center;height:34px;padding:0 14px;border-radius:8px;background:{{ sd.decisionBg }};color:{{ sd.decisionInk }};font-size:12.5px;font-weight:700;">{{ sd.decision }}</div>
+      </div>
+
+      <div style="display:grid;grid-template-columns:minmax(0,1fr) 330px;gap:16px;align-items:start;">
+        <div style="display:flex;flex-direction:column;gap:14px;">
+          <div style="background:var(--surface);border:1px solid var(--border);border-radius:12px;box-shadow:var(--shadow);padding:18px 20px;">
+            <div style="font-size:12px;font-weight:700;margin-bottom:14px;">Access requested</div>
+            <div style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px 24px;font-size:12.5px;">
+              <div><div style="font-size:11px;color:var(--text-3);margin-bottom:4px;">Information facility or asset</div><div style="font-weight:600;line-height:1.45;">{{ sd.asset }}</div></div>
+              <div><div style="font-size:11px;color:var(--text-3);margin-bottom:4px;">Type of access</div><div style="font-weight:600;">{{ sd.access }}</div></div>
+              <div><div style="font-size:11px;color:var(--text-3);margin-bottom:4px;">Highest classification involved</div><div style="font-weight:600;">{{ sd.cls }}</div></div>
+              <div><div style="font-size:11px;color:var(--text-3);margin-bottom:4px;">Duration / frequency</div><div style="font-weight:600;">{{ sd.dur }}</div></div>
+              <div><div style="font-size:11px;color:var(--text-3);margin-bottom:4px;">External personnel handling data</div><div style="font-weight:600;">{{ sd.people }}</div></div>
+              <div><div style="font-size:11px;color:var(--text-3);margin-bottom:4px;">Business reason</div><div style="font-weight:600;line-height:1.45;">{{ sd.reason }}</div></div>
+            </div>
+          </div>
+          <div style="display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px;">
+            <div style="background:var(--surface);border:1px solid var(--border);border-radius:12px;box-shadow:var(--shadow);padding:16px 18px;">
+              <div style="font-size:12px;font-weight:700;margin-bottom:10px;">Risks of providing access</div>
+              <div style="display:flex;flex-direction:column;gap:7px;">
+                <sc-for list="{{ sd.risks }}" as="r" hint-placeholder-count="4"><div style="display:flex;gap:8px;font-size:12px;color:var(--text-2);line-height:1.45;"><span style="width:4px;height:4px;border-radius:50%;background:var(--rag-a);flex-shrink:0;margin-top:7px;"></span>{{ r }}</div></sc-for>
+              </div>
+            </div>
+            <div style="background:var(--surface);border:1px solid var(--border);border-radius:12px;box-shadow:var(--shadow);padding:16px 18px;">
+              <div style="font-size:12px;font-weight:700;margin-bottom:4px;">Existing controls</div>
+              <div style="font-size:11px;color:var(--text-3);margin-bottom:10px;">Adequate: {{ sd.adequate }}</div>
+              <div style="display:flex;flex-direction:column;gap:7px;">
+                <sc-for list="{{ sd.controls }}" as="c" hint-placeholder-count="4"><div style="display:flex;gap:8px;font-size:12px;color:var(--text-2);line-height:1.45;"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="var(--rag-g)" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;margin-top:3px;"><path d="M20 6L9 17l-5-5"/></svg>{{ c }}</div></sc-for>
+              </div>
+            </div>
+            <div style="background:var(--surface);border:1px solid var(--border);border-radius:12px;box-shadow:var(--shadow);padding:16px 18px;">
+              <div style="font-size:12px;font-weight:700;margin-bottom:4px;">Third-party controls</div>
+              <div style="font-size:11px;color:var(--text-3);margin-bottom:10px;">Adequate: {{ sd.tpAdequate }}</div>
+              <div style="display:flex;flex-direction:column;gap:7px;">
+                <sc-for list="{{ sd.tpControls }}" as="c" hint-placeholder-count="3"><div style="display:flex;gap:8px;font-size:12px;color:var(--text-2);line-height:1.45;"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="var(--rag-g)" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;margin-top:3px;"><path d="M20 6L9 17l-5-5"/></svg>{{ c }}</div></sc-for>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div style="background:var(--surface);border:1px solid var(--border);border-radius:12px;box-shadow:var(--shadow);padding:16px 18px;display:flex;flex-direction:column;gap:11px;">
+          <div style="font-size:12px;font-weight:700;margin-bottom:2px;">Assessment record</div>
+          <div style="display:flex;justify-content:space-between;gap:12px;font-size:12px;"><span style="color:var(--text-3);">Assessment date</span><span style="font-family:var(--mono);font-size:11.5px;">{{ sd.date }}</span></div>
+          <div style="display:flex;justify-content:space-between;gap:12px;font-size:12px;"><span style="color:var(--text-3);">Performed by</span><span style="font-weight:600;">{{ sd.by }}</span></div>
+          <div style="display:flex;justify-content:space-between;gap:12px;font-size:12px;"><span style="color:var(--text-3);">OpCo</span><span style="font-weight:600;">{{ sd.opco }}</span></div>
+          <div style="display:flex;justify-content:space-between;gap:12px;font-size:12px;"><span style="color:var(--text-3);">New control required</span><span style="font-weight:600;">{{ sd.newCtl }}</span></div>
+          <div style="display:flex;justify-content:space-between;gap:12px;font-size:12px;"><span style="color:var(--text-3);">Re-assessment</span><span style="font-family:var(--mono);font-size:11.5px;">{{ sd.review }}</span></div>
+          <div style="height:1px;background:var(--border);margin:4px 0;"></div>
+          <button style="height:36px;border:none;border-radius:8px;background:var(--primary);color:#fff;font-family:inherit;font-size:12.5px;font-weight:600;cursor:pointer;">Start re-assessment</button>
+        </div>
+      </div>
+      </div>
+      </sc-if>

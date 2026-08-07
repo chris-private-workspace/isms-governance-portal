@@ -1,0 +1,39 @@
+<!--
+  Fragment: PREFERENCES
+  Source: design/ISMS Governance Platform.dc.html
+  Template syntax: {{ value }} holes, <sc-if>, <sc-for> — see fragments/README.md
+-->
+<!-- ============ PREFERENCES ============ -->
+      <sc-if value="{{ isPreferences }}" hint-placeholder-val="{{ false }}">
+      <div data-screen-label="Preferences">
+      <div style="margin-bottom:16px;">
+        <div style="font-size:11px;font-weight:600;letter-spacing:.5px;color:var(--text-3);text-transform:uppercase;margin-bottom:6px;">Preferences</div>
+        <h1 style="margin:0;font-size:23px;font-weight:700;letter-spacing:-.3px;">Preferences</h1>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:16px;max-width:760px;">
+        <div style="background:var(--surface);border:1px solid var(--border);border-radius:12px;box-shadow:var(--shadow);padding:18px;">
+          <div style="font-size:13px;font-weight:700;margin-bottom:3px;">Language</div>
+          <div style="font-size:11.5px;color:var(--text-3);margin-bottom:14px;">Interface language for menus, labels and reports.</div>
+          <div style="display:flex;flex-direction:column;gap:6px;">
+            <sc-for list="{{ langsView }}" as="l" hint-placeholder-count="5">
+              <button onClick="{{ l.onSelect }}" style="display:flex;align-items:center;gap:10px;width:100%;padding:11px 13px;border:1px solid var(--border);border-radius:9px;background:{{ l.bg }};font-family:inherit;cursor:pointer;text-align:left;" style-hover="background:var(--surface-3);"><span style="flex:1;font-size:13px;font-weight:500;color:var(--text);">{{ l.label }}<span style="font-size:11px;color:var(--text-3);margin-left:8px;">{{ l.sub }}</span></span><sc-if value="{{ l.active }}" hint-placeholder-val="{{ false }}"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--primary)" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg></sc-if></button>
+            </sc-for>
+          </div>
+        </div>
+        <div style="background:var(--surface);border:1px solid var(--border);border-radius:12px;box-shadow:var(--shadow);padding:18px;">
+          <div style="font-size:13px;font-weight:700;margin-bottom:14px;">Appearance</div>
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;"><div><div style="font-size:12.5px;font-weight:600;color:var(--text);">Theme</div><div style="font-size:11px;color:var(--text-3);">Light or dark interface</div></div><div style="display:flex;gap:6px;"><button onClick="{{ setLightTheme }}" style="height:34px;padding:0 16px;border:1.5px solid {{ themeLightBorder }};border-radius:8px;background:{{ themeLightBg }};color:{{ themeLightInk }};font-family:inherit;font-size:12.5px;font-weight:600;cursor:pointer;">Light</button><button onClick="{{ setDarkTheme }}" style="height:34px;padding:0 16px;border:1.5px solid {{ themeDarkBorder }};border-radius:8px;background:{{ themeDarkBg }};color:{{ themeDarkInk }};font-family:inherit;font-size:12.5px;font-weight:600;cursor:pointer;">Dark</button></div></div>
+          <div style="display:flex;align-items:center;justify-content:space-between;padding-top:16px;border-top:1px solid var(--border);"><div><div style="font-size:12.5px;font-weight:600;color:var(--text);">Table density</div><div style="font-size:11px;color:var(--text-3);">Row height in registers and tables</div></div><div style="display:flex;gap:6px;"><sc-for list="{{ prefDensity }}" as="pdn" hint-placeholder-count="2"><button onClick="{{ pdn.onSelect }}" style="height:34px;padding:0 16px;border:1.5px solid {{ pdn.border }};border-radius:8px;background:{{ pdn.bg }};color:{{ pdn.ink }};font-family:inherit;font-size:12.5px;font-weight:600;cursor:pointer;">{{ pdn.label }}</button></sc-for></div></div>
+        </div>
+        <div style="background:var(--surface);border:1px solid var(--border);border-radius:12px;box-shadow:var(--shadow);padding:18px;">
+          <div style="font-size:13px;font-weight:700;margin-bottom:3px;">Notifications</div>
+          <div style="font-size:11.5px;color:var(--text-3);margin-bottom:14px;">Choose what reaches you and how.</div>
+          <div style="display:flex;flex-direction:column;">
+            <sc-for list="{{ prefNotify }}" as="pn" hint-placeholder-count="5">
+              <div style="display:flex;align-items:center;gap:12px;padding:11px 0;border-bottom:1px solid var(--border);"><div style="flex:1;min-width:0;"><div style="font-size:12.5px;font-weight:600;color:var(--text);">{{ pn.label }}</div><div style="font-size:11px;color:var(--text-3);">{{ pn.sub }}</div></div><span style="width:38px;height:22px;border-radius:20px;background:{{ pn.trackBg }};position:relative;flex-shrink:0;cursor:pointer;"><span style="position:absolute;top:2px;left:{{ pn.knobX }};width:18px;height:18px;border-radius:50%;background:#fff;box-shadow:0 1px 2px rgba(0,0,0,.2);"></span></span></div>
+            </sc-for>
+          </div>
+        </div>
+      </div>
+      </div>
+      </sc-if>

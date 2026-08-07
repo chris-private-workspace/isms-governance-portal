@@ -1,0 +1,160 @@
+<!--
+  Fragment: AUDIT ISSUE DETAIL
+  Source: design/ISMS Governance Platform.dc.html
+  Template syntax: {{ value }} holes, <sc-if>, <sc-for> — see fragments/README.md
+-->
+<!-- ============ AUDIT ISSUE DETAIL ============ -->
+      <sc-if value="{{ aud.isDetail }}" hint-placeholder-val="{{ false }}">
+      <div data-screen-label="Audit issue detail">
+      <button onClick="{{ aud.back }}" style="display:inline-flex;align-items:center;gap:7px;height:30px;padding:0 10px 0 6px;border:1px solid var(--border-strong);border-radius:8px;background:var(--surface);color:var(--text-2);font-family:inherit;font-size:12px;font-weight:600;cursor:pointer;margin-bottom:14px;" style-hover="background:var(--surface-3);"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 6l-6 6 6 6"/></svg>Audit issues</button>
+
+      <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:24px;margin-bottom:16px;flex-wrap:wrap;">
+        <div style="min-width:0;">
+          <div style="display:flex;align-items:center;gap:10px;margin-bottom:7px;flex-wrap:wrap;">
+            <span style="font-family:var(--mono);font-size:12px;font-weight:600;color:var(--primary-ink);">{{ aud.sel.ref }}</span>
+            <span style="display:inline-flex;align-items:center;height:22px;padding:0 10px;border-radius:6px;background:{{ aud.sel.gBg }};color:{{ aud.sel.gInk }};font-size:11px;font-weight:700;">{{ aud.sel.grade }}</span>
+            <span style="display:inline-flex;align-items:center;gap:6px;font-size:12px;font-weight:600;color:{{ aud.sel.stInk }};"><span style="width:7px;height:7px;border-radius:50%;background:{{ aud.sel.stDot }};"></span>{{ aud.sel.status }}</span>
+          </div>
+          <h1 style="margin:0;font-size:21px;font-weight:700;letter-spacing:-.3px;line-height:1.3;max-width:760px;text-wrap:pretty;">{{ aud.sel.title }}</h1>
+          <div style="font-size:12.5px;color:var(--text-2);margin-top:6px;">{{ aud.sel.audit }} · {{ aud.sel.opcoName }} · clause {{ aud.sel.clause }}</div>
+        </div>
+        <div style="display:flex;gap:8px;">
+          <button style="height:34px;padding:0 14px;border:1px solid var(--border-strong);border-radius:8px;background:var(--surface);color:var(--text-2);font-family:inherit;font-size:12.5px;font-weight:600;cursor:pointer;" style-hover="background:var(--surface-3);">Attach evidence</button>
+          <button style="height:34px;padding:0 14px;border:none;border-radius:8px;background:var(--primary);color:#fff;font-family:inherit;font-size:12.5px;font-weight:600;cursor:pointer;">Update CAP</button>
+        </div>
+      </div>
+
+      <sc-if value="{{ aud.sel.overdue }}" hint-placeholder-val="{{ false }}">
+      <div style="display:flex;align-items:center;gap:10px;padding:11px 15px;border:1px solid var(--rag-r);border-radius:10px;background:var(--rag-r-bg);margin-bottom:16px;">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--rag-r-ink)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;"><circle cx="12" cy="12" r="9"/><path d="M12 8v4.5"/><circle cx="12" cy="16" r=".7" fill="currentColor" stroke="none"/></svg>
+        <span style="font-size:12.5px;font-weight:600;color:var(--rag-r-ink);">Past the agreed corrective action date — escalated to the Information Security Committee.</span>
+      </div>
+      </sc-if>
+
+      <div style="background:var(--surface);border:1px solid var(--border);border-radius:12px;box-shadow:var(--shadow);padding:18px 20px;margin-bottom:16px;">
+        <div style="font-size:11px;font-weight:700;letter-spacing:.4px;text-transform:uppercase;color:var(--text-3);margin-bottom:14px;">Finding lifecycle</div>
+        <div style="overflow-x:auto;"><div style="display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:8px;min-width:620px;">
+          <sc-for list="{{ aud.sel.steps }}" as="s" hint-placeholder-count="5">
+            <div style="display:flex;flex-direction:column;gap:8px;min-width:0;">
+              <div style="display:flex;align-items:center;gap:6px;">
+                <span style="width:24px;height:24px;border-radius:50%;background:{{ s.bg }};color:{{ s.ink }};display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;font-family:var(--mono);flex-shrink:0;">{{ s.n }}</span>
+                <span style="flex:1;height:2px;background:{{ s.bar }};border-radius:2px;"></span>
+              </div>
+              <div><div style="font-size:11.5px;font-weight:600;line-height:1.35;">{{ s.label }}</div><div style="font-size:10.5px;color:var(--text-3);margin-top:2px;">{{ s.meta }}</div></div>
+            </div>
+          </sc-for>
+        </div></div>
+      </div>
+
+      <div style="display:flex;align-items:center;gap:3px;background:var(--surface-3);border-radius:9px;padding:3px;margin-bottom:16px;width:fit-content;flex-wrap:wrap;">
+        <sc-for list="{{ aud.sel.tabs }}" as="t" hint-placeholder-count="4">
+          <button onClick="{{ t.onSel }}" style="height:32px;padding:0 15px;border:1px solid {{ t.bd }};border-radius:7px;background:{{ t.bg }};color:{{ t.ink }};font-family:inherit;font-size:12.5px;font-weight:600;cursor:pointer;">{{ t.label }}</button>
+        </sc-for>
+      </div>
+
+      <div style="display:grid;grid-template-columns:minmax(0,1fr) 320px;gap:16px;align-items:start;">
+        <div style="display:flex;flex-direction:column;gap:14px;min-width:0;">
+
+          <sc-if value="{{ aud.sel.tabFinding }}" hint-placeholder-val="{{ true }}">
+          <div style="display:flex;flex-direction:column;gap:14px;">
+            <div style="background:var(--surface);border:1px solid var(--border);border-radius:12px;box-shadow:var(--shadow);padding:18px 20px;">
+              <div style="font-size:12px;font-weight:700;margin-bottom:10px;">Finding</div>
+              <div style="font-size:13px;line-height:1.65;color:var(--text-2);text-wrap:pretty;">{{ aud.sel.finding }}</div>
+              <div style="display:flex;gap:24px;margin-top:14px;padding-top:12px;border-top:1px solid var(--border);flex-wrap:wrap;font-size:11.5px;">
+                <span style="color:var(--text-3);">Clause <b style="color:var(--text);font-weight:600;font-family:var(--mono);">{{ aud.sel.clause }}</b></span>
+                <span style="color:var(--text-3);">Grade <b style="color:var(--text);font-weight:600;">{{ aud.sel.grade }}</b></span>
+                <span style="color:var(--text-3);">Raised <b style="color:var(--text);font-weight:600;font-family:var(--mono);">{{ aud.sel.raised }}</b></span>
+              </div>
+            </div>
+            <div style="background:var(--surface);border:1px solid var(--border);border-radius:12px;box-shadow:var(--shadow);padding:18px 20px;">
+              <div style="font-size:12px;font-weight:700;margin-bottom:10px;">Corrective action plan</div>
+              <div style="font-size:13px;line-height:1.65;color:var(--text-2);text-wrap:pretty;">{{ aud.sel.cap }}</div>
+              <div style="display:flex;gap:24px;margin-top:14px;padding-top:12px;border-top:1px solid var(--border);flex-wrap:wrap;font-size:11.5px;">
+                <span style="color:var(--text-3);">Owner <b style="color:var(--text);font-weight:600;">{{ aud.sel.owner }}</b></span>
+                <span style="color:var(--text-3);">Due <b style="color:var(--text);font-weight:600;font-family:var(--mono);">{{ aud.sel.due }}</b></span>
+                <span style="color:var(--text-3);">Open actions <b style="color:var(--text);font-weight:600;font-family:var(--mono);">{{ aud.sel.openActions }}</b></span>
+              </div>
+            </div>
+          </div>
+          </sc-if>
+
+          <sc-if value="{{ aud.sel.tabActions }}" hint-placeholder-val="{{ false }}">
+          <div style="background:var(--surface);border:1px solid var(--border);border-radius:12px;box-shadow:var(--shadow);overflow:hidden;">
+            <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;padding:13px 18px;background:var(--surface-2);border-bottom:1px solid var(--border);">
+              <span style="font-size:12px;font-weight:700;">Corrective action steps</span>
+              <span style="font-size:11px;color:var(--text-3);">{{ aud.sel.openActions }} open</span>
+            </div>
+            <div style="overflow-x:auto;">
+            <sc-for list="{{ aud.sel.actions }}" as="a" hint-placeholder-count="5">
+              <div style="display:grid;grid-template-columns:26px minmax(0,1fr) 190px 104px 92px;min-width:640px;gap:12px;padding:12px 18px;border-bottom:1px solid var(--border);align-items:center;font-size:12.5px;">
+                <span style="width:17px;height:17px;border-radius:5px;border:1.5px solid;{{ a.box }}display:flex;align-items:center;justify-content:center;"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg></span>
+                <span style="font-weight:600;line-height:1.4;text-wrap:pretty;">{{ a.task }}</span>
+                <span style="color:var(--text-2);font-size:12px;">{{ a.who }}</span>
+                <span style="font-family:var(--mono);font-size:11px;color:var(--text-2);">{{ a.due }}</span>
+                <span style="font-size:11.5px;font-weight:600;color:{{ a.ink }};">{{ a.state }}</span>
+              </div>
+            </sc-for>
+            </div>
+          </div>
+          </sc-if>
+
+          <sc-if value="{{ aud.sel.tabEvidence }}" hint-placeholder-val="{{ false }}">
+          <div style="display:flex;flex-direction:column;gap:14px;">
+            <div style="background:var(--surface);border:1px solid var(--border);border-radius:12px;box-shadow:var(--shadow);overflow:hidden;">
+              <div style="padding:13px 18px;background:var(--surface-2);border-bottom:1px solid var(--border);font-size:12px;font-weight:700;">Evidence</div>
+              <sc-for list="{{ aud.sel.evidence }}" as="e" hint-placeholder-count="2">
+                <div style="display:flex;align-items:flex-start;gap:12px;padding:13px 18px;border-bottom:1px solid var(--border);">
+                  <span style="width:30px;height:36px;border-radius:5px;background:var(--surface-3);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;flex-shrink:0;"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="var(--text-2)" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M14 3v5h5"/><path d="M6 2h9l5 5v13a1 1 0 01-1 1H6a1 1 0 01-1-1V3a1 1 0 011-1z"/></svg></span>
+                  <div style="min-width:0;flex:1;">
+                    <div style="font-size:12.5px;font-weight:600;font-family:var(--mono);word-break:break-all;">{{ e.name }}</div>
+                    <div style="font-size:11px;color:var(--text-3);margin-top:3px;">{{ e.kind }} · uploaded by {{ e.by }} · {{ e.when }}</div>
+                    <div style="font-size:11.5px;color:var(--text-2);margin-top:5px;line-height:1.5;text-wrap:pretty;">{{ e.note }}</div>
+                  </div>
+                  <button style="height:30px;padding:0 12px;border:1px solid var(--border-strong);border-radius:7px;background:var(--surface);color:var(--text-2);font-family:inherit;font-size:12px;font-weight:600;cursor:pointer;flex-shrink:0;" style-hover="background:var(--surface-3);">Open</button>
+                </div>
+              </sc-for>
+              <sc-if value="{{ aud.sel.noEv }}" hint-placeholder-val="{{ false }}">
+                <div style="padding:20px 18px;font-size:12.5px;color:var(--text-3);">No evidence has been attached yet. Closure requires implementation evidence accepted by the auditor.</div>
+              </sc-if>
+            </div>
+            <div style="background:var(--surface);border:1px solid var(--border);border-radius:12px;box-shadow:var(--shadow);padding:18px 20px;">
+              <div style="font-size:12px;font-weight:700;margin-bottom:12px;">Verification</div>
+              <div style="display:flex;align-items:center;gap:13px;padding:13px 15px;border:1px solid var(--border);border-radius:10px;background:var(--surface-2);">
+                <span style="width:30px;height:30px;border-radius:50%;background:var(--primary-tint);color:var(--primary-ink);display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;flex-shrink:0;">1</span>
+                <div style="flex:1;min-width:0;"><div style="font-size:12.5px;font-weight:600;">Verified by</div><div style="font-size:11.5px;color:var(--text-3);margin-top:2px;">{{ aud.sel.verifier }}</div></div>
+                <span style="font-family:var(--mono);font-size:11.5px;color:var(--text-2);">{{ aud.sel.verifyDate }}</span>
+              </div>
+              <div style="font-size:11.5px;color:var(--text-3);line-height:1.6;margin-top:12px;text-wrap:pretty;">A Major nonconformity must be verified as effective before the certificate recommendation is confirmed. Minor findings and observations are reviewed at the next surveillance audit.</div>
+            </div>
+          </div>
+          </sc-if>
+
+          <sc-if value="{{ aud.sel.tabHistory }}" hint-placeholder-val="{{ false }}">
+          <div style="background:var(--surface);border:1px solid var(--border);border-radius:12px;box-shadow:var(--shadow);overflow:hidden;">
+            <div style="padding:13px 18px;background:var(--surface-2);border-bottom:1px solid var(--border);font-size:12px;font-weight:700;">History</div>
+            <sc-for list="{{ aud.sel.history }}" as="e" hint-placeholder-count="3">
+              <div style="display:grid;grid-template-columns:120px minmax(0,1fr);gap:16px;padding:12px 18px;border-bottom:1px solid var(--border);font-size:12.5px;">
+                <span style="font-family:var(--mono);font-size:11.5px;color:var(--text-3);">{{ e.ts }}</span>
+                <span style="color:var(--text-2);line-height:1.5;text-wrap:pretty;">{{ e.ev }}</span>
+              </div>
+            </sc-for>
+          </div>
+          </sc-if>
+        </div>
+
+        <div style="background:var(--surface);border:1px solid var(--border);border-radius:12px;box-shadow:var(--shadow);padding:16px 18px;display:flex;flex-direction:column;gap:11px;">
+          <div style="font-size:12px;font-weight:700;margin-bottom:2px;">Record</div>
+          <div style="display:flex;justify-content:space-between;gap:12px;font-size:12px;"><span style="color:var(--text-3);">Source</span><span style="font-weight:600;text-align:right;">{{ aud.sel.src }}</span></div>
+          <div style="display:flex;justify-content:space-between;gap:12px;font-size:12px;"><span style="color:var(--text-3);">Audit</span><span style="font-weight:600;text-align:right;line-height:1.4;">{{ aud.sel.audit }}</span></div>
+          <div style="display:flex;justify-content:space-between;gap:12px;font-size:12px;"><span style="color:var(--text-3);">Operating company</span><span style="font-weight:600;text-align:right;">{{ aud.sel.opcoName }}</span></div>
+          <div style="display:flex;justify-content:space-between;gap:12px;font-size:12px;"><span style="color:var(--text-3);">Owner</span><span style="font-weight:600;">{{ aud.sel.owner }}</span></div>
+          <div style="display:flex;justify-content:space-between;gap:12px;font-size:12px;"><span style="color:var(--text-3);">Raised</span><span style="font-family:var(--mono);font-size:11.5px;">{{ aud.sel.raised }}</span></div>
+          <div style="display:flex;justify-content:space-between;gap:12px;font-size:12px;"><span style="color:var(--text-3);">CAP due</span><span style="font-family:var(--mono);font-size:11.5px;">{{ aud.sel.due }}</span></div>
+          <div style="display:flex;justify-content:space-between;gap:12px;font-size:12px;"><span style="color:var(--text-3);">Clause</span><span style="font-family:var(--mono);font-size:11.5px;">{{ aud.sel.clause }}</span></div>
+          <div style="display:flex;justify-content:space-between;gap:12px;font-size:12px;"><span style="color:var(--text-3);">Linked record</span><span style="font-family:var(--mono);font-size:11.5px;color:var(--primary-ink);">{{ aud.sel.link }}</span></div>
+          <div style="height:1px;background:var(--border);margin:4px 0;"></div>
+          <button style="height:34px;border:1px solid var(--border-strong);border-radius:8px;background:var(--surface);color:var(--text-2);font-family:inherit;font-size:12.5px;font-weight:600;cursor:pointer;" style-hover="background:var(--surface-3);">Export finding</button>
+        </div>
+      </div>
+      </div>
+      </sc-if>

@@ -1,0 +1,50 @@
+<!--
+  Fragment: AUDIT ISSUES
+  Source: design/ISMS Governance Platform.dc.html
+  Template syntax: {{ value }} holes, <sc-if>, <sc-for> — see fragments/README.md
+-->
+<!-- ============ AUDIT ISSUES ============ -->
+      <sc-if value="{{ aud.isList }}" hint-placeholder-val="{{ false }}">
+      <div data-screen-label="Audit issues">
+      <div style="display:flex;align-items:flex-end;justify-content:space-between;gap:20px;margin-bottom:18px;flex-wrap:wrap;">
+        <div>
+          <div style="font-size:11px;font-weight:600;letter-spacing:.5px;color:var(--text-3);text-transform:uppercase;margin-bottom:6px;">Audit findings & corrective action</div>
+          <h1 style="margin:0;font-size:22px;font-weight:700;letter-spacing:-.3px;">Audit issues</h1>
+          <div style="font-size:13px;color:var(--text-2);margin-top:5px;max-width:700px;text-wrap:pretty;">Findings raised by internal audit, the certification body, customers and regulators, each with a corrective action plan, an owner and a due date, tracked to verified closure.</div>
+        </div>
+        <button style="display:inline-flex;align-items:center;gap:8px;height:38px;padding:0 16px;border:none;border-radius:9px;background:var(--primary);color:#fff;font-family:inherit;font-size:13px;font-weight:600;cursor:pointer;"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>Raise finding</button>
+      </div>
+
+      <div style="display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;margin-bottom:16px;">
+        <div style="background:var(--surface);border:1px solid var(--border);border-radius:12px;box-shadow:var(--shadow);padding:14px 16px;"><div style="font-size:11px;color:var(--text-3);font-weight:600;">Open findings</div><div style="font-size:26px;font-weight:700;letter-spacing:-.6px;margin-top:5px;">{{ aud.kOpen }}</div><div style="font-size:11px;color:var(--text-3);margin-top:3px;">across all audit sources</div></div>
+        <div style="background:var(--surface);border:1px solid var(--border);border-radius:12px;box-shadow:var(--shadow);padding:14px 16px;"><div style="font-size:11px;color:var(--text-3);font-weight:600;">Major nonconformities</div><div style="font-size:26px;font-weight:700;letter-spacing:-.6px;margin-top:5px;color:var(--rag-r-ink);">{{ aud.kMajor }}</div><div style="font-size:11px;color:var(--text-3);margin-top:3px;">certification risk if unresolved</div></div>
+        <div style="background:var(--surface);border:1px solid var(--border);border-radius:12px;box-shadow:var(--shadow);padding:14px 16px;"><div style="font-size:11px;color:var(--text-3);font-weight:600;">Overdue</div><div style="font-size:26px;font-weight:700;letter-spacing:-.6px;margin-top:5px;color:var(--rag-a-ink);">{{ aud.kOverdue }}</div><div style="font-size:11px;color:var(--text-3);margin-top:3px;">past the agreed CAP date</div></div>
+        <div style="background:var(--surface);border:1px solid var(--border);border-radius:12px;box-shadow:var(--shadow);padding:14px 16px;"><div style="font-size:11px;color:var(--text-3);font-weight:600;">Closed this year</div><div style="font-size:26px;font-weight:700;letter-spacing:-.6px;margin-top:5px;color:var(--rag-g-ink);">{{ aud.kClosed }}</div><div style="font-size:11px;color:var(--text-3);margin-top:3px;">verified and evidenced</div></div>
+      </div>
+
+      <div style="display:flex;align-items:center;gap:7px;margin-bottom:14px;flex-wrap:wrap;">
+        <sc-for list="{{ aud.filters }}" as="f" hint-placeholder-count="6">
+          <button onClick="{{ f.onSel }}" style="height:30px;padding:0 13px;border:1px solid {{ f.bd }};border-radius:8px;background:{{ f.bg }};color:{{ f.ink }};font-family:inherit;font-size:12px;font-weight:600;cursor:pointer;">{{ f.label }}</button>
+        </sc-for>
+      </div>
+
+      <div style="background:var(--surface);border:1px solid var(--border);border-radius:12px;box-shadow:var(--shadow);overflow:auto;margin-bottom:16px;">
+        <div style="display:grid;grid-template-columns:118px minmax(0,2.4fr) 104px 150px 84px 92px 120px 96px;min-width:1080px;gap:12px;padding:9px 16px;background:var(--surface-2);border-bottom:1px solid var(--border);font-size:10px;font-weight:700;letter-spacing:.45px;text-transform:uppercase;color:var(--text-3);">
+          <span>Reference</span><span>Finding</span><span>Grade</span><span>Source</span><span>OpCo</span><span>Owner</span><span>Status</span><span>Due</span>
+        </div>
+        <sc-for list="{{ aud.list }}" as="i" hint-placeholder-count="7">
+          <div onClick="{{ i.onSel }}" style="display:grid;grid-template-columns:118px minmax(0,2.4fr) 104px 150px 84px 92px 120px 96px;min-width:1080px;gap:12px;padding:var(--row-py) 16px;border-bottom:1px solid var(--border);align-items:center;font-size:12.5px;cursor:pointer;" style-hover="background:var(--surface-2);">
+            <span style="font-family:var(--mono);font-size:11px;color:var(--primary-ink);font-weight:600;">{{ i.ref }}</span>
+            <span><b style="display:block;font-weight:600;line-height:1.35;text-wrap:pretty;">{{ i.title }}</b><span style="display:block;font-size:10.5px;color:var(--text-3);margin-top:2px;font-family:var(--mono);">Clause {{ i.clause }} · linked {{ i.link }}</span></span>
+            <span style="display:inline-flex;align-items:center;height:21px;padding:0 9px;border-radius:6px;background:{{ i.gBg }};color:{{ i.gInk }};font-size:11px;font-weight:700;justify-self:start;">{{ i.grade }}</span>
+            <span style="color:var(--text-2);font-size:12px;line-height:1.35;">{{ i.src }}</span>
+            <span style="font-family:var(--mono);font-size:11.5px;color:var(--text-2);">{{ i.opco }}</span>
+            <span style="color:var(--text-2);font-size:12px;">{{ i.owner }}</span>
+            <span style="display:inline-flex;align-items:center;gap:6px;font-size:11.5px;font-weight:600;color:{{ i.stInk }};"><span style="width:7px;height:7px;border-radius:50%;background:{{ i.stDot }};"></span>{{ i.status }}</span>
+            <span style="font-family:var(--mono);font-size:11px;color:var(--text-2);">{{ i.due }}</span>
+          </div>
+        </sc-for>
+      </div>
+
+      </div>
+      </sc-if>

@@ -1,0 +1,222 @@
+<!--
+  Fragment: APP SHELL
+  Source: design/ISMS Governance Platform.dc.html
+  Template syntax: {{ value }} holes, <sc-if>, <sc-for> — see fragments/README.md
+-->
+<!-- ============ APP SHELL ============ -->
+  <sc-if value="{{ showApp }}" hint-placeholder-val="{{ false }}">
+  <aside style="width:{{ navW }};flex-shrink:0;background:var(--nav-bg);border-right:1px solid var(--nav-border);display:flex;flex-direction:column;position:sticky;top:0;height:100vh;transition:width .18s ease;">
+    <div style="display:flex;align-items:center;gap:10px;padding:17px 18px 16px;border-bottom:1px solid var(--nav-border);justify-content:{{ navJustify }};">
+      <div style="width:30px;height:30px;border-radius:7px;background:var(--primary);display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l7 3v5c0 4.5-3 7.5-7 9-4-1.5-7-4.5-7-9V6l7-3z"/><path d="M9 11.5l2 2 3.5-4"/></svg>
+      </div>
+      <div style="line-height:1.15;{{ navText }}">
+        <div style="font-size:13.5px;font-weight:700;color:#fff;letter-spacing:.2px;">ISMS Governance Platform</div>
+        <div style="font-size:10.5px;color:var(--nav-text-2);font-weight:500;">APAC · Information Security</div>
+      </div>
+    </div>
+
+    <nav style="padding:12px 12px;display:flex;flex-direction:column;gap:2px;flex:1;">
+      <div style="font-size:10px;font-weight:700;letter-spacing:.7px;color:var(--nav-text-2);padding:8px 10px 6px;text-transform:uppercase;{{ navText }}">Intelligence</div>
+      <a onClick="{{ nav.assistant.go }}" title="ISMS AI Agent" style="display:flex;align-items:center;gap:11px;padding:8px 11px;border-radius:0 7px 7px 0;font-size:13px;text-decoration:none;cursor:pointer;justify-content:{{ navJustify }};{{ nav.assistant.c }}" style-hover="background:var(--nav-surface);color:#fff;">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;"><path d="M4 5h16v11H9l-5 4V5z"/><path d="M12 8.2l.9 2.1 2.1.9-2.1.9-.9 2.1-.9-2.1-2.1-.9 2.1-.9.9-2.1z"/></svg>
+        <span style="{{ navText }}">ISMS AI Agent</span>
+        <span style="margin-left:auto;font-size:9.5px;font-weight:700;font-family:var(--mono);background:var(--primary);color:#fff;border-radius:10px;padding:1px 6px;letter-spacing:.3px;{{ navText }}">AI</span></a>
+      <div style="font-size:10px;font-weight:700;letter-spacing:.7px;color:var(--nav-text-2);padding:16px 10px 6px;text-transform:uppercase;{{ navText }}">Oversight</div>
+      <a onClick="{{ nav.dashboard.go }}" title="Dashboard" style="display:flex;align-items:center;gap:11px;padding:8px 11px;border-radius:0 7px 7px 0;font-size:13px;text-decoration:none;cursor:pointer;justify-content:{{ navJustify }};{{ nav.dashboard.c }}" style-hover="background:var(--nav-surface);color:#fff;">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;"><rect x="3" y="3" width="7" height="9" rx="1"/><rect x="14" y="3" width="7" height="5" rx="1"/><rect x="14" y="12" width="7" height="9" rx="1"/><rect x="3" y="16" width="7" height="5" rx="1"/></svg>
+        <span style="{{ navText }}">Dashboard</span></a>
+      <a onClick="{{ nav.risks.go }}" title="Risks" style="display:flex;align-items:center;gap:11px;padding:8px 11px;border-radius:0 7px 7px 0;font-size:13px;text-decoration:none;cursor:pointer;justify-content:{{ navJustify }};{{ nav.risks.c }}" style-hover="background:var(--nav-surface);color:#fff;">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;"><path d="M12 3 2 20h20L12 3z"/><line x1="12" y1="10" x2="12" y2="14.5"/><circle cx="12" cy="17.4" r=".7" fill="currentColor" stroke="none"/></svg>
+        <span style="{{ navText }}">Risks</span></a>
+      <a onClick="{{ nav.riskprog.go }}" title="Risk programme" style="display:flex;align-items:center;gap:11px;padding:8px 11px;border-radius:0 7px 7px 0;font-size:13px;text-decoration:none;cursor:pointer;justify-content:{{ navJustify }};{{ nav.riskprog.c }}" style-hover="background:var(--nav-surface);color:#fff;">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;"><path d="M4 5.5A1.5 1.5 0 015.5 4H10l1.6 2H18.5A1.5 1.5 0 0120 7.5v10a1.5 1.5 0 01-1.5 1.5h-13A1.5 1.5 0 014 17.5v-12z"/><path d="M8 12h8M8 15.5h5"/></svg>
+        <span style="{{ navText }}">Risk programme</span></a>
+      <a onClick="{{ nav.controls.go }}" title="Controls" style="display:flex;align-items:center;gap:11px;padding:8px 11px;border-radius:0 7px 7px 0;font-size:13px;text-decoration:none;cursor:pointer;justify-content:{{ navJustify }};{{ nav.controls.c }}" style-hover="background:var(--nav-surface);color:#fff;">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;"><path d="M12 3l7 3v5c0 4.5-3 7.5-7 9-4-1.5-7-4.5-7-9V6l7-3z"/><path d="M9 11.5l2 2 3.5-4"/></svg>
+        <span style="{{ navText }}">Controls</span></a>
+      <a onClick="{{ nav.policies.go }}" title="Policies" style="display:flex;align-items:center;gap:11px;padding:8px 11px;border-radius:0 7px 7px 0;font-size:13px;text-decoration:none;cursor:pointer;justify-content:{{ navJustify }};{{ nav.policies.c }}" style-hover="background:var(--nav-surface);color:#fff;">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;"><rect x="5" y="3" width="14" height="18" rx="2"/><line x1="8" y1="8" x2="16" y2="8"/><line x1="8" y1="12" x2="16" y2="12"/><line x1="8" y1="16" x2="13" y2="16"/></svg>
+        <span style="{{ navText }}">Policies</span></a>
+      <a onClick="{{ nav.issues.go }}" title="Issues" style="display:flex;align-items:center;gap:11px;padding:8px 11px;border-radius:0 7px 7px 0;font-size:13px;text-decoration:none;cursor:pointer;justify-content:{{ navJustify }};{{ nav.issues.c }}" style-hover="background:var(--nav-surface);color:#fff;">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;"><line x1="6" y1="3" x2="6" y2="21"/><path d="M6 4h11l-2 3 2 3H6z"/></svg>
+        <span style="{{ navText }}">Issues</span>
+        <span style="margin-left:auto;font-size:10.5px;font-weight:700;font-family:var(--mono);background:var(--rag-r);color:#fff;border-radius:10px;padding:1px 7px;{{ navText }}">5</span></a>
+      <a onClick="{{ nav.assessments.go }}" title="Assessments" style="display:flex;align-items:center;gap:11px;padding:8px 11px;border-radius:0 7px 7px 0;font-size:13px;text-decoration:none;cursor:pointer;justify-content:{{ navJustify }};{{ nav.assessments.c }}" style-hover="background:var(--nav-surface);color:#fff;">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;"><rect x="5" y="4" width="14" height="17" rx="2"/><path d="M9 4V2.8h6V4"/><path d="M9 13l2 2 4-4"/></svg>
+        <span style="{{ navText }}">Assessments</span></a>
+      <a onClick="{{ nav.auditissues.go }}" title="Audit issues" style="display:flex;align-items:center;gap:11px;padding:8px 11px;border-radius:0 7px 7px 0;font-size:13px;text-decoration:none;cursor:pointer;justify-content:{{ navJustify }};{{ nav.auditissues.c }}" style-hover="background:var(--nav-surface);color:#fff;">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;"><path d="M7 4h10v16H7z"/><path d="M10 9h4M10 13h4"/><circle cx="17.5" cy="17.5" r="3.5" fill="var(--nav-bg)"/><path d="M16 17.6l1.1 1.1 2.2-2.2"/></svg>
+        <span style="{{ navText }}">Audit issues</span>
+        <span style="margin-left:auto;font-size:10.5px;font-weight:700;font-family:var(--mono);background:var(--rag-a);color:#fff;border-radius:10px;padding:1px 7px;{{ navText }}">5</span></a>
+      <div style="font-size:10px;font-weight:700;letter-spacing:.7px;color:var(--nav-text-2);padding:16px 10px 6px;text-transform:uppercase;{{ navText }}">Operations</div>
+      <a onClick="{{ nav.incidents.go }}" title="Security incidents" style="display:flex;align-items:center;gap:11px;padding:8px 11px;border-radius:0 7px 7px 0;font-size:13px;text-decoration:none;cursor:pointer;justify-content:{{ navJustify }};{{ nav.incidents.c }}" style-hover="background:var(--nav-surface);color:#fff;">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;"><path d="M12 2.8l8 3.4v5.3c0 4.6-3.3 8.1-8 9.7-4.7-1.6-8-5.1-8-9.7V6.2l8-3.4z"/><line x1="12" y1="8.5" x2="12" y2="13"/><circle cx="12" cy="15.9" r=".8" fill="currentColor" stroke="none"/></svg>
+        <span style="{{ navText }}">Incidents</span>
+        <span style="margin-left:auto;font-size:10.5px;font-weight:700;font-family:var(--mono);background:var(--rag-r);color:#fff;border-radius:10px;padding:1px 7px;{{ navText }}">2</span></a>
+      <a onClick="{{ nav.suppliers.go }}" title="Suppliers" style="display:flex;align-items:center;gap:11px;padding:8px 11px;border-radius:0 7px 7px 0;font-size:13px;text-decoration:none;cursor:pointer;justify-content:{{ navJustify }};{{ nav.suppliers.c }}" style-hover="background:var(--nav-surface);color:#fff;">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;"><path d="M3 9.5L12 4l9 5.5"/><path d="M5 11v8h14v-8"/><path d="M9.5 19v-5h5v5"/></svg>
+        <span style="{{ navText }}">Suppliers</span></a>
+      <div style="font-size:10px;font-weight:700;letter-spacing:.7px;color:var(--nav-text-2);padding:16px 10px 6px;text-transform:uppercase;{{ navText }}">Compliance</div>
+      <a onClick="{{ nav.isms.go }}" title="APAC ISMS profiles" style="display:flex;align-items:center;gap:11px;padding:8px 11px;border-radius:0 7px 7px 0;font-size:13px;text-decoration:none;cursor:pointer;justify-content:{{ navJustify }};{{ nav.isms.c }}" style-hover="background:var(--nav-surface);color:#fff;">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;"><circle cx="12" cy="9.5" r="5"/><path d="M8.5 13.5L7 21l5-2.4L17 21l-1.5-7.5"/></svg>
+        <span style="{{ navText }}">ISMS profiles</span></a>
+      <a onClick="{{ nav.osportfolio.go }}" title="OS portfolio" style="display:flex;align-items:center;gap:11px;padding:8px 11px;border-radius:0 7px 7px 0;font-size:13px;text-decoration:none;cursor:pointer;justify-content:{{ navJustify }};{{ nav.osportfolio.c }}" style-hover="background:var(--nav-surface);color:#fff;">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;"><rect x="3.5" y="7" width="17" height="12.5" rx="2"/><path d="M9 7V5.5A1.5 1.5 0 0110.5 4h3A1.5 1.5 0 0115 5.5V7"/><path d="M3.5 12h17"/></svg>
+        <span style="{{ navText }}">OS portfolio</span></a>
+      <div style="font-size:10px;font-weight:700;letter-spacing:.7px;color:var(--nav-text-2);padding:16px 10px 6px;text-transform:uppercase;{{ navText }}">System</div>
+      <a onClick="{{ nav.admin.go }}" title="Admin" style="display:flex;align-items:center;gap:11px;padding:8px 11px;border-radius:0 7px 7px 0;font-size:13px;text-decoration:none;cursor:pointer;justify-content:{{ navJustify }};{{ nav.admin.c }}" style-hover="background:var(--nav-surface);color:#fff;">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;"><line x1="4" y1="8" x2="20" y2="8"/><line x1="4" y1="16" x2="20" y2="16"/><circle cx="9" cy="8" r="2.2" fill="var(--nav-bg)"/><circle cx="15" cy="16" r="2.2" fill="var(--nav-bg)"/></svg>
+        <span style="{{ navText }}">Admin</span></a>
+    </nav>
+
+    <div style="padding:12px;border-top:1px solid var(--nav-border);display:flex;align-items:center;gap:8px;justify-content:{{ navJustify }};">
+      <div style="flex:1;display:flex;align-items:center;gap:8px;{{ navText }}">
+        <span style="width:7px;height:7px;border-radius:50%;background:var(--rag-g);box-shadow:0 0 0 3px rgba(30,138,92,.18);flex-shrink:0;"></span>
+        <div style="font-size:11px;color:var(--nav-text-2);line-height:1.3;">Production · SG-1<br><span style="color:var(--nav-text);">v2.4 · SOC 2 Type II</span></div>
+      </div>
+      <button onClick="{{ toggleNav }}" title="Collapse sidebar" style="width:30px;height:30px;border-radius:7px;border:1px solid var(--nav-border);background:transparent;color:var(--nav-text);cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;" style-hover="background:var(--nav-surface);color:#fff;">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" style="transform:{{ navChevron }};"><path d="M15 6l-6 6 6 6"/></svg>
+      </button>
+    </div>
+  </aside>
+
+  <div style="flex:1;min-width:0;display:flex;flex-direction:column;">
+
+    <header style="height:56px;flex-shrink:0;background:var(--surface);border-bottom:1px solid var(--border);display:flex;align-items:center;gap:14px;padding:0 18px;position:sticky;top:0;z-index:20;">
+      <div style="position:relative;">
+        <button onClick="{{ toggleScope }}" style="display:flex;align-items:center;gap:9px;height:36px;padding:0 12px;border:1px solid var(--border-strong);border-radius:8px;background:var(--surface);color:var(--text);font-family:inherit;font-size:13px;font-weight:600;cursor:pointer;" style-hover="background:var(--surface-3);">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="var(--primary)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M3 12h18"/><path d="M12 3c3 3 3 15 0 18M12 3c-3 3-3 15 0 18"/></svg>
+          <span>{{ scopeLabel }}</span>
+          <span style="color:var(--text-3);font-weight:500;">{{ scopeMeta }}</span>
+          <span style="color:var(--text-3);font-size:10px;">▼</span>
+        </button>
+        <sc-if value="{{ scopeOpen }}" hint-placeholder-val="{{ false }}">
+          <div style="position:absolute;top:42px;left:0;width:264px;background:var(--surface);border:1px solid var(--border-strong);border-radius:10px;box-shadow:0 8px 28px rgba(16,24,40,.16);padding:6px;z-index:40;">
+            <div style="font-size:10px;font-weight:700;letter-spacing:.6px;color:var(--text-3);padding:8px 10px 5px;text-transform:uppercase;">Scope</div>
+            <sc-for list="{{ scopeItems }}" as="opt" hint-placeholder-count="7">
+              <button onClick="{{ opt.onSelect }}" style="width:100%;display:flex;align-items:center;gap:10px;padding:8px 10px;border:none;border-radius:7px;background:{{ opt.bg }};color:var(--text);font-family:inherit;font-size:13px;font-weight:500;cursor:pointer;text-align:left;" style-hover="background:var(--surface-3);">
+                <span style="width:8px;height:8px;border-radius:50%;background:{{ opt.dot }};flex-shrink:0;"></span>
+                <span style="flex:1;font-weight:{{ opt.weight }};">{{ opt.label }}</span>
+                <span style="font-size:11px;color:var(--text-3);">{{ opt.meta }}</span>
+              </button>
+            </sc-for>
+          </div>
+        </sc-if>
+      </div>
+
+      <div style="width:1px;height:24px;background:var(--border);"></div>
+
+      <div style="display:flex;align-items:center;gap:2px;background:var(--surface-3);border-radius:8px;padding:3px;">
+        <sc-for list="{{ periods }}" as="p" hint-placeholder-count="5">
+          <button onClick="{{ p.onSelect }}" style="height:28px;padding:0 12px;border:none;border-radius:6px;background:{{ p.bg }};color:{{ p.ink }};font-family:var(--mono);font-size:12px;font-weight:{{ p.weight }};cursor:pointer;">{{ p.label }}</button>
+        </sc-for>
+      </div>
+
+      <div style="flex:1;"></div>
+
+      <div style="position:relative;min-width:230px;">
+        <div style="display:flex;align-items:center;gap:8px;height:36px;padding:0 12px;border:1px solid var(--border);border-radius:8px;background:var(--surface-2);">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="var(--text-3)" stroke-width="1.8" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><line x1="16.5" y1="16.5" x2="21" y2="21"/></svg>
+          <input onFocus="{{ openSearch }}" placeholder="Search risks, controls, policies…" style="border:none;background:transparent;outline:none;font-family:inherit;font-size:13px;color:var(--text);width:100%;"/>
+          <span style="font-size:10.5px;color:var(--text-3);border:1px solid var(--border-strong);border-radius:4px;padding:1px 5px;font-family:var(--mono);">⌘K</span>
+        </div>
+        <sc-if value="{{ menuSearch }}" hint-placeholder-val="{{ false }}">
+          <div style="position:absolute;top:42px;left:0;right:0;background:var(--surface);border:1px solid var(--border-strong);border-radius:10px;box-shadow:0 10px 32px rgba(16,24,40,.18);padding:8px;z-index:50;">
+            <div style="font-size:10px;font-weight:700;letter-spacing:.6px;color:var(--text-3);padding:6px 10px 5px;text-transform:uppercase;">Quick navigation</div>
+            <button onClick="{{ nav.risks.go }}" style="width:100%;display:flex;align-items:center;gap:10px;padding:8px 10px;border:none;border-radius:7px;background:transparent;color:var(--text);font-family:inherit;font-size:13px;font-weight:500;cursor:pointer;text-align:left;" style-hover="background:var(--surface-3);"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="var(--text-3)" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3 2 20h20L12 3z"/></svg>Go to Risk register</button>
+            <button onClick="{{ nav.controls.go }}" style="width:100%;display:flex;align-items:center;gap:10px;padding:8px 10px;border:none;border-radius:7px;background:transparent;color:var(--text);font-family:inherit;font-size:13px;font-weight:500;cursor:pointer;text-align:left;" style-hover="background:var(--surface-3);"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="var(--text-3)" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l7 3v5c0 4.5-3 7.5-7 9-4-1.5-7-4.5-7-9V6l7-3z"/></svg>Go to Controls</button>
+            <button onClick="{{ nav.issues.go }}" style="width:100%;display:flex;align-items:center;gap:10px;padding:8px 10px;border:none;border-radius:7px;background:transparent;color:var(--text);font-family:inherit;font-size:13px;font-weight:500;cursor:pointer;text-align:left;" style-hover="background:var(--surface-3);"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="var(--text-3)" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><line x1="6" y1="3" x2="6" y2="21"/><path d="M6 4h11l-2 3 2 3H6z"/></svg>Go to Issues</button>
+            <div style="height:1px;background:var(--border);margin:6px 4px;"></div>
+            <div style="font-size:10px;font-weight:700;letter-spacing:.6px;color:var(--text-3);padding:4px 10px 5px;text-transform:uppercase;">Recent</div>
+            <div style="display:flex;flex-direction:column;gap:2px;">
+              <div style="padding:7px 10px;border-radius:7px;font-size:12.5px;color:var(--text-2);cursor:pointer;" style-hover="background:var(--surface-3);"><b style="font-family:var(--mono);font-size:11px;color:var(--primary-ink);">RSK-1042</b> · Unpatched externally-facing systems</div>
+              <div style="padding:7px 10px;border-radius:7px;font-size:12.5px;color:var(--text-2);cursor:pointer;" style-hover="background:var(--surface-3);"><b style="font-family:var(--mono);font-size:11px;color:var(--primary-ink);">ISS-5490</b> · Cross-border transfer without DPA</div>
+              <div style="padding:7px 10px;border-radius:7px;font-size:12.5px;color:var(--text-2);cursor:pointer;" style-hover="background:var(--surface-3);"><b style="font-family:var(--mono);font-size:11px;color:var(--primary-ink);">CTL-2201</b> · MFA on all administrator accounts</div>
+            </div>
+          </div>
+        </sc-if>
+      </div>
+
+      <div style="position:relative;">
+        <button onClick="{{ openNotif }}" style="width:36px;height:36px;border:1px solid var(--border);border-radius:8px;background:var(--surface);cursor:pointer;position:relative;display:flex;align-items:center;justify-content:center;" style-hover="background:var(--surface-3);">
+          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="var(--text-2)" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9a6 6 0 1112 0c0 5 2 6 2 6H4s2-1 2-6z"/><path d="M10 20a2 2 0 004 0"/></svg>
+          <span style="position:absolute;top:6px;right:6px;min-width:15px;height:15px;padding:0 3px;border-radius:8px;background:var(--rag-r);border:1.5px solid var(--surface);color:#fff;font-size:9px;font-weight:700;font-family:var(--mono);display:flex;align-items:center;justify-content:center;">6</span>
+        </button>
+        <sc-if value="{{ menuNotif }}" hint-placeholder-val="{{ false }}">
+          <div style="position:absolute;top:44px;right:0;width:340px;background:var(--surface);border:1px solid var(--border-strong);border-radius:12px;box-shadow:0 12px 36px rgba(16,24,40,.2);z-index:50;overflow:hidden;">
+            <div style="display:flex;align-items:center;justify-content:space-between;padding:13px 15px;border-bottom:1px solid var(--border);">
+              <div style="font-size:13.5px;font-weight:700;">Notifications</div>
+              <button style="border:none;background:transparent;color:var(--primary-ink);font-size:11.5px;font-weight:600;cursor:pointer;">Mark all read</button>
+            </div>
+            <div style="max-height:340px;overflow-y:auto;">
+              <sc-for list="{{ notifView }}" as="n" hint-placeholder-count="6">
+                <div style="display:flex;gap:11px;padding:11px 15px;border-bottom:1px solid var(--border);cursor:pointer;" style-hover="background:var(--surface-2);">
+                  <span style="width:8px;height:8px;border-radius:50%;background:{{ n.dot }};flex-shrink:0;margin-top:4px;"></span>
+                  <div style="min-width:0;flex:1;"><div style="font-size:12.5px;font-weight:600;color:var(--text);line-height:1.35;">{{ n.title }}</div><div style="font-size:11px;color:var(--text-3);font-family:var(--mono);margin-top:2px;">{{ n.meta }}</div></div>
+                  <span style="font-size:10.5px;color:var(--text-3);white-space:nowrap;flex-shrink:0;">{{ n.time }}</span>
+                </div>
+              </sc-for>
+            </div>
+            <button onClick="{{ nav.issues.go }}" style="width:100%;padding:11px;border:none;background:var(--surface-2);color:var(--primary-ink);font-family:inherit;font-size:12px;font-weight:600;cursor:pointer;">View all issues</button>
+          </div>
+        </sc-if>
+      </div>
+
+      <div style="position:relative;">
+        <button onClick="{{ openLang }}" style="height:36px;padding:0 10px;border:1px solid var(--border);border-radius:8px;background:var(--surface);cursor:pointer;display:flex;align-items:center;gap:6px;font-family:inherit;font-size:12px;font-weight:600;color:var(--text-2);" style-hover="background:var(--surface-3);">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M3 12h18"/><path d="M12 3c3 3 3 15 0 18M12 3c-3 3-3 15 0 18"/></svg>
+          {{ lang }} <span style="font-size:9px;color:var(--text-3);">▼</span>
+        </button>
+        <sc-if value="{{ menuLang }}" hint-placeholder-val="{{ false }}">
+          <div style="position:absolute;top:44px;right:0;width:220px;background:var(--surface);border:1px solid var(--border-strong);border-radius:10px;box-shadow:0 10px 32px rgba(16,24,40,.18);padding:6px;z-index:50;">
+            <div style="font-size:10px;font-weight:700;letter-spacing:.6px;color:var(--text-3);padding:7px 10px 5px;text-transform:uppercase;">Language</div>
+            <sc-for list="{{ langsView }}" as="l" hint-placeholder-count="5">
+              <button onClick="{{ l.onSelect }}" style="width:100%;display:flex;align-items:center;gap:10px;padding:8px 10px;border:none;border-radius:7px;background:{{ l.bg }};color:var(--text);font-family:inherit;font-size:13px;font-weight:500;cursor:pointer;text-align:left;" style-hover="background:var(--surface-3);">
+                <span style="flex:1;">{{ l.label }}<span style="font-size:11px;color:var(--text-3);margin-left:6px;">{{ l.sub }}</span></span>
+                <sc-if value="{{ l.active }}" hint-placeholder-val="{{ false }}"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="var(--primary)" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg></sc-if>
+              </button>
+            </sc-for>
+          </div>
+        </sc-if>
+      </div>
+
+      <button onClick="{{ toggleTheme }}" style="width:36px;height:36px;border:1px solid var(--border);border-radius:8px;background:var(--surface);cursor:pointer;display:flex;align-items:center;justify-content:center;color:var(--text-2);" style-hover="background:var(--surface-3);">
+        <sc-if value="{{ isDark }}" hint-placeholder-val="{{ false }}">
+          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4 12H2M22 12h-2M5 5l1.5 1.5M17.5 17.5L19 19M19 5l-1.5 1.5M6.5 17.5L5 19"/></svg>
+        </sc-if>
+        <sc-if value="{{ isLight }}" hint-placeholder-val="{{ true }}">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M20 14a8 8 0 11-9-9 6 6 0 009 9z"/></svg>
+        </sc-if>
+      </button>
+
+      <div style="width:1px;height:24px;background:var(--border);"></div>
+
+      <div style="position:relative;">
+        <button onClick="{{ openUser }}" style="display:flex;align-items:center;gap:9px;height:38px;padding:0 6px 0 4px;border:none;background:transparent;cursor:pointer;" style-hover="opacity:.85;">
+          <span style="width:30px;height:30px;border-radius:50%;background:linear-gradient(135deg,var(--primary),var(--primary-ink));color:#fff;display:flex;align-items:center;justify-content:center;font-size:11.5px;font-weight:700;">ML</span>
+          <span style="text-align:left;line-height:1.2;">
+            <span style="display:block;font-size:12.5px;font-weight:600;color:var(--text);">Mei Lin Tan</span>
+            <span style="display:block;font-size:10.5px;color:var(--text-3);">Regional Governance</span>
+          </span>
+          <span style="font-size:9px;color:var(--text-3);">▼</span>
+        </button>
+        <sc-if value="{{ menuUser }}" hint-placeholder-val="{{ false }}">
+          <div style="position:absolute;top:46px;right:0;width:250px;background:var(--surface);border:1px solid var(--border-strong);border-radius:11px;box-shadow:0 12px 36px rgba(16,24,40,.2);z-index:50;overflow:hidden;">
+            <div style="display:flex;align-items:center;gap:11px;padding:14px 15px;border-bottom:1px solid var(--border);">
+              <span style="width:38px;height:38px;border-radius:50%;background:linear-gradient(135deg,var(--primary),var(--primary-ink));color:#fff;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;flex-shrink:0;">ML</span>
+              <div style="min-width:0;"><div style="font-size:13px;font-weight:700;">Mei Lin Tan</div><div style="font-size:11px;color:var(--text-3);">mei.lin.tan@group.com</div></div>
+            </div>
+            <div style="padding:6px;">
+              <div onClick="{{ goProfile }}" style="display:flex;align-items:center;gap:10px;padding:8px 10px;border-radius:7px;font-size:12.5px;font-weight:500;color:var(--text);cursor:pointer;" style-hover="background:var(--surface-3);"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="var(--text-3)" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 4-6 8-6s8 2 8 6"/></svg>My profile</div>
+              <div onClick="{{ goPreferences }}" style="display:flex;align-items:center;gap:10px;padding:8px 10px;border-radius:7px;font-size:12.5px;font-weight:500;color:var(--text);cursor:pointer;" style-hover="background:var(--surface-3);"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="var(--text-3)" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19 12a7 7 0 00-.1-1l2-1.5-2-3.5-2.4 1a7 7 0 00-1.7-1l-.3-2.5h-4l-.3 2.5a7 7 0 00-1.7 1l-2.4-1-2 3.5 2 1.5a7 7 0 000 2l-2 1.5 2 3.5 2.4-1a7 7 0 001.7 1l.3 2.5h4l.3-2.5a7 7 0 001.7-1l2.4 1 2-3.5-2-1.5c.1-.3.1-.7.1-1z"/></svg>Preferences</div>
+              <div onClick="{{ goSwitchRole }}" style="display:flex;align-items:center;gap:10px;padding:8px 10px;border-radius:7px;font-size:12.5px;font-weight:500;color:var(--text);cursor:pointer;" style-hover="background:var(--surface-3);"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="var(--text-3)" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M16 3l5 5-5 5M21 8H9a5 5 0 00-5 5v4"/></svg>Switch entity role</div>
+              <div style="height:1px;background:var(--border);margin:5px 4px;"></div>
+              <div onClick="{{ doLogout }}" style="display:flex;align-items:center;gap:10px;padding:8px 10px;border-radius:7px;font-size:12.5px;font-weight:600;color:var(--rag-r-ink);cursor:pointer;" style-hover="background:var(--rag-r-bg);"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M16 17l5-5-5-5M21 12H9M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4"/></svg>Sign out</div>
+            </div>
+          </div>
+        </sc-if>
+      </div>
+    </header>
+
+    <main style="flex:1;overflow-y:auto;padding:22px 26px 40px;">

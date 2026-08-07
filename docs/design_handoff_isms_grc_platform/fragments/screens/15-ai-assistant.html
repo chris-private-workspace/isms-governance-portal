@@ -1,0 +1,136 @@
+<!--
+  Fragment: AI ASSISTANT
+  Source: design/ISMS Governance Platform.dc.html
+  Template syntax: {{ value }} holes, <sc-if>, <sc-for> — see fragments/README.md
+-->
+<!-- ============ AI ASSISTANT ============ -->
+      <sc-if value="{{ isAssistant }}" hint-placeholder-val="{{ false }}">
+      <div data-screen-label="ISMS AI Agent">
+      <div style="display:flex;align-items:flex-end;justify-content:space-between;gap:20px;margin-bottom:18px;flex-wrap:wrap;">
+        <div>
+          <div style="font-size:11px;font-weight:600;letter-spacing:.5px;color:var(--text-3);text-transform:uppercase;margin-bottom:6px;">ISMS AI Agent</div>
+          <h1 style="margin:0;font-size:22px;font-weight:700;letter-spacing:-.3px;">Ask anything across the APAC ISMS</h1>
+          <div style="font-size:13px;color:var(--text-2);margin-top:5px;max-width:640px;text-wrap:pretty;">Grounded on policies, the Risk Management Report, controls, incident records, external-party assessments and ISMS profiles. Every answer cites its source and respects document classification.</div>
+        </div>
+        <div style="display:flex;align-items:center;gap:8px;">
+          <div style="display:flex;align-items:center;gap:3px;background:var(--surface-3);border-radius:8px;padding:3px;">
+            <sc-for list="{{ ai.roles }}" as="r" hint-placeholder-count="3">
+              <button onClick="{{ r.onSel }}" style="height:26px;padding:0 11px;border:1px solid {{ r.bd }};border-radius:6px;background:{{ r.bg }};color:{{ r.ink }};font-family:inherit;font-size:11.5px;font-weight:600;cursor:pointer;">{{ r.label }}</button>
+            </sc-for>
+          </div>
+          <span style="display:inline-flex;align-items:center;gap:7px;height:30px;padding:0 11px;border:1px solid var(--border);border-radius:8px;background:var(--surface);font-size:11.5px;font-weight:600;color:var(--text-2);"><span style="width:7px;height:7px;border-radius:50%;background:var(--rag-g);box-shadow:0 0 0 3px rgba(30,138,92,.18);"></span>Copilot Studio · RicohAPAC-ISMS-Agent</span>
+          <button onClick="{{ resetChat }}" style="height:30px;padding:0 12px;border:1px solid var(--border-strong);border-radius:8px;background:var(--surface);color:var(--text-2);font-family:inherit;font-size:12px;font-weight:600;cursor:pointer;" style-hover="background:var(--surface-3);">New thread</button>
+        </div>
+      </div>
+
+      <div style="display:grid;grid-template-columns:minmax(0,1fr) 296px;gap:18px;align-items:start;">
+        <div style="background:var(--surface);border:1px solid var(--border);border-radius:12px;box-shadow:var(--shadow);display:flex;flex-direction:column;min-height:560px;">
+          <div style="flex:1;padding:22px 24px;display:flex;flex-direction:column;gap:20px;">
+
+            <sc-if value="{{ ai.empty }}" hint-placeholder-val="{{ true }}">
+            <div style="display:flex;flex-direction:column;gap:18px;padding:14px 0 4px;">
+              <div style="display:flex;align-items:center;gap:11px;">
+                <span style="width:34px;height:34px;border-radius:9px;background:var(--primary-tint);display:flex;align-items:center;justify-content:center;flex-shrink:0;"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="var(--primary-ink)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 5h16v11H9l-5 4V5z"/><path d="M12 8.2l.9 2.1 2.1.9-2.1.9-.9 2.1-.9-2.1-2.1-.9 2.1-.9.9-2.1z"/></svg></span>
+                <div><div style="font-size:14px;font-weight:700;">ISMS AI Agent</div><div style="font-size:12px;color:var(--text-3);">Answers are drawn only from connected, in-policy sources.</div></div>
+              </div>
+              <div style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;">
+                <sc-for list="{{ ai.suggested }}" as="s" hint-placeholder-count="4">
+                  <button onClick="{{ s.onAsk }}" style="text-align:left;padding:13px 15px;border:1px solid var(--border);border-radius:10px;background:var(--surface-2);font-family:inherit;font-size:12.5px;line-height:1.5;color:var(--text);cursor:pointer;text-wrap:pretty;" style-hover="background:var(--surface-3);border-color:var(--border-strong);">{{ s.label }}</button>
+                </sc-for>
+              </div>
+            </div>
+            </sc-if>
+
+            <sc-for list="{{ ai.msgs }}" as="m" hint-placeholder-count="0">
+              <div style="display:flex;flex-direction:column;gap:9px;">
+                <sc-if value="{{ m.isUser }}" hint-placeholder-val="{{ false }}">
+                  <div style="align-self:flex-end;max-width:76%;background:var(--primary-tint);border:1px solid var(--primary);border-radius:12px 12px 4px 12px;padding:11px 14px;font-size:13px;line-height:1.55;color:var(--text);">{{ m.text }}</div>
+                </sc-if>
+                <sc-if value="{{ m.isBot }}" hint-placeholder-val="{{ false }}">
+                  <div style="display:flex;gap:12px;">
+                    <span style="width:28px;height:28px;border-radius:8px;background:var(--primary-tint);display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:2px;"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="var(--primary-ink)" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M12 8.2l.9 2.1 2.1.9-2.1.9-.9 2.1-.9-2.1-2.1-.9 2.1-.9.9-2.1z"/><path d="M4 5h16v11H9l-5 4V5z"/></svg></span>
+                    <div style="min-width:0;flex:1;">
+                      <div style="font-size:13.5px;font-weight:600;line-height:1.55;color:var(--text);margin-bottom:9px;text-wrap:pretty;">{{ m.text }}</div>
+                      <div style="display:flex;flex-direction:column;gap:7px;margin-bottom:12px;">
+                        <sc-for list="{{ m.bullets }}" as="b" hint-placeholder-count="3">
+                          <div style="display:flex;gap:9px;font-size:12.5px;line-height:1.6;color:var(--text-2);text-wrap:pretty;"><span style="width:4px;height:4px;border-radius:50%;background:var(--text-3);flex-shrink:0;margin-top:8px;"></span><span>{{ b }}</span></div>
+                        </sc-for>
+                      </div>
+                      <div style="display:flex;align-items:center;gap:7px;flex-wrap:wrap;">
+                        <span style="font-size:10px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;color:var(--text-3);margin-right:2px;">Sources</span>
+                        <sc-for list="{{ m.cites }}" as="c" hint-placeholder-count="2">
+                          <span style="display:inline-flex;align-items:center;gap:6px;padding:4px 9px;border:1px solid var(--border);border-radius:7px;background:var(--surface-2);font-size:11px;color:var(--text-2);cursor:pointer;" style-hover="background:var(--surface-3);"><b style="font-family:var(--mono);font-size:10.5px;color:var(--primary-ink);">{{ c.id }}</b>{{ c.meta }}</span>
+                        </sc-for>
+                      </div>
+                    </div>
+                  </div>
+                </sc-if>
+              </div>
+            </sc-for>
+          </div>
+
+          <div style="border-top:1px solid var(--border);padding:14px 18px;background:var(--surface-2);border-radius:0 0 12px 12px;">
+            <div style="display:flex;align-items:center;gap:10px;background:var(--surface);border:1px solid var(--border-strong);border-radius:10px;padding:0 8px 0 14px;height:46px;">
+              <input value="{{ chatText }}" onInput="{{ onChatInput }}" onKeyDown="{{ onChatKey }}" placeholder="Ask about an incident, a control, an approved product…" style="flex:1;border:none;background:transparent;outline:none;font-family:inherit;font-size:13.5px;color:var(--text);"/>
+              <button onClick="{{ sendChat }}" style="height:32px;padding:0 15px;border:none;border-radius:8px;background:var(--primary);color:#fff;font-family:inherit;font-size:12.5px;font-weight:600;cursor:pointer;display:flex;align-items:center;gap:7px;">Ask<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h13M13 6l6 6-6 6"/></svg></button>
+            </div>
+            <div style="display:flex;align-items:center;gap:14px;margin-top:9px;font-size:11px;color:var(--text-3);">
+              <span>Scope: APAC region · all connected sources</span>
+              <span>Restricted documents are filtered by your entity role.</span>
+            </div>
+          </div>
+        </div>
+
+        <div style="display:flex;flex-direction:column;gap:14px;">
+          <sc-if value="{{ ai.notAdmin }}" hint-placeholder-val="{{ false }}">
+          <div style="background:var(--surface);border:1px solid var(--border);border-radius:12px;box-shadow:var(--shadow);padding:16px 18px;">
+            <div style="display:flex;align-items:center;gap:9px;margin-bottom:9px;">
+              <span style="width:26px;height:26px;border-radius:7px;background:var(--surface-3);display:flex;align-items:center;justify-content:center;flex-shrink:0;"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--text-2)" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8.5 11V8a3.5 3.5 0 017 0v3"/></svg></span>
+              <div style="font-size:12.5px;font-weight:700;">{{ ai.roleName }} access</div>
+            </div>
+            <div style="font-size:11.5px;line-height:1.65;color:var(--text-2);text-wrap:pretty;">{{ ai.scopeNote }}</div>
+            <div style="font-size:11px;color:var(--text-3);line-height:1.6;margin-top:11px;padding-top:11px;border-top:1px solid var(--border);">The knowledge source index and agent configuration are visible to platform administrators only.</div>
+          </div>
+          </sc-if>
+
+          <sc-if value="{{ ai.isAdmin }}" hint-placeholder-val="{{ true }}">
+          <div style="background:var(--surface);border:1px solid var(--border);border-radius:12px;box-shadow:var(--shadow);overflow:hidden;">
+            <div style="padding:13px 15px;border-bottom:1px solid var(--border);font-size:12.5px;font-weight:700;">Knowledge sources</div>
+            <sc-for list="{{ ai.sources }}" as="s" hint-placeholder-count="8">
+              <div style="display:flex;gap:10px;padding:10px 15px;border-bottom:1px solid var(--border);">
+                <span style="width:7px;height:7px;border-radius:50%;background:{{ s.dot }};flex-shrink:0;margin-top:5px;"></span>
+                <div style="min-width:0;flex:1;">
+                  <div style="font-size:12px;font-weight:600;line-height:1.35;">{{ s.name }}</div>
+                  <div style="font-size:10.5px;color:var(--text-3);margin-top:2px;">{{ s.meta }}</div>
+                  <div style="font-size:10.5px;color:{{ s.ink }};margin-top:2px;font-family:var(--mono);">{{ s.status }}</div>
+                </div>
+                <span style="font-size:11px;font-family:var(--mono);color:var(--text-3);">{{ s.count }}</span>
+              </div>
+            </sc-for>
+          </div>
+
+          <div style="background:var(--surface);border:1px solid var(--border);border-radius:12px;box-shadow:var(--shadow);padding:15px;">
+            <div style="font-size:12.5px;font-weight:700;margin-bottom:11px;">Agent configuration</div>
+            <div style="display:flex;flex-direction:column;gap:9px;font-size:11.5px;color:var(--text-2);">
+              <div style="display:flex;justify-content:space-between;gap:10px;"><span style="color:var(--text-3);">Host</span><span style="font-weight:600;color:var(--text);">Microsoft Copilot Studio</span></div>
+              <div style="display:flex;justify-content:space-between;gap:10px;"><span style="color:var(--text-3);">Agent</span><span style="font-family:var(--mono);font-size:11px;">RicohAPAC-ISMS-Agent</span></div>
+              <div style="display:flex;justify-content:space-between;gap:10px;"><span style="color:var(--text-3);">Channel</span><span style="font-weight:600;color:var(--text);">Embedded + Teams</span></div>
+              <div style="display:flex;justify-content:space-between;gap:10px;"><span style="color:var(--text-3);">Grounding</span><span style="font-weight:600;color:var(--text);">Citations required</span></div>
+              <div style="display:flex;justify-content:space-between;gap:10px;"><span style="color:var(--text-3);">Retention</span><span style="font-weight:600;color:var(--text);">90 days · audited</span></div>
+            </div>
+          </div>
+          </sc-if>
+
+          <div style="background:var(--surface);border:1px solid var(--border);border-radius:12px;box-shadow:var(--shadow);overflow:hidden;">
+            <div style="padding:13px 15px;border-bottom:1px solid var(--border);font-size:12.5px;font-weight:700;">Recent threads</div>
+            <sc-for list="{{ ai.threads }}" as="t" hint-placeholder-count="3">
+              <div style="padding:10px 15px;border-bottom:1px solid var(--border);cursor:pointer;" style-hover="background:var(--surface-2);">
+                <div style="font-size:12px;font-weight:600;line-height:1.4;text-wrap:pretty;">{{ t.title }}</div>
+                <div style="font-size:10.5px;color:var(--text-3);margin-top:3px;">{{ t.meta }}</div>
+              </div>
+            </sc-for>
+          </div>
+        </div>
+      </div>
+      </div>
+      </sc-if>

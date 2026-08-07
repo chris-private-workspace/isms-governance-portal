@@ -1,0 +1,50 @@
+<!--
+  Fragment: CONTROLS — LIST
+  Source: design/ISMS Governance Platform.dc.html
+  Template syntax: {{ value }} holes, <sc-if>, <sc-for> — see fragments/README.md
+-->
+<!-- ============ CONTROLS — LIST ============ -->
+      <sc-if value="{{ isControlList }}" hint-placeholder-val="{{ false }}">
+      <div data-screen-label="Controls — library">
+      <div style="margin-bottom:16px;">
+        <div style="font-size:11px;font-weight:600;letter-spacing:.5px;color:var(--text-3);text-transform:uppercase;margin-bottom:6px;">Control library</div>
+        <h1 style="margin:0;font-size:23px;font-weight:700;letter-spacing:-.3px;">Controls</h1>
+        <div style="margin-top:5px;font-size:12.5px;color:var(--text-2);">Coverage {{ ctrlCoverage }} · {{ ctrlOverdue }} tests overdue · {{ scopeLabel }}</div>
+      </div>
+      <div style="display:flex;align-items:center;gap:9px;margin-bottom:14px;flex-wrap:wrap;">
+        <button style="height:34px;padding:0 12px;border:1px solid var(--border-strong);border-radius:8px;background:var(--surface);font-family:inherit;font-size:12.5px;font-weight:600;color:var(--text-2);display:flex;align-items:center;gap:7px;cursor:pointer;" style-hover="background:var(--surface-3);">Type <span style="font-size:9px;color:var(--text-3);">▼</span></button>
+        <button style="height:34px;padding:0 12px;border:1px solid var(--border-strong);border-radius:8px;background:var(--surface);font-family:inherit;font-size:12.5px;font-weight:600;color:var(--text-2);display:flex;align-items:center;gap:7px;cursor:pointer;" style-hover="background:var(--surface-3);">Result <span style="font-size:9px;color:var(--text-3);">▼</span></button>
+        <button style="height:34px;padding:0 12px;border:1px solid var(--border-strong);border-radius:8px;background:var(--surface);font-family:inherit;font-size:12.5px;font-weight:600;color:var(--text-2);display:flex;align-items:center;gap:7px;cursor:pointer;" style-hover="background:var(--surface-3);">Entity <span style="font-size:9px;color:var(--text-3);">▼</span></button>
+        <div style="flex:1;"></div>
+        <button style="height:34px;padding:0 14px;border:none;border-radius:8px;background:var(--primary);color:#fff;font-family:inherit;font-size:12.5px;font-weight:600;display:flex;align-items:center;gap:7px;cursor:pointer;"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>New control</button>
+      </div>
+      <div style="background:var(--surface);border:1px solid var(--border);border-radius:12px;box-shadow:var(--shadow);overflow:hidden;">
+        <div style="overflow-x:auto;">
+          <table style="width:100%;border-collapse:collapse;min-width:1000px;">
+            <thead><tr style="background:var(--surface-2);">
+              <th style="text-align:left;padding:10px 16px;font-size:10.5px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;color:var(--text-3);border-bottom:1px solid var(--border);">Control</th>
+              <th style="text-align:left;padding:10px 12px;font-size:10.5px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;color:var(--text-3);border-bottom:1px solid var(--border);">Type</th>
+              <th style="text-align:left;padding:10px 12px;font-size:10.5px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;color:var(--text-3);border-bottom:1px solid var(--border);">Frequency</th>
+              <th style="text-align:left;padding:10px 12px;font-size:10.5px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;color:var(--text-3);border-bottom:1px solid var(--border);">Entity</th>
+              <th style="text-align:left;padding:10px 12px;font-size:10.5px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;color:var(--text-3);border-bottom:1px solid var(--border);">Last test</th>
+              <th style="text-align:left;padding:10px 12px;font-size:10.5px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;color:var(--text-3);border-bottom:1px solid var(--border);">Result</th>
+              <th style="text-align:left;padding:10px 16px;font-size:10.5px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;color:var(--text-3);border-bottom:1px solid var(--border);">Coverage</th>
+            </tr></thead>
+            <tbody>
+              <sc-for list="{{ controlsView }}" as="c" hint-placeholder-count="10">
+                <tr onClick="{{ c.onOpen }}" style="border-bottom:1px solid var(--border);cursor:pointer;" style-hover="background:var(--surface-2);">
+                  <td style="padding:var(--row-py) 16px;"><div style="font-size:10.5px;font-family:var(--mono);color:var(--primary-ink);font-weight:600;">{{ c.id }}</div><div style="font-size:13px;font-weight:600;color:var(--text);">{{ c.name }}</div></td>
+                  <td style="padding:var(--row-py) 12px;font-size:12.5px;color:var(--text-2);">{{ c.type }}</td>
+                  <td style="padding:var(--row-py) 12px;font-size:12.5px;color:var(--text-2);">{{ c.freq }}</td>
+                  <td style="padding:var(--row-py) 12px;"><span style="display:inline-flex;align-items:center;gap:6px;"><span style="width:24px;height:18px;border-radius:4px;background:var(--surface-3);border:1px solid var(--border);display:inline-flex;align-items:center;justify-content:center;font-size:9px;font-weight:700;font-family:var(--mono);color:var(--text-2);">{{ c.flag }}</span><span style="font-size:12px;color:var(--text-2);">{{ c.entity }}</span></span></td>
+                  <td style="padding:var(--row-py) 12px;font-size:12px;color:var(--text-3);font-family:var(--mono);">{{ c.lastTest }}</td>
+                  <td style="padding:var(--row-py) 12px;"><span style="display:inline-flex;align-items:center;gap:6px;padding:3px 10px;border-radius:20px;background:{{ c.rBg }};"><span style="width:6px;height:6px;border-radius:50%;background:{{ c.rDot }};"></span><span style="font-size:11px;font-weight:600;color:{{ c.rInk }};">{{ c.result }}</span></span></td>
+                  <td style="padding:var(--row-py) 16px;"><div style="display:flex;align-items:center;gap:9px;"><div style="width:64px;height:5px;border-radius:3px;background:var(--surface-3);overflow:hidden;"><div style="height:100%;width:{{ c.covW }};background:{{ c.rDot }};border-radius:3px;"></div></div><span style="font-size:12px;font-family:var(--mono);font-weight:600;color:var(--text-2);">{{ c.cov }}%</span></div></td>
+                </tr>
+              </sc-for>
+            </tbody>
+          </table>
+        </div>
+      </div>
+      </div>
+      </sc-if>

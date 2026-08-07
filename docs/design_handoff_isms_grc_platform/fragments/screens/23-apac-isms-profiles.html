@@ -1,0 +1,275 @@
+<!--
+  Fragment: APAC ISMS PROFILES
+  Source: design/ISMS Governance Platform.dc.html
+  Template syntax: {{ value }} holes, <sc-if>, <sc-for> — see fragments/README.md
+-->
+<!-- ============ APAC ISMS PROFILES ============ -->
+      <sc-if value="{{ isIsms }}" hint-placeholder-val="{{ false }}">
+      <div data-screen-label="APAC ISMS profiles">
+      <div style="display:flex;align-items:flex-end;justify-content:space-between;gap:20px;margin-bottom:18px;flex-wrap:wrap;">
+        <div>
+          <div style="font-size:11px;font-weight:600;letter-spacing:.5px;color:var(--text-3);text-transform:uppercase;margin-bottom:6px;">APAC ISMS profiles</div>
+          <h1 style="margin:0;font-size:22px;font-weight:700;letter-spacing:-.3px;">ISMS profiles</h1>
+          <div style="font-size:13px;color:var(--text-2);margin-top:5px;max-width:700px;text-wrap:pretty;">Each APAC operating company maintains its own profile: the standards it is certified against, the sites and headcount in scope, the scope statement, and the ISMS leader responsible for it.</div>
+        </div>
+        <div style="display:flex;align-items:center;gap:10px;">
+          <div style="display:flex;align-items:center;gap:3px;background:var(--surface-3);border-radius:9px;padding:3px;">
+            <sc-for list="{{ ismsRoles }}" as="r" hint-placeholder-count="2">
+              <button onClick="{{ r.onSel }}" title="{{ r.sub }}" style="height:32px;padding:0 13px;border:1px solid {{ r.bd }};border-radius:7px;background:{{ r.bg }};color:{{ r.ink }};font-family:inherit;font-size:12px;font-weight:600;cursor:pointer;">{{ r.label }}</button>
+            </sc-for>
+          </div>
+          <sc-if value="{{ isPlatformAdmin }}" hint-placeholder-val="{{ true }}">
+          <button style="display:inline-flex;align-items:center;gap:8px;height:38px;padding:0 16px;border:none;border-radius:9px;background:var(--primary);color:#fff;font-family:inherit;font-size:13px;font-weight:600;cursor:pointer;"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>New profile</button>
+          </sc-if>
+        </div>
+      </div>
+
+      <sc-if value="{{ hasToast }}" hint-placeholder-val="{{ false }}">
+      <div style="display:flex;align-items:center;gap:10px;padding:11px 15px;border:1px solid var(--rag-g);border-radius:10px;background:var(--rag-g-bg);margin-bottom:14px;">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--rag-g-ink)" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;"><path d="M20 6L9 17l-5-5"/></svg>
+        <span style="font-size:12.5px;font-weight:600;color:var(--rag-g-ink);">Profile saved as {{ savedToast }} — the previous version is retained and marked superseded.</span>
+      </div>
+      </sc-if>
+
+      <sc-if value="{{ isPlatformAdmin }}" hint-placeholder-val="{{ true }}">
+      <div style="display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;margin-bottom:18px;">
+        <div style="background:var(--surface);border:1px solid var(--border);border-radius:12px;box-shadow:var(--shadow);padding:14px 16px;"><div style="font-size:11px;color:var(--text-3);font-weight:600;">Certified OpCos</div><div style="font-size:26px;font-weight:700;letter-spacing:-.6px;margin-top:5px;color:var(--rag-g-ink);">{{ ismsK.certified }}</div><div style="font-size:11px;color:var(--text-3);margin-top:3px;">of {{ ismsK.total }} APAC entities</div></div>
+        <div style="background:var(--surface);border:1px solid var(--border);border-radius:12px;box-shadow:var(--shadow);padding:14px 16px;"><div style="font-size:11px;color:var(--text-3);font-weight:600;">Approved catalogue items</div><div style="font-size:26px;font-weight:700;letter-spacing:-.6px;margin-top:5px;">{{ ismsK.approvedItems }}</div><div style="font-size:11px;color:var(--text-3);margin-top:3px;">OP and OS across the region</div></div>
+        <div style="background:var(--surface);border:1px solid var(--border);border-radius:12px;box-shadow:var(--shadow);padding:14px 16px;"><div style="font-size:11px;color:var(--text-3);font-weight:600;">Surveillance audits due</div><div style="font-size:26px;font-weight:700;letter-spacing:-.6px;margin-top:5px;color:var(--rag-a-ink);">{{ ismsK.surveillance }}</div><div style="font-size:11px;color:var(--text-3);margin-top:3px;">within the next quarter</div></div>
+        <div style="background:var(--surface);border:1px solid var(--border);border-radius:12px;box-shadow:var(--shadow);padding:14px 16px;"><div style="font-size:11px;color:var(--text-3);font-weight:600;">Standards in use</div><div style="font-size:17px;font-weight:700;letter-spacing:-.3px;margin-top:9px;">ISO 27001 · ISO 27017</div><div style="font-size:11px;color:var(--text-3);margin-top:5px;">recorded per operating company</div></div>
+      </div>
+      </sc-if>
+
+      <sc-if value="{{ isOpcoScoped }}" hint-placeholder-val="{{ false }}">
+      <div style="display:flex;align-items:center;gap:11px;padding:12px 16px;border:1px solid var(--primary);border-radius:10px;background:var(--primary-tint);margin-bottom:16px;">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--primary-ink)" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;"><circle cx="12" cy="12" r="9"/><path d="M12 11v5"/><circle cx="12" cy="8" r=".8" fill="currentColor" stroke="none"/></svg>
+        <span style="font-size:12.5px;color:var(--primary-ink);line-height:1.5;">{{ roleBanner }} Profile shown: <b>{{ ip.company }}</b>.</span>
+      </div>
+      </sc-if>
+
+      <div style="display:grid;grid-template-columns:{{ ismsGrid }};gap:16px;align-items:start;">
+        <sc-if value="{{ isPlatformAdmin }}" hint-placeholder-val="{{ true }}">
+        <div style="display:flex;flex-direction:column;gap:8px;">
+          <div style="font-size:10px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;color:var(--text-3);padding:0 4px 2px;">Operating companies · {{ ismsK.total }}</div>
+          <sc-for list="{{ profiles }}" as="p" hint-placeholder-count="14">
+            <div onClick="{{ p.onSel }}" style="background:{{ p.bg }};border:1px solid {{ p.bd }};border-radius:10px;padding:12px 14px;cursor:pointer;" style-hover="border-color:var(--border-strong);">
+              <div style="display:flex;align-items:center;gap:9px;">
+                <span style="width:34px;height:24px;border-radius:5px;background:var(--surface-3);color:var(--text-2);display:flex;align-items:center;justify-content:center;font-family:var(--mono);font-size:10.5px;font-weight:700;flex-shrink:0;">{{ p.code }}</span>
+                <span style="flex:1;min-width:0;"><span style="display:block;font-size:12.5px;font-weight:600;line-height:1.3;">{{ p.name }}</span><span style="display:block;font-size:10.5px;color:var(--text-3);margin-top:2px;">{{ p.country }}</span></span>
+              </div>
+              <div style="display:flex;align-items:center;gap:7px;margin-top:9px;">
+                <span style="display:inline-flex;align-items:center;height:19px;padding:0 8px;border-radius:5px;background:{{ p.cBg }};color:{{ p.cInk }};font-size:10.5px;font-weight:700;">{{ p.cert }}</span>
+                <span style="font-size:10.5px;color:var(--text-3);font-family:var(--mono);">{{ p.stdShort }}</span>
+              </div>
+            </div>
+          </sc-for>
+        </div>
+        </sc-if>
+
+        <sc-if value="{{ ismsPicked }}" hint-placeholder-val="{{ true }}">
+        <div style="display:flex;flex-direction:column;gap:14px;min-width:0;">
+
+          <div style="background:var(--surface);border:1px solid var(--border);border-radius:12px;box-shadow:var(--shadow);padding:18px 20px;">
+            <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:20px;flex-wrap:wrap;">
+              <div style="min-width:0;">
+                <div style="display:flex;align-items:center;gap:9px;margin-bottom:6px;flex-wrap:wrap;">
+                  <span style="font-family:var(--mono);font-size:12px;font-weight:700;color:var(--primary-ink);">{{ ip.code }}</span>
+                  <span style="display:inline-flex;align-items:center;height:21px;padding:0 9px;border-radius:6px;background:{{ ip.cBg }};color:{{ ip.cInk }};font-size:11px;font-weight:700;">{{ ip.cert }}</span>
+                  <span style="display:inline-flex;align-items:center;height:21px;padding:0 9px;border-radius:6px;background:var(--surface-3);color:var(--text-2);font-size:11px;font-weight:700;font-family:var(--mono);">{{ ip.currentVer }}</span>
+                </div>
+                <h2 style="margin:0;font-size:19px;font-weight:700;letter-spacing:-.2px;">{{ ip.company }}</h2>
+                <div style="font-size:12.5px;color:var(--text-2);margin-top:5px;">{{ ip.country }} · {{ ip.siteCount }} sites in scope · {{ ip.totalEmp }} employees in scope</div>
+              </div>
+              <div style="display:flex;align-items:center;gap:9px;">
+                <sc-if value="{{ ip.viewing }}" hint-placeholder-val="{{ true }}">
+                  <button style="height:34px;padding:0 14px;border:1px solid var(--border-strong);border-radius:8px;background:var(--surface);color:var(--text-2);font-family:inherit;font-size:12.5px;font-weight:600;cursor:pointer;display:inline-flex;align-items:center;gap:7px;" style-hover="background:var(--surface-3);"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4v11"/><path d="M8 11l4 4 4-4"/><path d="M4 19h16"/></svg>Export profile</button>
+                  <sc-if value="{{ canEditProfile }}" hint-placeholder-val="{{ true }}">
+                    <button onClick="{{ ip.onEdit }}" style="height:34px;padding:0 14px;border:none;border-radius:8px;background:var(--primary);color:#fff;font-family:inherit;font-size:12.5px;font-weight:600;cursor:pointer;display:inline-flex;align-items:center;gap:7px;"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20h4l10-10-4-4L4 16v4z"/><path d="M14 6l4 4"/></svg>Edit profile</button>
+                  </sc-if>
+                </sc-if>
+                <sc-if value="{{ ip.editing }}" hint-placeholder-val="{{ false }}">
+                  <button onClick="{{ ip.onCancel }}" style="height:34px;padding:0 14px;border:1px solid var(--border-strong);border-radius:8px;background:var(--surface);color:var(--text-2);font-family:inherit;font-size:12.5px;font-weight:600;cursor:pointer;" style-hover="background:var(--surface-3);">Cancel</button>
+                  <button onClick="{{ ip.onSave }}" style="height:34px;padding:0 15px;border:none;border-radius:8px;background:var(--primary);color:#fff;font-family:inherit;font-size:12.5px;font-weight:600;cursor:pointer;display:inline-flex;align-items:center;gap:7px;"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M5 4h11l3 3v13H5z"/><path d="M8 4v6h7V4"/></svg>Save as new version</button>
+                </sc-if>
+              </div>
+            </div>
+          </div>
+
+          <div style="display:flex;align-items:center;gap:3px;background:var(--surface-3);border-radius:9px;padding:3px;width:fit-content;flex-wrap:wrap;">
+            <sc-for list="{{ ismsTabs }}" as="t" hint-placeholder-count="3">
+              <button onClick="{{ t.onSel }}" style="height:32px;padding:0 15px;border:1px solid {{ t.bd }};border-radius:7px;background:{{ t.bg }};color:{{ t.ink }};font-family:inherit;font-size:12.5px;font-weight:600;cursor:{{ t.cursor }};opacity:{{ t.op }};">{{ t.label }}</button>
+            </sc-for>
+          </div>
+
+          <sc-if value="{{ tabProfile }}" hint-placeholder-val="{{ true }}">
+          <div style="display:flex;flex-direction:column;gap:14px;">
+
+            <div style="background:var(--surface);border:1px solid var(--border);border-radius:12px;box-shadow:var(--shadow);overflow:hidden;">
+              <div style="padding:12px 18px;background:var(--surface-2);border-bottom:1px solid var(--border);font-size:12px;font-weight:700;">Company & certification</div>
+              <div style="padding:18px;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px 20px;">
+                <div>
+                  <span style="display:block;font-size:11px;font-weight:600;color:var(--text-3);text-transform:uppercase;letter-spacing:.4px;margin-bottom:6px;">Standards</span>
+                  <sc-if value="{{ ip.viewing }}" hint-placeholder-val="{{ true }}">
+                    <div style="font-size:13px;font-weight:600;">{{ ip.standardsText }}</div>
+                  </sc-if>
+                  <sc-if value="{{ ip.editing }}" hint-placeholder-val="{{ false }}">
+                    <div style="display:flex;gap:9px;flex-wrap:wrap;">
+                      <sc-for list="{{ ip.standards }}" as="s" hint-placeholder-count="2">
+                        <div onClick="{{ s.onToggle }}" style="display:flex;align-items:center;gap:9px;padding:9px 13px;border:1px solid {{ s.bd }};border-radius:8px;background:{{ s.bg }};cursor:pointer;">
+                          <span style="width:16px;height:16px;border-radius:4px;border:1.5px solid;{{ s.box }}display:flex;align-items:center;justify-content:center;flex-shrink:0;"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg></span>
+                          <span style="font-size:12.5px;font-weight:600;color:{{ s.ink }};">{{ s.label }}</span>
+                        </div>
+                      </sc-for>
+                    </div>
+                  </sc-if>
+                </div>
+                <div>
+                  <span style="display:block;font-size:11px;font-weight:600;color:var(--text-3);text-transform:uppercase;letter-spacing:.4px;margin-bottom:6px;">Number of certificate</span>
+                  <sc-if value="{{ ip.viewing }}" hint-placeholder-val="{{ true }}"><div style="font-size:13px;font-weight:600;font-family:var(--mono);">{{ ip.certCount }}</div></sc-if>
+                  <sc-if value="{{ ip.editing }}" hint-placeholder-val="{{ false }}"><input value="{{ ip.certCount }}" onInput="{{ ip.setCertCount }}" style="width:100%;height:38px;padding:0 11px;border:1px solid var(--border-strong);border-radius:8px;background:var(--surface-2);font-family:inherit;font-size:13px;color:var(--text);outline:none;"/></sc-if>
+                </div>
+                <div>
+                  <span style="display:block;font-size:11px;font-weight:600;color:var(--text-3);text-transform:uppercase;letter-spacing:.4px;margin-bottom:6px;">Company name</span>
+                  <sc-if value="{{ ip.viewing }}" hint-placeholder-val="{{ true }}"><div style="font-size:13px;font-weight:600;">{{ ip.company }}</div></sc-if>
+                  <sc-if value="{{ ip.editing }}" hint-placeholder-val="{{ false }}"><input value="{{ ip.company }}" onInput="{{ ip.setCompany }}" style="width:100%;height:38px;padding:0 11px;border:1px solid var(--border-strong);border-radius:8px;background:var(--surface-2);font-family:inherit;font-size:13px;color:var(--text);outline:none;"/></sc-if>
+                </div>
+                <div>
+                  <span style="display:block;font-size:11px;font-weight:600;color:var(--text-3);text-transform:uppercase;letter-spacing:.4px;margin-bottom:6px;">Country</span>
+                  <sc-if value="{{ ip.viewing }}" hint-placeholder-val="{{ true }}"><div style="font-size:13px;font-weight:600;">{{ ip.country }}</div></sc-if>
+                  <sc-if value="{{ ip.editing }}" hint-placeholder-val="{{ false }}"><input value="{{ ip.country }}" onInput="{{ ip.setCountry }}" style="width:100%;height:38px;padding:0 11px;border:1px solid var(--border-strong);border-radius:8px;background:var(--surface-2);font-family:inherit;font-size:13px;color:var(--text);outline:none;"/></sc-if>
+                </div>
+              </div>
+            </div>
+
+            <div style="background:var(--surface);border:1px solid var(--border);border-radius:12px;box-shadow:var(--shadow);overflow:hidden;">
+              <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px 18px;background:var(--surface-2);border-bottom:1px solid var(--border);">
+                <span style="font-size:12px;font-weight:700;">Sites in scope</span>
+                <span style="font-size:11px;color:var(--text-3);">{{ ip.siteCount }} sites · {{ ip.totalEmp }} employees in scope</span>
+              </div>
+              <div style="display:grid;grid-template-columns:34px minmax(0,1.1fr) minmax(0,2fr) 150px 40px;gap:12px;padding:9px 18px;border-bottom:1px solid var(--border);font-size:10px;font-weight:700;letter-spacing:.45px;text-transform:uppercase;color:var(--text-3);">
+                <span>#</span><span>Site name</span><span>Address</span><span>Employees in scope</span><span></span>
+              </div>
+              <sc-for list="{{ ip.sites }}" as="s" hint-placeholder-count="2">
+                <div style="display:grid;grid-template-columns:34px minmax(0,1.1fr) minmax(0,2fr) 150px 40px;gap:12px;padding:11px 18px;border-bottom:1px solid var(--border);font-size:12.5px;align-items:center;">
+                  <span style="font-family:var(--mono);font-size:11px;color:var(--text-3);">{{ s.num }}</span>
+                  <sc-if value="{{ ip.viewing }}" hint-placeholder-val="{{ true }}">
+                    <span style="font-weight:600;line-height:1.4;">{{ s.name }}</span>
+                    <span style="color:var(--text-2);line-height:1.45;">{{ s.address }}</span>
+                    <span style="font-family:var(--mono);font-size:12px;color:var(--text-2);">{{ s.emp }}</span>
+                    <span></span>
+                  </sc-if>
+                  <sc-if value="{{ ip.editing }}" hint-placeholder-val="{{ false }}">
+                    <input value="{{ s.name }}" onInput="{{ s.setName }}" placeholder="Site name" style="width:100%;height:38px;padding:0 11px;border:1px solid var(--border-strong);border-radius:8px;background:var(--surface-2);font-family:inherit;font-size:13px;color:var(--text);outline:none;"/>
+                    <input value="{{ s.address }}" onInput="{{ s.setAddr }}" placeholder="Address" style="width:100%;height:38px;padding:0 11px;border:1px solid var(--border-strong);border-radius:8px;background:var(--surface-2);font-family:inherit;font-size:13px;color:var(--text);outline:none;"/>
+                    <input value="{{ s.emp }}" onInput="{{ s.setEmp }}" placeholder="0" style="width:100%;height:38px;padding:0 11px;border:1px solid var(--border-strong);border-radius:8px;background:var(--surface-2);font-family:inherit;font-size:13px;color:var(--text);outline:none;font-family:var(--mono);"/>
+                    <button onClick="{{ s.onRemove }}" title="Remove site" style="width:32px;height:32px;border:1px solid var(--border-strong);border-radius:7px;background:var(--surface);color:var(--text-3);cursor:pointer;display:flex;align-items:center;justify-content:center;" style-hover="background:var(--rag-r-bg);color:var(--rag-r-ink);"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="6" y1="12" x2="18" y2="12"/></svg></button>
+                  </sc-if>
+                </div>
+              </sc-for>
+              <sc-if value="{{ ip.editing }}" hint-placeholder-val="{{ false }}">
+              <div style="padding:12px 18px;">
+                <button onClick="{{ ip.onAddSite }}" style="height:34px;padding:0 14px;border:1px dashed var(--border-strong);border-radius:8px;background:transparent;color:var(--text-2);font-family:inherit;font-size:12.5px;font-weight:600;cursor:pointer;display:inline-flex;align-items:center;gap:7px;" style-hover="background:var(--surface-2);"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>Add site</button>
+              </div>
+              </sc-if>
+            </div>
+
+            <div style="background:var(--surface);border:1px solid var(--border);border-radius:12px;box-shadow:var(--shadow);overflow:hidden;">
+              <div style="padding:12px 18px;background:var(--surface-2);border-bottom:1px solid var(--border);font-size:12px;font-weight:700;">Scope statement</div>
+              <div style="padding:18px;">
+                <sc-if value="{{ ip.viewing }}" hint-placeholder-val="{{ true }}">
+                  <div style="font-size:13px;line-height:1.7;color:var(--text-2);text-wrap:pretty;">{{ ip.scopeText }}</div>
+                </sc-if>
+                <sc-if value="{{ ip.editing }}" hint-placeholder-val="{{ false }}">
+                  <textarea value="{{ ip.scopeText }}" onInput="{{ ip.setScope }}" rows="4" style="width:100%;padding:12px;border:1px solid var(--border-strong);border-radius:8px;background:var(--surface-2);font-family:inherit;font-size:13px;line-height:1.65;color:var(--text);outline:none;resize:vertical;"></textarea>
+                </sc-if>
+              </div>
+            </div>
+
+            <div style="background:var(--surface);border:1px solid var(--border);border-radius:12px;box-shadow:var(--shadow);overflow:hidden;">
+              <div style="padding:12px 18px;background:var(--surface-2);border-bottom:1px solid var(--border);font-size:12px;font-weight:700;">ISMS leader</div>
+              <div style="padding:18px;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px 20px;">
+                <div>
+                  <span style="display:block;font-size:11px;font-weight:600;color:var(--text-3);text-transform:uppercase;letter-spacing:.4px;margin-bottom:6px;">Name</span>
+                  <sc-if value="{{ ip.viewing }}" hint-placeholder-val="{{ true }}"><div style="font-size:13px;font-weight:600;">{{ ip.leader.name }}</div></sc-if>
+                  <sc-if value="{{ ip.editing }}" hint-placeholder-val="{{ false }}"><input value="{{ ip.leader.name }}" onInput="{{ ip.setLName }}" style="width:100%;height:38px;padding:0 11px;border:1px solid var(--border-strong);border-radius:8px;background:var(--surface-2);font-family:inherit;font-size:13px;color:var(--text);outline:none;"/></sc-if>
+                </div>
+                <div>
+                  <span style="display:block;font-size:11px;font-weight:600;color:var(--text-3);text-transform:uppercase;letter-spacing:.4px;margin-bottom:6px;">Department</span>
+                  <sc-if value="{{ ip.viewing }}" hint-placeholder-val="{{ true }}"><div style="font-size:13px;font-weight:600;">{{ ip.leader.dept }}</div></sc-if>
+                  <sc-if value="{{ ip.editing }}" hint-placeholder-val="{{ false }}"><input value="{{ ip.leader.dept }}" onInput="{{ ip.setLDept }}" style="width:100%;height:38px;padding:0 11px;border:1px solid var(--border-strong);border-radius:8px;background:var(--surface-2);font-family:inherit;font-size:13px;color:var(--text);outline:none;"/></sc-if>
+                </div>
+                <div>
+                  <span style="display:block;font-size:11px;font-weight:600;color:var(--text-3);text-transform:uppercase;letter-spacing:.4px;margin-bottom:6px;">Email</span>
+                  <sc-if value="{{ ip.viewing }}" hint-placeholder-val="{{ true }}"><div style="font-size:13px;font-weight:600;font-family:var(--mono);word-break:break-all;">{{ ip.leader.email }}</div></sc-if>
+                  <sc-if value="{{ ip.editing }}" hint-placeholder-val="{{ false }}"><input value="{{ ip.leader.email }}" onInput="{{ ip.setLEmail }}" style="width:100%;height:38px;padding:0 11px;border:1px solid var(--border-strong);border-radius:8px;background:var(--surface-2);font-family:inherit;font-size:13px;color:var(--text);outline:none;font-family:var(--mono);font-size:12.5px;"/></sc-if>
+                </div>
+                <div>
+                  <span style="display:block;font-size:11px;font-weight:600;color:var(--text-3);text-transform:uppercase;letter-spacing:.4px;margin-bottom:6px;">Phone</span>
+                  <sc-if value="{{ ip.viewing }}" hint-placeholder-val="{{ true }}"><div style="font-size:13px;font-weight:600;font-family:var(--mono);">{{ ip.leader.phone }}</div></sc-if>
+                  <sc-if value="{{ ip.editing }}" hint-placeholder-val="{{ false }}"><input value="{{ ip.leader.phone }}" onInput="{{ ip.setLPhone }}" style="width:100%;height:38px;padding:0 11px;border:1px solid var(--border-strong);border-radius:8px;background:var(--surface-2);font-family:inherit;font-size:13px;color:var(--text);outline:none;font-family:var(--mono);font-size:12.5px;"/></sc-if>
+                </div>
+                <div style="grid-column:span 2;">
+                  <span style="display:block;font-size:11px;font-weight:600;color:var(--text-3);text-transform:uppercase;letter-spacing:.4px;margin-bottom:6px;">Address</span>
+                  <sc-if value="{{ ip.viewing }}" hint-placeholder-val="{{ true }}"><div style="font-size:13px;font-weight:600;line-height:1.5;">{{ ip.leader.address }}</div></sc-if>
+                  <sc-if value="{{ ip.editing }}" hint-placeholder-val="{{ false }}"><input value="{{ ip.leader.address }}" onInput="{{ ip.setLAddr }}" style="width:100%;height:38px;padding:0 11px;border:1px solid var(--border-strong);border-radius:8px;background:var(--surface-2);font-family:inherit;font-size:13px;color:var(--text);outline:none;"/></sc-if>
+                </div>
+              </div>
+            </div>
+          </div>
+          </sc-if>
+
+          <sc-if value="{{ tabCatalogue }}" hint-placeholder-val="{{ false }}">
+          <div style="background:var(--surface);border:1px solid var(--border);border-radius:12px;box-shadow:var(--shadow);overflow:auto;">
+            <div style="display:flex;align-items:center;justify-content:space-between;gap:14px;padding:13px 18px;border-bottom:1px solid var(--border);flex-wrap:wrap;">
+              <span style="font-size:12.5px;font-weight:700;">Approved products & services</span>
+              <div style="display:flex;align-items:center;gap:6px;">
+                <sc-for list="{{ ip.filters }}" as="f" hint-placeholder-count="3">
+                  <button onClick="{{ f.onSel }}" style="height:28px;padding:0 12px;border:1px solid {{ f.bd }};border-radius:7px;background:{{ f.bg }};color:{{ f.ink }};font-family:inherit;font-size:11.5px;font-weight:600;cursor:pointer;">{{ f.label }}</button>
+                </sc-for>
+              </div>
+            </div>
+            <div style="display:grid;grid-template-columns:78px minmax(0,2fr) 66px 104px 112px 108px 108px 120px;min-width:1010px;gap:12px;padding:9px 18px;background:var(--surface-2);border-bottom:1px solid var(--border);font-size:10px;font-weight:700;letter-spacing:.45px;text-transform:uppercase;color:var(--text-3);">
+              <span>Code</span><span>Product / service</span><span>Business</span><span>Category</span><span>Status</span><span>Effective</span><span>Valid to</span><span>Linked risk · control</span>
+            </div>
+            <sc-for list="{{ ip.items }}" as="c" hint-placeholder-count="12">
+              <div style="display:grid;grid-template-columns:78px minmax(0,2fr) 66px 104px 112px 108px 108px 120px;min-width:1010px;gap:12px;padding:10px 18px;border-bottom:1px solid var(--border);font-size:12.5px;align-items:center;">
+                <span style="font-family:var(--mono);font-size:11px;color:var(--primary-ink);font-weight:600;">{{ c.code }}</span>
+                <span style="font-weight:600;line-height:1.35;text-wrap:pretty;">{{ c.name }}</span>
+                <span style="display:inline-flex;align-items:center;height:20px;padding:0 8px;border-radius:5px;background:{{ c.bizBg }};color:{{ c.bizInk }};font-size:10.5px;font-weight:700;font-family:var(--mono);justify-self:start;">{{ c.biz }}</span>
+                <span style="color:var(--text-2);font-size:12px;">{{ c.cat }}</span>
+                <span style="display:inline-flex;align-items:center;gap:6px;font-size:11.5px;font-weight:600;color:{{ c.sInk }};"><span style="width:7px;height:7px;border-radius:50%;background:{{ c.sDot }};"></span>{{ c.status }}</span>
+                <span style="font-family:var(--mono);font-size:11px;color:var(--text-2);">{{ c.eff }}</span>
+                <span style="font-family:var(--mono);font-size:11px;color:var(--text-2);">{{ c.valid }}</span>
+                <span style="font-family:var(--mono);font-size:10.5px;color:var(--text-3);">{{ c.risk }} · {{ c.ctl }}</span>
+              </div>
+            </sc-for>
+            <div style="padding:11px 18px;background:var(--surface-2);font-size:11.5px;color:var(--text-3);">{{ ip.itemCount }} items shown · approvals are granted by the Information Security Committee and reviewed at each surveillance audit.</div>
+          </div>
+          </sc-if>
+
+          <sc-if value="{{ tabVersions }}" hint-placeholder-val="{{ false }}">
+          <div style="background:var(--surface);border:1px solid var(--border);border-radius:12px;box-shadow:var(--shadow);overflow:hidden;">
+            <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;padding:13px 18px;background:var(--surface-2);border-bottom:1px solid var(--border);">
+              <span style="font-size:12px;font-weight:700;">Profile version history</span>
+              <span style="font-size:11px;color:var(--text-3);">{{ ip.verCount }} versions · superseded versions are retained for 3 years</span>
+            </div>
+            <div style="display:grid;grid-template-columns:84px 112px 150px minmax(0,1fr) 118px;gap:14px;padding:9px 18px;border-bottom:1px solid var(--border);font-size:10px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;color:var(--text-3);">
+              <span>Version</span><span>Saved</span><span>Saved by</span><span>Change note</span><span>Status</span>
+            </div>
+            <sc-for list="{{ ip.versions }}" as="v" hint-placeholder-count="4">
+              <div style="display:grid;grid-template-columns:84px 112px 150px minmax(0,1fr) 118px;gap:14px;padding:11px 18px;border-bottom:1px solid var(--border);font-size:12.5px;align-items:center;">
+                <span style="font-family:var(--mono);font-weight:700;color:var(--primary-ink);">{{ v.ver }}</span>
+                <span style="font-family:var(--mono);font-size:11.5px;color:var(--text-2);">{{ v.date }}</span>
+                <span style="color:var(--text-2);">{{ v.by }}</span>
+                <span style="color:var(--text-2);line-height:1.45;text-wrap:pretty;">{{ v.note }}</span>
+                <span style="display:inline-flex;align-items:center;height:21px;padding:0 9px;border-radius:6px;background:{{ v.bg }};color:{{ v.ink }};font-size:11px;font-weight:600;justify-self:start;">{{ v.status }}</span>
+              </div>
+            </sc-for>
+          </div>
+          </sc-if>
+
+        </div>
+        </sc-if>
+      </div>
+      </div>
+      </sc-if>

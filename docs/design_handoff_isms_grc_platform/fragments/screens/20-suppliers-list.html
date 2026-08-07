@@ -1,0 +1,43 @@
+<!--
+  Fragment: SUPPLIERS — LIST
+  Source: design/ISMS Governance Platform.dc.html
+  Template syntax: {{ value }} holes, <sc-if>, <sc-for> — see fragments/README.md
+-->
+<!-- ============ SUPPLIERS — LIST ============ -->
+      <sc-if value="{{ sup.isList }}" hint-placeholder-val="{{ false }}">
+      <div data-screen-label="Suppliers — external party assessments">
+      <div style="display:flex;align-items:flex-end;justify-content:space-between;gap:20px;margin-bottom:18px;flex-wrap:wrap;">
+        <div>
+          <div style="font-size:11px;font-weight:600;letter-spacing:.5px;color:var(--text-3);text-transform:uppercase;margin-bottom:6px;">External party risk assessment · restricted</div>
+          <h1 style="margin:0;font-size:22px;font-weight:700;letter-spacing:-.3px;">Supplier management</h1>
+          <div style="font-size:13px;color:var(--text-2);margin-top:5px;max-width:700px;text-wrap:pretty;">Where an external party needs access to information processing facilities or information, a risk assessment identifies the requirements before access is granted.</div>
+        </div>
+        <button onClick="{{ sup.goForm }}" style="display:inline-flex;align-items:center;gap:8px;height:38px;padding:0 16px;border:none;border-radius:9px;background:var(--primary);color:#fff;font-family:inherit;font-size:13px;font-weight:600;cursor:pointer;"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>New assessment</button>
+      </div>
+
+      <div style="display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;margin-bottom:18px;">
+        <div style="background:var(--surface);border:1px solid var(--border);border-radius:11px;box-shadow:var(--shadow);padding:14px 16px;"><div style="font-size:11px;color:var(--text-3);font-weight:600;">Assessed parties</div><div style="font-size:26px;font-weight:700;letter-spacing:-.6px;margin-top:5px;">{{ sup.count }}</div><div style="font-size:11px;color:var(--text-3);margin-top:3px;">with active access</div></div>
+        <div style="background:var(--surface);border:1px solid var(--border);border-radius:11px;box-shadow:var(--shadow);padding:14px 16px;"><div style="font-size:11px;color:var(--text-3);font-weight:600;">Approved</div><div style="font-size:26px;font-weight:700;letter-spacing:-.6px;margin-top:5px;color:var(--rag-g-ink);">{{ sup.kApproved }}</div><div style="font-size:11px;color:var(--text-3);margin-top:3px;">existing controls adequate</div></div>
+        <div style="background:var(--surface);border:1px solid var(--border);border-radius:11px;box-shadow:var(--shadow);padding:14px 16px;"><div style="font-size:11px;color:var(--text-3);font-weight:600;">New control required</div><div style="font-size:26px;font-weight:700;letter-spacing:-.6px;margin-top:5px;color:var(--rag-a-ink);">{{ sup.kAction }}</div><div style="font-size:11px;color:var(--text-3);margin-top:3px;">action with the RISO</div></div>
+        <div style="background:var(--surface);border:1px solid var(--border);border-radius:11px;box-shadow:var(--shadow);padding:14px 16px;"><div style="font-size:11px;color:var(--text-3);font-weight:600;">Re-assessment due</div><div style="font-size:26px;font-weight:700;letter-spacing:-.6px;margin-top:5px;color:var(--rag-a-ink);">{{ sup.kDue }}</div><div style="font-size:11px;color:var(--text-3);margin-top:3px;">before Oct 2026</div></div>
+      </div>
+
+      <div style="background:var(--surface);border:1px solid var(--border);border-radius:12px;box-shadow:var(--shadow);overflow:auto;">
+        <div style="display:grid;grid-template-columns:92px minmax(0,1.5fr) minmax(0,1.5fr) 150px 108px 96px 118px 108px;min-width:1120px;gap:12px;padding:9px 16px;background:var(--surface-2);border-bottom:1px solid var(--border);font-size:10px;font-weight:700;letter-spacing:.45px;text-transform:uppercase;color:var(--text-3);">
+          <span>Ref</span><span>External party</span><span>Asset accessed</span><span>Access type</span><span>Classification</span><span>Controls</span><span>Status</span><span>Re-assess</span>
+        </div>
+        <sc-for list="{{ sup.list }}" as="s" hint-placeholder-count="8">
+          <div onClick="{{ s.onOpen }}" style="display:grid;grid-template-columns:92px minmax(0,1.5fr) minmax(0,1.5fr) 150px 108px 96px 118px 108px;min-width:1120px;gap:12px;padding:var(--row-py) 16px;border-bottom:1px solid var(--border);align-items:center;font-size:12.5px;cursor:pointer;" style-hover="background:var(--surface-2);">
+            <span style="font-family:var(--mono);font-size:11px;color:var(--primary-ink);font-weight:600;">{{ s.ref }}</span>
+            <span><b style="display:block;font-weight:600;line-height:1.35;">{{ s.party }}</b><span style="display:block;font-size:10.5px;color:var(--text-3);margin-top:2px;">{{ s.reason }}</span></span>
+            <span style="color:var(--text-2);line-height:1.4;">{{ s.asset }}</span>
+            <span style="color:var(--text-2);font-size:11.5px;">{{ s.access }}</span>
+            <span style="font-size:11.5px;color:var(--text-2);">{{ s.cls }}</span>
+            <span style="display:inline-flex;align-items:center;height:21px;padding:0 9px;border-radius:6px;background:{{ s.adBg }};color:{{ s.adInk }};font-size:11px;font-weight:600;justify-self:start;">{{ s.adequate }}</span>
+            <span style="display:inline-flex;align-items:center;gap:6px;font-size:11.5px;font-weight:600;color:{{ s.stInk }};"><span style="width:7px;height:7px;border-radius:50%;background:{{ s.stDot }};"></span>{{ s.status }}</span>
+            <span style="font-family:var(--mono);font-size:11px;color:var(--text-2);">{{ s.review }}</span>
+          </div>
+        </sc-for>
+      </div>
+      </div>
+      </sc-if>

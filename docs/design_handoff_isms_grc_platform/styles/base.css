@@ -1,0 +1,54 @@
+/* ============================================================
+   ISMS Governance Platform — base & typography
+   Load after tokens.css.
+   ============================================================ */
+
+@import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Sans+JP:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap');
+
+*, *::before, *::after { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  font-family: var(--sans);
+  color: var(--text);
+  background: var(--bg);
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+a { color: var(--primary-ink); text-decoration: none; }
+a:hover { color: var(--primary); text-decoration: underline; }
+
+button { font-family: inherit; }
+
+/* ---------- type scale (as used across every screen) ---------- */
+
+.t-page-title    { font-size: 21px; font-weight: 700; letter-spacing: -.3px; line-height: 1.3; margin: 0; }
+.t-page-title-lg { font-size: 23px; font-weight: 700; letter-spacing: -.3px; line-height: 1.25; margin: 0; }
+.t-section-title { font-size: 18px; font-weight: 700; letter-spacing: -.2px; margin: 0; }
+.t-eyebrow       { font-size: 11px; font-weight: 600; letter-spacing: .5px; text-transform: uppercase; color: var(--text-3); }
+.t-card-title    { font-size: 14px; font-weight: 700; }
+.t-card-sub      { font-size: 12px; color: var(--text-3); }
+.t-label         { font-size: 11px; font-weight: 700; letter-spacing: .4px; text-transform: uppercase; color: var(--text-3); }
+.t-body          { font-size: 13px; line-height: 1.65; color: var(--text-2); text-wrap: pretty; }
+.t-cell          { font-size: 12.5px; }
+.t-cell-2        { font-size: 12px; color: var(--text-2); }
+.t-meta          { font-size: 10.5px; color: var(--text-3); }
+.t-kpi           { font-size: 26px; font-weight: 700; letter-spacing: -.6px; }
+
+/* Every identifier, ISO date, count, percentage and file name is monospace.
+   This is a strong convention in the design — keep it. */
+.t-mono          { font-family: var(--mono); font-size: 11.5px; }
+.t-id            { font-family: var(--mono); font-size: 11px; font-weight: 600; color: var(--primary-ink); }
+
+/* ---------- layout ---------- */
+
+.app-root   { display: flex; min-height: 100vh; }
+.app-main   { flex: 1; overflow-y: auto; padding: 22px 26px 40px; }
+.page       { max-width: 1400px; }
+.stack      { display: flex; flex-direction: column; gap: 14px; }
+.row        { display: flex; align-items: center; gap: 8px; }
+.grid-kpi   { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; }
+.grid-detail{ display: grid; grid-template-columns: minmax(0, 1fr) 320px; gap: 16px; align-items: start; }
+
+/* Sibling groups are laid out with flex/grid + gap, never with margins between items. */

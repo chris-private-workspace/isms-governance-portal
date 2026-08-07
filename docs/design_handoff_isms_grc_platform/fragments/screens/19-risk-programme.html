@@ -1,0 +1,234 @@
+<!--
+  Fragment: RISK PROGRAMME
+  Source: design/ISMS Governance Platform.dc.html
+  Template syntax: {{ value }} holes, <sc-if>, <sc-for> — see fragments/README.md
+-->
+<!-- ============ RISK PROGRAMME ============ -->
+      <sc-if value="{{ isRiskProg }}" hint-placeholder-val="{{ false }}">
+      <div data-screen-label="Risk programme — ISMS">
+      <div style="display:flex;align-items:flex-end;justify-content:space-between;gap:20px;margin-bottom:16px;flex-wrap:wrap;">
+        <div>
+          <div style="font-size:11px;font-weight:600;letter-spacing:.5px;color:var(--text-3);text-transform:uppercase;margin-bottom:6px;">Information security risk management · v2025.7</div>
+          <h1 style="margin:0;font-size:22px;font-weight:700;letter-spacing:-.3px;">Risk programme</h1>
+          <div style="font-size:13px;color:var(--text-2);margin-top:5px;max-width:680px;text-wrap:pretty;">The procedure, scoring model and Risk Management Report worksheets that govern information security risk assessment across APAC — reviewed annually or after a security incident.</div>
+        </div>
+        <div style="display:flex;gap:8px;">
+          <button style="height:34px;padding:0 14px;border:1px solid var(--border-strong);border-radius:8px;background:var(--surface);color:var(--text-2);font-family:inherit;font-size:12.5px;font-weight:600;cursor:pointer;display:inline-flex;align-items:center;gap:7px;" style-hover="background:var(--surface-3);"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4v11"/><path d="M8 11l4 4 4-4"/><path d="M4 19h16"/></svg>Export report (.xlsx)</button>
+          <button style="height:34px;padding:0 14px;border:none;border-radius:8px;background:var(--primary);color:#fff;font-family:inherit;font-size:12.5px;font-weight:600;cursor:pointer;">Submit to ISC</button>
+        </div>
+      </div>
+
+      <div style="display:flex;align-items:center;gap:3px;background:var(--surface-3);border-radius:9px;padding:3px;margin-bottom:18px;width:fit-content;flex-wrap:wrap;">
+        <sc-for list="{{ rp.tabs }}" as="t" hint-placeholder-count="5">
+          <button onClick="{{ t.onSel }}" style="height:32px;padding:0 15px;border:1px solid {{ t.bd }};border-radius:7px;background:{{ t.bg }};color:{{ t.ink }};font-family:inherit;font-size:12.5px;font-weight:600;cursor:pointer;">{{ t.label }}</button>
+        </sc-for>
+      </div>
+
+      <sc-if value="{{ rp.isProcedure }}" hint-placeholder-val="{{ true }}">
+      <div style="display:grid;grid-template-columns:minmax(0,1fr) 320px;gap:18px;align-items:start;">
+        <div style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;">
+          <sc-for list="{{ rp.steps }}" as="s" hint-placeholder-count="8">
+            <div style="background:var(--surface);border:1px solid var(--border);border-radius:12px;box-shadow:var(--shadow);padding:16px 18px;">
+              <div style="display:flex;align-items:center;gap:10px;margin-bottom:9px;">
+                <span style="width:24px;height:24px;border-radius:7px;background:var(--primary-tint);color:var(--primary-ink);display:flex;align-items:center;justify-content:center;font-size:11.5px;font-weight:700;font-family:var(--mono);flex-shrink:0;">{{ s.n }}</span>
+                <div style="font-size:13px;font-weight:700;line-height:1.35;text-wrap:pretty;">{{ s.title }}</div>
+              </div>
+              <div style="font-size:12.5px;line-height:1.65;color:var(--text-2);text-wrap:pretty;">{{ s.body }}</div>
+              <div style="font-size:11px;color:var(--text-3);margin-top:11px;padding-top:10px;border-top:1px solid var(--border);">Accountable · <b style="color:var(--text-2);font-weight:600;">{{ s.who }}</b></div>
+            </div>
+          </sc-for>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:14px;">
+          <div style="background:var(--surface);border:1px solid var(--border);border-radius:12px;box-shadow:var(--shadow);padding:16px 18px;">
+            <div style="font-size:12px;font-weight:700;margin-bottom:10px;">Assessment triggers</div>
+            <div style="font-size:11.5px;color:var(--text-2);line-height:1.6;margin-bottom:11px;text-wrap:pretty;">At least once a year, after a security incident, or when a significant change is proposed or occurs in:</div>
+            <div style="display:flex;flex-direction:column;gap:7px;">
+              <sc-for list="{{ rp.triggers }}" as="t" hint-placeholder-count="6">
+                <div style="display:flex;gap:9px;font-size:12px;color:var(--text-2);line-height:1.5;"><span style="width:4px;height:4px;border-radius:50%;background:var(--text-3);flex-shrink:0;margin-top:7px;"></span>{{ t }}</div>
+              </sc-for>
+            </div>
+          </div>
+          <div style="background:var(--surface);border:1px solid var(--border);border-radius:12px;box-shadow:var(--shadow);overflow:hidden;">
+            <div style="padding:13px 16px;border-bottom:1px solid var(--border);font-size:12px;font-weight:700;">Responsibilities</div>
+            <sc-for list="{{ rp.roles }}" as="r" hint-placeholder-count="4">
+              <div style="padding:13px 16px;border-bottom:1px solid var(--border);">
+                <div style="font-size:12px;font-weight:600;margin-bottom:7px;">{{ r.role }}</div>
+                <div style="display:flex;flex-direction:column;gap:5px;">
+                  <sc-for list="{{ r.items }}" as="it" hint-placeholder-count="3">
+                    <div style="display:flex;gap:8px;font-size:11.5px;color:var(--text-2);line-height:1.5;text-wrap:pretty;"><span style="width:3px;height:3px;border-radius:50%;background:var(--text-3);flex-shrink:0;margin-top:7px;"></span>{{ it }}</div>
+                  </sc-for>
+                </div>
+              </div>
+            </sc-for>
+          </div>
+        </div>
+      </div>
+      </sc-if>
+
+      <sc-if value="{{ rp.isModel }}" hint-placeholder-val="{{ false }}">
+      <div style="display:flex;flex-direction:column;gap:16px;">
+        <div style="display:grid;grid-template-columns:minmax(0,1.15fr) minmax(0,1fr);gap:16px;align-items:start;">
+          <div style="background:var(--surface);border:1px solid var(--border);border-radius:12px;box-shadow:var(--shadow);overflow:auto;">
+            <div style="padding:13px 18px;background:var(--surface-2);border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;gap:12px;">
+              <span style="font-size:12px;font-weight:700;">Likelihood — 5-point scale</span><span style="font-size:11px;color:var(--text-3);font-family:var(--mono);">Risk = Likelihood × Impact</span>
+            </div>
+            <div style="display:grid;grid-template-columns:44px 128px minmax(0,1fr) 132px;min-width:470px;gap:12px;padding:9px 18px;border-bottom:1px solid var(--border);font-size:10px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;color:var(--text-3);"><span>Score</span><span>Category</span><span>Description</span><span>Probability</span></div>
+            <sc-for list="{{ rp.likelihood }}" as="l" hint-placeholder-count="5">
+              <div style="display:grid;grid-template-columns:44px 128px minmax(0,1fr) 132px;min-width:470px;gap:12px;padding:10px 18px;border-bottom:1px solid var(--border);font-size:12.5px;align-items:center;">
+                <span style="font-family:var(--mono);font-weight:700;color:var(--primary-ink);">{{ l.s }}</span>
+                <span style="font-weight:600;">{{ l.cat }}</span>
+                <span style="color:var(--text-2);line-height:1.45;">{{ l.desc }}</span>
+                <span style="font-family:var(--mono);font-size:11.5px;color:var(--text-2);">{{ l.p }}</span>
+              </div>
+            </sc-for>
+          </div>
+
+          <div style="background:var(--surface);border:1px solid var(--border);border-radius:12px;box-shadow:var(--shadow);padding:18px 20px;">
+            <div style="font-size:12px;font-weight:700;margin-bottom:4px;">Risk level calculation</div>
+            <div style="font-size:11.5px;color:var(--text-3);margin-bottom:14px;">Cells at 16 and above are outside the acceptance criteria.</div>
+            <div style="display:grid;grid-template-columns:118px repeat(5,minmax(0,1fr));gap:4px;align-items:center;">
+              <span></span>
+              <span style="font-size:10px;font-weight:700;text-transform:uppercase;color:var(--text-3);text-align:center;letter-spacing:.3px;">Insig.</span>
+              <span style="font-size:10px;font-weight:700;text-transform:uppercase;color:var(--text-3);text-align:center;letter-spacing:.3px;">Minor</span>
+              <span style="font-size:10px;font-weight:700;text-transform:uppercase;color:var(--text-3);text-align:center;letter-spacing:.3px;">Mod.</span>
+              <span style="font-size:10px;font-weight:700;text-transform:uppercase;color:var(--text-3);text-align:center;letter-spacing:.3px;">Major</span>
+              <span style="font-size:10px;font-weight:700;text-transform:uppercase;color:var(--text-3);text-align:center;letter-spacing:.3px;">Catas.</span>
+              <sc-for list="{{ rp.matrixRows }}" as="r" hint-placeholder-count="5">
+                <span style="font-size:11px;color:var(--text-2);text-align:right;padding-right:8px;line-height:1.25;"><b style="font-family:var(--mono);color:var(--text);">{{ r.l }}</b> {{ r.cat }}</span>
+                <sc-for list="{{ r.cells }}" as="c" hint-placeholder-count="5">
+                  <span style="height:38px;display:flex;align-items:center;justify-content:center;border:{{ c.bd }};border-radius:7px;background:{{ c.bg }};color:{{ c.ink }};font-family:var(--mono);font-size:13px;font-weight:{{ c.weight }};">{{ c.v }}</span>
+                </sc-for>
+              </sc-for>
+            </div>
+            <div style="font-size:11.5px;color:var(--text-2);line-height:1.65;margin-top:14px;text-wrap:pretty;">Below 16 the risk is acceptable — monitoring is required but no written assessment. At 16 or above, controls must be established until the score is acceptable; any residual score still at 16 or above is recorded in the IT Risk Register with full details and follow-up actions.</div>
+          </div>
+        </div>
+
+        <div style="background:var(--surface);border:1px solid var(--border);border-radius:12px;box-shadow:var(--shadow);overflow:auto;">
+          <div style="padding:13px 18px;background:var(--surface-2);border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;gap:12px;">
+            <span style="font-size:12px;font-weight:700;">Impact level — highest score across the five impact types</span><span style="font-size:11px;color:var(--text-3);">FIN · BOP · LRY · REP · SIS</span>
+          </div>
+          <div style="display:grid;grid-template-columns:40px 108px repeat(5,minmax(0,1fr));min-width:900px;gap:12px;padding:9px 18px;border-bottom:1px solid var(--border);font-size:10px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;color:var(--text-3);"><span>Score</span><span>Category</span><span>Financial</span><span>Business operations</span><span>Legal & regulatory</span><span>Reputation</span><span>Sensitive info / life safety</span></div>
+          <sc-for list="{{ rp.impacts }}" as="i" hint-placeholder-count="5">
+            <div style="display:grid;grid-template-columns:40px 108px repeat(5,minmax(0,1fr));min-width:900px;gap:12px;padding:11px 18px;border-bottom:1px solid var(--border);font-size:11.5px;line-height:1.5;color:var(--text-2);align-items:start;">
+              <span style="font-family:var(--mono);font-weight:700;color:var(--primary-ink);font-size:12.5px;">{{ i.s }}</span>
+              <span style="font-weight:600;color:var(--text);font-size:12.5px;">{{ i.cat }}</span>
+              <span style="text-wrap:pretty;">{{ i.fin }}</span><span style="text-wrap:pretty;">{{ i.bop }}</span><span style="text-wrap:pretty;">{{ i.lry }}</span><span style="text-wrap:pretty;">{{ i.rep }}</span><span style="text-wrap:pretty;">{{ i.sis }}</span>
+            </div>
+          </sc-for>
+        </div>
+      </div>
+      </sc-if>
+
+      <sc-if value="{{ rp.isReport }}" hint-placeholder-val="{{ false }}">
+      <div>
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:14px;flex-wrap:wrap;">
+          <sc-for list="{{ rp.sheets }}" as="s" hint-placeholder-count="6">
+            <button onClick="{{ s.onSel }}" style="height:32px;padding:0 14px;border:1px solid {{ s.bd }};border-radius:8px;background:{{ s.bg }};color:{{ s.ink }};font-family:inherit;font-size:12.5px;font-weight:{{ s.weight }};cursor:pointer;">{{ s.label }}</button>
+          </sc-for>
+          <span style="margin-left:6px;font-size:11.5px;color:var(--text-3);">{{ rp.rowCount }} threat–vulnerability pairs in the {{ rp.sheetName }} worksheet</span>
+        </div>
+
+        <div style="background:var(--surface);border:1px solid var(--border);border-radius:12px;box-shadow:var(--shadow);overflow:auto;">
+          <div style="display:grid;grid-template-columns:150px minmax(0,1.5fr) minmax(0,1.5fr) 52px 224px 214px 224px;min-width:1160px;gap:10px;padding:9px 16px;background:var(--surface-2);border-bottom:1px solid var(--border);font-size:10px;font-weight:700;letter-spacing:.4px;text-transform:uppercase;color:var(--text-3);">
+            <span>Asset group</span><span>Threat</span><span>Vulnerability</span><span>CIA</span><span>Before control</span><span>ISO/IEC 27001 controls</span><span>After control</span>
+          </div>
+          <sc-for list="{{ rp.rows }}" as="r" hint-placeholder-count="6">
+            <div style="display:grid;grid-template-columns:150px minmax(0,1.5fr) minmax(0,1.5fr) 52px 224px 214px 224px;min-width:1160px;gap:10px;padding:12px 16px;border-bottom:1px solid var(--border);font-size:12px;align-items:start;">
+              <span><b style="display:block;font-weight:600;line-height:1.35;">{{ r.grp }}</b><span style="display:block;font-size:10.5px;color:var(--text-3);margin-top:3px;line-height:1.4;">{{ r.det }}</span></span>
+              <span style="color:var(--text);line-height:1.45;text-wrap:pretty;">{{ r.threat }}</span>
+              <span style="color:var(--text-2);line-height:1.45;text-wrap:pretty;">{{ r.vuln }}</span>
+              <span style="font-family:var(--mono);font-size:11px;color:var(--text-2);">{{ r.cia }}</span>
+              <span style="display:flex;gap:3px;align-items:center;">
+                <span style="width:26px;height:24px;border-radius:5px;background:var(--surface-3);color:var(--text-2);display:flex;align-items:center;justify-content:center;font-family:var(--mono);font-size:11px;">{{ r.bLkh }}</span>
+                <span style="width:22px;height:24px;border-radius:5px;background:var(--surface-3);color:var(--text-3);display:flex;align-items:center;justify-content:center;font-family:var(--mono);font-size:11px;">{{ r.bFin }}</span>
+                <span style="width:22px;height:24px;border-radius:5px;background:var(--surface-3);color:var(--text-3);display:flex;align-items:center;justify-content:center;font-family:var(--mono);font-size:11px;">{{ r.bBop }}</span>
+                <span style="width:22px;height:24px;border-radius:5px;background:var(--surface-3);color:var(--text-3);display:flex;align-items:center;justify-content:center;font-family:var(--mono);font-size:11px;">{{ r.bLry }}</span>
+                <span style="width:22px;height:24px;border-radius:5px;background:var(--surface-3);color:var(--text-3);display:flex;align-items:center;justify-content:center;font-family:var(--mono);font-size:11px;">{{ r.bRep }}</span>
+                <span style="width:22px;height:24px;border-radius:5px;background:var(--surface-3);color:var(--text-3);display:flex;align-items:center;justify-content:center;font-family:var(--mono);font-size:11px;">{{ r.bSis }}</span>
+                <span style="width:34px;height:24px;border-radius:5px;background:{{ r.bBg }};color:{{ r.bInk }};display:flex;align-items:center;justify-content:center;font-family:var(--mono);font-size:11.5px;font-weight:700;margin-left:3px;">{{ r.bRisk }}</span>
+              </span>
+              <span style="font-family:var(--mono);font-size:10.5px;color:var(--text-2);line-height:1.5;word-break:break-word;">{{ r.ctl }}</span>
+              <span style="display:flex;gap:3px;align-items:center;">
+                <span style="width:26px;height:24px;border-radius:5px;background:var(--surface-3);color:var(--text-2);display:flex;align-items:center;justify-content:center;font-family:var(--mono);font-size:11px;">{{ r.aLkh }}</span>
+                <span style="width:22px;height:24px;border-radius:5px;background:var(--surface-3);color:var(--text-3);display:flex;align-items:center;justify-content:center;font-family:var(--mono);font-size:11px;">{{ r.aFin }}</span>
+                <span style="width:22px;height:24px;border-radius:5px;background:var(--surface-3);color:var(--text-3);display:flex;align-items:center;justify-content:center;font-family:var(--mono);font-size:11px;">{{ r.aBop }}</span>
+                <span style="width:22px;height:24px;border-radius:5px;background:var(--surface-3);color:var(--text-3);display:flex;align-items:center;justify-content:center;font-family:var(--mono);font-size:11px;">{{ r.aLry }}</span>
+                <span style="width:22px;height:24px;border-radius:5px;background:var(--surface-3);color:var(--text-3);display:flex;align-items:center;justify-content:center;font-family:var(--mono);font-size:11px;">{{ r.aRep }}</span>
+                <span style="width:22px;height:24px;border-radius:5px;background:var(--surface-3);color:var(--text-3);display:flex;align-items:center;justify-content:center;font-family:var(--mono);font-size:11px;">{{ r.aSis }}</span>
+                <span style="width:34px;height:24px;border-radius:5px;background:{{ r.aBg }};color:{{ r.aInk }};display:flex;align-items:center;justify-content:center;font-family:var(--mono);font-size:11.5px;font-weight:700;margin-left:3px;">{{ r.aRisk }}</span>
+              </span>
+            </div>
+          </sc-for>
+          <div style="display:flex;align-items:center;gap:18px;padding:12px 16px;background:var(--surface-2);flex-wrap:wrap;">
+            <sc-for list="{{ rp.abbrev }}" as="a" hint-placeholder-count="7">
+              <span style="font-size:11px;color:var(--text-3);"><b style="font-family:var(--mono);color:var(--text-2);">{{ a.k }}</b> {{ a.v }}</span>
+            </sc-for>
+          </div>
+        </div>
+      </div>
+      </sc-if>
+
+      <sc-if value="{{ rp.isRegister }}" hint-placeholder-val="{{ false }}">
+      <div style="background:var(--surface);border:1px solid var(--border);border-radius:12px;box-shadow:var(--shadow);overflow:auto;">
+        <div style="padding:13px 18px;background:var(--surface-2);border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;gap:12px;">
+          <span style="font-size:12px;font-weight:700;">IT Risk Register — residual risk at or above the acceptance threshold</span>
+          <span style="font-size:11px;color:var(--text-3);">Retained 3 years · holder: Information Security Officer</span>
+        </div>
+        <div style="display:grid;grid-template-columns:36px minmax(0,1.4fr) minmax(0,1.6fr) minmax(0,1.5fr) 150px 108px 96px;min-width:1080px;gap:12px;padding:9px 18px;border-bottom:1px solid var(--border);font-size:10px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;color:var(--text-3);">
+          <span>#</span><span>Threat / vulnerability</span><span>Existing controls</span><span>Additional control required</span><span>Responsible party</span><span>Target date</span><span>Status</span>
+        </div>
+        <sc-for list="{{ rp.register }}" as="r" hint-placeholder-count="4">
+          <div style="display:grid;grid-template-columns:36px minmax(0,1.4fr) minmax(0,1.6fr) minmax(0,1.5fr) 150px 108px 96px;min-width:1080px;gap:12px;padding:13px 18px;border-bottom:1px solid var(--border);font-size:12px;align-items:start;">
+            <span style="font-family:var(--mono);color:var(--text-3);">{{ r.item }}</span>
+            <span><b style="display:block;font-weight:600;line-height:1.4;text-wrap:pretty;">{{ r.tv }}</b><span style="display:block;font-size:11px;color:var(--text-3);margin-top:4px;line-height:1.5;text-wrap:pretty;">{{ r.desc }}</span><span style="display:inline-flex;align-items:center;height:19px;padding:0 7px;border-radius:5px;background:{{ r.sBg }};color:{{ r.sInk }};font-size:10.5px;font-weight:700;font-family:var(--mono);margin-top:6px;">Residual {{ r.score }}</span></span>
+            <span style="color:var(--text-2);line-height:1.55;text-wrap:pretty;">{{ r.existing }}</span>
+            <span style="color:var(--text);line-height:1.55;text-wrap:pretty;">{{ r.add }}</span>
+            <span style="color:var(--text-2);line-height:1.45;">{{ r.who }}</span>
+            <span style="font-family:var(--mono);font-size:11.5px;color:var(--text-2);">{{ r.target }}</span>
+            <span style="display:inline-flex;align-items:center;height:21px;padding:0 9px;border-radius:6px;background:{{ r.stBg }};color:{{ r.stInk }};font-size:11px;font-weight:600;justify-self:start;">{{ r.status }}</span>
+          </div>
+        </sc-for>
+      </div>
+      </sc-if>
+
+      <sc-if value="{{ rp.isControl }}" hint-placeholder-val="{{ false }}">
+      <div style="display:grid;grid-template-columns:minmax(0,1fr) 330px;gap:18px;align-items:start;">
+        <div style="background:var(--surface);border:1px solid var(--border);border-radius:12px;box-shadow:var(--shadow);overflow:auto;">
+          <div style="padding:13px 18px;background:var(--surface-2);border-bottom:1px solid var(--border);font-size:12px;font-weight:700;">Document version control</div>
+          <div style="display:grid;grid-template-columns:80px 90px minmax(0,1fr) 118px 88px;min-width:620px;gap:14px;padding:9px 18px;border-bottom:1px solid var(--border);font-size:10px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;color:var(--text-3);"><span>Version</span><span>Prepared by</span><span>Revision details</span><span>Effective date</span><span>Approved by</span></div>
+          <sc-for list="{{ rp.versions }}" as="v" hint-placeholder-count="5">
+            <div style="display:grid;grid-template-columns:80px 90px minmax(0,1fr) 118px 88px;min-width:620px;gap:14px;padding:11px 18px;border-bottom:1px solid var(--border);font-size:12.5px;align-items:center;">
+              <span style="font-family:var(--mono);font-weight:600;color:var(--primary-ink);">{{ v.ver }}</span>
+              <span style="color:var(--text-2);">{{ v.by }}</span>
+              <span style="color:var(--text-2);line-height:1.45;text-wrap:pretty;">{{ v.note }}</span>
+              <span style="font-family:var(--mono);font-size:11.5px;color:var(--text-2);">{{ v.eff }}</span>
+              <span style="color:var(--text-2);">{{ v.appr }}</span>
+            </div>
+          </sc-for>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:14px;">
+          <div style="background:var(--surface);border:1px solid var(--border);border-radius:12px;box-shadow:var(--shadow);padding:16px 18px;">
+            <div style="font-size:12px;font-weight:700;margin-bottom:11px;">Document control</div>
+            <div style="display:flex;flex-direction:column;gap:9px;font-size:12px;">
+              <div style="display:flex;justify-content:space-between;gap:12px;"><span style="color:var(--text-3);">Owner</span><span style="font-weight:600;text-align:right;">Information Security Committee</span></div>
+              <div style="display:flex;justify-content:space-between;gap:12px;"><span style="color:var(--text-3);">Classification</span><span style="font-weight:600;">Restricted</span></div>
+              <div style="display:flex;justify-content:space-between;gap:12px;"><span style="color:var(--text-3);">Publication</span><span style="font-family:var(--mono);font-size:11.5px;">28 July 2025</span></div>
+              <div style="display:flex;justify-content:space-between;gap:12px;"><span style="color:var(--text-3);">Master copy</span><span style="font-weight:600;">Intranet file server</span></div>
+              <div style="display:flex;justify-content:space-between;gap:12px;"><span style="color:var(--text-3);">Retention</span><span style="font-weight:600;">3 years</span></div>
+            </div>
+          </div>
+          <div style="background:var(--surface);border:1px solid var(--border);border-radius:12px;box-shadow:var(--shadow);padding:16px 18px;">
+            <div style="font-size:12px;font-weight:700;margin-bottom:11px;">Submission set for ISC approval</div>
+            <div style="display:flex;flex-direction:column;gap:9px;">
+              <div style="display:flex;align-items:center;gap:9px;font-size:12px;"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="var(--rag-g)" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg>Asset Inventory</div>
+              <div style="display:flex;align-items:center;gap:9px;font-size:12px;"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="var(--rag-g)" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg>Risk Management Report</div>
+              <div style="display:flex;align-items:center;gap:9px;font-size:12px;"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="var(--rag-a)" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="8"/><path d="M12 8v4.5l3 1.8"/></svg>IT Risk Register — 2 items pending</div>
+              <div style="display:flex;align-items:center;gap:9px;font-size:12px;"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="var(--rag-g)" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg>Statement of Applicability</div>
+            </div>
+          </div>
+        </div>
+      </div>
+      </sc-if>
+      </div>
+      </sc-if>

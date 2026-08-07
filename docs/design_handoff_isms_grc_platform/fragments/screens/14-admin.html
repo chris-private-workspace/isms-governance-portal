@@ -1,0 +1,343 @@
+<!--
+  Fragment: ADMIN
+  Source: design/ISMS Governance Platform.dc.html
+  Template syntax: {{ value }} holes, <sc-if>, <sc-for> — see fragments/README.md
+-->
+<!-- ============ ADMIN ============ -->
+      <sc-if value="{{ isAdmin }}" hint-placeholder-val="{{ false }}">
+      <div data-screen-label="Admin — settings">
+      <div style="margin-bottom:16px;">
+        <div style="font-size:11px;font-weight:600;letter-spacing:.5px;color:var(--text-3);text-transform:uppercase;margin-bottom:6px;">Administration</div>
+        <h1 style="margin:0;font-size:23px;font-weight:700;letter-spacing:-.3px;">Admin</h1>
+      </div>
+      <div style="display:grid;grid-template-columns:210px 1fr;gap:16px;align-items:start;">
+        <div style="background:var(--surface);border:1px solid var(--border);border-radius:12px;box-shadow:var(--shadow);padding:8px;position:sticky;top:78px;">
+          <sc-for list="{{ adminSections }}" as="a" hint-placeholder-count="11">
+            <div>
+              <sc-if value="{{ a.newGrp }}" hint-placeholder-val="{{ false }}">
+                <div style="font-size:9.5px;font-weight:700;letter-spacing:.6px;text-transform:uppercase;color:var(--text-3);padding:10px 11px 5px;">{{ a.grp }}</div>
+              </sc-if>
+              <div onClick="{{ a.onSelect }}" style="display:flex;align-items:center;gap:9px;padding:9px 11px;border-radius:8px;font-size:12.5px;font-weight:{{ a.weight }};color:{{ a.color }};background:{{ a.bg }};cursor:pointer;" style-hover="background:var(--surface-3);">{{ a.label }}</div>
+            </div>
+          </sc-for>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:16px;min-width:0;">
+
+          <!-- Permissions -->
+          <sc-if value="{{ adminPermissionsActive }}" hint-placeholder-val="{{ false }}">
+          <div style="background:var(--surface);border:1px solid var(--border);border-radius:12px;box-shadow:var(--shadow);overflow:hidden;">
+            <div style="padding:16px 18px;border-bottom:1px solid var(--border);"><div style="font-size:14px;font-weight:700;">Role permissions</div><div style="font-size:12px;color:var(--text-3);margin-top:2px;">What each role can do in every module. Changes take effect at the user’s next sign-in.</div></div>
+            <div style="overflow-x:auto;">
+              <div style="display:grid;grid-template-columns:210px repeat(6,minmax(0,1fr));min-width:820px;gap:8px;padding:9px 18px;background:var(--surface-2);border-bottom:1px solid var(--border);font-size:10px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;color:var(--text-3);">
+                <span>Module</span>
+                <sc-for list="{{ permRoles }}" as="r" hint-placeholder-count="6"><span style="text-align:center;">{{ r }}</span></sc-for>
+              </div>
+              <sc-for list="{{ permRows }}" as="row" hint-placeholder-count="11">
+                <div style="display:grid;grid-template-columns:210px repeat(6,minmax(0,1fr));min-width:820px;gap:8px;padding:9px 18px;border-bottom:1px solid var(--border);align-items:center;">
+                  <span style="font-size:12.5px;font-weight:600;">{{ row.mod }}</span>
+                  <sc-for list="{{ row.cells }}" as="c" hint-placeholder-count="6">
+                    <span style="justify-self:center;display:inline-flex;align-items:center;justify-content:center;height:22px;min-width:62px;padding:0 8px;border-radius:6px;background:{{ c.bg }};color:{{ c.ink }};font-size:10.5px;font-weight:700;">{{ c.label }}</span>
+                  </sc-for>
+                </div>
+              </sc-for>
+            </div>
+            <div style="display:flex;align-items:center;gap:14px;padding:12px 18px;background:var(--surface-2);flex-wrap:wrap;">
+              <span style="font-size:11px;color:var(--text-3);font-weight:600;">Legend</span>
+              <sc-for list="{{ permLegend }}" as="l" hint-placeholder-count="6">
+                <span style="display:inline-flex;align-items:center;height:20px;padding:0 8px;border-radius:5px;background:{{ l.bg }};color:{{ l.ink }};font-size:10.5px;font-weight:700;">{{ l.label }}</span>
+              </sc-for>
+            </div>
+          </div>
+          </sc-if>
+
+          <!-- Access management -->
+          <sc-if value="{{ adminAccessActive }}" hint-placeholder-val="{{ false }}">
+          <div style="display:flex;flex-direction:column;gap:16px;">
+            <div style="background:var(--surface);border:1px solid var(--border);border-radius:12px;box-shadow:var(--shadow);overflow:hidden;">
+            <div style="padding:16px 18px;border-bottom:1px solid var(--border);"><div style="font-size:14px;font-weight:700;">Access requests</div><div style="font-size:12px;color:var(--text-3);margin-top:2px;">{{ accessPending }} awaiting approval · approvals are recorded in the audit log</div></div>
+              <div style="display:grid;grid-template-columns:92px minmax(0,1.1fr) minmax(0,1.5fr) 118px 116px;gap:12px;padding:9px 18px;background:var(--surface-2);border-bottom:1px solid var(--border);font-size:10px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;color:var(--text-3);">
+                <span>Ref</span><span>Requester</span><span>Access requested</span><span>Approver</span><span>Status</span>
+              </div>
+              <sc-for list="{{ accessRequests }}" as="a" hint-placeholder-count="4">
+                <div style="display:grid;grid-template-columns:92px minmax(0,1.1fr) minmax(0,1.5fr) 118px 116px;gap:12px;padding:11px 18px;border-bottom:1px solid var(--border);align-items:center;font-size:12.5px;">
+                  <span style="font-family:var(--mono);font-size:11px;color:var(--primary-ink);font-weight:600;">{{ a.ref }}</span>
+                  <span><b style="display:block;font-weight:600;">{{ a.who }}</b><span style="display:block;font-size:10.5px;color:var(--text-3);font-family:var(--mono);margin-top:2px;">{{ a.opco }} · {{ a.raised }}</span></span>
+                  <span><b style="display:block;font-weight:600;line-height:1.35;">{{ a.ask }}</b><span style="display:block;font-size:10.5px;color:var(--text-3);margin-top:2px;line-height:1.45;text-wrap:pretty;">{{ a.reason }}</span></span>
+                  <span style="color:var(--text-2);font-size:12px;">{{ a.appr }}</span>
+                  <span style="display:inline-flex;align-items:center;gap:6px;font-size:11.5px;font-weight:600;color:{{ a.stInk }};"><span style="width:7px;height:7px;border-radius:50%;background:{{ a.stDot }};"></span>{{ a.status }}</span>
+                </div>
+              </sc-for>
+            </div>
+
+            <div style="background:var(--surface);border:1px solid var(--border);border-radius:12px;box-shadow:var(--shadow);overflow:hidden;">
+            <div style="padding:16px 18px;border-bottom:1px solid var(--border);"><div style="font-size:14px;font-weight:700;">Access review campaigns</div><div style="font-size:12px;color:var(--text-3);margin-top:2px;">Periodic recertification of who holds which role</div></div>
+              <sc-for list="{{ accessReviews }}" as="c" hint-placeholder-count="3">
+                <div style="padding:13px 18px;border-bottom:1px solid var(--border);">
+                  <div style="display:flex;align-items:center;justify-content:space-between;gap:14px;flex-wrap:wrap;margin-bottom:8px;">
+                    <div style="min-width:0;"><div style="font-size:12.5px;font-weight:600;">{{ c.camp }}</div><div style="font-size:10.5px;color:var(--text-3);margin-top:2px;">{{ c.scope }} · owner {{ c.owner }} · due {{ c.due }}</div></div>
+                    <span style="font-size:11.5px;font-weight:600;color:{{ c.ink }};font-family:var(--mono);">{{ c.prog }} · {{ c.pct }}</span>
+                  </div>
+                  <div style="height:6px;border-radius:3px;background:var(--surface-3);overflow:hidden;"><div style="height:100%;width:{{ c.w }};background:{{ c.bar }};border-radius:3px;"></div></div>
+                </div>
+              </sc-for>
+            </div>
+
+            <div style="background:var(--surface);border:1px solid var(--border);border-radius:12px;box-shadow:var(--shadow);overflow:hidden;">
+            <div style="padding:16px 18px;border-bottom:1px solid var(--border);"><div style="font-size:14px;font-weight:700;">Authentication & session policy</div><div style="font-size:12px;color:var(--text-3);margin-top:2px;">Applies to every user of the platform</div></div>
+              <sc-for list="{{ sessionPolicy }}" as="p" hint-placeholder-count="6">
+                <div style="display:grid;grid-template-columns:190px minmax(0,1fr);gap:16px;padding:11px 18px;border-bottom:1px solid var(--border);font-size:12.5px;">
+                  <span style="color:var(--text-3);font-weight:600;">{{ p.k }}</span><span style="color:var(--text-2);line-height:1.5;text-wrap:pretty;">{{ p.v }}</span>
+                </div>
+              </sc-for>
+            </div>
+          </div>
+          </sc-if>
+
+          <!-- Reporting -->
+          <sc-if value="{{ adminReportingActive }}" hint-placeholder-val="{{ false }}">
+          <div style="display:flex;flex-direction:column;gap:16px;">
+            <div style="background:var(--surface);border:1px solid var(--border);border-radius:12px;box-shadow:var(--shadow);overflow:hidden;">
+              <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;padding:16px 18px;border-bottom:1px solid var(--border);flex-wrap:wrap;">
+                <div><div style="font-size:14px;font-weight:700;">Report library</div><div style="font-size:12px;color:var(--text-3);margin-top:2px;">Scheduled and on-demand reports, delivered to a named audience</div></div>
+                <button style="height:32px;padding:0 12px;border:none;border-radius:8px;background:var(--primary);color:#fff;font-family:inherit;font-size:12px;font-weight:600;cursor:pointer;">New report</button>
+              </div>
+              <div style="overflow-x:auto;">
+                <div style="display:grid;grid-template-columns:minmax(0,1.6fr) minmax(0,1.3fr) 116px 108px 104px 104px;min-width:840px;gap:12px;padding:9px 18px;background:var(--surface-2);border-bottom:1px solid var(--border);font-size:10px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;color:var(--text-3);">
+                  <span>Report</span><span>Audience</span><span>Frequency</span><span>Next run</span><span>Format</span><span>Status</span>
+                </div>
+                <sc-for list="{{ reportLibrary }}" as="r" hint-placeholder-count="7">
+                  <div style="display:grid;grid-template-columns:minmax(0,1.6fr) minmax(0,1.3fr) 116px 108px 104px 104px;min-width:840px;gap:12px;padding:11px 18px;border-bottom:1px solid var(--border);align-items:center;font-size:12.5px;">
+                    <span><b style="display:block;font-weight:600;line-height:1.35;">{{ r.name }}</b><span style="display:block;font-size:10.5px;color:var(--text-3);margin-top:2px;">owner {{ r.owner }}</span></span>
+                    <span style="color:var(--text-2);font-size:12px;">{{ r.aud }}</span>
+                    <span style="color:var(--text-2);font-size:12px;">{{ r.freq }}</span>
+                    <span style="font-family:var(--mono);font-size:11px;color:var(--text-2);">{{ r.next }}</span>
+                    <span style="font-family:var(--mono);font-size:11px;color:var(--text-2);">{{ r.fmt }}</span>
+                    <span style="display:inline-flex;align-items:center;height:21px;padding:0 9px;border-radius:6px;background:{{ r.stBg }};color:{{ r.stInk }};font-size:11px;font-weight:600;justify-self:start;">{{ r.status }}</span>
+                  </div>
+                </sc-for>
+              </div>
+            </div>
+            <div style="background:var(--surface);border:1px solid var(--border);border-radius:12px;box-shadow:var(--shadow);overflow:hidden;">
+            <div style="padding:16px 18px;border-bottom:1px solid var(--border);"><div style="font-size:14px;font-weight:700;">Recent exports</div><div style="font-size:12px;color:var(--text-3);margin-top:2px;">Every export is logged with the classification of the data it contains</div></div>
+              <sc-for list="{{ recentExports }}" as="e" hint-placeholder-count="3">
+                <div style="display:grid;grid-template-columns:minmax(0,2fr) 150px 150px 96px 104px;gap:12px;padding:11px 18px;border-bottom:1px solid var(--border);align-items:center;font-size:12.5px;">
+                  <span style="font-family:var(--mono);font-size:11.5px;word-break:break-all;">{{ e.file }}</span>
+                  <span style="color:var(--text-2);">{{ e.by }}</span>
+                  <span style="font-family:var(--mono);font-size:11px;color:var(--text-3);">{{ e.when }}</span>
+                  <span style="font-family:var(--mono);font-size:11px;color:var(--text-3);">{{ e.size }}</span>
+                  <span style="display:inline-flex;align-items:center;height:20px;padding:0 8px;border-radius:5px;background:var(--surface-3);color:var(--text-2);font-size:10.5px;font-weight:700;justify-self:start;">{{ e.cls }}</span>
+                </div>
+              </sc-for>
+            </div>
+          </div>
+          </sc-if>
+
+          <!-- Notifications -->
+          <sc-if value="{{ adminNotificationsActive }}" hint-placeholder-val="{{ false }}">
+          <div style="background:var(--surface);border:1px solid var(--border);border-radius:12px;box-shadow:var(--shadow);overflow:hidden;">
+            <div style="padding:16px 18px;border-bottom:1px solid var(--border);"><div style="font-size:14px;font-weight:700;">Notifications & escalation</div><div style="font-size:12px;color:var(--text-3);margin-top:2px;">Which events notify whom, through which channel, and how quickly</div></div>
+            <div style="overflow-x:auto;">
+              <div style="display:grid;grid-template-columns:minmax(0,1.4fr) minmax(0,1.6fr) 150px 128px 70px;min-width:860px;gap:12px;padding:9px 18px;background:var(--surface-2);border-bottom:1px solid var(--border);font-size:10px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;color:var(--text-3);">
+                <span>Event</span><span>Recipients</span><span>Channel</span><span>Timing</span><span>State</span>
+              </div>
+              <sc-for list="{{ notifyRules }}" as="n" hint-placeholder-count="8">
+                <div style="display:grid;grid-template-columns:minmax(0,1.4fr) minmax(0,1.6fr) 150px 128px 70px;min-width:860px;gap:12px;padding:11px 18px;border-bottom:1px solid var(--border);align-items:center;font-size:12.5px;">
+                  <span style="font-weight:600;line-height:1.35;">{{ n.ev }}</span>
+                  <span style="color:var(--text-2);font-size:12px;line-height:1.45;text-wrap:pretty;">{{ n.to }}</span>
+                  <span style="color:var(--text-2);font-size:12px;">{{ n.ch }}</span>
+                  <span style="font-family:var(--mono);font-size:11px;color:var(--text-2);">{{ n.sla }}</span>
+                  <span style="display:flex;align-items:center;width:38px;height:21px;border-radius:11px;padding:2px;{{ n.knob }}"><span style="width:17px;height:17px;border-radius:50%;background:#fff;"></span></span>
+                </div>
+              </sc-for>
+            </div>
+          </div>
+          </sc-if>
+
+          <!-- Records & retention -->
+          <sc-if value="{{ adminRetentionActive }}" hint-placeholder-val="{{ false }}">
+          <div style="background:var(--surface);border:1px solid var(--border);border-radius:12px;box-shadow:var(--shadow);overflow:hidden;">
+            <div style="padding:16px 18px;border-bottom:1px solid var(--border);"><div style="font-size:14px;font-weight:700;">Records & retention</div><div style="font-size:12px;color:var(--text-3);margin-top:2px;">How long each record class is kept, on what basis, and how disposal is approved</div></div>
+            <div style="overflow-x:auto;">
+              <div style="display:grid;grid-template-columns:minmax(0,1.4fr) 170px minmax(0,1.4fr) 150px 170px;min-width:900px;gap:12px;padding:9px 18px;background:var(--surface-2);border-bottom:1px solid var(--border);font-size:10px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;color:var(--text-3);">
+                <span>Record class</span><span>Retention</span><span>Basis</span><span>Legal hold</span><span>Disposal</span>
+              </div>
+              <sc-for list="{{ retention }}" as="r" hint-placeholder-count="6">
+                <div style="display:grid;grid-template-columns:minmax(0,1.4fr) 170px minmax(0,1.4fr) 150px 170px;min-width:900px;gap:12px;padding:11px 18px;border-bottom:1px solid var(--border);align-items:center;font-size:12.5px;">
+                  <span style="font-weight:600;line-height:1.35;">{{ r.cls }}</span>
+                  <span style="color:var(--text-2);font-size:12px;">{{ r.keep }}</span>
+                  <span style="color:var(--text-2);font-size:12px;line-height:1.45;text-wrap:pretty;">{{ r.basis }}</span>
+                  <span style="font-size:12px;font-weight:600;color:{{ r.holdInk }};">{{ r.hold }}</span>
+                  <span style="color:var(--text-2);font-size:12px;">{{ r.disp }}</span>
+                </div>
+              </sc-for>
+            </div>
+          </div>
+          </sc-if>
+
+          <!-- RAG thresholds -->
+          <sc-if value="{{ adminThresholdsActive }}" hint-placeholder-val="{{ true }}">
+          <div style="background:var(--surface);border:1px solid var(--border);border-radius:12px;box-shadow:var(--shadow);padding:18px;">
+            <div style="font-size:14px;font-weight:700;margin-bottom:3px;">RAG thresholds</div>
+            <div style="font-size:12px;color:var(--text-3);margin-bottom:16px;">Define how each KPI maps to Red / Amber / Green across all entities. Applies to dashboard and matrix.</div>
+            <div style="overflow-x:auto;">
+              <table style="width:100%;border-collapse:collapse;min-width:520px;">
+                <thead><tr style="background:var(--surface-2);">
+                  <th style="text-align:left;padding:9px 14px;font-size:10.5px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;color:var(--text-3);border-bottom:1px solid var(--border);">Metric</th>
+                  <th style="text-align:left;padding:9px 14px;font-size:10.5px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;color:var(--rag-g-ink);border-bottom:1px solid var(--border);">Green</th>
+                  <th style="text-align:left;padding:9px 14px;font-size:10.5px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;color:var(--rag-a-ink);border-bottom:1px solid var(--border);">Amber</th>
+                  <th style="text-align:left;padding:9px 14px;font-size:10.5px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;color:var(--rag-r-ink);border-bottom:1px solid var(--border);">Red</th>
+                </tr></thead>
+                <tbody>
+                  <sc-for list="{{ thresholds }}" as="t" hint-placeholder-count="5">
+                    <tr style="border-bottom:1px solid var(--border);">
+                      <td style="padding:10px 14px;font-size:12.5px;font-weight:600;color:var(--text);">{{ t.metric }}</td>
+                      <td style="padding:10px 14px;"><span style="display:inline-block;padding:4px 10px;border-radius:6px;background:var(--rag-g-bg);color:var(--rag-g-ink);font-family:var(--mono);font-size:12px;font-weight:600;">{{ t.g }}</span></td>
+                      <td style="padding:10px 14px;"><span style="display:inline-block;padding:4px 10px;border-radius:6px;background:var(--rag-a-bg);color:var(--rag-a-ink);font-family:var(--mono);font-size:12px;font-weight:600;">{{ t.a }}</span></td>
+                      <td style="padding:10px 14px;"><span style="display:inline-block;padding:4px 10px;border-radius:6px;background:var(--rag-r-bg);color:var(--rag-r-ink);font-family:var(--mono);font-size:12px;font-weight:600;">{{ t.r }}</span></td>
+                    </tr>
+                  </sc-for>
+                </tbody>
+              </table>
+            </div>
+          </div>
+          </sc-if>
+
+          <!-- Entities & jurisdictions -->
+          <sc-if value="{{ adminEntitiesActive }}" hint-placeholder-val="{{ false }}">
+          <div style="background:var(--surface);border:1px solid var(--border);border-radius:12px;box-shadow:var(--shadow);overflow:hidden;">
+            <div style="display:flex;align-items:center;justify-content:space-between;padding:16px 18px;border-bottom:1px solid var(--border);"><div><div style="font-size:14px;font-weight:700;">Entities & jurisdictions</div><div style="font-size:12px;color:var(--text-3);margin-top:2px;">6 active entities across 6 jurisdictions</div></div><button style="height:32px;padding:0 12px;border:none;border-radius:8px;background:var(--primary);color:#fff;font-family:inherit;font-size:12px;font-weight:600;cursor:pointer;">Add entity</button></div>
+            <table style="width:100%;border-collapse:collapse;">
+              <thead><tr style="background:var(--surface-2);">
+                <th style="text-align:left;padding:9px 18px;font-size:10px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;color:var(--text-3);border-bottom:1px solid var(--border);">Entity</th>
+                <th style="text-align:left;padding:9px 12px;font-size:10px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;color:var(--text-3);border-bottom:1px solid var(--border);">Regulator / jurisdiction</th>
+                <th style="text-align:center;padding:9px 12px;font-size:10px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;color:var(--text-3);border-bottom:1px solid var(--border);">Risks</th>
+                <th style="text-align:center;padding:9px 12px;font-size:10px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;color:var(--text-3);border-bottom:1px solid var(--border);">High</th>
+                <th style="text-align:center;padding:9px 12px;font-size:10px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;color:var(--text-3);border-bottom:1px solid var(--border);">Coverage</th>
+                <th style="text-align:left;padding:9px 18px;font-size:10px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;color:var(--text-3);border-bottom:1px solid var(--border);">Posture</th>
+              </tr></thead>
+              <tbody>
+                <sc-for list="{{ adminEntities }}" as="e" hint-placeholder-count="6">
+                  <tr style="border-bottom:1px solid var(--border);">
+                    <td style="padding:11px 18px;"><span style="display:inline-flex;align-items:center;gap:9px;"><span style="width:26px;height:19px;border-radius:5px;background:var(--surface-3);border:1px solid var(--border);display:inline-flex;align-items:center;justify-content:center;font-size:9px;font-weight:700;font-family:var(--mono);color:var(--text-2);">{{ e.flag }}</span><span style="font-size:12.5px;font-weight:600;color:var(--text);">{{ e.name }}</span></span></td>
+                    <td style="padding:11px 12px;font-size:12px;color:var(--text-2);">{{ e.juris }}</td>
+                    <td style="text-align:center;padding:11px 12px;font-size:12.5px;font-family:var(--mono);color:var(--text-2);">{{ e.risks }}</td>
+                    <td style="text-align:center;padding:11px 12px;font-size:12.5px;font-family:var(--mono);color:var(--text-2);">{{ e.high }}</td>
+                    <td style="text-align:center;padding:11px 12px;font-size:12.5px;font-family:var(--mono);color:var(--text-2);">{{ e.cov }}</td>
+                    <td style="padding:11px 18px;"><span style="display:inline-flex;align-items:center;gap:6px;padding:3px 10px;border-radius:20px;background:{{ e.ovBg }};"><span style="width:6px;height:6px;border-radius:50%;background:{{ e.ovDot }};"></span><span style="font-size:11px;font-weight:600;color:{{ e.ovInk }};">{{ e.ovLabel }}</span></span></td>
+                  </tr>
+                </sc-for>
+              </tbody>
+            </table>
+          </div>
+          </sc-if>
+
+          <!-- Users & roles -->
+          <sc-if value="{{ adminUsersActive }}" hint-placeholder-val="{{ false }}">
+          <div style="background:var(--surface);border:1px solid var(--border);border-radius:12px;box-shadow:var(--shadow);overflow:hidden;">
+            <div style="display:flex;align-items:center;justify-content:space-between;padding:16px 18px;border-bottom:1px solid var(--border);"><div><div style="font-size:14px;font-weight:700;">Users & roles</div><div style="font-size:12px;color:var(--text-3);margin-top:2px;">43 users · role-based access control</div></div><button style="height:32px;padding:0 12px;border:none;border-radius:8px;background:var(--primary);color:#fff;font-family:inherit;font-size:12px;font-weight:600;cursor:pointer;">Invite user</button></div>
+            <table style="width:100%;border-collapse:collapse;">
+              <thead><tr style="background:var(--surface-2);">
+                <th style="text-align:left;padding:9px 18px;font-size:10px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;color:var(--text-3);border-bottom:1px solid var(--border);">User</th>
+                <th style="text-align:left;padding:9px 12px;font-size:10px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;color:var(--text-3);border-bottom:1px solid var(--border);">Role</th>
+                <th style="text-align:left;padding:9px 12px;font-size:10px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;color:var(--text-3);border-bottom:1px solid var(--border);">Scope</th>
+                <th style="text-align:left;padding:9px 12px;font-size:10px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;color:var(--text-3);border-bottom:1px solid var(--border);">Last active</th>
+                <th style="text-align:left;padding:9px 18px;font-size:10px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;color:var(--text-3);border-bottom:1px solid var(--border);">Status</th>
+              </tr></thead>
+              <tbody>
+                <sc-for list="{{ adminUsers }}" as="u" hint-placeholder-count="8">
+                  <tr style="border-bottom:1px solid var(--border);">
+                    <td style="padding:11px 18px;"><span style="display:inline-flex;align-items:center;gap:10px;"><span style="width:28px;height:28px;border-radius:50%;background:linear-gradient(135deg,var(--primary),var(--primary-ink));color:#fff;display:inline-flex;align-items:center;justify-content:center;font-size:10.5px;font-weight:700;flex-shrink:0;">{{ u.init }}</span><span><span style="display:block;font-size:12.5px;font-weight:600;color:var(--text);">{{ u.name }}</span><span style="display:block;font-size:10.5px;color:var(--text-3);font-family:var(--mono);">{{ u.email }}</span></span></span></td>
+                    <td style="padding:11px 12px;font-size:12px;color:var(--text-2);">{{ u.role }}</td>
+                    <td style="padding:11px 12px;font-size:12px;color:var(--text-2);">{{ u.scope }}</td>
+                    <td style="padding:11px 12px;font-size:11.5px;color:var(--text-3);">{{ u.last }}</td>
+                    <td style="padding:11px 18px;"><span style="display:inline-flex;align-items:center;gap:6px;padding:3px 10px;border-radius:20px;background:{{ u.stBg }};"><span style="width:6px;height:6px;border-radius:50%;background:{{ u.stDot }};"></span><span style="font-size:11px;font-weight:600;color:{{ u.stInk }};">{{ u.status }}</span></span></td>
+                  </tr>
+                </sc-for>
+              </tbody>
+            </table>
+          </div>
+          <div style="background:var(--surface);border:1px solid var(--border);border-radius:12px;box-shadow:var(--shadow);padding:18px;">
+            <div style="font-size:13px;font-weight:700;margin-bottom:12px;">Roles & permissions</div>
+            <div style="display:flex;flex-direction:column;gap:8px;">
+              <sc-for list="{{ adminRoles }}" as="ro" hint-placeholder-count="4">
+                <div style="display:flex;align-items:center;gap:12px;padding:11px 13px;border:1px solid var(--border);border-radius:9px;">
+                  <div style="flex:1;min-width:0;"><div style="font-size:12.5px;font-weight:600;color:var(--text);">{{ ro.role }}</div><div style="font-size:11.5px;color:var(--text-3);margin-top:1px;">{{ ro.desc }}</div></div>
+                  <span style="font-size:11px;font-family:var(--mono);font-weight:600;color:var(--text-2);background:var(--surface-3);border-radius:20px;padding:3px 10px;flex-shrink:0;">{{ ro.count }} users</span>
+                </div>
+              </sc-for>
+            </div>
+          </div>
+          </sc-if>
+
+          <!-- Risk taxonomy -->
+          <sc-if value="{{ adminTaxonomyActive }}" hint-placeholder-val="{{ false }}">
+          <div style="background:var(--surface);border:1px solid var(--border);border-radius:12px;box-shadow:var(--shadow);padding:18px;">
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;"><div><div style="font-size:14px;font-weight:700;">Risk taxonomy</div><div style="font-size:12px;color:var(--text-3);margin-top:2px;">7 categories · standard register hierarchy</div></div><button style="height:32px;padding:0 12px;border:1px solid var(--border-strong);border-radius:8px;background:var(--surface);font-family:inherit;font-size:12px;font-weight:600;color:var(--text-2);cursor:pointer;" style-hover="background:var(--surface-3);">Edit taxonomy</button></div>
+            <div style="display:flex;flex-direction:column;gap:9px;">
+              <sc-for list="{{ taxonomy }}" as="tx" hint-placeholder-count="7">
+                <div style="border:1px solid var(--border);border-radius:10px;padding:13px 15px;">
+                  <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px;"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--primary)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7h18M3 12h18M3 17h12"/></svg><div style="font-size:13px;font-weight:700;color:var(--text);flex:1;">{{ tx.cat }}</div><span style="font-size:11px;font-family:var(--mono);font-weight:600;color:var(--text-2);background:var(--surface-3);border-radius:20px;padding:3px 10px;">{{ tx.n }} risks</span></div>
+                  <div style="display:flex;flex-wrap:wrap;gap:7px;">
+                    <sc-for list="{{ tx.subs }}" as="sub" hint-placeholder-count="4">
+                      <span style="font-size:11.5px;color:var(--text-2);background:var(--surface-2);border:1px solid var(--border);border-radius:7px;padding:5px 10px;">{{ sub }}</span>
+                    </sc-for>
+                  </div>
+                </div>
+              </sc-for>
+            </div>
+          </div>
+          </sc-if>
+
+          <!-- Integrations -->
+          <sc-if value="{{ adminIntegrationsActive }}" hint-placeholder-val="{{ false }}">
+          <div style="background:var(--surface);border:1px solid var(--border);border-radius:12px;box-shadow:var(--shadow);padding:18px;">
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;"><div><div style="font-size:14px;font-weight:700;">Integrations</div><div style="font-size:12px;color:var(--text-3);margin-top:2px;">6 connected · evidence & signals synced automatically</div></div><button style="height:32px;padding:0 12px;border:1px solid var(--border-strong);border-radius:8px;background:var(--surface);font-family:inherit;font-size:12px;font-weight:600;color:var(--text-2);cursor:pointer;" style-hover="background:var(--surface-3);">API keys</button></div>
+            <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:10px;">
+              <sc-for list="{{ integrations }}" as="ig" hint-placeholder-count="8">
+                <div style="display:flex;align-items:center;gap:12px;padding:13px 14px;border:1px solid var(--border);border-radius:10px;">
+                  <span style="width:34px;height:34px;border-radius:8px;background:var(--surface-3);display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;font-family:var(--mono);color:var(--text-2);flex-shrink:0;">{{ ig.init }}</span>
+                  <div style="flex:1;min-width:0;"><div style="font-size:12.5px;font-weight:600;color:var(--text);">{{ ig.name }}</div><div style="font-size:10.5px;color:var(--text-3);">{{ ig.cat }} · sync {{ ig.sync }}</div></div>
+                  <div style="display:flex;flex-direction:column;align-items:flex-end;gap:6px;flex-shrink:0;">
+                    <span style="display:inline-flex;align-items:center;gap:5px;font-size:10.5px;font-weight:600;color:{{ ig.stInk }};background:{{ ig.stBg }};border-radius:20px;padding:2px 8px;"><span style="width:5px;height:5px;border-radius:50%;background:{{ ig.stDot }};"></span>{{ ig.status }}</span>
+                    <button style="height:26px;padding:0 10px;border:1px solid {{ ig.btnBorder }};border-radius:7px;background:{{ ig.btnBg }};color:{{ ig.btnInk }};font-family:inherit;font-size:11px;font-weight:600;cursor:pointer;">{{ ig.btnLabel }}</button>
+                  </div>
+                </div>
+              </sc-for>
+            </div>
+          </div>
+          </sc-if>
+
+          <!-- Audit log -->
+          <sc-if value="{{ adminAuditActive }}" hint-placeholder-val="{{ false }}">
+          <div style="background:var(--surface);border:1px solid var(--border);border-radius:12px;box-shadow:var(--shadow);overflow:hidden;">
+            <div style="display:flex;align-items:center;justify-content:space-between;padding:16px 18px;border-bottom:1px solid var(--border);">
+              <div style="display:flex;align-items:center;gap:10px;"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="var(--text-2)" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="10" width="16" height="10" rx="2"/><path d="M8 10V7a4 4 0 018 0v3"/></svg><div><div style="font-size:14px;font-weight:700;">System audit log</div><div style="font-size:11.5px;color:var(--text-3);">System audit log · append-only · SHA-256 chained</div></div></div>
+              <div style="display:flex;align-items:center;gap:9px;"><span style="display:inline-flex;align-items:center;gap:5px;font-size:10px;font-weight:700;color:var(--rag-g-ink);background:var(--rag-g-bg);border-radius:20px;padding:3px 9px;"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l7 3v5c0 4.5-3 7.5-7 9-4-1.5-7-4.5-7-9V6l7-3z"/></svg>Tamper-evident</span><button style="height:30px;padding:0 12px;border:1px solid var(--border-strong);border-radius:8px;background:var(--surface);font-family:inherit;font-size:12px;font-weight:600;color:var(--text-2);cursor:pointer;" style-hover="background:var(--surface-3);">Export</button></div>
+            </div>
+            <table style="width:100%;border-collapse:collapse;">
+              <thead><tr style="background:var(--surface-2);">
+                <th style="text-align:left;padding:9px 18px;font-size:10px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;color:var(--text-3);border-bottom:1px solid var(--border);">Timestamp</th>
+                <th style="text-align:left;padding:9px 12px;font-size:10px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;color:var(--text-3);border-bottom:1px solid var(--border);">Actor</th>
+                <th style="text-align:left;padding:9px 12px;font-size:10px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;color:var(--text-3);border-bottom:1px solid var(--border);">Action</th>
+                <th style="text-align:left;padding:9px 12px;font-size:10px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;color:var(--text-3);border-bottom:1px solid var(--border);">Object</th>
+                <th style="text-align:left;padding:9px 18px;font-size:10px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;color:var(--text-3);border-bottom:1px solid var(--border);">Source IP</th>
+              </tr></thead>
+              <tbody>
+                <sc-for list="{{ systemAudit }}" as="al" hint-placeholder-count="10">
+                  <tr style="border-bottom:1px solid var(--border);">
+                    <td style="padding:10px 18px;font-size:11.5px;font-family:var(--mono);color:var(--text-2);white-space:nowrap;">{{ al.ts }}</td>
+                    <td style="padding:10px 12px;"><span style="display:inline-flex;align-items:center;gap:7px;"><span style="width:6px;height:6px;border-radius:50%;background:{{ al.dot }};"></span><span style="font-size:12px;color:var(--text);font-weight:500;">{{ al.actor }}</span></span></td>
+                    <td style="padding:10px 12px;font-size:12px;color:var(--text-2);">{{ al.action }}</td>
+                    <td style="padding:10px 12px;font-size:11.5px;font-family:var(--mono);color:var(--primary-ink);font-weight:600;">{{ al.object }}</td>
+                    <td style="padding:10px 18px;font-size:11px;font-family:var(--mono);color:var(--text-3);">{{ al.ip }}</td>
+                  </tr>
+                </sc-for>
+              </tbody>
+            </table>
+          </div>
+          </sc-if>
+
+        </div>
+      </div>
+      </div>
+      </sc-if>

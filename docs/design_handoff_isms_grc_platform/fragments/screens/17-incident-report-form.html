@@ -1,0 +1,125 @@
+<!--
+  Fragment: INCIDENT — REPORT FORM
+  Source: design/ISMS Governance Platform.dc.html
+  Template syntax: {{ value }} holes, <sc-if>, <sc-for> — see fragments/README.md
+-->
+<!-- ============ INCIDENT — REPORT FORM ============ -->
+      <sc-if value="{{ inc.isForm }}" hint-placeholder-val="{{ false }}">
+      <div data-screen-label="Incident report form">
+      <button onClick="{{ inc.goList }}" style="display:inline-flex;align-items:center;gap:7px;height:30px;padding:0 10px 0 6px;border:1px solid var(--border-strong);border-radius:8px;background:var(--surface);color:var(--text-2);font-family:inherit;font-size:12px;font-weight:600;cursor:pointer;margin-bottom:14px;" style-hover="background:var(--surface-3);"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 6l-6 6 6 6"/></svg>Incident register</button>
+      <div style="margin-bottom:18px;">
+        <div style="font-size:11px;font-weight:600;letter-spacing:.5px;color:var(--text-3);text-transform:uppercase;margin-bottom:6px;">Company security incident report · * required</div>
+        <h1 style="margin:0;font-size:22px;font-weight:700;letter-spacing:-.3px;">Report a security incident</h1>
+      </div>
+
+      <div style="display:grid;grid-template-columns:minmax(0,1fr) 320px;gap:18px;align-items:start;">
+        <div style="display:flex;flex-direction:column;gap:14px;">
+
+          <div style="background:var(--surface);border:1px solid var(--border);border-radius:12px;box-shadow:var(--shadow);overflow:hidden;">
+            <div style="padding:12px 18px;background:var(--surface-2);border-bottom:1px solid var(--border);font-size:12px;font-weight:700;letter-spacing:.3px;">General information</div>
+            <div style="padding:18px;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px 18px;">
+              <label style="display:block;"><span style="display:block;font-size:11.5px;font-weight:600;color:var(--text-2);margin-bottom:6px;">OpCo *</span>
+                <select onChange="{{ inc.setOpco }}" style="width:100%;height:38px;padding:0 11px;border:1px solid var(--border-strong);border-radius:8px;background:var(--surface-2);font-family:inherit;font-size:13px;color:var(--text);outline:none;">
+                  <sc-for list="{{ inc.opcoOpts }}" as="o" hint-placeholder-count="14"><option value="{{ o.code }}">{{ o.name }}</option></sc-for>
+                </select></label>
+              <label style="display:block;"><span style="display:block;font-size:11.5px;font-weight:600;color:var(--text-2);margin-bottom:6px;">Business unit *</span>
+                <input onInput="{{ inc.setBu }}" placeholder="e.g. Service Operations" style="width:100%;height:38px;padding:0 11px;border:1px solid var(--border-strong);border-radius:8px;background:var(--surface-2);font-family:inherit;font-size:13px;color:var(--text);outline:none;"/></label>
+              <label style="display:block;"><span style="display:block;font-size:11.5px;font-weight:600;color:var(--text-2);margin-bottom:6px;">Report date *</span>
+                <input defaultValue="2026-08-02" style="width:100%;height:38px;padding:0 11px;border:1px solid var(--border-strong);border-radius:8px;background:var(--surface-2);font-family:var(--mono);font-size:12.5px;color:var(--text);outline:none;"/></label>
+              <label style="display:block;"><span style="display:block;font-size:11.5px;font-weight:600;color:var(--text-2);margin-bottom:6px;">Ticket number</span>
+                <input placeholder="SD-" style="width:100%;height:38px;padding:0 11px;border:1px solid var(--border-strong);border-radius:8px;background:var(--surface-2);font-family:var(--mono);font-size:12.5px;color:var(--text);outline:none;"/></label>
+              <label style="display:block;"><span style="display:block;font-size:11.5px;font-weight:600;color:var(--text-2);margin-bottom:6px;">Incident occurred *</span>
+                <input defaultValue="2026-08-02 09:20" style="width:100%;height:38px;padding:0 11px;border:1px solid var(--border-strong);border-radius:8px;background:var(--surface-2);font-family:var(--mono);font-size:12.5px;color:var(--text);outline:none;"/></label>
+              <label style="display:block;"><span style="display:block;font-size:11.5px;font-weight:600;color:var(--text-2);margin-bottom:6px;">Incident discovered *</span>
+                <input defaultValue="2026-08-02 09:45" style="width:100%;height:38px;padding:0 11px;border:1px solid var(--border-strong);border-radius:8px;background:var(--surface-2);font-family:var(--mono);font-size:12.5px;color:var(--text);outline:none;"/></label>
+              <label style="display:block;"><span style="display:block;font-size:11.5px;font-weight:600;color:var(--text-2);margin-bottom:6px;">Type of incident *</span>
+                <select onChange="{{ inc.setType }}" style="width:100%;height:38px;padding:0 11px;border:1px solid var(--border-strong);border-radius:8px;background:var(--surface-2);font-family:inherit;font-size:13px;color:var(--text);outline:none;">
+                  <sc-for list="{{ inc.types }}" as="t" hint-placeholder-count="10"><option value="{{ t }}">{{ t }}</option></sc-for>
+                </select></label>
+              <label style="display:block;"><span style="display:block;font-size:11.5px;font-weight:600;color:var(--text-2);margin-bottom:6px;">Incident status *</span>
+                <select style="width:100%;height:38px;padding:0 11px;border:1px solid var(--border-strong);border-radius:8px;background:var(--surface-2);font-family:inherit;font-size:13px;color:var(--text);outline:none;"><option>New — under triage</option><option>Contained</option><option>Investigation</option></select></label>
+            </div>
+          </div>
+
+          <div style="background:var(--surface);border:1px solid var(--border);border-radius:12px;box-shadow:var(--shadow);overflow:hidden;">
+            <div style="padding:12px 18px;background:var(--surface-2);border-bottom:1px solid var(--border);font-size:12px;font-weight:700;letter-spacing:.3px;">Incident details</div>
+            <div style="padding:18px;display:flex;flex-direction:column;gap:14px;">
+              <label style="display:block;"><span style="display:block;font-size:11.5px;font-weight:600;color:var(--text-2);margin-bottom:6px;">Incident title *</span>
+                <input onInput="{{ inc.setTitle }}" placeholder="Short description of what happened" style="width:100%;height:38px;padding:0 11px;border:1px solid var(--border-strong);border-radius:8px;background:var(--surface-2);font-family:inherit;font-size:13px;color:var(--text);outline:none;"/></label>
+              <label style="display:block;"><span style="display:block;font-size:11.5px;font-weight:600;color:var(--text-2);margin-bottom:6px;">Incident description *</span>
+                <textarea onInput="{{ inc.setDesc }}" rows="4" placeholder="What was observed, when, by whom, and what has been done so far" style="width:100%;padding:11px;border:1px solid var(--border-strong);border-radius:8px;background:var(--surface-2);font-family:inherit;font-size:13px;line-height:1.55;color:var(--text);outline:none;resize:vertical;"></textarea></label>
+              <label style="display:block;"><span style="display:block;font-size:11.5px;font-weight:600;color:var(--text-2);margin-bottom:6px;">Damage / impact *</span>
+                <textarea onInput="{{ inc.setImpact }}" rows="3" placeholder="Information, systems, users or customers affected" style="width:100%;padding:11px;border:1px solid var(--border-strong);border-radius:8px;background:var(--surface-2);font-family:inherit;font-size:13px;line-height:1.55;color:var(--text);outline:none;resize:vertical;"></textarea></label>
+              <label style="display:block;"><span style="display:block;font-size:11.5px;font-weight:600;color:var(--text-2);margin-bottom:6px;">Incident location *</span>
+                <input onInput="{{ inc.setLoc }}" placeholder="Site, floor, system or cloud tenant" style="width:100%;height:38px;padding:0 11px;border:1px solid var(--border-strong);border-radius:8px;background:var(--surface-2);font-family:inherit;font-size:13px;color:var(--text);outline:none;"/></label>
+            </div>
+          </div>
+
+          <div style="background:var(--surface);border:1px solid var(--border);border-radius:12px;box-shadow:var(--shadow);overflow:hidden;">
+            <div style="padding:12px 18px;background:var(--surface-2);border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;gap:12px;">
+              <span style="font-size:12px;font-weight:700;letter-spacing:.3px;">Severity triage</span>
+              <span style="font-size:11px;color:var(--text-3);">Tick everything that applies — the level is set automatically</span>
+            </div>
+            <div style="padding:18px;display:flex;flex-direction:column;gap:9px;">
+              <sc-for list="{{ inc.triageQs }}" as="q" hint-placeholder-count="4">
+                <div onClick="{{ q.onToggle }}" style="display:flex;align-items:flex-start;gap:11px;padding:12px 14px;border:1px solid {{ q.bd }};border-radius:9px;background:{{ q.bg }};cursor:pointer;">
+                  <span style="width:17px;height:17px;border-radius:5px;border:1.5px solid;{{ q.box }}display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:1px;"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg></span>
+                  <span style="flex:1;min-width:0;"><span style="display:block;font-size:12.5px;font-weight:600;line-height:1.45;text-wrap:pretty;">{{ q.label }}</span><span style="display:block;font-size:11px;color:var(--text-3);margin-top:2px;">{{ q.sub }}</span></span>
+                </div>
+              </sc-for>
+            </div>
+          </div>
+
+          <div style="background:var(--surface);border:1px solid var(--border);border-radius:12px;box-shadow:var(--shadow);overflow:hidden;">
+            <div style="padding:12px 18px;background:var(--surface-2);border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;gap:12px;">
+              <span style="font-size:12px;font-weight:700;letter-spacing:.3px;">Root cause, corrective & preventive action</span>
+              <sc-if value="{{ inc.mandatory }}" hint-placeholder-val="{{ false }}"><span style="font-size:10.5px;font-weight:700;font-family:var(--mono);padding:2px 8px;border-radius:6px;background:var(--rag-r-bg);color:var(--rag-r-ink);">MANDATORY FOR {{ inc.sev }}</span></sc-if>
+              <sc-if value="{{ inc.notMandatory }}" hint-placeholder-val="{{ true }}"><span style="font-size:10.5px;font-weight:600;color:var(--text-3);">Optional at Level 3</span></sc-if>
+            </div>
+            <div style="padding:18px;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px 18px;">
+              <label style="display:block;grid-column:span 2;"><span style="display:block;font-size:11.5px;font-weight:600;color:var(--text-2);margin-bottom:6px;">Root cause</span>
+                <textarea rows="2" placeholder="Why it happened — process, technical or human factor" style="width:100%;padding:11px;border:1px solid var(--border-strong);border-radius:8px;background:var(--surface-2);font-family:inherit;font-size:13px;line-height:1.55;color:var(--text);outline:none;resize:vertical;"></textarea></label>
+              <label style="display:block;"><span style="display:block;font-size:11.5px;font-weight:600;color:var(--text-2);margin-bottom:6px;">Workaround — action plan</span>
+                <input placeholder="Immediate containment" style="width:100%;height:38px;padding:0 11px;border:1px solid var(--border-strong);border-radius:8px;background:var(--surface-2);font-family:inherit;font-size:13px;color:var(--text);outline:none;"/></label>
+              <label style="display:block;"><span style="display:block;font-size:11.5px;font-weight:600;color:var(--text-2);margin-bottom:6px;">Action owner</span>
+                <input placeholder="Name · role" style="width:100%;height:38px;padding:0 11px;border:1px solid var(--border-strong);border-radius:8px;background:var(--surface-2);font-family:inherit;font-size:13px;color:var(--text);outline:none;"/></label>
+              <label style="display:block;"><span style="display:block;font-size:11.5px;font-weight:600;color:var(--text-2);margin-bottom:6px;">Corrective action plan</span>
+                <input placeholder="Permanent fix" style="width:100%;height:38px;padding:0 11px;border:1px solid var(--border-strong);border-radius:8px;background:var(--surface-2);font-family:inherit;font-size:13px;color:var(--text);outline:none;"/></label>
+              <label style="display:block;"><span style="display:block;font-size:11.5px;font-weight:600;color:var(--text-2);margin-bottom:6px;">Preventive action plan</span>
+                <input placeholder="Stops recurrence elsewhere" style="width:100%;height:38px;padding:0 11px;border:1px solid var(--border-strong);border-radius:8px;background:var(--surface-2);font-family:inherit;font-size:13px;color:var(--text);outline:none;"/></label>
+              <label style="display:block;"><span style="display:block;font-size:11.5px;font-weight:600;color:var(--text-2);margin-bottom:6px;">ISO/IEC 27001 clause, if any</span>
+                <input placeholder="e.g. A.5.24, A.8.7" style="width:100%;height:38px;padding:0 11px;border:1px solid var(--border-strong);border-radius:8px;background:var(--surface-2);font-family:var(--mono);font-size:12.5px;color:var(--text);outline:none;"/></label>
+              <label style="display:flex;align-items:center;gap:9px;font-size:12.5px;color:var(--text-2);align-self:end;padding-bottom:9px;cursor:pointer;"><input type="checkbox" style="width:16px;height:16px;accent-color:var(--primary);"/>Caused by insufficient staff awareness</label>
+            </div>
+          </div>
+
+          <div style="display:flex;align-items:center;gap:10px;">
+            <button onClick="{{ inc.onSubmit }}" style="height:42px;padding:0 20px;border:none;border-radius:9px;background:var(--primary);color:#fff;font-family:inherit;font-size:13.5px;font-weight:600;cursor:pointer;">Submit & trigger workflow</button>
+            <button onClick="{{ inc.goList }}" style="height:42px;padding:0 18px;border:1px solid var(--border-strong);border-radius:9px;background:var(--surface);color:var(--text-2);font-family:inherit;font-size:13px;font-weight:600;cursor:pointer;" style-hover="background:var(--surface-3);">Cancel</button>
+            <span style="font-size:11.5px;color:var(--text-3);">Submission notifies {{ inc.notifyCount }} recipients and starts the {{ inc.sev }} reporting clock.</span>
+          </div>
+        </div>
+
+        <div style="display:flex;flex-direction:column;gap:14px;position:sticky;top:76px;">
+          <div style="background:var(--surface);border:1px solid var(--border);border-radius:12px;box-shadow:var(--shadow);overflow:hidden;">
+            <div style="padding:14px 16px;border-bottom:1px solid var(--border);">
+              <div style="font-size:11px;font-weight:600;letter-spacing:.4px;color:var(--text-3);text-transform:uppercase;margin-bottom:8px;">Auto-classified severity</div>
+              <div style="display:flex;align-items:center;gap:11px;">
+                <span style="display:inline-flex;align-items:center;justify-content:center;width:44px;height:44px;border-radius:11px;background:{{ inc.sevBg }};color:{{ inc.sevInk }};font-size:17px;font-weight:700;font-family:var(--mono);">{{ inc.sev }}</span>
+                <div><div style="font-size:13.5px;font-weight:700;">{{ inc.sevLabel }}</div><div style="font-size:11px;color:var(--text-3);">Initial report {{ inc.sevInit }} · update {{ inc.sevUpd }}</div></div>
+              </div>
+              <div style="font-size:11.5px;color:var(--text-2);line-height:1.6;margin-top:11px;text-wrap:pretty;">{{ inc.sevDefText }}</div>
+            </div>
+            <div style="padding:12px 16px;background:var(--surface-2);font-size:11px;font-weight:700;letter-spacing:.4px;text-transform:uppercase;color:var(--text-3);border-bottom:1px solid var(--border);">Notification list on submit</div>
+            <sc-for list="{{ inc.notify }}" as="n" hint-placeholder-count="4">
+              <div style="display:flex;gap:10px;padding:10px 16px;border-bottom:1px solid var(--border);align-items:flex-start;">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--text-3)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;margin-top:3px;"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3 7l9 6 9-6"/></svg>
+                <div style="min-width:0;flex:1;"><div style="font-size:12px;font-weight:600;line-height:1.35;">{{ n.who }}</div><div style="font-size:10.5px;color:var(--text-3);margin-top:2px;">{{ n.role }} · {{ n.ch }}</div></div>
+                <span style="font-size:10.5px;font-family:var(--mono);color:var(--text-2);white-space:nowrap;">{{ n.sla }}</span>
+              </div>
+            </sc-for>
+          </div>
+        </div>
+      </div>
+      </div>
+      </sc-if>

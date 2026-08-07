@@ -1,0 +1,187 @@
+<!--
+  Fragment: POLICY DETAIL
+  Source: design/ISMS Governance Platform.dc.html
+  Template syntax: {{ value }} holes, <sc-if>, <sc-for> — see fragments/README.md
+-->
+<!-- ============ POLICY DETAIL ============ -->
+      <sc-if value="{{ isPolicyDetail }}" hint-placeholder-val="{{ false }}">
+      <div data-screen-label="Policy detail">
+      <button onClick="{{ backToPolicies }}" style="display:inline-flex;align-items:center;gap:7px;height:30px;padding:0 10px 0 6px;border:1px solid var(--border-strong);border-radius:8px;background:var(--surface);color:var(--text-2);font-family:inherit;font-size:12px;font-weight:600;cursor:pointer;margin-bottom:14px;" style-hover="background:var(--surface-3);"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 6l-6 6 6 6"/></svg>Back to policies</button>
+
+      <div style="display:grid;grid-template-columns:256px minmax(0,1fr);gap:16px;align-items:start;">
+
+        <div style="display:flex;flex-direction:column;gap:12px;position:sticky;top:76px;">
+          <div style="background:var(--surface);border:1px solid var(--border);border-radius:12px;box-shadow:var(--shadow);padding:16px 17px;">
+            <div style="font-size:10px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;color:var(--text-3);margin-bottom:8px;">Document</div>
+            <div style="font-size:14.5px;font-weight:700;line-height:1.35;letter-spacing:-.15px;text-wrap:pretty;">{{ pd.name }}</div>
+            <div style="font-family:var(--mono);font-size:11.5px;color:var(--primary-ink);font-weight:600;margin-top:6px;">{{ pd.id }}</div>
+            <div style="display:flex;align-items:center;gap:7px;margin-top:11px;flex-wrap:wrap;">
+              <span style="display:inline-flex;align-items:center;height:20px;padding:0 8px;border-radius:5px;background:var(--surface-3);color:var(--text-2);font-size:10.5px;font-weight:700;font-family:var(--mono);">{{ pd.version }}</span>
+              <span style="display:inline-flex;align-items:center;gap:6px;height:20px;padding:0 8px;border-radius:5px;background:{{ pd.stBg }};color:{{ pd.stInk }};font-size:10.5px;font-weight:700;"><span style="width:6px;height:6px;border-radius:50%;background:{{ pd.stDot }};"></span>{{ pd.status }}</span>
+            </div>
+            <div style="font-size:11.5px;color:var(--text-3);margin-top:11px;padding-top:11px;border-top:1px solid var(--border);line-height:1.5;">{{ pd.category }} · owner {{ pd.owner }}</div>
+          </div>
+
+          <div style="background:var(--surface);border:1px solid var(--border);border-radius:12px;box-shadow:var(--shadow);padding:16px 17px;">
+            <div style="font-size:10px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;color:var(--text-3);margin-bottom:11px;">Publication</div>
+            <div style="display:flex;flex-direction:column;gap:10px;">
+              <div style="display:flex;justify-content:space-between;gap:10px;font-size:11.5px;"><span style="color:var(--text-3);">Published</span><span style="font-weight:600;font-family:var(--mono);">{{ pd.effective }}</span></div>
+              <div style="display:flex;justify-content:space-between;gap:10px;font-size:11.5px;"><span style="color:var(--text-3);">File uploaded</span><span style="font-weight:600;font-family:var(--mono);">{{ pv.file.uploaded }}</span></div>
+              <div style="display:flex;justify-content:space-between;gap:10px;font-size:11.5px;"><span style="color:var(--text-3);">Next review</span><span style="font-weight:600;font-family:var(--mono);">{{ pd.nextReview }}</span></div>
+              <div style="display:flex;justify-content:space-between;gap:10px;font-size:11.5px;"><span style="color:var(--text-3);">Attestation</span><span style="font-weight:700;font-family:var(--mono);">{{ pd.attOverall }}</span></div>
+            </div>
+          </div>
+
+          <div style="background:var(--surface);border:1px solid var(--border);border-radius:12px;box-shadow:var(--shadow);padding:16px 17px;">
+            <div style="font-size:10px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;color:var(--text-3);margin-bottom:10px;">Table of contents</div>
+            <div style="display:flex;flex-direction:column;gap:5px;">
+              <sc-for list="{{ pv.outline }}" as="o" hint-placeholder-count="4">
+                <button onClick="{{ o.onJump }}" style="display:flex;align-items:flex-start;gap:9px;text-align:left;padding:8px 10px;border:1px solid {{ o.bd }};border-radius:8px;background:{{ o.bg }};color:{{ o.ink }};font-family:inherit;font-size:11.5px;font-weight:600;line-height:1.4;cursor:pointer;" style-hover="background:var(--surface-2);">
+                  <span style="font-family:var(--mono);font-size:10px;color:var(--text-3);flex-shrink:0;margin-top:1px;">{{ o.no }}</span><span style="min-width:0;text-wrap:pretty;">{{ o.label }}</span>
+                </button>
+              </sc-for>
+            </div>
+            <div style="font-size:10.5px;color:var(--text-3);margin-top:9px;">Jumps the viewer to that page.</div>
+          </div>
+
+          <div style="background:var(--surface);border:1px solid var(--border);border-radius:12px;box-shadow:var(--shadow);padding:16px 17px;">
+            <div style="font-size:10px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;color:var(--text-3);margin-bottom:11px;">Version history</div>
+            <div style="display:flex;flex-direction:column;gap:9px;">
+              <sc-for list="{{ pd.versionHistory }}" as="v" hint-placeholder-count="3">
+                <div style="display:flex;align-items:flex-start;gap:10px;">
+                  <span style="font-family:var(--mono);font-size:11px;font-weight:700;color:var(--primary-ink);width:34px;flex-shrink:0;">{{ v.version }}</span>
+                  <span style="min-width:0;flex:1;"><span style="display:block;font-size:11px;font-family:var(--mono);color:var(--text-2);">{{ v.date }}</span><span style="display:block;font-size:10.5px;color:var(--text-3);line-height:1.45;margin-top:2px;text-wrap:pretty;">{{ v.note }} · {{ v.author }}</span></span>
+                </div>
+              </sc-for>
+            </div>
+          </div>
+        </div>
+
+        <div style="display:flex;flex-direction:column;gap:16px;min-width:0;">
+          <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:20px;flex-wrap:wrap;">
+            <div style="min-width:0;">
+              <div style="font-size:11px;font-weight:600;letter-spacing:.5px;color:var(--text-3);text-transform:uppercase;margin-bottom:6px;">Policy library · controlled document</div>
+              <h1 style="margin:0;font-size:22px;font-weight:700;letter-spacing:-.3px;line-height:1.2;max-width:560px;text-wrap:pretty;">{{ pd.name }}</h1>
+            </div>
+            <div style="display:flex;align-items:center;gap:9px;">
+              <button style="height:36px;padding:0 14px;border:1px solid var(--border-strong);border-radius:8px;background:var(--surface);color:var(--text);font-family:inherit;font-size:12.5px;font-weight:600;cursor:pointer;display:inline-flex;align-items:center;gap:7px;" style-hover="background:var(--surface-3);"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 5h10v10"/><path d="M19 5L9.5 14.5"/><path d="M15 19H5V9"/></svg>Open in new tab</button>
+              <button style="height:36px;padding:0 14px;border:none;border-radius:8px;background:var(--primary);color:#fff;font-family:inherit;font-size:12.5px;font-weight:600;cursor:pointer;display:inline-flex;align-items:center;gap:7px;"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4v11"/><path d="M8 11l4 4 4-4"/><path d="M4 19h16"/></svg>Download</button>
+            </div>
+          </div>
+
+          <div style="background:var(--surface);border:1px solid var(--border);border-radius:12px;box-shadow:var(--shadow);padding:18px;">
+            <div style="font-size:13px;font-weight:700;margin-bottom:10px;">Summary</div>
+            <p style="margin:0;font-size:13px;line-height:1.6;color:var(--text-2);text-wrap:pretty;">{{ pd.purpose }}</p>
+            <div style="font-size:11.5px;color:var(--text-3);line-height:1.6;margin-top:12px;padding-top:12px;border-top:1px solid var(--border);text-wrap:pretty;">Policy documents are not held in a single house format, so the platform standardises only the record fields. The authoritative content is the attached document — read it in the viewer below or download the original file.</div>
+          </div>
+
+          <div style="background:var(--surface);border:1px solid var(--border);border-radius:12px;box-shadow:var(--shadow);overflow:hidden;">
+            <div style="display:flex;align-items:center;gap:12px;padding:14px 16px;border-bottom:1px solid var(--border);flex-wrap:wrap;">
+              <span style="width:32px;height:38px;border-radius:5px;background:var(--surface-3);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;flex-shrink:0;"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--text-2)" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M14 3v5h5"/><path d="M6 2h9l5 5v13a1 1 0 01-1 1H6a1 1 0 01-1-1V3a1 1 0 011-1z"/></svg></span>
+              <div style="min-width:0;flex:1;">
+                <div style="font-size:12.5px;font-weight:600;line-height:1.35;word-break:break-all;">{{ pv.file.name }}</div>
+                <div style="font-size:11px;color:var(--text-3);margin-top:3px;">{{ pv.file.size }} · {{ pv.fileePages }} pages · uploaded {{ pv.file.uploaded }}</div>
+              </div>
+              <span style="display:inline-flex;align-items:center;height:22px;padding:0 9px;border-radius:6px;background:{{ pv.fmtBg }};color:{{ pv.fmtInk }};font-size:10.5px;font-weight:700;font-family:var(--mono);flex-shrink:0;">{{ pv.fmt }}</span>
+              <div style="display:flex;gap:7px;flex-shrink:0;">
+                <button title="Print" style="width:32px;height:32px;border:1px solid var(--border-strong);border-radius:7px;background:var(--surface);color:var(--text-2);cursor:pointer;display:flex;align-items:center;justify-content:center;" style-hover="background:var(--surface-3);"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M7 9V4h10v5"/><rect x="4" y="9" width="16" height="7" rx="1.5"/><path d="M7 16h10v4H7z"/></svg></button>
+                <button title="Download original" style="width:32px;height:32px;border:1px solid var(--border-strong);border-radius:7px;background:var(--surface);color:var(--text-2);cursor:pointer;display:flex;align-items:center;justify-content:center;" style-hover="background:var(--surface-3);"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4v11"/><path d="M8 11l4 4 4-4"/><path d="M4 19h16"/></svg></button>
+              </div>
+            </div>
+
+            <sc-if value="{{ pv.notPdf }}" hint-placeholder-val="{{ false }}">
+            <div style="display:flex;align-items:center;gap:10px;padding:10px 16px;background:var(--rag-a-bg);border-bottom:1px solid var(--border);">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="var(--rag-a-ink)" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;"><circle cx="12" cy="12" r="9"/><path d="M12 8v4.5"/><circle cx="12" cy="16" r=".7" fill="currentColor" stroke="none"/></svg>
+              <span style="font-size:11.5px;color:var(--rag-a-ink);line-height:1.5;">{{ pv.file.note }}</span>
+            </div>
+            </sc-if>
+
+            <div style="display:flex;align-items:center;gap:10px;padding:9px 14px;border-bottom:1px solid var(--border);background:var(--surface-2);">
+              <button onClick="{{ pv.onPrev }}" title="Previous page" style="width:28px;height:28px;border:1px solid var(--border-strong);border-radius:7px;background:var(--surface);color:var(--text-2);cursor:pointer;display:flex;align-items:center;justify-content:center;" style-hover="background:var(--surface-3);"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><path d="M15 6l-6 6 6 6"/></svg></button>
+              <button onClick="{{ pv.onNext }}" title="Next page" style="width:28px;height:28px;border:1px solid var(--border-strong);border-radius:7px;background:var(--surface);color:var(--text-2);cursor:pointer;display:flex;align-items:center;justify-content:center;" style-hover="background:var(--surface-3);"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg></button>
+              <span style="font-size:11.5px;color:var(--text-2);font-family:var(--mono);">Page {{ pv.pageNo }} / {{ pv.pageCount }}</span>
+              <span style="font-size:11.5px;color:var(--text-3);">· {{ pv.page.title }}</span>
+              <div style="flex:1;"></div>
+              <button onClick="{{ pv.onOut }}" title="Zoom out" style="width:28px;height:28px;border:1px solid var(--border-strong);border-radius:7px;background:var(--surface);color:var(--text-2);cursor:pointer;display:flex;align-items:center;justify-content:center;" style-hover="background:var(--surface-3);"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round"><line x1="6" y1="12" x2="18" y2="12"/></svg></button>
+              <span style="font-size:11.5px;color:var(--text-2);font-family:var(--mono);width:42px;text-align:center;">{{ pv.zoom }}</span>
+              <button onClick="{{ pv.onIn }}" title="Zoom in" style="width:28px;height:28px;border:1px solid var(--border-strong);border-radius:7px;background:var(--surface);color:var(--text-2);cursor:pointer;display:flex;align-items:center;justify-content:center;" style-hover="background:var(--surface-3);"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round"><line x1="12" y1="6" x2="12" y2="18"/><line x1="6" y1="12" x2="18" y2="12"/></svg></button>
+            </div>
+
+            <div style="height:620px;overflow:auto;background:var(--surface-3);padding:22px 0;">
+              <div style="display:flex;justify-content:{{ pv.pageJustify }};padding:0 18px;min-width:min-content;">
+                <div style="{{ pv.pageStyle }}">
+                  <div style="width:100%;max-width:620px;min-height:810px;background:#FFFFFF;box-shadow:0 2px 14px rgba(16,24,40,.16);padding:58px 60px 40px;display:flex;flex-direction:column;">
+
+                    <sc-if value="{{ pv.page.isCover }}" hint-placeholder-val="{{ true }}">
+                    <div style="flex:1;display:flex;flex-direction:column;">
+                      <div style="font-size:9px;font-weight:700;letter-spacing:1.4px;text-transform:uppercase;color:#8A94A6;">Ricoh Asia Pacific · Controlled document</div>
+                      <div style="height:2px;background:#111827;margin:14px 0 34px;width:52px;"></div>
+                      <h2 style="margin:0;font-size:25px;font-weight:700;line-height:1.25;color:#111827;letter-spacing:-.3px;max-width:420px;text-wrap:pretty;">{{ pv.page.title }}</h2>
+                      <div style="margin-top:46px;border-top:1px solid #E4E7EC;">
+                        <sc-for list="{{ pv.page.lines }}" as="l" hint-placeholder-count="8">
+                          <div style="display:grid;grid-template-columns:148px minmax(0,1fr);gap:14px;padding:9px 0;border-bottom:1px solid #E4E7EC;">
+                            <span style="font-size:10.5px;font-weight:600;color:#667085;text-transform:uppercase;letter-spacing:.4px;">{{ l.k }}</span>
+                            <span style="font-size:11.5px;color:#111827;line-height:1.5;">{{ l.v }}</span>
+                          </div>
+                        </sc-for>
+                      </div>
+                    </div>
+                    </sc-if>
+
+                    <sc-if value="{{ pv.page.isBody }}" hint-placeholder-val="{{ false }}">
+                    <div style="flex:1;">
+                      <h3 style="margin:0 0 16px;font-size:15px;font-weight:700;color:#111827;letter-spacing:-.1px;">{{ pv.page.title }}</h3>
+                      <sc-for list="{{ pv.page.paras }}" as="t" hint-placeholder-count="2">
+                        <p style="margin:0 0 13px;font-size:11.5px;line-height:1.75;color:#344054;text-align:justify;">{{ t }}</p>
+                      </sc-for>
+                      <div style="display:flex;flex-direction:column;gap:9px;margin:14px 0 0;">
+                        <sc-for list="{{ pv.page.numbered }}" as="n" hint-placeholder-count="0">
+                          <div style="display:flex;gap:11px;font-size:11.5px;line-height:1.7;color:#344054;"><span style="font-family:var(--mono);font-size:10.5px;color:#8A94A6;flex-shrink:0;margin-top:2px;">{{ n.num }}</span><span>{{ n.text }}</span></div>
+                        </sc-for>
+                      </div>
+                      <sc-if value="{{ pv.page.hasHead }}" hint-placeholder-val="{{ false }}">
+                        <h3 style="margin:30px 0 14px;font-size:15px;font-weight:700;color:#111827;letter-spacing:-.1px;">{{ pv.page.head }}</h3>
+                      </sc-if>
+                      <div style="display:flex;flex-direction:column;gap:9px;">
+                        <sc-for list="{{ pv.page.bullets }}" as="b" hint-placeholder-count="0">
+                          <div style="display:flex;gap:11px;font-size:11.5px;line-height:1.7;color:#344054;"><span style="width:3px;height:3px;border-radius:50%;background:#8A94A6;flex-shrink:0;margin-top:9px;"></span><span>{{ b }}</span></div>
+                        </sc-for>
+                      </div>
+                    </div>
+                    </sc-if>
+
+                    <div style="display:flex;align-items:center;justify-content:space-between;gap:14px;margin-top:32px;padding-top:12px;border-top:1px solid #E4E7EC;">
+                      <span style="font-size:9px;color:#98A2B3;font-family:var(--mono);">{{ pd.id }} · {{ pd.version }} · Internal</span>
+                      <span style="font-size:9px;color:#98A2B3;">Uncontrolled when printed</span>
+                      <span style="font-size:9px;color:#98A2B3;font-family:var(--mono);">Page {{ pv.pageNo }} of {{ pv.pageCount }}</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div style="padding:9px 14px;border-top:1px solid var(--border);background:var(--surface-2);font-size:11px;color:var(--text-3);">Rendered preview · {{ pv.file.note }}</div>
+          </div>
+
+          <div style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px;">
+            <div style="background:var(--surface);border:1px solid var(--border);border-radius:12px;box-shadow:var(--shadow);padding:18px;">
+              <div style="font-size:13px;font-weight:700;margin-bottom:14px;">Attestation by entity</div>
+              <div style="display:flex;flex-direction:column;gap:11px;">
+                <sc-for list="{{ pd.attByEntity }}" as="a" hint-placeholder-count="6">
+                  <div style="display:flex;align-items:center;gap:10px;"><span style="width:22px;height:16px;border-radius:4px;background:var(--surface-3);border:1px solid var(--border);display:inline-flex;align-items:center;justify-content:center;font-size:8.5px;font-weight:700;font-family:var(--mono);color:var(--text-2);flex-shrink:0;">{{ a.flag }}</span><span style="font-size:12px;color:var(--text-2);width:78px;flex-shrink:0;">{{ a.name }}</span><div style="flex:1;height:5px;border-radius:3px;background:var(--surface-3);overflow:hidden;"><div style="height:100%;width:{{ a.w }};background:{{ a.dot }};border-radius:3px;"></div></div><span style="font-size:11.5px;font-family:var(--mono);font-weight:600;color:{{ a.ink }};width:34px;text-align:right;">{{ a.pct }}%</span></div>
+                </sc-for>
+              </div>
+            </div>
+            <div style="background:var(--surface);border:1px solid var(--border);border-radius:12px;box-shadow:var(--shadow);padding:18px;">
+              <div style="font-size:13px;font-weight:700;margin-bottom:12px;">Linked controls</div>
+              <div style="display:flex;flex-direction:column;gap:8px;">
+                <sc-for list="{{ pd.linkedCtrls }}" as="lc" hint-placeholder-count="3">
+                  <div style="display:flex;align-items:center;gap:10px;padding:9px 11px;border:1px solid var(--border);border-radius:9px;"><span style="width:7px;height:7px;border-radius:50%;background:{{ lc.dot }};flex-shrink:0;"></span><div style="min-width:0;flex:1;"><div style="font-size:12px;font-weight:600;color:var(--text);line-height:1.3;">{{ lc.name }}</div><div style="font-size:10.5px;color:var(--text-3);font-family:var(--mono);">{{ lc.id }}</div></div><span style="font-size:11px;font-weight:600;color:{{ lc.ink }};">{{ lc.result }}</span></div>
+                </sc-for>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      </div>
+      </sc-if>
