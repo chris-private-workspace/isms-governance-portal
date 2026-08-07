@@ -1,0 +1,22 @@
+#!/bin/sh
+# pre-push — 慢檢查（測試）。push 是 outward-facing 動作，這是最後一道本機關卡。
+#
+# 啟用一次：git config core.hooksPath scripts/hooks
+# 緊急跳過：git push --no-verify
+set -e
+
+TEST_CMD='<test 指令>'
+case "$TEST_CMD" in
+  '' | '<'*)
+    echo "[pre-push] 測試指令未設定 — 在 scripts/hooks/pre-push 填 TEST_CMD"
+    ;;
+  *)
+    echo "[pre-push] 跑測試（可能要一兩分鐘）..."
+    sh -c "$TEST_CMD" || {
+      echo "[pre-push] 測試未過 — 不要推上去（真的很急才用 --no-verify）"
+      exit 1
+    }
+    ;;
+esac
+
+echo "[pre-push] OK"

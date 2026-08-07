@@ -1,0 +1,49 @@
+#!/bin/sh
+# pre-commit — 秒級檢查，擋住「文件層」與「lint 層」的問題。
+#
+# 啟用一次：git config core.hooksPath scripts/hooks
+# 緊急跳過：git commit --no-verify
+#
+# 設計原則：pre-commit 只放**秒級**的檢查。任何要跑幾十秒的東西放 pre-push。
+# 一個讓人等的 pre-commit 會被繞過，被繞過的 hook 等於不存在。
+set -e
+
+# --- 1) 架構 lint（模板自帶的 5 個檢查器，秒級）---------------------------
+# 這一步是整個 hook 最重要的部分：CI 也會跑它，但 CI 是在**推上去之後**才叫。
+# 規則檔膨脹 / 斷鏈 / 路徑失效 / 假 pending 這幾類問題，在 commit 當下修最便宜。
+if command -v python >/dev/null 2>&1; then
+  PY=python
+elif command -v python3 >/dev/null 2>&1; then
+  PY=python3
+else
+  PY=""
+fi
+
+if [ -n "$PY" ] && [ -f scripts/lint/run_all.py ]; then
+  echo "[pre-commit] 架構 lint..."
+  "$PY" scripts/lint/run_all.py || {
+    echo "[pre-commit] 架構 lint 未過 — 修好再 commit（急用 --no-verify）"
+    exit 1
+  }
+else
+  echo "[pre-commit] 略過架構 lint（找不到 python 或 scripts/lint/run_all.py）"
+fi
+
+# --- 2) 專案 lint --------------------------------------------------------
+# profile 沒填指令時（minimal profile 留的是 <lint 指令> 這種佔位字串）直接略過，
+# 不要讓 hook 在第一次 commit 就炸掉。
+LINT_CMD='<lint 指令>'
+case "$LINT_CMD" in
+  '' | '<'*)
+    echo "[pre-commit] 專案 lint 未設定 — 在 scripts/hooks/pre-commit 填 LINT_CMD"
+    ;;
+  *)
+    echo "[pre-commit] 專案 lint..."
+    sh -c "$LINT_CMD" || {
+      echo "[pre-commit] lint 未過 — 修好再 commit（急用 --no-verify）"
+      exit 1
+    }
+    ;;
+esac
+
+echo "[pre-commit] OK"

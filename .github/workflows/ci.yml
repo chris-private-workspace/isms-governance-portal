@@ -1,0 +1,55 @@
+# CI — 專案 gate
+#
+# ⚠️ 這是骨架，需要依你的技術棧調整（bootstrap 會依 profile 填入指令）。
+#
+# 設計決策：**不使用 paths filter。**
+#
+# Why: 有 paths filter 時，docs-only PR 不會觸發被過濾的 job → required status
+# check 從未回報 → PR 永遠卡在 BLOCKED。這在原專案造成過反覆的手動繞道。
+# 代價是 docs-only PR 多跑 1-2 分鐘 CI —— 對單人 / 小團隊完全可接受。
+#
+# 若你的 PR 量大到這個代價無法忍受，正確做法是把 required check 設成
+# 能正確處理 skip 的 job，而不是加回 paths filter。
+
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  gates:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      # --- 環境設置（依 profile 替換）---
+      # <你的環境設置步驟>
+
+      # --- Format ---
+      - name: Format check
+        run: <format check 指令>
+
+      # --- Lint ---
+      # ⚠️ 絕不加 --silent —— 它會連錯誤輸出一起吞掉
+      - name: Lint
+        run: <lint 指令>
+
+      # --- Type check ---
+      - name: Type check
+        run: <type check 指令；無型別系統則填 echo 'n/a'>
+
+      # --- Tests ---
+      - name: Tests
+        run: <test 指令>
+
+      # --- 架構 lint（規則 hygiene + 自訂 detector）---
+      # 這一步會擋住 always-loaded 規則檔的膨脹
+      - name: Architecture lints
+        run: python scripts/lint/run_all.py
+
+      # --- Build ---
+      - name: Build
+        run: <build 指令>

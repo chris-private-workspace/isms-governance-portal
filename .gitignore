@@ -1,14 +1,17 @@
-# --- Confidential source material (kept local, never pushed) ---
-# reference/           : Secure-Development Guidance + DoD checklist derived
-#                        from the organisation's own Qualys/Rapid7 scan results
-# docs/reference/      : RCI company procedures, Risk Management Report,
-#                        APAC ISMS profile, and licensed ISO 27001/27002 PDFs
-# The docs/00-16 set carries everything the build needs; these raw artifacts
-# stay on local disk only.
+# === 機密來源素材（只留本機，絕不推送）===
+# reference/           : Secure-Development Guidance + DoD checklist，衍生自
+#                        公司自身的 Qualys/Rapid7 掃描結果
+# docs/reference/      : RCI 公司程序、Risk Management Report、
+#                        APAC ISMS profile、授權的 ISO 27001/27002 PDF
+# docs/02-architecture/ 的 00-16 已承載建置所需的一切；這些原始檔只存在本機磁碟。
 /reference/
 /docs/reference/
 
-# --- Secrets & local configuration (guardrail 7: no secrets in source) ---
+# === 機密 ===
+# 絕不 commit。若不慎 commit：**立即輪替，不要只是 git rm** ——
+# git history 裡還在，而且可能已經被 clone。force-push 也不夠：
+# GitHub 會保留 unreachable object，仍可用舊 SHA 取回（本專案 2026-08-07 實測過，
+# 最後是刪除並重建 repo 才真正清除）。見 docs/rules-on-demand/release-process.md §Secret 管理
 .env
 .env.*
 !.env.example
@@ -18,13 +21,15 @@
 *.p12
 *.jks
 *.keystore
+secrets.*
 secrets.json
-appsettings.*.local.json
 credentials
+credentials.json
+appsettings.*.local.json
 .npmrc
 .netrc
 
-# --- Dependencies & build output ---
+# === 相依與建置產物 ===
 node_modules/
 dist/
 build/
@@ -42,7 +47,7 @@ target/
 bin/
 obj/
 
-# --- Tooling caches ---
+# === 工具快取 ===
 .cache/
 .parcel-cache/
 .eslintcache
@@ -50,28 +55,44 @@ obj/
 .mypy_cache/
 .ruff_cache/
 
-# --- IDE / editor ---
-.vscode/
+# === 流程工具產物 ===
+*.new
+# ↑ init_template.py --merge 產生的衝突檔。merge 完就刪，不要 commit
+
+# === 編輯器 ===
+.vscode/*
+!.vscode/settings.json.example
+!.vscode/extensions.json
 .idea/
 *.swp
 *.swo
 *~
 
-# --- OS ---
+# === OS ===
 Thumbs.db
 ehthumbs.db
 Desktop.ini
 .DS_Store
 
-# --- Office / document lock files ---
+# === Office 文件鎖定檔 ===
 ~$*.docx
 ~$*.xlsx
 ~$*.pptx
 
-# --- Logs & local scratch ---
+# === 日誌與本機暫存 ===
 *.log
 npm-debug.log*
 yarn-error.log*
 pnpm-debug.log*
 tmp/
 scratch/
+
+# === 技術棧專屬 ===
+# ⚠️ 待 ADR-0001（後端語言與框架）拍板後補上。上方已含 Python / Node / JVM / .NET
+#    的通用產物；選定後刪掉不適用的、補上該棧特有的。
+
+# === 刻意「不」忽略的（這些是流程的一部分，必須進 git）===
+# .claude/rules/     — 規則是共用的真相，每個 session 的 AI 依據同一份
+# memory/            — 教訓要共享，否則每次 session 各自漂移
+# docs/              — 執行紀錄與決策的單一來源
+# 見 docs/rules-on-demand/collaboration.md §AI 輔助團隊的特有問題
