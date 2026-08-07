@@ -1,6 +1,83 @@
 # 02a — Data Model Detailed Spec
 
-The field-, enum-, and lifecycle-level detail behind the conceptual model in `02`. This is what a build should follow to create tables and state machines. Values marked **(assumption — confirm)** are sensible defaults chosen as the expert; flag any you want changed.
+The field-, enum-, and lifecycle-level detail behind the conceptual model in `02`, for the
+**shared core**. Values marked **(assumption — confirm)** are sensible defaults chosen as the
+expert; flag any you want changed.
+
+> ⚠️ **This document is not the whole data model.** Module-specific entities are specified in
+> their module documents (`11`, `12`, `13`, `17`). §0 below is the **complete index** — start
+> there when creating tables, not here.
+>
+> This split is deliberate (decided 2026-08-07, CH-003): shared entities live here so no module
+> can invent a private definition of them (**guardrail 3**), while module-local entities stay next
+> to the source form and workflow they were derived from. The index is what keeps the split
+> navigable.
+
+## 0. Entity index — the complete buildable list
+
+**Every entity in the platform, and where its fields are specified.** Nothing is buildable that is
+not on this list; adding an entity means adding a row here in the same change.
+
+### Shared core — specified in this document (§3)
+
+| Entity | Wave | Note |
+|---|---|---|
+| `OrgEntity` | 1 | The scoping and roll-up spine |
+| `Jurisdiction` | 1 | Includes the residency & cross-border configuration |
+| `Regulation` · `Obligation` | 1 | Foundation-ready; surfaced as a module in Wave 2 |
+| `Policy` | 1 | ⚠️ See §0.1 — known field gaps |
+| `Risk` | 1 | Five impact types, before/after control |
+| `Threat` · `Vulnerability` | 1 | Reusable libraries |
+| `AssetGroup` · `Asset` | 1 | Promoted to Wave 1 — risk assessment is asset-based |
+| `StatementOfApplicability` | 1 | Mandatory ISO 27001 output |
+| `Control` | 1 | |
+| `Assessment` (RCSA) | 1 | Runs on the shared assessment engine (`05`) |
+| `ControlTest` | 1 | |
+| `Evidence` | 1 | Polymorphic |
+| `Issue` · `Action` (CAPA) | 1 | Shared by every module that raises findings |
+| `Event` | 1 | **Extended into the incident record by `11`** |
+| `Attestation` | 1 | |
+| `RiskManagementReport` · `RMReportVersion` | 1 | §3.1 — versioned snapshot over the live register |
+| `extension_field_catalog` | 1 | §1.3 |
+| `posture_snapshot` | 1 | §7 — also the residency interface (`03`) |
+
+### Foundation services — specified in this document (§3.2), described in `05`
+
+| Entity | Wave | Described in |
+|---|---|---|
+| `audit_log` | 1 | `05` §Audit trail · design is ADR-0003 |
+| `retention_policy` · `LegalHold` | 1 | `05` §Records retention |
+| `AccessRequest` · `AccessReviewCampaign` | 1 | `05` §Access management |
+| `AssessmentTemplate` · `AssessmentInstance` · `AssessmentResponse` | 1 | `05` §Shared assessment engine |
+
+### Module-local — specified in their module document
+
+| Entity | Wave | Specified in |
+|---|---|---|
+| `IncidentHistoryEntry` · `RootCauseAnalysis` (+ `Event` extension) | 2 | [`11`](11-security-incident-module.md) §Data model |
+| `Vendor` · `VendorEvaluation` · `ExternalPartyRiskAssessment` · `VendorServiceAudit` | 2 | [`12`](12-supplier-management-module.md) §Data model |
+| `ISMSProfile` · `ISMSSite` · `ISMSContact` · `ApprovedOffering` | 1 | [`13`](13-isms-profile-module.md) §Data model |
+| `AuditIssue` · `CorrectiveActionPlan` | 2 | [`17`](17-audit-issues-module.md) §Data model |
+
+### Not yet specified — must not be built until they are
+
+| Concept | Blocked on |
+|---|---|
+| OS portfolio (regional offering catalogue with certification position) | `AD-DesignAlign-5` — module not yet specified |
+| Risk programme module **UI** (the entities exist; the screens do not) | `AD-DesignAlign-5` |
+| Report schedules · notification rules | `AD-Model-Gaps` — described in `05`, no entity decided |
+| Governance bodies (ISC / ITSC) as approvers | `AD-Model-Gaps` — approvals are currently modelled as users only |
+
+### §0.1 Known field-level gaps in this document
+
+Recorded so they are not mistaken for completeness. Sources are the design handoff's sample data
+(audited in [`../09-analysis/mockup-data-vs-spec-audit-20260807.md`](../09-analysis/mockup-data-vs-spec-audit-20260807.md)).
+
+| Entity | Gap | AD |
+|---|---|---|
+| `Policy` | No file metadata (name / format / size / pages / upload date), no table of contents, no per-policy version array. Only `body_ref` | `AD-Model-Gaps` |
+| `OrgEntity` | No OpCo **function** field (Regional HQ / Supply chain / Sales & service). `type` is structural, this is a different axis | `AD-Model-Gaps` |
+| `Event` / `11` | `business_unit` is free text in the sample data but a hierarchy node in `OrgEntity.type`. **Not interchangeable — decide** | `AD-Model-Gaps` |
 
 ## 1. Conventions
 
@@ -125,6 +202,82 @@ cannot be remediated after the fact.
 **Event / Incident** — `title`, `occurred_at`, `detected_at`, `severity`, `description`, `loss_amount` (nullable).
 
 **Attestation** — `subject_type` + `subject_id` (polymorphic: policy/control), `user_id`, `attested_at`, `result`.
+
+### 3.1 Risk Management Report — a versioned snapshot, not a second copy ⭐
+
+**Decided 2026-08-07 (CH-003), confirming `15` §3.1.** The design handoff ships two incompatible
+risk shapes: `risks.js` (`imp`, `lik`, `inh`) and `riskRegister.js` (`item`, `tv`, `existing`,
+`add`, `who`, `target`, `score` — no likelihood or impact at all). They are **not two entities**.
+
+- The **live risk register** (`Risk`, above) is the working data — the single source of truth.
+- The **Risk Management Report** is the point-in-time **controlled deliverable produced from it**,
+  versioned as a whole and approved by the Information Security Committee.
+- `riskRegister.js`'s shape is the *rendered register sheet* of such a snapshot, **not a store**.
+
+> **Why this matters beyond tidiness.** Two stores of risk data would drift, and guardrail 3
+> forbids a module holding its own private definition of a shared entity. It is also the same
+> pattern as `posture_snapshot` (§7): live data plus periodic immutable snapshots, rather than
+> parallel records.
+
+**RiskManagementReport** — `org_entity_id` (scope of the report), `title`, `current_version_id`.
+
+**RMReportVersion** — `report_id` (FK), `version_label` (e.g. `2025.7` — **not** semver; the
+source uses year-based labels), `prepared_by` (see note), `approved_by`, `effective_date`,
+`change_note`, `state` (current / superseded), `snapshot_at`, plus the frozen sheet payload
+(Services · Assets · Threats · Risk assessment · Treatment).
+
+- Snapshots are **immutable**: correcting a report means issuing a new version, never editing one.
+- Retention is **3 years per version** (`05`, `retention.js`) — versions are archived, not deleted.
+- ⚠️ `rmVersions.js` records `by:'ITSC'` and `appr:'ISC'` — **governance bodies, not users.**
+  `02a` currently models approvers as `user_id` only. Modelled as free text for now; whether
+  committees become first-class actors is `AD-Model-Gaps`. **Do not silently coerce a committee
+  into a user record** — that would misstate who approved.
+
+### 3.2 Foundation-service entities
+
+Described in `05`; fields specified here so §0's index resolves to one place. Sources are `05`
+plus the design handoff's `accessRequests.js`, `accessReviews.js`, `sessionPolicy.js` and
+`retention.js`.
+
+**audit_log** — see `rules-on-demand/multi-tenant-data.md` §稽核軌跡 for the field list and the
+hash-chain columns. Design is **ADR-0003** (open). Two properties are settled regardless:
+append-only (no `UPDATE`/`DELETE`, ever) and **pseudonymous actors, never personal data** — the
+latter is what reconciles the erasure right with guardrail 5.
+
+**retention_policy** — `record_class`, `duration`, `trigger` (creation / closure / supersession),
+`disposition` (retain / archive / purge), `basis` (the citation, e.g. `ISO 27001 A.5.28`),
+`review_cadence`. The six confirmed classes and periods are in `05` §Records retention.
+
+**LegalHold** — `scope_type` + `scope_id` (polymorphic: record / class / entity), `reason`,
+`applied_by`, `applied_at`, `released_by`, `released_at`, `status`. A hold **suspends disposal
+regardless of retention period**, is applied and released by authorised roles only, is itself
+audited, and records under hold must be **visibly flagged** in the UI.
+
+**AccessRequest** — `ref_code`, `requester_user_id` **or** `external_party_name` (⚠️ nullable
+user: `accessRequests.js` shows `who:'External — BSI auditor'` with `opco:'—'`), `org_entity_id`
+(nullable, for external requesters), `requested_access`, `business_reason`, `grant_duration`
+(⚠️ time-boxed grants are real — `'Auditor (read-only) — 14 days'`), `approver_role`,
+`status` (pending / approved / rejected), `decided_by`, `decided_at`.
+
+> The nullable-user and duration fields are load-bearing: they are what make **just-in-time
+> auditor access** (`05`) expressible. Modelling requesters as internal users only would force
+> external auditors into permanent accounts — the opposite of the control.
+
+**AccessReviewCampaign** — `name`, `scope_description`, `due_date`, `owner_user_id`,
+`items_total`, `items_completed`, `status`. Per-reviewer progress is derived from its items.
+
+**AssessmentTemplate** — `name`, `version`, `subject_type` (risk / control / vendor / entity),
+sections, and questions with `question_type` (yes-no-NA / score / free text) and
+`evidence_required` (bool).
+
+**AssessmentInstance** — `template_id`, `template_version`, `subject_type` + `subject_id`,
+`period`, `assignee_user_id`, `reviewer_user_id`, `status`.
+
+**AssessmentResponse** — `instance_id`, `question_id`, `answer`, `evidence_id` (nullable).
+
+> One engine, three consumers: RCSA, control testing and vendor service audits (`05`). SoD applies
+> — `reviewer_user_id` ≠ `assignee_user_id`, and for vendor audits the auditor must be independent
+> of the relationship manager.
 
 ## 4. State machines (lifecycles)
 

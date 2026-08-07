@@ -381,7 +381,7 @@ python scripts/lint/run_all.py
 
 | 目錄 | 角色 |
 |------|------|
-| [`docs/02-architecture/`](./docs/02-architecture/README.md) | ⭐ **本專案的 18 份核心設計文件 `00`–`16` 住在這裡**（憲章、資料模型、安全、建置計畫、各模組規格）|
+| [`docs/02-architecture/`](./docs/02-architecture/README.md) | ⭐ **本專案的 19 份核心設計文件 `00`–`17` 住在這裡**（憲章、資料模型、安全、建置計畫、各模組規格）。**建表前先看 `02a` §0 的實體索引** —— 資料模型分散在 `02a` 與各模組文件，索引是唯一完整的清單 |
 | [`docs/01-planning/`](./docs/01-planning/README.md) | PROCESS · BACKLOG · ROADMAP · registers · calibration · `_templates/` · phase folder `W{NN}-*/` |
 | [`docs/03-implementation/`](./docs/03-implementation/README.md) | `changes/CH-NNN-*` · `bugs/BUG-NNN-*` |
 | [`docs/06-reference/`](./docs/06-reference/README.md) | ⭐ 設計交付物 `design_handoff_isms_grc_platform/` + mockup→production playbook |
