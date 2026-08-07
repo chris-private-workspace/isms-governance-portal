@@ -4,7 +4,8 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 > **這是 always-loaded 檔案** —— 每個 session 自動進 context。它是**導航 + 原則**，不是檔案庫。
 > 任何「某個 phase 做了什麼」的紀錄都不屬於這裡（見 `.claude/rules/task-workflow.md` §Phase Closeout）。
-> Size budget 由 `scripts/lint/check_rules_hygiene.py` 機械強制（24,000 bytes）。
+> Size budget 由 `scripts/lint/check_rules_hygiene.py` 機械強制（**30,000 bytes** ——
+> 本專案已自模板的 24,000 上調，理由見該檔 §PROJECT DEVIATION）。
 
 ---
 
@@ -77,7 +78,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 | **Pending / Next** | See [`docs/01-planning/BACKLOG.md`](./docs/01-planning/BACKLOG.md)（**有什麼**）· [`ROADMAP.md`](./docs/01-planning/ROADMAP.md)（**先做哪個**）|
 | **跨來源狀態** | See [`docs/01-planning/STATUS_AUDIT.md`](./docs/01-planning/STATUS_AUDIT.md) —— 問「現在全項目怎樣」時跑 `/status-audit`，**不要只讀 BACKLOG** |
 | **Open questions** | See [`docs/decision-form.md`](./docs/decision-form.md) |
-| **Tech Stack** | ⚠️ **未定** —— ADR-0001~0009 全部未拍板，見 [`docs/14-adr/README.md`](./docs/14-adr/README.md)。**ADR-0006（分區部署 / PIPL 落地）是 M0 阻斷項** |
+| **Tech Stack** | **NestJS 10 + Prisma 7 · PostgreSQL · Next.js + Tailwind · Entra ID · Azure（中國區 = Azure China）** —— ADR-0001 / 0006 / 0007 已採納。ADR-0002~0005 待 W01 spike，0008/0009 待 Wave 3，見 [`docs/14-adr/README.md`](./docs/14-adr/README.md) |
 | **Main Branch** | `main` |
 | **Branch Protection** | PR required · **review_count=0**（單人開發 —— 沒有 reviewer）· no force-push · no deletions · linear history · enforce_admins。 補償機制：PR 開著睡一晚，隔天用 reviewer 的心態重讀一次。 |
 
@@ -166,17 +167,18 @@ Integration → Data & Analytics → Infrastructure`，security-by-design 橫切
 
 | # | 範疇 | 目錄 | 職責 |
 |---|------|------|------|
-| 1 | `core-model` | ⚠️ 待 ADR-0001 | 實體圖：risk / control / obligation / policy / process / asset / entity / event / issue / evidence。canonical core + governed extensions |
-| 2 | `entity-scope` | ⚠️ 待 ADR-0001 | 組織階層、entity scoping / RLS、管轄區標記、資料落地路由 |
-| 3 | `identity` | ⚠️ 待 ADR-0001 | 認證（SSO/MFA）、entity-scoped 授權、三道防線分離、SoD |
-| 4 | `workflow` | ⚠️ 待 ADR-0001 | 可設定狀態機、簽核、SLA、升級 |
-| 5 | `audit-trail` | ⚠️ 待 ADR-0001 | Append-only、防篡改、證據等級日誌 |
-| 6 | `api` | ⚠️ 待 ADR-0001 | API-first 契約層；連接器框架（後續 wave 填充）|
-| 7 | `modules` | ⚠️ 待 ADR-0001 | Wave 1 兩個證明模組：Policy Management、Risk + Control registers |
-| 8 | `ui` | ⚠️ 待 ADR-0001 | 角色式 UI、滾升儀表板；消費設計交付物的 tokens 與 class 名 |
+| 1 | `core-model` | `apps/api/src/core-model/` | 實體圖：risk / control / obligation / policy / process / asset / entity / event / issue / evidence。canonical core + governed extensions |
+| 2 | `entity-scope` | `apps/api/src/entity-scope/` | 組織階層、entity scoping / RLS、管轄區標記、資料落地路由 |
+| 3 | `identity` | `apps/api/src/identity/` | 認證（SSO/MFA）、entity-scoped 授權、三道防線分離、SoD |
+| 4 | `workflow` | `apps/api/src/workflow/` | 可設定狀態機、簽核、SLA、升級 |
+| 5 | `audit-trail` | `apps/api/src/audit-trail/` | Append-only、防篡改、證據等級日誌 |
+| 6 | `api` | `apps/api/src/contracts/` · `packages/types/` | API-first 契約層；連接器框架（後續 wave 填充）|
+| 7 | `modules` | `apps/api/src/modules/` | Wave 1 兩個證明模組：Policy Management、Risk + Control registers |
+| 8 | `ui` | `apps/web/` | 角色式 UI、滾升儀表板；消費設計交付物的 tokens 與 class 名 |
 
-> ⚠️ **目錄欄位在 ADR-0001（後端語言與框架）拍板前無法填寫。**
-> 這是刻意的：先選框架再定目錄結構，不要反過來。
+> 目錄由 **ADR-0001**（NestJS monorepo）導出：每個範疇 = 一個 NestJS module，
+> 邊界由 `eslint-plugin-boundaries` **機械強制**而非 review 慣例。
+> ⚠️ **骨架尚未建立** —— W01 M0 的交付物。
 > 跨範疇 import 規則：`docs/rules-on-demand/scope-boundaries.md`（需要時 Read）。
 
 ---
@@ -304,20 +306,23 @@ Gate 全綠只證明「零件對」；curl 通過只證明「API 會回應」。
 ## Development Commands
 
 ```bash
-# ⚠️ 下列指令待 ADR-0001（後端語言與框架）拍板後填寫。
-#    現在填 = 替使用者做了那個決定。
+# ⚠️ 技術棧已由 ADR-0001 定案，但 **monorepo 骨架尚未建立**（W01 M0 的交付物）。
+#    下列指令在骨架建立前不可用 —— 形狀取自 unified-operation-platform。
 
 # Lint / Format
-<lint 指令>
+npm run lint -w apps/api && npm run lint -w apps/web
 
 # Type check
-<type check 指令>
+npm run type-check -w apps/api && npm run type-check -w apps/web
 
 # Test
-<test 指令>
+npm run test -w apps/api && npm run test -w apps/web
 
 # Build
-<build 指令>
+npm run build -w apps/api && npm run build -w apps/web
+
+# DB migration（Prisma）
+npm run prisma:migrate -w apps/api
 
 # 專案架構 lint（規則 hygiene + 自訂 detector）—— 這個現在就能跑
 python scripts/lint/run_all.py
@@ -327,7 +332,10 @@ python scripts/lint/run_all.py
 
 | Service | Port |
 |---------|------|
-| ⚠️ 待 ADR-0001 / ADR-0006（分區部署拓撲）| — |
+| `apps/api`（NestJS）· `apps/web`（Next.js）· PostgreSQL | ⚠️ W01 M0 建立骨架時決定 |
+
+> 拓撲已定（**ADR-0006** —— per-region on Azure，中國區走 Azure China）：
+> **每個 region 一組獨立端點，不共用**。跨區只有 `posture_snapshot` 走 API 複製。
 
 ### Environment Setup
 
@@ -385,7 +393,7 @@ python scripts/lint/run_all.py
 | [`docs/01-planning/`](./docs/01-planning/README.md) | PROCESS · BACKLOG · ROADMAP · registers · calibration · `_templates/` · phase folder `W{NN}-*/` |
 | [`docs/03-implementation/`](./docs/03-implementation/README.md) | `changes/CH-NNN-*` · `bugs/BUG-NNN-*` |
 | [`docs/06-reference/`](./docs/06-reference/README.md) | ⭐ 設計交付物 `design_handoff_isms_grc_platform/` + mockup→production playbook |
-| [`docs/14-adr/`](./docs/14-adr/README.md) | ⭐ 架構決定記錄 —— **9 份 Wave 1 阻斷決策全部未寫** |
+| [`docs/14-adr/`](./docs/14-adr/README.md) | ⭐ 架構決定記錄 —— **0001 / 0006 / 0007 已採納；0002~0005 待 W01 spike，0008 / 0009 待 Wave 3** |
 | [`docs/INFORMATION-FLOW.md`](./docs/INFORMATION-FLOW.md) | ⭐ 開發資訊流地圖 |
 | `MEMORY.md` + `memory/` | 跨 session 記憶（index + subfile）|
 

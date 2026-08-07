@@ -48,6 +48,10 @@
 | AD-Auth-1 | 註冊畫面帶著 pre-`15` 詞彙：Entity 是 6 個國家（含 Japan）、Requested role 是 `Risk Owner / Control Owner / Auditor (read-only) / Regional Governance`——**都不是已確認的六角色** | CH-004 | 🟡 P1 | 是 `AccessRequest` 的自助入口，非裝飾 |
 | AD-Nav-2 | 導航計數徽章（Assessments `5`、Incidents `2`）未在任何規格中定義：算什麼、誰的範疇、多久刷新 | CH-004 | 🟢 P2 | |
 | AD-Port-BFSI | 移植時須剝除金融業殘留：AML/CTF/制裁/對帳內容與 `juris` 的審慎監理機關。**CH-004 已確認僅存在於 `data/*.js` 與 standalone prototype——markup 乾淨**，所以這是資料 fixture 工作，不是全庫掃描 | CH-002 | 🟢 P2 | 成本已下修（原 🟡 P1）|
+| AD-RuleBoundary-1 | **ADR 撰寫時機與「文檔成長跟隨 runtime」的交界未定義**：`14-adr/README.md:31` 說 ADR 可無實作先寫，CLAUDE.md §禁止反模式禁止預寫規劃文件，仲裁答案只在 `memory/feedback_doc_growth_follows_runtime.md:45`（非 always-loaded）| —（ADR 規劃討論）| 🟢 P2 | 第 1 次違反，依 `.claude/rules/README.md` 強度階梯**不升級為規則**；再發生 1 次則在 `14-adr/README.md` 補判準行 |
+| AD-CssToken-1 | **`mockup-fidelity.md:38` 紅線 7 在本專案是錯的**：它規定一律 `oklch(var(--token))`，但交付物 token 是 HEX（`styles/tokens.css:24` `--primary: #2A5BD7`）。`oklch(#2A5BD7)` 是無效 CSS 且**靜默失效**。同一缺陷在 playbook §4.2 Layer 3 | CH-005 | 🟡 P1 | ⚠️ **W01 前端第一頁之前必修**（一行）。CLAUDE.md 約束 6「不做色彩空間轉換」在本專案亦不適用 —— 那是模板帶來的通用警語 |
+| AD-DocIndex-1 | **`docs/02-architecture/README.md` §核心設計文件 仍是未填模板**：列的 `00-vision.md` / `01-architecture.md` / `02-tech-stack-decisions.md` 全部不存在，實際是 `00-project-charter.md` 等 27 份。**五個 detector 全部抓不到** —— 那些幻影檔名是純表格文字不是連結 | CH-005 | 🟢 P2 | 使用者反映「文件很多不知從何看起」的直接成因 |
+| AD-Decider-1 | **`03` §Questions for Legal 的四個問題仍無接觸途徑**：ADR-0006 已用最保守預設繞過（拓撲不受影響），但 `cross_border_max_tier` 因此鎖在最嚴 → 旗艦比較矩陣覆蓋 **13/14 OpCo** | CH-005 | 🟡 P1 | 放寬是設定變更非重架構。已向 **Regional ISO / Group CISO** 表面化（`03:137` 要求）記於 ADR-0006 §Consequences |
 
 **優先度判準**：
 
@@ -74,6 +78,7 @@
 | — | 2026-08-07 | CH-002：24 個設計交付物資料檔對照規格審計（關閉 `AD-Mockup-1`）| `docs/09-analysis/mockup-data-vs-spec-audit-20260807.md` |
 | — | 2026-08-07 | CH-003：`02a` §0 實體索引 + 三項 P0 模型決策（關閉 `AD-DesignAlign-3/4`、`AD-Mockup-4`、`AD-Model-Vendor`、`AD-Model-AuditIssue`）| `docs/03-implementation/changes/CH-003-entity-index-and-p0-model-decisions.md` |
 | — | 2026-08-07 | CH-004：30 個 screen fragment 對照規格審計（純發現）| `docs/09-analysis/screen-fragment-audit-20260807.md` |
+| — | 2026-08-07 | CH-005：三份基礎 ADR 拍板（0001 NestJS+Prisma · 0006 Azure 分區 · 0007 Entra ID）—— **解封 M0**；關閉 OQ-1/2/5 | `docs/03-implementation/changes/CH-005-foundation-adrs/` |
 
 ---
 

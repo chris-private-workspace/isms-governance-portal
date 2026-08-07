@@ -49,34 +49,36 @@ CHANGE record  一次變更的紀錄。做了什麼、為什麼這樣做、怎�
 
 | # | 決策 | Date | Status |
 |---|------|------|--------|
-| | | | |
+| [0001](./0001-backend-framework.md) | 後端 = NestJS 10 + Prisma 7，與 Next.js 前端同一個 monorepo | 2026-08-07 | **已採納** |
+| [0006](./0006-deployment-and-residency-topology.md) | 分區部署於 Azure，中國區走 Azure China（21Vianet） | 2026-08-07 | **已採納** |
+| [0007](./0007-identity-provider.md) | Microsoft Entra ID，取代交付物指定的 Okta | 2026-08-07 | **已採納** |
 
 **Status 值**：提案中 / **已採納** / 已被 ADR-NNN 取代 / 已廢棄
+
+> **檔名慣例：`NNNN-<slug>.md`（4 位數，無 `ADR-` 前綴）** —— 以既有的
+> `0000-TEMPLATE.md` 為準，與 `06-tech-stack-and-decisions.md:50` 和
+> `docs/INFORMATION-FLOW.md` 的編號規則表一致。
 
 ---
 
 ## 尚待撰寫（Wave 1 阻斷項）
 
-這 9 份是專案啟動時就識別出來的開放決策，**尚未有任何一份寫成 ADR**。
+原本 9 份是專案啟動時識別出來的開放決策。**0001 / 0006 / 0007 已於 2026-08-07（`CH-005`）採納**，
+移到上方索引；下表是**剩餘 6 份**。
 清單原本在舊的 `docs/adr/` 位置，套用開發流程模版重組時併入本索引。  <!-- path-check: ignore — 歷史位置，已不存在 -->
 
-命名：`ADR-XXXX-short-title.md`（例：`ADR-0001-backend-framework.md`）。
-
-| # | 決策 | 阻斷什麼 |
-|---|------|---------|
-| ADR-0001 | Backend language & framework | 全部實作 |
-| ADR-0002 | Workflow engine：自建 vs. 嵌入 | 平台基礎服務 |
-| ADR-0003 | Audit-trail hash-chain 設計 | guardrail 5（不可篡改稽核軌跡）|
-| ADR-0004 | Entity-scoping 強制方式（PostgreSQL RLS 策略）| guardrail 4（一切 entity-scoped）|
-| ADR-0005 | 受治理擴充欄位的儲存（JSONB + field catalog）| guardrail 3（核心資料模型）|
-| ADR-0006 | 部署與資料落地拓撲 | ⭐ **M0 阻斷項** —— 中國在範圍內，PIPL 在地化是硬性要求 |
-| ADR-0007 | Identity provider | 身分與存取層 |
-| ADR-0008 | AI agent：自建檢索 vs. Copilot Studio 整合 vs. 分區混合 | Wave 3 |
-| ADR-0009 | AI 處理地點與模型無關推論介面（主權控制）| Wave 3 + 資料落地 |
+| # | 決策 | 阻斷什麼 | 何時可寫 |
+|---|------|---------|---------|
+| ADR-0002 | Workflow engine：自建 vs. 嵌入 | 平台基礎服務 | **需先 spike**（`decision-form.md` OQ-7）|
+| ADR-0003 | Audit-trail hash-chain 設計 | guardrail 5（不可篡改稽核軌跡）| W01 spike 之後 —— 判準是寫入吞吐量，零 code 時量不出來 |
+| ADR-0004 | Entity-scoping 強制方式（PostgreSQL RLS 策略）| guardrail 4（一切 entity-scoped）| W01 spike 之後 —— ⭐ **驗證 ADR-0001 的承重假設** |
+| ADR-0005 | 受治理擴充欄位的儲存（JSONB + field catalog）| guardrail 3（核心資料模型）| W01 spike 之後 |
+| ADR-0008 | AI agent：自建檢索 vs. Copilot Studio 整合 vs. 分區混合 | Wave 3 | Wave 3 |
+| ADR-0009 | AI 處理地點與模型無關推論介面（主權控制）| Wave 3 + 資料落地 | Wave 3 —— 但**原則現在就綁定**（CLAUDE.md 約束 7）|
 
 > **決策在這裡出現一份標記為「已採納」的 ADR 之前，都不算定案。**
-> 目前 §Project Status 的 Tech Stack 欄位仍是未填狀態，這是刻意的 ——
-> 見 `docs/02-architecture/06-tech-stack-and-decisions.md`。
+> 剩下 6 份刻意不現在寫：**ADR 是決策記錄，不是規劃文件** ——
+> 沒有 runtime 就寫不出可證偽條件（見 `memory/feedback_doc_growth_follows_runtime.md`）。
 
 ---
 
