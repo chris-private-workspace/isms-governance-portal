@@ -159,33 +159,60 @@ path-references: 1 stale reference(s):
 
 ## Verification
 
-<!-- 待實作後填 -->
+**Gate**: `run_all` **5/5** — **在 CI 執行**（run 31187401929），本專案史上第一次。
+無 code / build / test（尚無技術棧）。
 
-**Gate**: —
-**新增測試**: —
+**新增測試**: 無測試檔，但 guard 做了**雙向**驗證（負面測試即「關掉會壞什麼」）：
+
+- `package.json` 不存在 → 印 `::notice::` 且 **exit 0**（本機 bash + CI 各驗一次）
+- `package.json` 存在 → 進入 npm 指令（本機用臨時 `package.json` 驗證）
+
 **Drive-through**: ⚪ N/A（CI 設定 —— **gate-only verified**）
-**Verdict**: —
 
-**驗收條件（approve 時確認）**：
+**Verdict**: ✅ PASS
 
-| # | 條件 |
-|---|---|
-| A1 | PR 上 `gates` job **綠**，且 log 顯示 `run_all.py` 實際執行並輸出 `5/5 passed` |
-| A2 | 未填步驟印出 `::notice::… skipped until W01 M0`，**exit 0 而非 fail** |
-| A3 | `security-scan` 手動觸發完成；gitleaks 結果（乾淨 or 命中清單）記入本檔 §Verification |
-| A4 | `gh run list --limit 3` 顯示至少一次 `success` |
+### 驗收條件逐條
+
+| # | 條件 | 結果 | 證據 |
+|---|---|---|---|
+| A1 | `gates` 綠 + log 顯示 `run_all.py` 執行並輸出 `5/5 passed` | **PASS** | `gates pass 9s`；log 含 `run_all: 5/5 passed` 與五個 detector 的逐條 `[PASS]` |
+| A2 | 未填步驟印 notice 且 exit 0 | **PASS** | 五步全部 `##[notice]monorepo scaffold absent — skipped until W01 M0 (ADR-0001)`，job 通過 |
+| A3 | security-scan 觸發；gitleaks 結果入檔 | **PASS** | 見下 |
+| A4 | 至少一次 `success` | **PASS** | `mergeState=CLEAN` |
+
+### ⭐ A3 的結果必須精確表述
+
+四個 job 全部 `success`，**但那是誤導性的表面訊號 —— 只有一個真的做了事**：
+
+| Job | 結論 | 實際發生 |
+|---|---|---|
+| 憑證外洩 — gitleaks | success | ✅ **真的掃了**：`INF 9 commits scanned.` / `INF no leaks found` |
+| 依賴漏洞 — SCA | success | ⏸️ **skip**：`SCA 指令未設定` |
+| 靜態安全 — SAST | success | ⏸️ **skip**：`SAST 指令未設定` |
+| 容器映像 — trivy | success | ⏸️ **skip**：`沒有 Dockerfile — 略過容器掃描` |
+
+**可以宣稱的**：全 git 歷史（9 個 commit）無外洩憑證 —— guardrail 7 的「原始碼中無密鑰」
+首次獲得機械驗證，不再只是宣稱。
+
+**不可以宣稱的**：依賴漏洞、靜態安全、容器映像**未經檢查**。三者是 skip，不是 clean。
+`07:31` 的 M0 DoD 要求它們全部有效，仍未達成。
+
+### ⚠️ CI 抓到而本機沒抓到的
+
+**`path-references` 在 CI 是 4/5，本機永遠 5/5** —— 見 §Solution 的實作中發現 ①。
+這是本 CH 存在價值的直接證據：修好 CI 的第一件事，就是揭露一個本機不可能發現的問題。
 
 ---
 
 ## Impact
 
-<!-- 待實作後填 -->
-
 - **Breaking change**: no
 - **Migration**: no
 - **Config**: none
 - **重啟需求**: —
-- **Rollback**: revert the PR；CI 回到目前的全紅狀態（不會更差）
+- **Rollback**: revert the PR；CI 回到全紅狀態（不會更差）
+- **行為變化**: 從今天起 `main` 與每個 PR 都會執行五個架構 detector。
+  之前它們只在有人記得跑本機指令時才生效
 
 ---
 
@@ -195,7 +222,17 @@ path-references: 1 stale reference(s):
   前五個為 `AD-RuleBoundary-1` · `AD-CssToken-1` · `AD-DocIndex-1` · ADR 檔名慣例 ·
   `CLAUDE.md` byte 預算。**第 6 次同型 → 依 `.claude/rules/README.md` 強度階梯應考慮結構性解法**
   （例如一個掃全 repo 未填模板佔位符的 detector），而不是逐個修
-- **產生的待辦** → `docs/01-planning/BACKLOG.md`:
-  - W01 M0 收尾時把 CI 設成 required status check（`07:31`）
-  - W01 M0 之後依 `security-scan.yml:19-25` 的五步次序推進 SCA/SAST
+- **產生的待辦** → `docs/01-planning/BACKLOG.md`
+  ⚠️ **刻意延後到 PR #6 merge 之後才寫入 BACKLOG**：#6 已經改了 BACKLOG 的同一段落，
+  在本 PR 也改會製造 rebase 衝突與一次不必要的 force-push。待辦在此完整記錄，不會遺失。
+
+  1. **W01 M0 收尾時把 CI 設成 required status check**（`07:31` 的 M0 DoD）—— 現在設會用一個
+     沒有實質內容的 gate 擋住所有 PR
+  2. **依 `security-scan.yml:19-25` 的五步次序推進 SCA / SAST**（W01 M0 之後，需 `package.json`）
+  3. **`run_all.py` 失敗時只印最後一行** —— 目前用 workflow 的 `--verbose` 繞過。若同型問題再現，
+     結構性修法是讓 `run_all.py:80` 在 `returncode != 0` 時保留完整輸出
+  4. **`actions/checkout@v4` 用 Node 20，已被 GitHub 標記 deprecated** 並強制跑在 Node 24
+     （本次 4 個 security-scan job 皆有此 annotation）。現在只是警告，移除時會直接壞掉
 - **上游**: 發現於 CH-005 的 PR #6 CI 失敗
+- **同型計數**: 本 CH 是「模板佔位符 / 通用假設未與本專案對齊」的**第 6 次**。
+  建議的結構性解法（掃全 repo 未填佔位符的 detector）不在本 CH 範圍，需另開
