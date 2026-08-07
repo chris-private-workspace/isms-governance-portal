@@ -54,6 +54,58 @@ jobs:
       - name: Architecture lints
         run: python scripts/lint/run_all.py --verbose
 
+      # === workflow 自身的 lint（CH-007）================================
+      # 為什麼需要：CH-006 的 bug 是 `run:` 直接執行未填佔位符，而**沒有任何東西
+      # 會抓**——它只在 CI 紅了 12 次之後才被人發現。actionlint 內含 shellcheck，
+      # 對那個 bug 回報 SC1072/SC1073，並且覆蓋一整類我們還沒踩到的問題
+      # （過時 action、錯誤的 context 表達式、matrix 設定錯誤）。
+      #
+      # 釘版本 + 校驗 SHA256：在 CI 下載並執行二進位而不驗簽，等於自己開一條
+      # 供應鏈缺口（guardrail 7）。做法照 security-scan.yml 的 gitleaks/trivy 前例。
+      #
+      # 用官方 release 而非第三方 action：每個 action 都是一條供應鏈路徑。
+      - name: 安裝 actionlint（釘版本 + 校驗）
+        env:
+          ACTIONLINT_VERSION: "1.7.12"
+        run: |
+          base="https://github.com/rhysd/actionlint/releases/download/v${ACTIONLINT_VERSION}"
+          tarball="actionlint_${ACTIONLINT_VERSION}_linux_amd64.tar.gz"
+          curl -sSLo "$tarball" "${base}/${tarball}"
+          curl -sSLo actionlint_checksums.txt "${base}/actionlint_${ACTIONLINT_VERSION}_checksums.txt"
+          # 只驗我們下載的那個檔；checksums.txt 含全平台，直接跑會因缺檔而失敗。
+          grep " ${tarball}\$" actionlint_checksums.txt | sha256sum -c -
+          tar -xzf "$tarball" actionlint
+          ./actionlint --version
+
+      - name: Workflow lint
+        run: |
+          # ⚠️ 這段註解不可以用 "# shellcheck" 起頭 —— 那是 shellcheck 的 directive
+          # 語法（如 disable=SC2086），它會嘗試解析後面的中文並回報 SC1072/SC1073。
+          # 這個坑是 actionlint 導入的當下抓到的（CH-007）。
+          #
+          # ubuntu-latest 預裝 shellcheck；缺了的話 actionlint 會靜靜跳過 shell
+          # 檢查——那正是 CH-006 那個 bug 所在的層，所以明確驗證它存在。
+          command -v shellcheck >/dev/null || {
+            echo "::error::shellcheck absent — actionlint would silently skip shell checks"
+            exit 1
+          }
+          ./actionlint -color
+
+      # Detector 自己也是 code（lint-detector-authoring.md:199）。直接跑檔案而不用
+      # `unittest discover`：discover 要求 start dir 可 import，而 scripts/ 刻意
+      # 不是 package。這個迴圈讓新增的測試檔自動被納入，不必回來改 CI。
+      - name: Lint detector tests
+        run: |
+          n=0
+          for t in scripts/lint/tests/test_*.py; do
+            [ -f "$t" ] || continue
+            echo "::group::$t"
+            python "$t" || exit 1
+            echo "::endgroup::"
+            n=$((n + 1))
+          done
+          echo "::notice::$n detector test file(s) run"
+
       # === 以下在 monorepo 骨架（W01 M0）建立前自動略過 =================
       # 指令由 ADR-0001 定案。骨架一出現就自動生效。
 

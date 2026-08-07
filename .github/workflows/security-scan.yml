@@ -215,7 +215,13 @@ jobs:
         env:
           TRIVY_VERSION: "0.72.0"
         run: |
-          if ! ls Dockerfile */Dockerfile >/dev/null 2>&1; then
+          # glob 而非 `ls`（shellcheck SC2035/SC2045）：`./` 前綴讓 dash 開頭的
+          # 檔名不會被當成選項，而 `[ -f ]` 處理 glob 無匹配時保留字面值的情況。
+          have_dockerfile=0
+          for f in ./Dockerfile ./*/Dockerfile; do
+            [ -f "$f" ] && { have_dockerfile=1; break; }
+          done
+          if [ "$have_dockerfile" -eq 0 ]; then
             echo "沒有 Dockerfile — 略過容器掃描"; exit 0
           fi
           base="https://github.com/aquasecurity/trivy/releases/download/v${TRIVY_VERSION}"
@@ -259,7 +265,10 @@ jobs:
           # 上游一出修正就不再算 unfixed，立刻變紅。
           set -o pipefail
           rc=0
-          for df in $(ls Dockerfile */Dockerfile 2>/dev/null); do
+          # glob 直接迭代，不走 `$(ls …)`（shellcheck SC2045：ls 輸出遇到含空白
+          # 的檔名會裂開）。glob 無匹配時 shell 保留字面值，故用 `[ -f ]` 過濾。
+          for df in ./Dockerfile ./*/Dockerfile; do
+            [ -f "$df" ] || continue
             bases=$(grep -iE '^FROM ' "$df" | awk '{print $2}' | sort -u)
             for img in $bases; do
               echo "::group::$df -> $img"
