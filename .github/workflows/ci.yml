@@ -47,8 +47,12 @@ jobs:
         with:
           python-version: "3.12"
 
+      # `--verbose` 是刻意的，不是除錯殘留：run_all.py 的摘要只保留每個 detector
+      # 輸出的**最後一行**（run_all.py:80），而失敗時最後一行是提示語
+      # （"(intentional? add …)"），真正的違規清單在它前面。沒有 --verbose 的
+      # CI 失敗訊息無法診斷 —— CH-006 第一次跑就撞到，花了數步偵查才定位。
       - name: Architecture lints
-        run: python scripts/lint/run_all.py
+        run: python scripts/lint/run_all.py --verbose
 
       # === 以下在 monorepo 骨架（W01 M0）建立前自動略過 =================
       # 指令由 ADR-0001 定案。骨架一出現就自動生效。

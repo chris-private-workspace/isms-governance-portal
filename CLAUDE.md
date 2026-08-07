@@ -142,7 +142,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
    （如中國 PIPL）的支援，是**架構層關注點，不是事後補丁**。
 9. **語言。** 程式碼／註解／技術文件用**英文**；任何終端使用者可見文字與 UI copy 用**繁體中文**。
 
-> ⚠️ `reference/` 與 `docs/reference/`（公司程序、掃描衍生指引、授權 ISO 標準）
+> ⚠️ `reference/` 與 `docs/reference/`（公司程序、掃描衍生指引、授權 ISO 標準）  <!-- path-check: ignore — 刻意不在版控中；CI checkout 後不存在 -->
 > **刻意排除於版控之外**，只存在本機磁碟。不要把它們加回 git。
 
 ---
