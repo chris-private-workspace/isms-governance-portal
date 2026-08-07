@@ -1,0 +1,271 @@
+# 安全掃描 — 憑證外洩 / 依賴漏洞 / 靜態安全 / 容器映像
+#
+# ⚠️ 這是骨架。`secret-scan` 一接上就有效（語言無關），其餘三個 job
+#    需要你填指令 —— 沒填就會印提示並略過，不會讓你的第一次 CI 就炸掉。
+#
+# ── 為什麼另開一個 workflow，不塞進 ci.yml ────────────────────────────────
+#
+# ①**依賴掃描必須有排程觸發。** 一條今天才公布的 CVE，會影響一段**完全沒改過**
+#   的 code。只靠 push / PR 觸發的話，沒有人動那個檔案就永遠掃不到。
+#   `ci.yml` 是 push / pull_request only —— 結構上做不到這件事。
+# ② 四類掃描放一起，日後看一個檔就知道安全閘的全貌。
+#
+# ── ⚠️ 接上之後的正確次序（不要跳步）────────────────────────────────────
+#
+# 第一次跑**一定**會噴出一批**現存**問題 —— 這個專案在此之前從未掃過。
+# 如果一開始就把它設成 required status check，會**立刻擋住所有 PR**，
+# 包括跟安全完全無關的。
+#
+#   1. 接上（本檔），只留 schedule + workflow_dispatch
+#   2. 逐條分流：修 / 豁免（寫理由 + 到期日）/ 誤報（寫理由）
+#   3. 分流清完、每類掃描定好可辯護的門檻（讓綠燈真的代表「乾淨」）
+#   4. **然後**才加 `pull_request:` 觸發
+#   5. 觀察幾個 PR 週期不會無故紅，**再**考慮升成 required check
+#
+# 4 和 5 是兩個獨立步驟，不要一起做。
+#
+# ── ⚠️ 分流窗口期間，三個做法只有一個是對的 ──────────────────────────────
+#
+# ❌ **留在 PR 觸發、報紅但不擋 merge** —— job 會長期紅。
+#    長期紅會侵蝕「紅 = 有東西壞了」這個訊號，之後真的壞了也沒人看。
+# ❌ **加 `continue-on-error`** —— 技術上也沒用（個別 job 在 PR 檢查清單
+#    照樣顯示 fail），而且方向根本是錯的：讓還有一堆發現的掃描報綠 = **假綠**。
+# ✅ **收窄到 `schedule` + `workflow_dispatch`** —— 不出現在 PR 檢查清單，
+#    既不紅也不假綠，排程照跑、隨時手動觸發。
+#
+# 代價講清楚：分流窗口期間，PR 引入新的有漏洞依賴不會即時被抓到。
+# 這是短期可接受的，但**不能無限期**留著 —— 解除條件寫在上面第 4 步。
+
+name: security-scan
+
+on:
+  # 每週一 02:00 UTC。這就是「排程觸發」理由的落點：
+  # 掃的是「這週新公布的 CVE 有沒有擊中我們沒改過的依賴」。
+  schedule:
+    - cron: "0 2 * * 1"
+  workflow_dispatch:
+  # 分流完成、門檻定好之後，取消下面這行的註解（見上面第 4 步）。
+  # 不要設 paths filter —— 依賴 / 憑證 / 容器三類的命中，
+  # 跟這次 PR 改了哪個檔沒有必然關係。
+  # pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  # ── 憑證外洩掃描（語言無關，接上即生效）──────────────────────────────
+  #
+  # ⚠️ 這個 job 排第一，因為它是**唯一有時間壓力**的一類。
+  #
+  # 如果 repo 曾經公開過，歷史上任何一個 commit 含過憑證，就等於**已經洩漏** ——
+  # 轉私有不會收回已被 clone 或索引的內容。這屬於事故分流，不是例行檢查。
+  #
+  # 按檔名找是不夠的：`.env.example` 這種進 git 是預期的，
+  # 但「金鑰被貼進某個 .py 或 .md 正文」用檔名永遠找不到。所以要真掃內容。
+  secret-scan:
+    name: 憑證外洩 — gitleaks（全歷史）
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          # **全歷史，不可淺 clone。** 本 job 的重點正是過去的 commit ——
+          # 一個憑證即使下一個 commit 就刪掉，在 git 歷史裡仍然拿得到。
+          fetch-depth: 0
+
+      # 用官方 release 二進位而不用第三方 action，兩個理由：
+      # ① 一個**專為安全而存在**的流程，自己引入的第三方相依越少越好 ——
+      #    每個 action 都是一條供應鏈路徑。
+      # ② 某些 gitleaks action 對組織帳戶要 licence key。
+      #
+      # 版本釘死 + 校驗 SHA256：在安全流程裡下載並執行一個二進位檔，
+      # 不驗簽就等於自己開一條供應鏈缺口。
+      - name: 安裝 gitleaks（釘版本 + 校驗）
+        env:
+          GITLEAKS_VERSION: "8.30.1"
+        run: |
+          base="https://github.com/gitleaks/gitleaks/releases/download/v${GITLEAKS_VERSION}"
+          tarball="gitleaks_${GITLEAKS_VERSION}_linux_x64.tar.gz"
+          curl -sSLo "$tarball" "${base}/${tarball}"
+          curl -sSLo checksums.txt "${base}/gitleaks_${GITLEAKS_VERSION}_checksums.txt"
+          # 只驗我們下載的那個檔；checksums.txt 含全平台，直接跑會因缺檔而失敗。
+          grep " ${tarball}\$" checksums.txt | sha256sum -c -
+          tar -xzf "$tarball" gitleaks
+          ./gitleaks version
+
+      - name: 掃全歷史
+        run: |
+          # `--redact`：**絕不**在 CI log 印出憑證明文 —— log 本身就是一個洩漏面。
+          # 有命中時只報位置與規則名，值遮蔽。
+          #
+          # 有命中 → 非零退出 → job 紅。**刻意保留硬失敗**：
+          # 為了好看而報綠就是假綠，那正是這套模板花力氣在消滅的東西。
+          #
+          # `--config` 明示指向設定檔。gitleaks 預設會在來源根目錄自動找，
+          # 但明示寫出來才看得出「有一份誤報白名單」這件事 ——
+          # 一個靜靜生效的白名單是最容易被遺忘的安全缺口。
+          # 還沒有白名單檔時，把 --config 那行拿掉即可。
+          ./gitleaks detect \
+            --source . \
+            --redact \
+            --no-banner \
+            --report-format json \
+            --report-path gitleaks-report.json
+
+      - name: 上傳報告
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: gitleaks-report
+          path: gitleaks-report.json
+          # 報告已 redact，但仍當敏感處理 —— 保留期壓到最短。
+          retention-days: 7
+          if-no-files-found: ignore
+
+  # ── 依賴漏洞掃描（SCA）───────────────────────────────────────────────
+  #
+  # SCA 與 Dependabot 的分工（見 .github/dependabot.yml）：
+  #   **SCA = 偵測** —— 告訴你「現在有什麼漏洞」
+  #   **Dependabot = 修復** —— 自動開 PR 幫你升上去
+  # 兩者不重疊，缺哪個都不完整：只有偵測會變成一張永遠不會縮短的清單；
+  # 只有自動升級則不知道自己正中著什麼。
+  dependency-scan:
+    name: 依賴漏洞 — SCA
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      # <你的環境設置步驟>
+
+      - name: 掃描
+        run: |
+          SCA_CMD='<依賴漏洞掃描指令，例：pip-audit / npm audit --audit-level=low / cargo audit / govulncheck>'
+          case "$SCA_CMD" in
+            '' | '<'*)
+              echo "SCA 指令未設定 — 在 .github/workflows/security-scan.yml 填 SCA_CMD"
+              echo "常見選擇：pip-audit / pnpm audit --audit-level=low / cargo audit / govulncheck"
+              ;;
+            *) sh -c "$SCA_CMD" ;;
+          esac
+
+      # ⚠️ 定門檻時的三條規矩（血淚換來的）：
+      #
+      # ① **豁免要逐條編號 + 寫理由，不要一刀切調低 severity。**
+      #    「不閘中危」會連**新出現**的中危一起放過；
+      #    逐條豁免則是任何新的 advisory 照樣紅。
+      # ② **豁免要有到期日，而且要自己寫閂門。** 多數 SCA 工具沒有原生到期機制，
+      #    不加就是「沒有東西會叫」—— 一條寫了理由的豁免，三個月後理由可能
+      #    已經不成立，但沒有人會回頭看。範例見下面那個步驟。
+      # ③ **「上游還沒有修正版」和「我們決定不修」是兩回事**，理由要分開寫。
+      #    前者會自己解除（上游一出修正就該紅），後者不會。
+      - name: 豁免到期閂門（有豁免才需要）
+        run: |
+          # 把 EXPIRY 換成你的豁免到期日；沒有豁免就刪掉整個步驟。
+          EXPIRY=""
+          [ -z "$EXPIRY" ] && { echo "沒有登記豁免"; exit 0; }
+          TODAY=$(date -u +%F)
+          if [ "$TODAY" \> "$EXPIRY" ]; then
+            echo "::error::依賴豁免已於 $EXPIRY 到期（今天 $TODAY）。"
+            echo "::error::重新分流每一條，再決定續期或收口 —— 不可以靜靜延長。"
+            exit 1
+          fi
+          echo "豁免有效至 $EXPIRY（今天 $TODAY）"
+
+  # ── 靜態安全掃描（SAST）──────────────────────────────────────────────
+  #
+  # ⚠️ **linter 不是 SAST。** `ruff` / `eslint` 是風格檢查器；
+  #    它們有幾條規則碰得到安全（`no-eval` 之類），但覆蓋面跟真 SAST 差一個量級。
+  #    如果某一邊只有 linter 規則充當安全掃描，**這是已知取捨，要寫下來**，
+  #    不可以在文件裡當成「已覆蓋」。
+  #
+  # ⚠️ **SAST 是迴歸網，不是發現器。** 真實案例：某專案唯一一條真漏洞
+  #    （OData filter 注入）SAST 完全沒抓到 —— 它只認得 SQL。
+  #    綠燈不等於「沒有漏洞」，只等於「沒有它認得的那些模式」。
+  static-analysis:
+    name: 靜態安全 — SAST
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      # <你的環境設置步驟>
+
+      - name: 掃描
+        run: |
+          SAST_CMD='<靜態安全掃描指令，例：bandit -r . -x ./tests -lll / gosec ./... ；注意 linter 不算 SAST>'
+          case "$SAST_CMD" in
+            '' | '<'*)
+              echo "SAST 指令未設定 — 在 .github/workflows/security-scan.yml 填 SAST_CMD"
+              echo "常見選擇：bandit -r . -x ./tests / semgrep --config auto / gosec ./..."
+              ;;
+            *) sh -c "$SAST_CMD" ;;
+          esac
+
+      # 中低危不閘，但要**繼續看得到** —— 否則「不閘」很快就變成「不存在」。
+      # 完整清單每次照印，在 job log 裡看得到。
+
+  # ── 容器映像掃描（有 Dockerfile 才跑）────────────────────────────────
+  container-scan:
+    name: 容器映像 — trivy
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: 安裝 trivy（釘版本 + 校驗）
+        env:
+          TRIVY_VERSION: "0.72.0"
+        run: |
+          if ! ls Dockerfile */Dockerfile >/dev/null 2>&1; then
+            echo "沒有 Dockerfile — 略過容器掃描"; exit 0
+          fi
+          base="https://github.com/aquasecurity/trivy/releases/download/v${TRIVY_VERSION}"
+          tarball="trivy_${TRIVY_VERSION}_Linux-64bit.tar.gz"
+          curl -sSLo "$tarball" "${base}/${tarball}"
+          curl -sSLo trivy_checksums.txt "${base}/trivy_${TRIVY_VERSION}_checksums.txt"
+          grep " ${tarball}\$" trivy_checksums.txt | sha256sum -c -
+          tar -xzf "$tarball" trivy
+          ./trivy --version
+
+      - name: 設定檔掃描
+        run: |
+          [ -x ./trivy ] || { echo "略過"; exit 0; }
+          # ⚠️ `trivy config` 收**一個目錄**，不收多個檔案路徑
+          #    （給多個會 FATAL「multiple targets cannot be specified」）。
+          #
+          # ⚠️ **覆蓋範圍要實測，不要照抄別人的宣稱。** trivy 支援
+          #    Terraform / CloudFormation / Kubernetes / Helm / ARM / Dockerfile，
+          #    但**不支援 Azure Bicep**，docker-compose 也不在預設檢查範圍。
+          #    跑完看它印的 `Detected config files num=N` —— 那個數字才是真相。
+          #
+          # `--exit-code 1`：trivy config 預設 exit 0，不加就永遠不會紅。
+          ./trivy config --exit-code 1 --severity HIGH,CRITICAL .
+
+      - name: 基礎映像漏洞掃描
+        if: always()
+        run: |
+          [ -x ./trivy ] || { echo "略過"; exit 0; }
+          # 只掃 base image，不 build 完整映像 —— 取捨講清楚：
+          # 應用層相依已經有 SCA 覆蓋，容器掃描獨有的價值主要在 **OS 層 CVE**，
+          # 而那些絕大部分來自 base image。掃 base 拿到大部分價值，成本是零頭。
+          #
+          # **已知缺口**：build 過程 `apt-get install` 進去的套件不會被覆蓋。
+          # 要補就要真 build —— 屬另行決定，不可以靜靜當已覆蓋。
+          #
+          # base image 從 Dockerfile 讀出，不寫死 —— 免得換了 base 而這裡沒跟著改，
+          # 掃著一個已經沒人用的映像。
+          #
+          # `--ignore-unfixed` **不是降門檻，是讓門檻可行動**：上游還沒推出修正的
+          # 條目，閘住它只會長期紅。它們不會就此消失 —— 每週排程照跑，
+          # 上游一出修正就不再算 unfixed，立刻變紅。
+          set -o pipefail
+          rc=0
+          for df in $(ls Dockerfile */Dockerfile 2>/dev/null); do
+            bases=$(grep -iE '^FROM ' "$df" | awk '{print $2}' | sort -u)
+            for img in $bases; do
+              echo "::group::$df -> $img"
+              ./trivy image --scanners vuln --exit-code 1 --no-progress \
+                --severity HIGH,CRITICAL --ignore-unfixed "$img" || rc=1
+              echo "::endgroup::"
+            done
+          done
+          exit $rc

@@ -1,0 +1,32 @@
+# 統一換行符為 LF。
+#
+# 沒有這一行的話，Windows 上 clone 出來的檔案是 CRLF，之後任何編輯都會產生
+# 整檔的假 diff —— review 時看到 500 行變更，實際只改了 1 行。
+# 這是 docs/rules-on-demand/code-quality.md §跨平台問題 的第二條。
+#
+# `text=auto` = git 自動偵測文字檔；`eol=lf` = repo 內一律存 LF。
+# 工作區仍會依平台呈現（Windows 上是 CRLF），所以不影響本機工具。
+* text=auto eol=lf
+
+# 明確標記為 binary（避免 git 嘗試轉換換行符而損毀檔案）
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.ico binary
+*.pdf binary
+*.zip binary
+*.gz binary
+*.woff binary
+*.woff2 binary
+
+# 生成檔 / lock 檔在 diff 時摺疊，且不計入 GitHub 語言統計
+*.lock          linguist-generated=true -diff
+package-lock.json linguist-generated=true -diff
+poetry.lock     linguist-generated=true -diff
+uv.lock         linguist-generated=true -diff
+pnpm-lock.yaml  linguist-generated=true -diff
+
+# 文件目錄不計入語言統計（否則專案會被標成 "Markdown"）
+docs/**        linguist-documentation
+claudedocs/**  linguist-documentation

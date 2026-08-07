@@ -35,33 +35,36 @@ Note on the backend choice: a framework with strong built-in **auth, permissions
 | ADR-0005 | Governed extension storage | JSONB + central field catalog; validation approach |
 | ADR-0006 | Deployment & residency topology | Per-region deployment for data-residency jurisdictions |
 | ADR-0007 | Identity provider | Self-hosted (Keycloak) vs. managed IdP |
+| ADR-0008 | AI agent architecture | Self-built retrieval vs. Copilot Studio integration vs. hybrid per region (`14`) |
+| ADR-0009 | AI processing location & model-agnostic inference interface | Sovereignty control — where inference happens is a compliance decision, not a vendor preference (`14`) |
 
 Add ADRs as new foundational decisions arise. Do not make these silently in code.
 
+> **ADR-0006 is blocking for M0.** China is in scope, so PIPL data localisation is a
+> hard day-one requirement — the deployment topology cannot be deferred until after
+> the data model is built. See `03-multi-entity-and-jurisdiction.md`.
+
 ## ADR template
 
-Save as `docs/adr/ADR-XXXX-short-title.md`:
+**Canonical template: [`../14-adr/0000-TEMPLATE.md`](../14-adr/0000-TEMPLATE.md).**
+Save new ADRs as `docs/14-adr/NNNN-short-title.md` and add a row to
+[`../14-adr/README.md`](../14-adr/README.md).
 
-```markdown
-# ADR-XXXX: <short title>
+The template requires four blocks:
 
-- Status: proposed | accepted | superseded by ADR-YYYY
-- Date: YYYY-MM-DD
-- Deciders: <names/roles>
+| Block | What it must contain |
+|---|---|
+| **Context** | The problem and the constraints that apply (security, residency, scope) |
+| **Options** | **At least 2** — if there is only one, this is not a decision |
+| **Decision** | What was chosen and why **in our situation** (「because it's best practice」is not a reason) |
+| **Consequences** | What cost was accepted **+ the falsifiability condition** ⭐ |
 
-## Context
-What problem/decision is this, and what constraints apply (security, residency, scope)?
+> ⭐ **Falsifiability — what observation would overturn this decision?**
+> The most-skipped and most-important section. An ADR without it is an
+> unfalsifiable statement of faith, not an engineering decision.
 
-## Options considered
-1. Option A — pros / cons
-2. Option B — pros / cons
+**This project adds a fifth required block:**
 
-## Decision
-The chosen option and the reasoning.
-
-## Consequences
-Positive, negative, and follow-up work created by this decision.
-
-## Security & compliance impact
-How this decision affects the guardrails in docs/04.
-```
+| Block | What it must contain |
+|---|---|
+| **Security & compliance impact** | How the decision affects the 9 guardrails in `CLAUDE.md`, and specifically: entity-scoping (g4), audit-trail integrity (g5), and data residency (g8). An ADR that weakens any of these must say so explicitly rather than omitting it. |

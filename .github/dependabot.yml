@@ -1,0 +1,98 @@
+# Dependabot — 版本更新
+#
+# 與 `security-scan.yml` 的 SCA 分工：
+#   **SCA = 偵測** —— 告訴你「現在有什麼漏洞」
+#   **Dependabot = 修復** —— 自動開 PR 幫你升上去
+# 兩者不重疊，缺哪個都不完整：只有偵測會變成一張永遠不會縮短的清單；
+# 只有自動升級則不知道自己正中著什麼。
+#
+# ⚠️ **本檔管的是版本更新（version updates）。** 另有一個 repo 層設定叫
+#    **Dependabot security updates**，預設可能是關的，要在
+#    repo Settings → Code security 手動開，**不在本檔控制範圍**。兩個都開才算齊。
+#
+# ── ⚠️ 大版本一律不自動升 ────────────────────────────────────────────────
+#
+# 常見的錯誤劃法是「runtime 套件擋大版本、dev 套件放行」。這條界線是錯的。
+# 真實案例（設定 landed 當天就開了四個大版本 PR）：
+#
+#   typescript 5 → 6              紅 —— 新錯誤碼，既有寫法直接 break
+#   eslint-config-next 14 → 15    紅 —— 它**必須跟框架同步**，單獨升是不匹配組合
+#   @testing-library/jest-dom 6→7 綠
+#   @types/node 22 → 26           綠 —— **但一樣不該合併**：型別套件版本要跟
+#                                      **runtime** 走，而 Docker / CI 都是 Node 20。
+#                                      升上去會讓型別描述 runtime 沒有的 API 為可用，
+#                                      而 type check **不會叫**。
+#
+# 最後那個是重點：**綠 ≠ 應該合併。**
+# 真正的分界不是 runtime / dev，是「**大版本本質上就需要人判斷**」。
+#
+# **代價講清楚**：`ignore` 對 Dependabot 的**安全更新一樣生效**。
+# 若某條 CVE 只有大版本才有修正，它不會自動開 PR。
+# 但**不會漏** —— `security-scan.yml` 每週 SCA 照樣報，
+# 只是「修復」那一半裡的大版本部分交回給人。
+#
+# ── 一條容易漏的：設定寫完要看實際輸出 ──────────────────────────────────
+#
+# 下面 `labels:` 引用的標籤**必須先在 repo 建好**，否則 Dependabot 每個 PR
+# 都會貼一次「The following labels could not be found」。
+# 真實案例就是這樣才發現的 —— **寫完不等於生效，要去看它實際吐了什麼。**
+
+version: 2
+
+updates:
+  # ── GitHub Actions（語言無關，所有 repo 都適用）─────────────────────────
+  #
+  # 容易被忽略，但**每個 action 都是一條供應鏈路徑**。
+  # `security-scan.yml` 刻意用官方二進位而不用第三方 action 就是為了收窄這一面，
+  # 而剩下還在用的（checkout / setup-* / upload-artifact）一樣要跟版本。
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+      time: "03:00"
+    # 上限 5：單一維護者的 repo 開太多 PR 只會積著沒人看，
+    # 反而讓「有 PR 未處理」失去訊號意義 —— 跟 CI 長期紅是同一個問題。
+    open-pull-requests-limit: 5
+    groups:
+      actions-all:
+        patterns: ["*"]
+    ignore:
+      # 大版本要人判斷（理由見檔頭）。action 的大版本升級通常伴隨
+      # runner Node 版本或輸入參數改動，同樣要人看 release note。
+      - dependency-name: "*"
+        update-types: [version-update:semver-major]
+    commit-message:
+      prefix: "chore(ci)"
+    labels: [dependencies, ci]
+
+  # ── 你的語言生態（取消註解並改成你的目錄）───────────────────────────────
+  #
+  # 排程一律同一天，跟 `security-scan.yml` 的每週掃描同日 ——
+  # 一次過看完「有什麼新漏洞」和「有什麼升級 PR」，不用分兩天跟進。
+  #
+  # - package-ecosystem: pip          # Python。Poetry / uv 也走這個
+  #   directory: /backend             # ← 改成放 pyproject.toml / requirements.txt 的目錄
+  #   schedule: { interval: weekly, day: monday, time: "03:00" }
+  #   open-pull-requests-limit: 5
+  #   groups:
+  #     backend-minor-patch:
+  #       update-types: [minor, patch]   # 合併成一個 PR，避免每個補丁版都開一個
+  #   ignore:
+  #     - dependency-name: "*"
+  #       update-types: [version-update:semver-major]
+  #   commit-message: { prefix: "chore(deps)" }
+  #   labels: [dependencies, backend]
+  #
+  # - package-ecosystem: npm          # ⚠️ pnpm / yarn 也是走 `npm` 這個值，
+  #   directory: /frontend            #    沒有獨立的 `pnpm` ecosystem
+  #   schedule: { interval: weekly, day: monday, time: "03:00" }
+  #   open-pull-requests-limit: 5
+  #   groups:
+  #     frontend-minor-patch:
+  #       update-types: [minor, patch]
+  #   ignore:
+  #     - dependency-name: "*"
+  #       update-types: [version-update:semver-major]
+  #   commit-message: { prefix: "chore(deps)" }
+  #   labels: [dependencies, frontend]
