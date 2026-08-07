@@ -148,3 +148,70 @@ Accessibility conventions to preserve: **status is never colour alone** (always 
 | 5 | Add Risk programme and OS portfolio to the module plan | Medium |
 | 6 | Build the risk form to five impact dimensions per `02a`, not the design's single value | Medium |
 | 7 | Confirm whether certifier-comment / company-reply fields remain in the ISMS profile | Low |
+| 8 | **`data.js` cannot be ported as-is** — the flagship dashboard is keyed by country, which structurally cannot hold 14 OpCos across 12 jurisdictions (§8) | **Blocking for M8** |
+| 9 | Rebuild the OpCo fixture: `opcos.js` has India and lacks China — inverted from §1 (§8) | **High** |
+| 10 | Decide how the RM Report register sheet relates to the live register — two incompatible risk shapes exist (§8) | High |
+
+---
+
+## 8. Sample-data audit — findings that revise this document
+
+Full audit: [`../09-analysis/mockup-data-vs-spec-audit-20260807.md`](../09-analysis/mockup-data-vs-spec-audit-20260807.md)
+(all 24 files in `data/`, snapshot dated 2026-08-07). Only the findings that **change what §1–§7
+above say** are recorded here; the rest stay in the analysis.
+
+### 8.1 The sample data predates §1 — and contradicts itself
+
+`opcos.js` lists 14 OpCos including **`RIN` Ricoh India Ltd** with **no China entity** — exactly
+inverted from §1's resolution. But `data.js` has China and no India. **Two files in the same
+handoff disagree about the scope.** `Japan` is also used as an operating entity in five files,
+which §1 rules out.
+
+### 8.2 Two incompatible entity-keying conventions ⚠️
+
+| Convention | Files | Holds §1's scope? |
+|---|---|---|
+| Country name (`entity:'Singapore'`) | `data.js`, `risks.js`, `controls.js`, `issues.js`, `notifications.js` | ❌ RAP and RSG are both Singapore; RAPO and RHK both Hong Kong |
+| OpCo code (`opco:'RSG'`) | `opcos.js`, `incidents.js`, `auditIssues.js`, `suppliers.js`, `accessRequests.js`, `osServices.js` | ✅ |
+
+The roll-up dashboard aggregate is in the first group. **This is a 約束 6 STOP-and-ask** — the
+matrix's visual treatment stands, its entity keying does not. §6 above says the handoff supersedes
+`09` as the UI specification; that remains true for layout and tokens, and does **not** extend to
+the entity model underneath.
+
+### 8.3 §4 was right, and there is a third representation
+
+§4 flagged the single `imp` value. The audit confirms it and adds: `riskRegister.js` uses a
+completely different shape (`item, tv, existing, add, who, target, score` — no likelihood or
+impact at all), and `osServices.js` expresses residual risk as a RAG band. Three representations,
+one procedure.
+
+Notably **`answers.js` states the RCI model correctly**, including the five impact types and the
+≥16 threshold. The agent's canned answers are more accurate than the UI's sample data — which
+reinforces §4's ruling rather than weakening it.
+
+### 8.4 §3.2 understated the audit-issues module
+
+The real sample data carries values §3.2 did not record: grade **Observation**; source **Customer
+audit**; statuses **Overdue** and **Accepted**; and `clause` holding **ISO 27001 main-body
+clauses** (`6.1.3`, `7.2, 7.3`, `7.5.2`), multi-valued. A field typed to Annex A only would reject
+real findings.
+
+### 8.5 Financial-services residue in the Wave 1 core files
+
+`data.js` carries prudential regulators (MAS / FSA / APRA / HKMA / BNM / PBoC) in its `juris`
+field, and AML / CTF / sanctions / reconciliation content runs through `risks.js`, `controls.js`,
+`issues.js` and `policies.js`. `00` D3 puts this project in **technology & services** and
+explicitly prioritises ISO 27001 alignment *over* BFSI-style prudential regimes.
+
+The ISMS-derived files (`opcos.js`, `incidents.js`, `auditIssues.js`, `suppliers.js`,
+`osServices.js`, `catalogue.js`, `rmVersions.js`, `retention.js`, `answers.js`) are clean and are
+the better source wherever two files disagree. **The BFSI residue is concentrated in exactly the
+Wave 1 proof modules** — strip it at port time.
+
+### 8.6 §5.2's access management is confirmed and extended
+
+`sessionPolicy.js` names **Okta** (SAML 2.0, local passwords disabled), hardware key for Platform
+admin, 30 min idle / 12 h absolute, JIT auditor expiry, two break-glass accounts raising a P1 to
+the Group CISO. Okta is a direct input to **ADR-0007**. `accessRequests.js` also shows requests
+must support an **external party with no OpCo** and a **time-boxed grant**.
