@@ -68,7 +68,26 @@ Only entity-specific fields are shown; every entity also carries the §1.1 base 
 
 **OrgEntity** — `type` (region/country/legal_entity/business_unit), `parent_id` (FK → OrgEntity, nullable for root), `jurisdiction_id` (FK), `path` (materialised hierarchy path for fast roll-up).
 
-**Jurisdiction** — `code` (ISO country/region), `name`, `residency_policy` (enum: none/conditional/localised), `notes`.
+**Jurisdiction** — `code` (ISO country/region), `name`, `residency_policy` (enum: none/conditional/localised), `notes`, plus the residency configuration below.
+
+*Residency & cross-border configuration.* The classification these fields govern is in [`03-multi-entity-and-jurisdiction.md`](03-multi-entity-and-jurisdiction.md) §Cross-border data classification. Holding this as **configuration rather than code** is what lets the legal position change without re-architecture, and what makes "what crossed the border" evidenceable (guardrail 2).
+
+| Field | Type | Notes |
+|---|---|---|
+| `deployment_region` | enum / FK | Which physical deployment hosts this jurisdiction's data. **This field is what makes the topology configuration instead of a code branch** (ADR-0006) |
+| `cross_border_max_tier` | enum: `none` / `aggregate` / `aggregate_plus_reference` / `full` | Highest tier permitted to leave. Maps to T1 / T1+T2 / all in `03` |
+| `cross_border_metric_allowlist` | text[] , nullable | `posture_snapshot.metric_key` values permitted to leave. `NULL` = all tier-1 metrics, when `cross_border_max_tier ≥ aggregate`. Non-null narrows it (e.g. `{posture_rag}` only) |
+| `cross_border_pseudonymise_actors` | bool | Replace personal identifiers (risk owner, assessor, attester) with a pseudonym or role code before transfer. **Removes the PIPL surface from tier 2** without touching the posture data |
+| `cross_border_requires_approval` | bool | Each period's transfer needs recorded human sign-off before replication |
+| `cross_border_legal_basis` | text | The basis relied upon. Not decoration — it is the evidence produced when the platform is asked to justify a transfer |
+| `cross_border_reviewed_at` / `cross_border_reviewed_by` | timestamp / UUID | Legal positions expire. A stale review is a finding, not a default |
+
+**Enforcement rule (not optional):** a `posture_snapshot` row may be replicated out of its
+`deployment_region` **only** if its `metric_key` passes the owning jurisdiction's
+`cross_border_max_tier` and `cross_border_metric_allowlist`. Enforce this **at the database
+layer** alongside the entity-scoping RLS (ADR-0004), not in application code — the failure mode
+of an application-only check is a silent, unlogged transfer, which is the one outcome that
+cannot be remediated after the fact.
 
 **Regulation** — `name`, `jurisdiction_id` (FK), `version`, `effective_date`, `source_url`.
 
@@ -219,9 +238,42 @@ Design consequence: the entities above must carry the status/rating/date fields 
 | `id` | UUID |
 | `org_entity_id` | FK → OrgEntity |
 | `period` | e.g. `2026-Q3` or month key |
-| `metric_key` | e.g. `control_coverage`, `rcsa_completion`, `high_critical_count` |
+| `metric_key` | See the fixed set below |
 | `metric_value` | numeric |
 | `rag` | derived band at capture time |
 | `captured_at` | timestamp |
 
 Append-only in practice: snapshots are historical record — do not retro-edit them.
+
+**`metric_key` is a fixed, governed set** — the nine metrics `08` defines. It is not free-form,
+because each key is individually classified for cross-border transfer (`03` §Cross-border data
+classification) and an unclassified key would cross unreviewed:
+
+`total_risks` · `high_critical_count` · `control_coverage_risk` · `control_coverage_effective` ·
+`overdue_tests` · `open_critical_issues` · `rcsa_completion` · `policy_attestation` · `posture_rag`
+
+> Adding a metric key means classifying it first. Treat the set as governed configuration with a
+> review step, the same way the extension field catalog (§1.3) governs custom fields.
+
+#### Replication fields (residency)
+
+`posture_snapshot` is deliberately the **only** entity that crosses a residency boundary. That
+makes the border a narrow, fixed-schema, inspectable interface rather than a continuous
+cross-region query — reviewable once by Legal instead of per feature.
+
+| Field | Type | Notes |
+|---|---|---|
+| `source_region` | enum / FK | Deployment region that computed this row |
+| `replicated_to_region` | enum / FK, nullable | `NULL` = never left `source_region`. Non-null is the queryable record that a transfer occurred |
+| `replicated_at` | timestamp, nullable | |
+| `transfer_approved_by` / `transfer_approved_at` | UUID / timestamp, nullable | Populated when the jurisdiction sets `cross_border_requires_approval` |
+
+Replication is subject to the enforcement rule on `Jurisdiction` (§3) and, like every other state
+change, writes to the append-only audit trail — a transfer is an auditable event, not a
+background detail.
+
+> **Consequence for dashboard freshness.** If China's snapshot replicates monthly while other
+> OpCos are queried live, the comparison matrix mixes two different as-at times — which is a
+> misleading view, not merely an inconsistent one. Resolve it by reading the matrix from
+> `posture_snapshot` for **all** entities (uniform as-at), keeping live queries for in-region
+> drill-down. Confirm before M8.
