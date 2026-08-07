@@ -27,6 +27,7 @@ Created: 2026-08-07
 Last Modified: 2026-08-07
 
 Modification History (newest-first):
+    - 2026-08-07: Register workflow-placeholders detector (CH-007)
     - 2026-08-07: Initial creation from claude-code-dev-template v2.6.1
 
 Related:
@@ -54,6 +55,10 @@ DETECTORS: list[tuple[str, str, list[str]]] = [
     ("status-markers", "check_status_markers.py", []),
     # Skips itself when the project has no .mockup-fidelity.json.
     ("mockup-fidelity", "check_mockup_fidelity.py", []),
+    # Ratchet on unfilled workflow placeholders. Complements actionlint in ci.yml:
+    # actionlint catches placeholders that are shell syntax errors, this catches
+    # the ones that are valid shell but mean "not finished yet" (CH-007).
+    ("workflow-placeholders", "check_workflow_placeholders.py", []),
     # ("your-detector", "check_your_pattern.py", ["--root", "src"]),
 ]
 
