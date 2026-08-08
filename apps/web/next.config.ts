@@ -18,6 +18,7 @@
  * Last Modified: 2026-08-08
  *
  * Modification History (newest-first):
+ *   - 2026-08-08: Phase W01 — disable agentRules (D3-2)
  *   - 2026-08-08: Initial creation (Phase W01)
  */
 import { fileURLToPath } from 'node:url';
@@ -35,6 +36,15 @@ const SECURITY_HEADERS = [
 const nextConfig: NextConfig = {
   reactStrictMode: true,
   poweredByHeader: false,
+  // `next dev` otherwise writes AGENTS.md + CLAUDE.md into this directory on
+  // every run, and re-creates them when deleted. Claude Code loads a CLAUDE.md
+  // found here as project memory, so that file is always-loaded context this
+  // repo never reviewed and cannot budget: check_rules_hygiene.py enforces a
+  // byte ceiling on .claude/rules/, and a tool-authored instruction file that
+  // rewrites itself on each Next upgrade sits outside it. The warning it
+  // carries (Next 16 differs from model training data) is real — W01 hit it
+  // twice — so it is recorded in our own docs instead of an unreviewed file.
+  agentRules: false,
   // Standalone output keeps the runtime container layer to the server plus its
   // traced dependencies (docker/web.Dockerfile) instead of all of node_modules.
   output: 'standalone',
