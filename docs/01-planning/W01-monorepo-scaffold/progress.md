@@ -170,6 +170,19 @@ CI 的 `Architecture lints` 紅，本機我卻回報 6/6。真相：我用 `Sele
 `check_workflow_placeholders.py` 報的「4 known unfilled」正是這幾個 —— repo 早就知道，
 但那個偵測器只保證「沒有**新增**未填項」，不保證已知的會被填。
 
+### 發現 C —— `ci.yml` 缺 Node 安裝，五個 guard 步驟醒來即撞牆
+
+第二次 CI（`7ab19d2`）：`Architecture lints` / `actionlint` / detector tests 全過，
+**`Format check` 首次真的執行** —— 然後 `sh: 1: prettier: not found`（exit 127）。
+
+`ci.yml` 有 `actions/setup-python@v5`，但**沒有 `actions/setup-node`，也沒有 `npm ci`**。
+五個 guarded 步驟的存在性 guard 只檢查 `package.json` 在不在，沒有人負責裝相依。
+骨架之前這永遠不會暴露，因為那五步從來沒跑過。
+
+→ 這是 `ci.yml` 的既存缺口，**不是本 phase 引入的**，但被本 phase 揭露。
+修它是改 CI，須先問。**在它修好之前，Lint / Type check / Tests / Build 四步都是 skipped，
+不是 pass** —— PR #18 的 CI 仍然是紅的，且應該保持紅。
+
 ## 🚧 尚未驗證（不可標為完成）
 
 - **CI 未跑** —— 五個 guard 步驟與三個 security-scan job 是否真的從 skip 轉為執行，
