@@ -48,7 +48,7 @@
 | AD-Auth-1 | 註冊畫面帶著 pre-`15` 詞彙：Entity 是 6 個國家（含 Japan）、Requested role 是 `Risk Owner / Control Owner / Auditor (read-only) / Regional Governance`——**都不是已確認的六角色** | CH-004 | 🟡 P1 | 是 `AccessRequest` 的自助入口，非裝飾 |
 | AD-Nav-2 | 導航計數徽章（Assessments `5`、Incidents `2`）未在任何規格中定義：算什麼、誰的範疇、多久刷新 | CH-004 | 🟢 P2 | |
 | AD-Port-BFSI | 移植時須剝除金融業殘留：AML/CTF/制裁/對帳內容與 `juris` 的審慎監理機關。**CH-004 已確認僅存在於 `data/*.js` 與 standalone prototype——markup 乾淨**，所以這是資料 fixture 工作，不是全庫掃描 | CH-002 | 🟢 P2 | 成本已下修（原 🟡 P1）|
-| AD-RuleBoundary-1 | **ADR 撰寫時機與「文檔成長跟隨 runtime」的交界未定義**：`14-adr/README.md:31` 說 ADR 可無實作先寫，CLAUDE.md §禁止反模式禁止預寫規劃文件，仲裁答案只在 `memory/feedback_doc_growth_follows_runtime.md:45`（非 always-loaded）| —（ADR 規劃討論）| 🟢 P2 | 第 1 次違反，依 `.claude/rules/README.md` 強度階梯**不升級為規則**；再發生 1 次則在 `14-adr/README.md` 補判準行 |
+| AD-ClaudeMdBudget-1 | **`CLAUDE.md` 長期貼著 byte 上限運行** —— 28,968 / 30,000（96.6%），headroom 1,032。CH-008 一次就吃掉 492 bytes，CH-009 靠逐句壓縮才還回去。下一次實質新增會撞牆 | CH-009 | 🟡 P1 | 觸發條件：headroom < 500 bytes 時做一次結構性瘦身（把非導航內容移進 `docs/`），不要再靠壓縮形容詞 |
 | AD-CssToken-1 | **`mockup-fidelity.md:38` 紅線 7 在本專案是錯的**：它規定一律 `oklch(var(--token))`，但交付物 token 是 HEX（`styles/tokens.css:24` `--primary: #2A5BD7`）。`oklch(#2A5BD7)` 是無效 CSS 且**靜默失效**。同一缺陷在 playbook §4.2 Layer 3 | CH-005 | 🟡 P1 | ⚠️ **W01 前端第一頁之前必修**（一行）。CLAUDE.md 約束 6「不做色彩空間轉換」在本專案亦不適用 —— 那是模板帶來的通用警語 |
 | AD-DocIndex-1 | **`docs/02-architecture/README.md` §核心設計文件 仍是未填模板**：列的 `00-vision.md` / `01-architecture.md` / `02-tech-stack-decisions.md` 全部不存在，實際是 `00-project-charter.md` 等 27 份。**五個 detector 全部抓不到** —— 那些幻影檔名是純表格文字不是連結 | CH-005 | 🟢 P2 | 使用者反映「文件很多不知從何看起」的直接成因 |
 | AD-Constraint7-1 | **CLAUDE.md 約束 7（LLM provider neutrality）的理由已失效** —— 原論證是「中國在範圍內，推論可能須境內發生 → 主權槓桿」，前提隨 ADR-0010 消失。約束保留（供應商鎖定／成本／可用性），但「合規機制」框架不可再引用 | CH-008 | 🟡 P1 | Wave 3 之前重寫。`14`、`14-adr/README.md` ADR-0009 列已標同一警語 |
@@ -86,7 +86,8 @@
 | — | 2026-08-07 | CH-005：三份基礎 ADR 拍板（0001 NestJS+Prisma · 0006 Azure 分區 · 0007 Entra ID）—— **解封 M0**；關閉 OQ-1/2/5 | `docs/03-implementation/changes/CH-005-foundation-adrs/` |
 | — | 2026-08-07 | CH-006：修好 `ci.yml`（自第一個 PR 起 11/12 次 run 失敗）—— **CI 首次綠燈**，`run_all` 首次在 CI 執行，gitleaks 首次掃描全歷史 | `docs/03-implementation/changes/CH-006-repair-ci-gates.md` |
 | — | 2026-08-07 | CH-007：actionlint（pin+SHA）+ 未填佔位符棘輪 detector；修 3 個既有 shellcheck 問題。**原「掃全 repo 佔位符」提案經枚舉後推翻** | `docs/03-implementation/changes/CH-007-placeholder-detector.md` |
-| — | 2026-08-08 | CH-008：**中國移出範圍**，拓撲收斂為單一區域 × 3 環境（ADR-0010 取代 0006）。覆蓋 grep 掃 34 檔／173 處，改 21 檔；順帶發現 CH-005 漏更新 `docs/architecture.md` §3+§5 | `docs/03-implementation/changes/CH-008-china-out-of-scope/` |
+| — | 2026-08-08 | CH-008：**中國移出範圍**，拓撲收斂為單一區域 × 3 環境（ADR-0010 取代 0006）。覆蓋 grep 掃 34 檔／173 處，改 18 檔；順帶發現 CH-005 漏更新 `docs/architecture.md` §3+§5 | `docs/03-implementation/changes/CH-008-china-out-of-scope/` |
+| — | 2026-08-08 | CH-009：修三軌分類在 pre-code 階段的失效 —— Change 判準加「既定設計」+ 兩條「不走軌」路徑；**修好 `PROCESS.md` §3.1 與 §4.1 對同一輸入的相反路由**；關 `AD-RuleBoundary-1`（ADR forcing-function 判準入 `14-adr/README.md`）| `docs/03-implementation/changes/CH-009-track-classification-fix/` |
 
 ---
 
