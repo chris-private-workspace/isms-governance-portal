@@ -68,10 +68,80 @@ coverage                      n/a（repo 內零行 TypeScript）
 ⚠️ 第二列**是設計意圖，尚未跑過** —— 已在該檔明確標示，由 ADR-0004 的 spike 驗證。
 它同時是 ADR-0001 §可證偽條件 #1 的承重假設。
 
-## 🚧 阻塞
+## ⭐ 最重要的發現 —— boundaries 設定曾經是一個完美的 Potemkin
 
-- **1.2 起需要 `D-nest-prisma-ver` 的回覆** —— `package.json` 要寫哪個 NestJS 主版本。
-  已向使用者表面化，等回覆。1.1 不受影響故先完成。
+`eslint.config.mjs` 有一段時間**語法正確、外掛載入、lint 全綠、而且什麼都沒擋**。
+一個刻意寫下的違規 import（`audit-trail → core-model`）連續 **6 次**被判定為合法：
+
+| # | 症狀 | 真因 |
+|---|---|---|
+| 1 | 零錯誤 | `mode: 'full'` 已於 v7 廢棄 |
+| 2 | 零錯誤 | 規則已改名 `element-types` → `dependencies`，舊名靜默無作用 |
+| 3 | 零錯誤 | `rules` 已改名 `policies`，且選擇器改為物件式 |
+| 4 | 零錯誤 | external 依賴的選擇器形狀錯誤（`dependency.type` 應為 `module.origin`）|
+| 5 | 零錯誤 | **`settings` 掛在有 `files` 的設定區塊上** —— CI 用 `-w apps/api` 執行時 cwd 是 workspace，該區塊不匹配，`boundaries/elements` 因此是空的 |
+| 6 | 零錯誤 | **缺 `eslint-import-resolver-typescript`** —— 無副檔名的 import 解析不到檔案，每個依賴都是 unknown |
+
+第 5、6 兩項最惡劣：`boundaries/no-unknown-files` **通過**（檔案分類正確），
+只有 `boundaries/no-unknown` 會紅（依賴分類失敗）。也就是說**部分診斷指標是綠的**。
+
+最終證據（US-2 的唯一有效證明）：
+
+```
+apps/api/src/audit-trail/__boundary-probe.ts
+  3:31  error  There is no policy allowing dependencies from elements of type
+               "audit-trail" to elements of type "core-model"  boundaries/dependencies
+✖ 1 problem (1 error, 0 warnings)        EXIT=1
+```
+
+移除探針後 EXIT=0。**這正是 `verification-discipline.md` 說的：靜態檢查抓不到
+「有 handler 但 handler 是空的」。** 若沒有這個負面測試，W01 會交出一個號稱
+機械強制範疇邊界、實際上零強制力的設定，而且往後每個 phase 的 gate 都會是綠的。
+
+## 其他環境層發現
+
+| 發現 | 處置 |
+|---|---|
+| **公司 proxy MITM TLS** —— `prisma generate` 下載引擎時 `self-signed certificate in certificate chain` | 用 `NODE_OPTIONS=--use-system-ca`（Node 22 內建，信任 Windows 憑證存放區）。**絕不用 `NODE_TLS_REJECT_UNAUTHORIZED=0`** —— 那是關掉驗證，不是解決問題。與 ADR-0011 §Consequences 記錄的姊妹專案 proxy 問題同源 |
+| **`npm install` 首次就報 2 個 high** —— `@nestjs/swagger@11.4.6` 依賴 `js-yaml@5.2.1`（GHSA-pm4m-ph32-ghv5，DoS） | 加 scoped `overrides` 釘 `js-yaml@5.2.3`，**不降 swagger 版本**。重建 lockfile 後 `found 0 vulnerabilities`。⭐ 這是 `AD-SecScan-1` 講的那個盲區的第一個實證：骨架之前這個漏洞存在但無人看得見 |
+| **TypeScript 7 裝不起來** | 硬性 peer：`typescript-eslint` 要求 `<6.1.0`、`ts-jest` 要求 `<7`。取 **6.0.3**。這不是偏好，是相容性 |
+| **Prisma 7 移除 datasource `url`**（P1012） | 新增 `apps/api/prisma.config.ts`；連線字串給 CLI，執行期走 driver adapter。**副產品是好事**：M2 起應用程式角色與 migration 角色本來就該分開，否則應用程式以 owner 連線會直接繞過 RLS |
+| **Prisma 7 不再自動載入 `.env`** | `prisma.config.ts` 與 `app.module.ts` 都明確解析 monorepo 根的 `.env`（cwd 可能是 root 或 workspace）|
+| **Next 16 `outputFileTracingRoot`** —— `URL.pathname` 在 Windows 產生 `/C:/…`，Rust 端 canonicalize 失敗 (os error 123) | 改用 `fileURLToPath` |
+| **prettier 找不到根 `.prettierignore`** —— 從 workspace 執行時只找 cwd | 兩個 workspace 的 `format:check` 加 `--ignore-path ../../.prettierignore` |
+
+## 📌 Plan deviation（依 R3 記錄）
+
+**plan §3.3 寫「只有一份字典」，實作交出 `zh-Hant` + `en` 兩份。** 理由：
+
+1. 以一份字典而言，**plan §5 的第 5 項與第 7 項都無法誠實滿足** ——
+   「切語言真的換字」沒有第二種語言可切；「key 一致性測試」在單一字典上斷言不了任何事。
+   換句話說 plan 本身寫了兩條無法驗證的驗收條件。
+2. 英文**不在** `AD-DesignAlign-2` 的爭議範圍內 —— `07:20` 已把 English 列入語言集，
+   未定的是 ja / ko / SEA 與日本的地位。
+3. 成本近乎為零，且 `i18n-glossary.md:65` 的機器守門因此變成真的守門。
+
+zh-Hant 仍是預設（guardrail 9）。**不建第三份字典。**
+
+## Gate 實際輸出（本機）
+
+```
+npm run format:check -w apps/api -w apps/web   All matched files use Prettier code style!
+npm run lint       -w apps/api -w apps/web     EXIT=0（且已用負面測試證明會擋）
+npm run type-check -w apps/api -w apps/web     EXIT=0
+npm run test       -w apps/api -w apps/web     api 3 passed · web 8 passed
+npm run build      -w apps/api -w apps/web     api ✓ · web ✓ Compiled successfully in 45s
+python scripts/lint/run_all.py                 6/6 passed
+npm audit                                      found 0 vulnerabilities
+```
+
+## 🚧 尚未驗證（不可標為完成）
+
+- **CI 未跑** —— 五個 guard 步驟與三個 security-scan job 是否真的從 skip 轉為執行，
+  必須看 GitHub Actions 的實際輸出，本機全綠不算數
+- **`docker build` 未跑**、**`docker compose up` 未跑**
+- **Drive-through 未做** —— Day 3。目前一切為 **gate-only verified**
+- 1.2 的 draft PR 未推（push 需使用者確認）
 
 ## Notes
 

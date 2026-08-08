@@ -1,0 +1,28 @@
+{
+  "name": "@isms/web",
+  "version": "0.0.0",
+  "private": true,
+  "description": "ISMS governance platform web shell (Next.js).",
+  "license": "UNLICENSED",
+  "scripts": {
+    "build": "next build",
+    "start": "next start -p ${WEB_PORT:-3200}",
+    "dev": "next dev -p 3200",
+    "lint": "eslint src",
+    "format:check": "prettier --check --ignore-path ../../.prettierignore \"src/**/*.{ts,tsx}\"",
+    "type-check": "tsc --noEmit -p tsconfig.json",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@isms/types": "*",
+    "next": "16.3.0",
+    "react": "19.2.8",
+    "react-dom": "19.2.8"
+  },
+  "devDependencies": {
+    "@types/node": "26.2.0",
+    "@types/react": "19.2.18",
+    "@types/react-dom": "19.2.4",
+    "vitest": "4.1.10"
+  }
+}

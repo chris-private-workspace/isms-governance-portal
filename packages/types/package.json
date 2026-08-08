@@ -1,0 +1,19 @@
+{
+  "name": "@isms/types",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Cross-scope contract layer. Type-only: it is a leaf, it imports nothing.",
+  "license": "UNLICENSED",
+  "types": "./src/index.ts",
+  "exports": {
+    ".": {
+      "types": "./src/index.ts",
+      "default": "./src/index.ts"
+    }
+  },
+  "scripts": {
+    "type-check": "tsc --noEmit -p tsconfig.json",
+    "lint": "eslint src",
+    "format:check": "prettier --check \"src/**/*.ts\""
+  }
+}

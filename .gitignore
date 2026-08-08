@@ -87,9 +87,13 @@ pnpm-debug.log*
 tmp/
 scratch/
 
-# === 技術棧專屬 ===
-# ⚠️ 待 ADR-0001（後端語言與框架）拍板後補上。上方已含 Python / Node / JVM / .NET
-#    的通用產物；選定後刪掉不適用的、補上該棧特有的。
+# === 技術棧專屬（ADR-0001：NestJS + Prisma monorepo；填於 W01）===
+# Prisma 產生的 client。生成物不進版控 —— `npm run prisma:generate` 隨時可重建，
+# 而把它 commit 進去會讓 schema 與 client 有兩個真相來源。
+apps/api/src/generated/
+# Next.js 型別產物
+next-env.d.ts
+.next/types/
 
 # === 刻意「不」忽略的（這些是流程的一部分，必須進 git）===
 # .claude/rules/     — 規則是共用的真相，每個 session 的 AI 依據同一份

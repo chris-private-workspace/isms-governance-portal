@@ -1,0 +1,37 @@
+// File: apps/api/prisma/schema.prisma
+// Purpose: Datasource + client generator. Deliberately carries NO models yet.
+// Category: core-model
+// Scope: Phase W01 (M0)
+// Owner: docs/02-architecture/02a-data-model-spec.md §0 (entity index)
+//
+// Description:
+//   M0 proves the stack can reach PostgreSQL; it does not create tables. The
+//   entity graph is M1's deliverable and its column shape depends on ADR-0005
+//   (governed extension storage), which is not adopted. Creating tables now
+//   would be choosing a technical direction on the owner's behalf, which
+//   CLAUDE.md §禁止反模式 forbids.
+//
+//   ⚠️ Every business table added from M1 on MUST carry `entity_id NOT NULL`,
+//   including child tables (CLAUDE.md 約束 8). That redundancy is intentional:
+//   it lets an RLS policy attach directly to the child rather than trusting a
+//   join to be written correctly.
+//
+// Created: 2026-08-08 (Phase W01)
+// Last Modified: 2026-08-08
+//
+// Modification History (newest-first):
+//   - 2026-08-08: Initial creation (Phase W01) — datasource + generator only
+
+// Prisma 7 removed `url` from the datasource block (P1012). The connection
+// URL for migrate/introspect now lives in ../prisma.config.ts, and the runtime
+// client gets its connection from the driver adapter in
+// src/core-model/prisma.service.ts. Two consumers, two explicit paths — the
+// schema no longer holds a connection string at all.
+datasource db {
+  provider = "postgresql"
+}
+
+generator client {
+  provider = "prisma-client-js"
+  output   = "../src/generated/prisma"
+}

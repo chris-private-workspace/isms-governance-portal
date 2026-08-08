@@ -48,7 +48,7 @@
 
 ### 1.2 Workspace 根
 
-- [ ] **`package.json`（npm workspaces）+ `tsconfig.base.json` + `.prettierrc` + `.env.example`**
+- [x] **`package.json`（npm workspaces）+ `tsconfig.base.json` + `.prettierrc` + `.env.example`**
   - DoD: 五個 script（`format:check` `lint` `type-check` `test` `build`）存在且與
         `ci.yml:118-151` 的 `-w apps/api -w apps/web` 呼叫形狀相符
   - Verify: `npm run format:check -w apps/api -w apps/web`
@@ -58,26 +58,26 @@
 
 ### 1.3 三個 package 骨架
 
-- [ ] **`apps/api` NestJS bootstrap + `@nestjs/swagger`**
+- [x] **`apps/api` NestJS bootstrap + `@nestjs/swagger`**
   - DoD: `npm run build -w apps/api` 成功；`/api-docs` 可產生
   - Verify: `npm run build -w apps/api`
-- [ ] **`apps/web` Next.js app router 空殼**
+- [x] **`apps/web` Next.js app router 空殼**
   - DoD: `npm run build -w apps/web` 成功
   - Verify: `npm run build -w apps/web`
-- [ ] **`packages/types` 契約層**
+- [x] **`packages/types` 契約層**
   - DoD: 只含型別，`dependencies` 為空
   - Verify: `npm run type-check -w apps/api -w apps/web`
 
 ### 1.4 八個範疇分區
 
-- [ ] **`apps/api/src/{core-model,entity-scope,identity,workflow,audit-trail,contracts,modules}/`
+- [x] **`apps/api/src/{core-model,entity-scope,identity,workflow,audit-trail,contracts,modules}/`
       各放 `.gitkeep`；`eslint.config.mjs` 定義八個 zone 與允許矩陣**
   - DoD: **不建任何空 NestJS module**（plan §3.4）；zone 定義逐一對應 §1.1 填好的矩陣
   - Verify: `npm run lint -w apps/api -w apps/web`
 
 ### 1.x partial gate
 
-- [ ] `npm run lint|type-check|build -w apps/api -w apps/web` · `python scripts/lint/run_all.py`
+- [x] `npm run lint|type-check|build -w apps/api -w apps/web` · `python scripts/lint/run_all.py`
 
 ---
 
@@ -89,23 +89,26 @@
       `prisma/schema.prisma`（零 model）**
   - DoD: `docker compose up -d` 起得來；`schema.prisma` 的 model 區為空
   - Verify: `docker compose -f docker/compose.yml up -d` 後 `npx prisma generate`
-- [ ] **`GET /health` 真的查資料庫**
+- [x] **`GET /health` 真的查資料庫**
   - DoD: 回 `{ db: 'up' }`；**單元測試涵蓋 up 與 down 兩個分支**（down 是負面測試）
   - Verify: `npm run test -w apps/api`
 
 ### 2.2 i18n L0
 
-- [ ] **`apps/web/src/i18n/zh-Hant.json` + 同目錄 `GLOSSARY.md`（A–E 五類）**
+- [x] **`apps/web/src/i18n/zh-Hant.json` + 同目錄 `GLOSSARY.md`（A–E 五類）**
+      —— ⚠️ 交出 `zh-Hant` **與 `en`** 兩份（plan deviation，理由見 progress.md Day 1）
   - DoD: 殼層頁面零硬編碼使用者可見字串（含 `aria-label` / `placeholder` / 空狀態）；
         **只有一份字典**
   - Verify: Grep 頁面元件中的中文字面字串 → 零命中
-- [ ] **key 一致性測試接進 `npm run test`**
+- [x] **key 一致性測試接進 `npm run test`**
   - DoD: 無空值、無殘留原文佔位；元件用到的 key 都存在
   - Verify: `npm run test -w apps/web`
 
 ### 2.3 安全標頭與容器化
 
 - [ ] **`helmet` 明確設定（不沿用預設）+ 標頭斷言測試**
+      🚧 阻塞：helmet（api）與 `next.config.ts`（web）兩邊標頭皆已明確設定，
+      但**斷言測試尚未寫**，故本項未完成。`16` 逐條對照亦未做
   - DoD: 對照 `docs/02-architecture/16-secure-development-dod.md` 的 transport/headers 分項逐條標記
   - Verify: `npm run test -w apps/api`
 - [ ] **`docker/api.Dockerfile` · `docker/web.Dockerfile` · `.dockerignore`**
