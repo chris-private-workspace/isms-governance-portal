@@ -62,3 +62,5 @@
 ## Feedback（本專案特有的行為教訓）
 
 <!-- 你自己的專案在實戰中長出來的教訓。經過 2-3 個 phase 驗證有效的，可以回流到模板。 -->
+
+- [模版與實際要分開](memory/feedback_template_vs_instance.md) — `.template.md` 要 copy 再填不可就地改；使用者給參考路徑時先 Glob 整個目錄，且只取格式不自行增刪章節。
