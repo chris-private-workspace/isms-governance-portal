@@ -245,6 +245,12 @@
 - [x] Anti-pattern 自檢（retro Q5）：AP-1..AP-7 → 違規數 **0**（收尾時）。**AP-3 特別注意**：
       八個範疇目錄只有 `.gitkeep`，**無空殼 module**；過程中出現 5 個 AP-3 全部關閉，
       同形狀 ≥3 次已提結構性解法 `AD-NegativeGate-1`
-- [ ] **Commit** → ⏳ PR push + open → CI → merge: **PENDING USER CONFIRMATION**
-      （push 是 outward-facing）→ merge 經 `gh` 驗證後翻 `status:` frontmatter
-      —— ⚠️ frontmatter 已於本次收尾翻為 `closed_partial`（R9 要求收尾即翻，非等 merge）
+- [x] **Commit** → PR push + open → CI → merge（使用者於 2026-08-08 確認 push 與 merge）
+  - DoD: **`gh` 驗證而非宣稱** —— `state=MERGED` · `mergedAt=2026-08-08T12:54:08Z` ·
+        tip `ce72564`。**rebase merge**（`git-workflow.md:239`：線性歷史，
+        單人專案沒有合併提交的價值）；`git log --merges` 為空確認無 merge commit；
+        `git diff fdcbc50 ce72564` 為空確認 rebase 後的樹與 CI 驗過的完全一致
+  - Post-merge status flip（`git-workflow.md` §Post-Merge Status Flip）：
+        `CLAUDE.md` Current Phase ✅ · `BACKLOG.md` §Shipped Pointer Index ✅ ·
+        `retrospective.md` PR 欄位 ✅（原文「尚未 merge」已成事實錯誤）
+  - `status:` frontmatter 已於收尾翻為 `closed_partial`（R9 要求收尾即翻，非等 merge）
