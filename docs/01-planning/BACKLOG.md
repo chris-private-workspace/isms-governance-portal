@@ -53,7 +53,7 @@
 | AD-DocIndex-1 | **`docs/02-architecture/README.md` §核心設計文件 仍是未填模板**：列的 `00-vision.md` / `01-architecture.md` / `02-tech-stack-decisions.md` 全部不存在，實際是 `00-project-charter.md` 等 27 份。**五個 detector 全部抓不到** —— 那些幻影檔名是純表格文字不是連結 | CH-005 | 🟢 P2 | 使用者反映「文件很多不知從何看起」的直接成因 |
 | AD-Constraint7-1 | **CLAUDE.md 約束 7（LLM provider neutrality）的理由已失效** —— 原論證是「中國在範圍內，推論可能須境內發生 → 主權槓桿」，前提隨 ADR-0010 消失。約束保留（供應商鎖定／成本／可用性），但「合規機制」框架不可再引用 | CH-008 | 🟡 P1 | Wave 3 之前重寫。`14`、`14-adr/README.md` ADR-0009 列已標同一警語 |
 | AD-CIRequired-1 | **CI 尚未設為 required status check** —— `required_status_checks` 仍是 `null`，所以綠燈不擋任何東西。`07:31` 的 M0 DoD 要求它 | CH-006 | 🟡 P1 | W01 M0 骨架建立後設。現在設 = 用沒有實質內容的 gate 擋住所有 PR |
-| AD-SecScan-1 | **SCA / SAST / 容器掃描是 skip 不是 clean** —— 首次 security-scan 只有 gitleaks 真的執行（9 commits, no leaks）。三者未經任何檢查，guardrail 7 尚未滿足 | CH-006 | 🟡 P1 | 需 `package.json`（W01 M0）。推進時**必須依 `security-scan.yml:19-25` 的五步次序**，跳步會造成長期紅或假綠 |
+| AD-SecScan-1 | **SCA / SAST / 容器掃描是 skip 不是 clean** —— 首次 security-scan 只有 gitleaks 真的執行（9 commits, no leaks）。三者未經任何檢查，guardrail 7 尚未滿足 | CH-006 | 🟡 P1 | 需 `package.json`（W01 M0）。**容器掃描分項已被 ADR-0011 推進** —— ACA 要求 Dockerfile，M0 交出後該 job 就可執行。推進時**必須依 `security-scan.yml:19-25` 的五步次序** |
 | AD-LintOutput-1 | **`run_all.py:80` 失敗時只保留 detector 輸出的最後一行**，而那通常是提示語不是違規清單 —— CI 失敗訊息無法診斷 | CH-006 | 🟢 P2 | 目前用 workflow 的 `--verbose` 繞過。同型再現 → 改成 `returncode != 0` 時保留完整輸出 |
 | AD-Placeholder-1 | ⭐ **「模板佔位符未與本專案對齊」已發生 6 次**（`AD-RuleBoundary-1` / `AD-CssToken-1` / `AD-DocIndex-1` / ADR 檔名 / `CLAUDE.md` byte 預算 / `ci.yml`）| CH-006 | 🟡 P1 | **CH-007 只關掉第 6 類**（actionlint + 棘輪 detector）。⚠️ 原提案的「掃全 repo 佔位符」**已證實不可行** —— 512 命中約 500 個是合法慣例語彙（`W{NN}` / `NNN` / `<slug>`），會噴在自己的規則文件上。其餘四類需語義理解，`lint-detector-authoring.md:22` 明訂寫不出可靠 detector。**本條保持開啟** |
 | AD-ActionsNode-1 | `actions/checkout@v4` 用 Node 20，GitHub 已標 deprecated 並強制跑在 Node 24（4 個 security-scan job 皆有此 annotation） | CH-006 | 🟢 P2 | 現在只是警告；GitHub 移除 Node 20 支援時會直接壞掉 |
@@ -98,7 +98,7 @@
 | 決策 | 選項 | 卡在哪 | 誰決定 |
 |------|------|-------|--------|
 | ~~**中國跨境資料層級**~~ | — | ✅ **已消滅** —— 中國於 2026-08-08 移出範圍（`CH-008`），沒有中國邊界，`03` §Questions for Legal 的四個問題作廢。`AD-Decider-1` 一併關閉 | — |
-| **計算平台**：App Service vs Container Apps | 兩者 | ADR-0011；卡的是**兩者在 3 環境下的維運差異**與 `04:93` 的預設值繼承 | 專案擁有者；`CH-009` 的前置 |
+| ~~**計算平台**~~ | — | ✅ **已拍板 2026-08-08 — Azure Container Apps**（[ADR-0011](../14-adr/0011-compute-platform.md)）。決定性證據是 `unified-operation-platform` 已在 ACA 上跑同一個 stack；「App Service 預設值已知」的論據在起草時**被自己推翻**（ACA 的 `*.azurecontainerapps.io` 同樣是平台預設）| — |
 | 其餘 **5** 項開放決策（OQ-3/4/6/7/8）| 見 [`../decision-form.md`](../decision-form.md) | 各範疇 | 卡的是**證據不是決策者** —— OQ-3/4/6 需 W01 spike 的實測，OQ-7 需 spike，OQ-8 屬 Wave 3 |
 
 ---

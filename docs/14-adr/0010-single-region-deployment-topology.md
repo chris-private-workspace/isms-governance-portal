@@ -172,7 +172,9 @@ guardrail 5: losing audit-trail entries is not data loss, it is a **break in an 
 
 - **取代**: **ADR-0006** —— its Status line is updated; its body is left untouched so the evolution
   of the judgement stays legible (`14-adr/README.md:110`)
-- **實作**: `CH-008` · unblocks `CH-009` (Azure resource request) and `ADR-0011` (compute platform)
+- **實作**: `CH-008` · unblocks `CH-010` (Azure resource request) and `ADR-0011` (compute platform)
+  <!-- 2026-08-08: pointer only — CH-009 was reassigned to the track-classification fix. The
+       decision and its reasoning are untouched; see 14-adr/README.md §取代舊 ADR 的流程. -->
 - **相關 ADR**: ADR-0001 (its third API consumer is spent — see 這個決定約束了什麼) ·
   ADR-0007 (two identity planes collapse to one) · ADR-0009 (the sovereignty rationale for
   `CLAUDE.md` 約束 7 loses its China basis — tracked as `AD-Constraint7-1`)

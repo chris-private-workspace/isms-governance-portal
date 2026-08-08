@@ -76,6 +76,7 @@ CHANGE record  一次變更的紀錄。做了什麼、為什麼這樣做、怎�
 | [0006](./0006-deployment-and-residency-topology.md) | 分區部署於 Azure，中國區走 Azure China（21Vianet） | 2026-08-07 | **已被 [0010](./0010-single-region-deployment-topology.md) 取代** |
 | [0007](./0007-identity-provider.md) | Microsoft Entra ID，取代交付物指定的 Okta | 2026-08-07 | **已採納** |
 | [0010](./0010-single-region-deployment-topology.md) | 單一區域部署於 Azure，單一 tenant 內 3 個環境（**取代 0006**） | 2026-08-08 | **已採納** |
+| [0011](./0011-compute-platform.md) | 計算平台 = **Azure Container Apps**（api internal ingress / web external，共用一個 ACR）| 2026-08-08 | **已採納** |
 
 **Status 值**：提案中 / **已採納** / 已被 ADR-NNN 取代 / 已廢棄
 
@@ -88,8 +89,7 @@ CHANGE record  一次變更的紀錄。做了什麼、為什麼這樣做、怎�
 ## 尚待撰寫（Wave 1 阻斷項）
 
 原本 9 份是專案啟動時識別出來的開放決策。**0001 / 0006 / 0007 已於 2026-08-07（`CH-005`）採納**，
-移到上方索引（0006 已於 2026-08-08 被 0010 取代）；下表是**剩餘 6 份**，
-外加 `CH-008` 衍生的 **ADR-0011**。
+移到上方索引（0006 已於 2026-08-08 被 0010 取代，0011 於同日採納）；下表是**剩餘 6 份**。
 清單原本在舊的 `docs/adr/` 位置，套用開發流程模版重組時併入本索引。  <!-- path-check: ignore — 歷史位置，已不存在 -->
 
 | # | 決策 | 阻斷什麼 | 何時可寫 |
@@ -100,7 +100,6 @@ CHANGE record  一次變更的紀錄。做了什麼、為什麼這樣做、怎�
 | ADR-0005 | 受治理擴充欄位的儲存（JSONB + field catalog）| guardrail 3（核心資料模型）| W01 spike 之後 |
 | ADR-0008 | AI agent：自建檢索 vs. Copilot Studio 整合 vs. 分區混合 | Wave 3 | Wave 3 |
 | ADR-0009 | AI 處理地點與模型無關推論介面 | Wave 3 | Wave 3 —— ⚠️ 主權論據隨中國移出而失效（ADR-0010），**約束 7 的理由待重寫**（`AD-Constraint7-1`）|
-| ADR-0011 | 計算平台：App Service vs Container Apps | `CH-009` Azure 資源申請 | ADR-0010 之後 —— 兩者的資源申請單不同 |
 
 > **決策在這裡出現一份標記為「已採納」的 ADR 之前，都不算定案。**
 > 剩下 6 份刻意不現在寫：**ADR 是決策記錄，不是規劃文件** ——

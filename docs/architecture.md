@@ -97,7 +97,7 @@ security-by-design 橫切每一層。
 
 ## 5. 關鍵技術決策
 
-**3 份已採納，M0 不再被 ADR 阻斷。** 其餘 6 份 + 新增的 0011 待條件成熟。
+**4 份已採納，M0 不再被 ADR 阻斷。** 其餘 6 份待條件成熟。
 
 | 決策 | 選了什麼 | ADR |
 |---|---|---|
@@ -108,7 +108,7 @@ security-by-design 橫切每一層。
 | 受治理擴充欄位儲存 | ⚠️ 未定（方向：JSONB + field catalog）| ADR-0005 |
 | **部署拓撲** | ✅ **單一區域 × 3 環境於全球 Azure** | ADR-0010（**取代 0006**）|
 | Identity provider | ✅ **Microsoft Entra ID (OIDC)** | ADR-0007 |
-| 計算平台：App Service vs Container Apps | ⚠️ 未定 —— `CH-009` 的前置 | ADR-0011 |
+| 計算平台 | ✅ **Azure Container Apps**（api internal ingress / web external）| ADR-0011 |
 | AI agent 架構 | ⚠️ 未定 | ADR-0008 |
 | AI 處理地點 | ⚠️ 未定（⚠️ 主權論據已隨中國移出失效）| ADR-0009 |
 

@@ -75,7 +75,7 @@ Applies to every story before it is done. Full detail, per-finding mapping and t
 
 The scan evidence tells us about the existing estate, which should inform — not dictate — our decisions:
 
-- **Azure App Service** is in use (Web Deploy/SCM port 8172, `waws-prod-hk1-*` publish hostnames, `*.azurewebsites.net` certificates). Relevant to **ADR-0011** (compute platform): `hk1` shows an existing Hong Kong footprint, and if we deploy on the same platform we inherit findings 5 and 6 unless they are explicitly configured away. That inheritance is an argument *for* App Service, not against it — the defaults here are **known and documented**, which a new platform's would not be.
+- **Azure App Service** is in use (Web Deploy/SCM port 8172, `waws-prod-hk1-*` publish hostnames, `*.azurewebsites.net` certificates) — evidence about **another team's** estate; `hk1` shows an existing Hong Kong footprint. ⚠️ **ADR-0011 chose Azure Container Apps instead**, and in doing so rejected the "known defaults are safer" argument once drafted here: ACA's `*.azurecontainerapps.io` is **equally a platform default**, so findings 5 and 6 must be configured away on either platform. Custom domain and certificate are mandatory regardless of platform (`04:93`).
 - The `.NET` fingerprinting headers (`X-AspNetVersion`, `X-AspNetMvcVersion`) indicate an existing **ASP.NET** estate; the auth callback path shape suggests a JS framework elsewhere. Relevant to **ADR-0001** (backend framework) — alignment with what the team already operates is a legitimate selection criterion.
 
 ## How this plugs into the build
