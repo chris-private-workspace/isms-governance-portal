@@ -183,6 +183,35 @@ CI 的 `Architecture lints` 紅，本機我卻回報 6/6。真相：我用 `Sele
 修它是改 CI，須先問。**在它修好之前，Lint / Type check / Tests / Build 四步都是 skipped，
 不是 pass** —— PR #18 的 CI 仍然是紅的，且應該保持紅。
 
+## ✅ 四項 CI 修正的結果（`6431b43`）—— gate 從此不再是假綠
+
+| Workflow | 結果 | 證據 |
+|---|---|---|
+| **CI** | ✅ **success** | 五個 Node 步驟**首次全部真的執行**：Install / Format check / Lint / Type check / Tests / Build 全 success，無一 skipped |
+| `secret-scan` | ✅ success | 全歷史 gitleaks，無命中 |
+| `dependency-scan` SCA | ✅ **success（真掃）** | `npm audit --audit-level=low` |
+| `static-analysis` SAST | ✅ **success（真掃）** | semgrep：`Ran 462 rules on 47 files: 0 findings` |
+| `container-scan` trivy | 🔴 **failure（真掃，且找到東西）** | 見下 |
+
+⭐ SAST 的兩次數字對比說明了為什麼「掃到東西」不等於「掃對東西」：
+第一次 `Scanning 312 files` / **19 blocking**，其中含
+`docs/06-reference/design_handoff_*` 的 vendored JS bundle —— 那是外部交付物，
+約束 6 規定逐字複製不得修改，**掃到了也不能改**。改為只掃 `apps packages scripts`
+後是 `47 files / 0 findings`。**不可行動的 finding 會訓練人忽略整份報告。**
+
+### 🔴 trivy 的真實發現 —— base image `node:22.21.0-bookworm-slim`
+
+| 層 | 數量 | 例 |
+|---|---|---|
+| Debian OS | **11（HIGH 9 / CRITICAL 2）** | `gpgv` CVE-2025-68973（**已有修正版** 2.2.40-1.1+deb12u2）· `libgnutls30` CVE-2026-33845 CRITICAL |
+| Node 映像內建的 npm 相依 | **34（HIGH 31 / CRITICAL 3）** | `tar` CVE-2026-59873 CRITICAL（gzip bomb DoS）· `brace-expansion` CVE-2026-13149 |
+
+⚠️ 第二類**不是我們的相依** —— 是 Node 官方映像裡 npm 自帶的 `node_modules`。
+`--ignore-unfixed` 已開啟，所以這 45 條**都有上游修正版可用**。
+
+**這是 guardrail 1 的直球題**：一套安全平台不得自身成為風險來源。
+處置方式是決策，不是修 bug，已列為 checklist 2.4 的新增項，**未勾選**。
+
 ## 🚧 尚未驗證（不可標為完成）
 
 - **CI 未跑** —— 五個 guard 步驟與三個 security-scan job 是否真的從 skip 轉為執行，

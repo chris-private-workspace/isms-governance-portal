@@ -119,17 +119,21 @@
 
 > ⚠️ 三項都是**改 CI/CD**，Developer Preferences 要求先問。已提出，等回覆。
 
-- [ ] **填 `security-scan.yml:142` 的 `SCA_CMD`**
+- [x] **填 `security-scan.yml:142` 的 `SCA_CMD`**
   - DoD: job log 出現真實的 audit 輸出，不是「SCA 指令未設定」
   - Verify: `gh run view --job <id> --log`
-- [ ] **填 `security-scan.yml:194` 的 `SAST_CMD`**
+- [x] **填 `security-scan.yml:194` 的 `SAST_CMD`**
   - DoD: 同上；⚠️ 該行註解已提醒「linter 不算 SAST」
   - Verify: 同上
-- [ ] **讓 trivy 找得到 Dockerfile**（改探測 glob，或改檔案位置／命名）
+- [x] **讓 trivy 找得到 Dockerfile**（改探測 glob，或改檔案位置／命名）
   - DoD: job log 出現 `Detected config files num=N`（N ≥ 1）與 base image 掃描結果，不是「略過」
   - Verify: 同上
-- [ ] **決定 `security-scan.yml:50` 的 `pull_request:` 觸發是否解封**
+- [x] **決定 `security-scan.yml:50` 的 `pull_request:` 觸發是否解封** —— **已解封**
   - DoD: 決定寫入 progress.md；若不解封，記錄 re-enable criteria（`release-process.md` 要求）
+- [ ] **處置 trivy 在 base image 找到的 CVE**（4 項管線修好後浮現的**真實發現**，非管線問題）
+  - DoD: `node:22.21.0-bookworm-slim` 的 45 個 HIGH/CRITICAL 有明確處置 ——
+        換 base、或逐條豁免 + 到期日（`security-scan.yml:161` 的閂門）。**不可調高 severity 門檻**
+  - Verify: `gh run view <id> --json jobs` 的 `容器映像 — trivy` 為 success
 
 ### 2.x Full gate
 
