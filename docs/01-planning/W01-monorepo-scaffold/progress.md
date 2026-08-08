@@ -276,6 +276,34 @@ base image 取值由「所有 `FROM` 的 `sort -u`」改為「**最後一個 `FR
 而建置期供應鏈已由 SCA + lockfile 覆蓋。**這是放寬範圍，所以寫在該行旁邊，
 不藏在 severity 門檻裡。**
 
+## ✅ Day 2 收束：兩個 workflow 全綠，而且是**真的掃過**
+
+```
+CI            success   Install / Format / Lint / Type check / Tests / Build 全部執行
+security-scan success   四個 job 全 success
+  secret-scan  gitleaks 全歷史
+  SCA          npm audit --audit-level=low
+  SAST         semgrep：Ran 462 rules on 47 files: 0 findings
+  trivy        找到 2 個 Dockerfile · Detected config files num=2
+               豁免清單連同到期日逐條印在 log
+```
+
+⭐ **綠燈的證據不是「success」三個字**，是上面那幾個數字：
+`num=2` 證明設定檔真的被解析（workflow 自己的註解說「那個數字才是真相」），
+`47 files / 462 rules` 證明 SAST 掃的是我們的 code，
+`找到 2 個 Dockerfile` 證明探測不再是空轉。
+
+### distroless 的成效與代價
+
+| | 前 | 後 |
+|---|---|---|
+| runtime base HIGH/CRITICAL | **45**（Debian 11 + npm 自帶 34）| **6**（全部在 `libssl3`）|
+
+剩餘 6 條以 `.trivyignore.yaml` 逐條豁免至 **2026-09-07**，用 trivy 原生的
+`expired_at` —— **到期會自己變紅，不需要有人記得**。CVE-2026-31789 那條另記了
+CVSS 沒說的事：溢位需要 32 位元系統，而 ADR-0011 把我們放在 amd64 Container Apps。
+**是有理由的延後，不是忽略。** 門檻沒有調高（調高會連還沒出現的一起放過）。
+
 ## 🚧 尚未驗證（不可標為完成）
 
 - **CI 未跑** —— 五個 guard 步驟與三個 security-scan job 是否真的從 skip 轉為執行，
