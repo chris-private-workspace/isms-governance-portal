@@ -3,7 +3,7 @@
 **Phase**: W01 — Monorepo scaffold that turns the dormant gates on
 **Period**: 2026-08-08 ~ 2026-08-08（單日）
 **Plan**: [plan.md](./plan.md)
-**PR**: #18（PR-pending —— 尚未 merge）
+**PR**: #18（**MERGED** `ce72564`，2026-08-08 rebase merge —— 線性歷史保留，無 merge commit）
 **Change record**: `docs/03-implementation/changes/CH-011-w01-monorepo-scaffold.md`
 **Design note**: `docs/02-architecture/design-notes/W01-monorepo-scaffold.md`
 

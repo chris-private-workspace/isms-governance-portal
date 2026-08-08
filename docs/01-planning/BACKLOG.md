@@ -98,6 +98,7 @@
 | — | 2026-08-07 | CH-007：actionlint（pin+SHA）+ 未填佔位符棘輪 detector；修 3 個既有 shellcheck 問題。**原「掃全 repo 佔位符」提案經枚舉後推翻** | `docs/03-implementation/changes/CH-007-placeholder-detector.md` |
 | — | 2026-08-08 | CH-008：**中國移出範圍**，拓撲收斂為單一區域 × 3 環境（ADR-0010 取代 0006）。覆蓋 grep 掃 34 檔／173 處，改 18 檔；順帶發現 CH-005 漏更新 `docs/architecture.md` §3+§5 | `docs/03-implementation/changes/CH-008-china-out-of-scope/` |
 | — | 2026-08-08 | CH-009：修三軌分類在 pre-code 階段的失效 —— Change 判準加「既定設計」+ 兩條「不走軌」路徑；**修好 `PROCESS.md` §3.1 與 §4.1 對同一輸入的相反路由**；關 `AD-RuleBoundary-1`（ADR forcing-function 判準入 `14-adr/README.md`）| `docs/03-implementation/changes/CH-009-track-classification-fix/` |
+| **W01** | 2026-08-08 | **Monorepo scaffold** — MERGED (PR #18, `ce72564`)，`closed_partial`。八個休眠 gate 從「回報 SUCCESS 但什麼都沒檢查」變成真的會叫；**同形狀「綠燈但空轉」一個 phase 內 5 次** → `AD-NegativeGate-1`。M0 DoD：3 關閉／2 部分／1 無標的 | `docs/01-planning/W01-monorepo-scaffold/retrospective.md` · `docs/03-implementation/changes/CH-011-w01-monorepo-scaffold.md` |
 
 ---
 
