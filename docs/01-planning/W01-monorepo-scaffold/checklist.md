@@ -52,7 +52,8 @@
   - DoD: 五個 script（`format:check` `lint` `type-check` `test` `build`）存在且與
         `ci.yml:118-151` 的 `-w apps/api -w apps/web` 呼叫形狀相符
   - Verify: `npm run format:check -w apps/api -w apps/web`
-- [ ] **推 draft PR 讓 CI 分批醒**（plan §8 R-1）
+- [x] **推 draft PR 讓 CI 分批醒**（plan §8 R-1）—— draft PR #18；R-1 的緩解措施奏效，
+      首航就撈出發現 A / B / C
   - DoD: CI `gates` 的五個步驟不再印 skip notice；失敗清單記入 progress.md
   - Verify: `gh pr checks`
 
@@ -85,10 +86,11 @@
 
 ### 2.1 PostgreSQL 與 health
 
-- [ ] **`docker/compose.yml`（PostgreSQL）+ `PrismaService`（`@prisma/adapter-pg`）+
-      `prisma/schema.prisma`（零 model）**
-  - DoD: `docker compose up -d` 起得來；`schema.prisma` 的 model 區為空
-  - Verify: `docker compose -f docker/compose.yml up -d` 後 `npx prisma generate`
+- [x] **`docker/compose.yml`（PostgreSQL）+ `PrismaService`（`@prisma/adapter-pg`）+
+      `prisma/schema.prisma`（零 model）** —— Day 3 實測 `down` → `up -d` → healthy，
+      volume 存活（log：`database directory appears to contain a database; Skipping initialization`）
+  - DoD: `docker compose up -d` 起得來；`schema.prisma` 的 model 區為空（`grep -c '^model '` = **0**）
+  - Verify: `docker compose -f docker/compose.yml up -d` 後 `npx prisma generate`（EXIT=0）
 - [x] **`GET /health` 真的查資料庫**
   - DoD: 回 `{ db: 'up' }`；**單元測試涵蓋 up 與 down 兩個分支**（down 是負面測試）
   - Verify: `npm run test -w apps/api`
@@ -112,8 +114,14 @@
   - DoD: 對照 `docs/02-architecture/16-secure-development-dod.md` 的 transport/headers 分項逐條標記
   - Verify: `npm run test -w apps/api`
 - [ ] **`docker/api.Dockerfile` · `docker/web.Dockerfile` · `.dockerignore`**
+      —— 📌 deviation：改放 `apps/api/Dockerfile` · `apps/web/Dockerfile`
+      （原命名讓 trivy 探測與 `trivy config` 自動偵測**同時**失效）。
+      multi-stage ✅ · `USER nonroot` 明寫 ✅ · runtime 改 distroless ✅
+      🚧 阻塞：**本機 `docker build` 跑不完** —— 公司 proxy 在容器內同樣 MITM TLS
+      （`binaries.prisma.sh` self-signed chain），且**不把公司 CA 塞進 repo 的 Dockerfile**。
+      `AD-ImageBuild-1`。解封條件：CI 或部署環境跑一次 build
   - DoD: multi-stage · 非 root user · base image 釘 digest
-  - Verify: `docker build -f docker/api.Dockerfile .` 與 `-f docker/web.Dockerfile .`
+  - Verify: `docker build -f apps/api/Dockerfile .` 與 `-f apps/web/Dockerfile .`
 
 ### 2.4 讓三個安全掃描真的掃（Day 2 新增 —— CI 首航發現，見 progress.md 發現 B）
 
@@ -139,9 +147,16 @@
 
 ### 2.x Full gate
 
-- [ ] `npm run lint|type-check|test|build -w apps/api -w apps/web`（新 code 覆蓋率 ≥ 80%）·
+- [x] `npm run lint|type-check|test|build -w apps/api -w apps/web` ·
       `python scripts/lint/run_all.py` 6/6 · CI `gates` SUCCESS ·
-      `security-scan` 三個 job **真的執行**（逐 job 貼結果）
+      `security-scan` 三個 job **真的執行**（逐 job 貼結果 → progress.md Day 2）
+- [x] **新 code 覆蓋率 ≥ 80%**（約束 5）—— Day 3 首次實跑 `test:cov` 才發現
+      45%/21%/44%/29%，因為 **`ci.yml` 跑的是 `test`、不是 `test:cov`**：門檻從未被執行過（D3-4）。
+      補兩個測試檔後 `apps/api` 為 **100 / 78.57 / 100 / 100**
+  - DoD: `test:cov` 接進 CI（使用者核可）；`branches` 80→70 並在 `jest.config.js`
+        寫明 lcov 佐證與再收緊條件（`AD-CovThreshold-1`）；
+        **`apps/web` 未納入 → `AD-WebCoverage-1`**，不設假門檻充數
+  - Verify: `npm run test:cov -w apps/api` EXIT=0
 
 ---
 
@@ -149,27 +164,46 @@
 
 ### 3.1 Clean restart
 
-- [ ] **殺掉陳舊的 dev server 與 compose 容器，確認新程序是 3200 / 3210 / 5433 的唯一擁有者**
+- [x] **殺掉陳舊的 dev server 與 compose 容器，確認新程序是 3200 / 3210 / 5433 的唯一擁有者**
       （見 `task-workflow.md` §Risk Class C；程序清單而非只看 port 擁有者 PID）
+      —— ⭐ 抓到跑著的 API **比自己的建置產物舊 11m52s**；5433 的 owner 是 docker 埠代理非殘留
   - DoD: 擷取三個服務的 startup log 行作為佐證
   - Verify: `docs/rules-on-demand/local-runtime-ops.md` 的程序檢查程序
 
 ### 3.2 Drive-through（MANDATORY — 不是 gate-only）
 
-- [ ] **在真瀏覽器打開 `apps/web`，走完主路徑**
-- [ ] **逐控件走查**：語言切換可點 / 真的換字（不是重繪同一份字）/
-      `/health` 結果真的渲染（不是硬編碼）
-- [ ] **負面驗證：停掉 PostgreSQL → 畫面必須變成 `db: down`**
-      （仍顯示 `up` 代表那是假資料 —— AP-3）
-- [ ] 截圖 + observed-vs-intended → progress.md Day 3
+- [x] **在真瀏覽器打開 `apps/web`，走完主路徑**（Playwright 驅動真 Chromium，六張截圖於 `artifacts/`）
+- [x] **逐控件走查**：語言切換可點 / 真的換字（**含 `aria-label` 一起換**）/
+      `/health` 結果真的渲染（`API 服務` 與 `資料庫` 兩值**獨立**變動，非同一旗標）
+- [x] **負面驗證：停掉 PostgreSQL → 畫面必須變成 `db: down`**
+      （仍顯示 `up` 代表那是假資料 —— AP-3）—— 實測 `資料庫: 無法連線`，恢復後翻回 `正常`
+- [x] **額外**（checklist 未要求）：殺掉 API → `role="alert"` 錯誤訊息**取代**整個狀態列表，
+      不留 stale 的「正常」。留著才是畫面在說謊，而這個分支 curl 層驗不到
+- [x] 截圖 + observed-vs-intended → progress.md Day 3（五列對照表 + D3-1/2/3 三個發現）
 
 ### 3.3 邊界與 i18n 的負面測試
 
-- [ ] **刻意寫一個跨範疇 import → `npm run lint` 失敗且指名該規則 → 還原後轉綠**
+- [x] **刻意寫一個跨範疇 import → `npm run lint` 失敗且指名該規則 → 還原後轉綠**
+      —— `boundaries/dependencies`：`"audit-trail"` → `"core-model"`，EXIT=1 → 刪檔 EXIT=0
   - DoD: 失敗輸出貼進 progress.md（這是 US-2 唯一有效的證明）
   - Verify: `npm run lint -w apps/api -w apps/web`
-- [ ] **刻意刪一個 i18n key → `npm run test` 失敗 → 還原後轉綠**
+- [x] **刻意刪一個 i18n key → `npm run test` 失敗 → 還原後轉綠**
+      —— 1 failed/7 passed → 還原 8 passed。⭐ **型別檢查抓不到**（key 型別由 `zh-Hant` 推導）
   - Verify: `npm run test -w apps/web`
+
+### 3.4 Drive-through 挖出的修正（Day 3 新增）
+
+- [x] **`apps/api/package.json` 的 `start` 指向不存在的 `dist/main.js`** →
+      改 `dist/bootstrap/main.js`（`nest-cli.json` 的 `entryFile` 是 `bootstrap/main`）
+  - DoD: 修正前 `Cannot find module`；修正後一路到 `Nest application successfully started`
+  - Verify: `npm run start -w apps/api`（3210 已被佔時應為 `EADDRINUSE` 而非模組找不到）
+- [x] **`.gitignore` 加 `.playwright-mcp/`** —— 驅動用的原始 snapshot 不進版控，
+      進版控的是 `artifacts/` 底下挑選過的截圖
+- [x] **決定 `next dev` 自動生成的 `apps/web/{AGENTS.md,CLAUDE.md}` 如何處置**（D3-2）
+      —— 使用者選 **`agentRules: false`**：未經 review 的內容不該自己進 repo，
+      何況那是一個 always-loaded 面，而本專案對該面有機械式 byte 預算
+  - DoD: 兩個檔刪除且**重跑 `next dev` 後不再生成**（不是刪掉就算）
+  - Verify: 殺 dev server → `npm run dev -w apps/web` → log 無生成通知、檔案未回來 ✅
 
 ---
 
