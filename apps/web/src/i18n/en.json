@@ -1,0 +1,17 @@
+{
+  "app.title": "APAC ISMS Governance Platform",
+  "app.subtitle": "ISO/IEC 27001 + 27017 · 13 OpCos across 11 jurisdictions",
+  "app.scaffoldNotice": "This page verifies the W01 scaffold. It is not a product screen.",
+  "health.heading": "System status",
+  "health.apiLabel": "API service",
+  "health.dbLabel": "Database",
+  "health.state.up": "Up",
+  "health.state.down": "Unreachable",
+  "health.state.unknown": "Checking",
+  "health.refresh": "Re-check",
+  "health.refreshBusy": "Checking…",
+  "health.error": "Could not read status. Check that the API service is running.",
+  "locale.label": "Language",
+  "locale.zh-Hant": "繁體中文",
+  "locale.en": "English"
+}

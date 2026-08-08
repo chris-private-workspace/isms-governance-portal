@@ -1,0 +1,41 @@
+{
+  "name": "isms-governance-portal",
+  "version": "0.0.0",
+  "private": true,
+  "description": "APAC ISMS Governance Platform (ISO/IEC 27001 + 27017) — monorepo root",
+  "license": "UNLICENSED",
+  "engines": {
+    "node": ">=22.0.0",
+    "npm": ">=10.0.0"
+  },
+  "workspaces": [
+    "packages/*",
+    "apps/*"
+  ],
+  "scripts": {
+    "format": "prettier --write .",
+    "format:check": "npm run format:check -w apps/api -w apps/web",
+    "lint": "npm run lint -w apps/api -w apps/web",
+    "type-check": "npm run type-check -w apps/api -w apps/web",
+    "test": "npm run test -w apps/api -w apps/web",
+    "build": "npm run build -w apps/api -w apps/web",
+    "db:up": "docker compose -f docker/compose.yml up -d",
+    "db:down": "docker compose -f docker/compose.yml down",
+    "prisma:generate": "npm run prisma:generate -w apps/api",
+    "prisma:migrate": "npm run prisma:migrate -w apps/api"
+  },
+  "overrides": {
+    "@nestjs/swagger": {
+      "js-yaml": "5.2.3"
+    }
+  },
+  "devDependencies": {
+    "@eslint/js": "10.0.1",
+    "eslint": "10.8.1",
+    "eslint-import-resolver-typescript": "4.4.5",
+    "eslint-plugin-boundaries": "7.1.0",
+    "prettier": "3.9.6",
+    "typescript": "6.0.3",
+    "typescript-eslint": "8.66.0"
+  }
+}

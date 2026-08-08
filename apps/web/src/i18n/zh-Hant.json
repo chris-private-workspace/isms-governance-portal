@@ -1,0 +1,17 @@
+{
+  "app.title": "APAC ISMS 治理平台",
+  "app.subtitle": "ISO/IEC 27001 + 27017 · 11 個管轄區的 13 家 OpCo",
+  "app.scaffoldNotice": "此頁為 W01 骨架驗證頁，非產品畫面。",
+  "health.heading": "系統狀態",
+  "health.apiLabel": "API 服務",
+  "health.dbLabel": "資料庫",
+  "health.state.up": "正常",
+  "health.state.down": "無法連線",
+  "health.state.unknown": "查詢中",
+  "health.refresh": "重新檢查",
+  "health.refreshBusy": "檢查中…",
+  "health.error": "無法取得狀態，請確認 API 服務是否啟動。",
+  "locale.label": "顯示語言",
+  "locale.zh-Hant": "繁體中文",
+  "locale.en": "English"
+}

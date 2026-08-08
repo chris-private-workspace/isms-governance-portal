@@ -1,0 +1,25 @@
+# Keep the build context small and free of anything secret.
+# `docs/reference/` and `reference/` are deliberately outside version control
+# (CLAUDE.md) but may exist on a developer's disk — never let them into a layer.
+reference/
+docs/reference/
+
+.git/
+.github/
+node_modules/
+**/node_modules/
+**/dist/
+**/.next/
+**/coverage/
+
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*.pfx
+
+docs/
+memory/
+scripts/
+*.md

@@ -1,0 +1,45 @@
+{
+  "name": "@isms/api",
+  "version": "0.0.0",
+  "private": true,
+  "description": "ISMS governance platform API (NestJS). Scope directories live under src/.",
+  "license": "UNLICENSED",
+  "scripts": {
+    "build": "nest build",
+    "start": "node dist/main.js",
+    "dev": "nest start --watch",
+    "lint": "eslint src",
+    "format:check": "prettier --check --ignore-path ../../.prettierignore \"src/**/*.ts\"",
+    "type-check": "tsc --noEmit -p tsconfig.json",
+    "test": "jest",
+    "test:cov": "jest --coverage",
+    "prisma:generate": "prisma generate",
+    "prisma:migrate": "prisma migrate dev"
+  },
+  "dependencies": {
+    "@isms/types": "*",
+    "@nestjs/common": "11.1.28",
+    "@nestjs/config": "4.0.4",
+    "@nestjs/core": "11.1.28",
+    "@nestjs/platform-express": "11.1.28",
+    "@nestjs/swagger": "11.4.6",
+    "@prisma/adapter-pg": "7.9.1",
+    "@prisma/client": "7.9.1",
+    "helmet": "8.3.0",
+    "pg": "8.22.0",
+    "reflect-metadata": "0.2.2",
+    "rxjs": "7.8.2"
+  },
+  "devDependencies": {
+    "@nestjs/cli": "11.0.24",
+    "@nestjs/schematics": "11.1.0",
+    "@nestjs/testing": "11.1.28",
+    "@types/jest": "30.0.0",
+    "@types/node": "26.2.0",
+    "@types/pg": "8.21.0",
+    "dotenv": "17.4.2",
+    "jest": "30.4.2",
+    "prisma": "7.9.1",
+    "ts-jest": "29.4.12"
+  }
+}

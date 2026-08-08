@@ -1,0 +1,18 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    // NestJS relies on legacy decorators plus runtime type metadata for DI.
+    "experimentalDecorators": true,
+    "emitDecoratorMetadata": true,
+
+    // `nest build` emits CommonJS; NodeNext + no "type": "module" gives that.
+    "module": "NodeNext",
+    "moduleResolution": "NodeNext",
+    "outDir": "dist",
+    "rootDir": "src",
+    "noEmit": false,
+    "types": ["node", "jest"]
+  },
+  "include": ["src/**/*.ts"],
+  "exclude": ["node_modules", "dist"]
+}

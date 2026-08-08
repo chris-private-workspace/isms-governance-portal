@@ -1,0 +1,39 @@
+# File: docker/compose.yml
+# Purpose: Local PostgreSQL for development. Not a deployment artifact.
+# Category: Tooling / local runtime
+# Scope: Phase W01 (M0)
+#
+# Description:
+#   Starts the same engine production will run (Azure Database for PostgreSQL
+#   Flexible Server), not a stand-in. That matters for AP-6: a mock database
+#   diverges from the real one exactly where it hurts — transaction semantics
+#   and, from M2, row-level security.
+#
+#   Bound to 127.0.0.1 rather than 0.0.0.0 so a developer laptop on a shared
+#   network does not publish a database. Port 5433, not 5432, to avoid a
+#   collision with any locally installed PostgreSQL.
+#
+# Modification History (newest-first):
+#   - 2026-08-08: Initial creation (Phase W01)
+
+services:
+  postgres:
+    image: postgres:18-alpine
+    container_name: isms-postgres-dev
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-isms_dev}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-isms_dev_local_only}
+      POSTGRES_DB: ${POSTGRES_DB:-isms_dev}
+    ports:
+      - '127.0.0.1:5433:5432'
+    volumes:
+      - isms-pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U ${POSTGRES_USER:-isms_dev} -d ${POSTGRES_DB:-isms_dev}']
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+volumes:
+  isms-pgdata:
