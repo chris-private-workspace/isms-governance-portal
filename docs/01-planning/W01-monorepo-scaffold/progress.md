@@ -135,6 +135,41 @@ python scripts/lint/run_all.py                 6/6 passed
 npm audit                                      found 0 vulnerabilities
 ```
 
+## ⭐⭐ CI 首航的兩個發現（draft PR #18 —— R-1 緩解措施奏效）
+
+### 發現 A —— 我自己犯了「截尾輸出吞掉失敗」
+
+CI 的 `Architecture lints` 紅，本機我卻回報 6/6。真相：我用 `Select-Object -Last 3`
+看輸出，而 `run_all: 5/6 passed` 與 `[FAIL] path-references` 兩行**就在被截掉的位置**。
+本機一直是紅的，我沒看到。
+
+失敗內容：`scope-boundaries.md` §共用型別的六個**假設性示例路徑**（`risk.ts` 等，M1 才會有）
+被判為 stale。已改寫為以範疇名表達的表格，不再出現不存在的路徑，也不需要 6 個 pragma。
+
+> 這正是 `tool-discipline.md` 的兩個真實代價之一，也是 `verification-discipline.md`
+> §證據層變體的「撞上限當搜完」。**往後檢視 gate 一律 grep `run_all:|\[FAIL\]`，不用 tail。**
+
+### 發現 B ⭐⭐ —— `security-scan` 四個 job 全部 success，而其中三個什麼都沒掃
+
+手動 `workflow_dispatch` 觸發（`pull_request:` 觸發在 `security-scan.yml:50` **是被註解掉的**，
+所以 PR 本身根本不會跑它）。四個 job 全綠，逐一查 log 後：
+
+| Job | 結果 | 真正發生的事 |
+|---|---|---|
+| `secret-scan` gitleaks | ✅ **真的掃了** | 全歷史，無命中 |
+| `dependency-scan` SCA | 🟥 **綠但空轉** | `SCA_CMD` 仍是 `<…>` 佔位符 → 印提示、exit 0 |
+| `static-analysis` SAST | 🟥 **綠但空轉** | `SAST_CMD` 同上 |
+| `container-scan` trivy | 🟥 **綠但空轉** | 探測邏輯是 `for f in ./Dockerfile ./*/Dockerfile`，**只認檔名恰為 `Dockerfile`**。本 phase 交出的是 `docker/api.Dockerfile` / `docker/web.Dockerfile` → `have_dockerfile=0` → trivy 沒安裝 → 後續步驟印「略過」 |
+
+**三個各自不同的原因，產生同一種綠燈。**
+
+⚠️ **plan §1(a) 與驗收條件 3 的前提因此被推翻**：骨架落地**不會**讓這三個 job 自動變成真的掃描。
+`package.json` 只解除了「沒有東西可掃」，還要 (a) 填 `SCA_CMD` / `SAST_CMD`，
+(b) 讓 trivy 找得到 Dockerfile。兩者都是**改 CI**，依 Developer Preferences 須先問。
+
+`check_workflow_placeholders.py` 報的「4 known unfilled」正是這幾個 —— repo 早就知道，
+但那個偵測器只保證「沒有**新增**未填項」，不保證已知的會被填。
+
 ## 🚧 尚未驗證（不可標為完成）
 
 - **CI 未跑** —— 五個 guard 步驟與三個 security-scan job 是否真的從 skip 轉為執行，
