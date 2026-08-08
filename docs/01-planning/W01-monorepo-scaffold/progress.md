@@ -316,3 +316,191 @@ CVSS 沒說的事：溢位需要 32 位元系統，而 ADR-0011 把我們放在 
 
 - Day-0 的 ROI 又一次由**版本**這一類漂移貢獻 —— plan 是照 ADR 寫的，而 ADR 是三天前寫的。
   `day0-plan-verify.md` 的 Prong 2 把「plan 對現有事實的斷言」擴及外部 registry 是對的。
+
+---
+
+# Day 3 — 2026-08-08
+
+## Today's Accomplishments
+
+- 3.1 clean restart（整個 stack）· 3.2 前端 drive-through（六張截圖）· 3.3 兩個負面測試
+- 修掉 drive-through 挖出的 **D3-1**（`npm run start` 指向不存在的檔）
+- **Day 2 的「🚧 尚未驗證」清單，除 `docker build` 外全部關閉**
+
+## 3.1 Clean restart —— Risk Class C 的教科書案例
+
+殺進程之前先做歸屬判斷（`local-runtime-ops.md` §4），結果比預期有價值：
+
+| 進程 | 判定 | 依據 |
+|---|---|---|
+| `node dist/bootstrap/main.js` PID 52084 | **陳舊，殺** | 啟動 18:03:02，而 `dist/bootstrap/main.js` 的 mtime 是 **18:14:54** |
+| `@playwright/mcp` × 2 · `statusline.mjs` | **留** | 不是本專案的服務 |
+| `ekp-postgres` · `ekp-langfuse` 等容器 | **留** | 別的專案 |
+| `com.docker.backend.exe`（5433 的 owner）| **不是殘留** | 那是 docker 的埠代理，真正的服務在容器裡 |
+
+⭐ **跑著的 API 比它自己的建置產物舊了 11 分 52 秒。** 若直接對它 drive-through，
+驗到的是 Day 2 中段的程式碼 —— 而畫面不會有任何地方告訴你這件事。
+`task-workflow.md` Risk Class C 說的「陳舊 dev server 掩蓋 wiring 修正」就是這個，
+而**這次它是靠 mtime 比對抓到的，不是靠 port 擁有者 PID**。
+
+三個服務的 startup log（DoD 要求的佐證）：
+
+```
+postgres  2026-08-08 11:27:23.660 UTC [1] LOG:  database system is ready to accept connections
+          （PostgreSQL 18.4 · "database directory appears to contain a database; Skipping initialization"
+            —— volume 存活過 down/up，資料沒被清掉）
+api       [Nest] 45772  19:28:15  [NestApplication] Nest application successfully started
+          [isms-api] listening on http://127.0.0.1:3210 (api-docs at /api-docs)
+web       ▲ Next.js 16.3.0 (Turbopack) · Local: http://localhost:3200 · ✓ Ready in 1093ms
+```
+
+## 3.2 Drive-through —— observed vs intended
+
+**這是本 phase 第一次有人真的開車。** 六張截圖在 `artifacts/`。
+
+| # | 預期 | 實際觀察 | 判定 |
+|---|---|---|---|
+| 1 | 預設 zh-Hant 渲染 | `APAC ISMS 治理平台` / `11 個管轄區的 13 家 OpCo` / `此頁為 W01 骨架驗證頁，非產品畫面。` | ✅ 數字是修正後的 13/11；且**誠實標示非產品畫面** |
+| 2 | 切 en **真的換字** | 每一條都換，**包含 `aria-label`**（`combobox "顯示語言"` → `combobox "Language"`）| ✅ 不是重繪同一份字典 |
+| 3 | `db` 來自 API 而非常數 | 停 PostgreSQL → 點重新檢查 → `資料庫: 無法連線`，而 `API 服務` 仍 `正常` | ✅ 兩個值**獨立**變動，不是同一個旗標 |
+| 4 | 恢復後翻回 | 起 PostgreSQL → `資料庫: 正常` | ✅ 不是黏住的 |
+| 5 | API 掛掉的分支 | 殺 API → `role="alert"`：`無法取得狀態，請確認 API 服務是否啟動。` | ✅ **整個狀態列表被換掉**，不是留著上一次的「正常」 |
+
+第 5 項是額外做的，checklist 沒要求。理由：留著 stale 的「正常」是**畫面在說謊**，
+比顯示錯誤更糟，而這個分支在 curl 層永遠驗不到。
+
+語言切換時 down 狀態**被保留**（沒有重新 fetch）—— 正確：切語言是換字典，不是換世界。
+語言選項本身維持 endonym（「繁體中文」/「English」）是 i18n 慣例，不是漏譯。
+
+### D3-1 ⭐ 第 5 次「綠燈但跑不起來」
+
+`apps/api/package.json` 的 `start` 是 `node dist/main.js`，但 `nest-cli.json` 的
+`entryFile` 是 `bootstrap/main` → 產出在 `dist/bootstrap/main.js`。
+**`npm run start -w apps/api` 從第一天起就是壞的。**
+
+沒有任何 gate 會碰到它：`build` 用 `nest build`、drive-through 我用的是
+`node dist/bootstrap/main.js`（Day 2 為了繞開 Day 2 的另一個產出物 bug 而直接寫的路徑）。
+修正後驗證：Nest 一路啟動到 `successfully started`，只因 3210 被佔而 `EADDRINUSE`
+—— **修正前會是 `Cannot find module`，現在是埠衝突，代表路徑已經對了**。
+
+> 同一個形狀本 phase 累計 **5 次**（boundaries 設定 / 三個掃描 job / build 產出物 /
+> `X-Powered-By` / 本項）。依 `.claude/rules/README.md` 的強度階梯 ≥3 次要**結構性解法**，
+> 留給 retrospective Q5。
+
+### D3-2 `next dev` 會自己寫 `AGENTS.md` 與 `CLAUDE.md` 進 repo
+
+Next 16 的 `generate-agent-files.js` 在 `apps/web/` 生成了 `AGENTS.md`（678 B）
+與 `CLAUDE.md`（一行 `@AGENTS.md`），並在檔案裡明說「移除只會再生成一次」。
+**根目錄的 `CLAUDE.md` 未被動**（28972 B / 15:46 原樣）—— 這是第一件確認的事。
+
+本專案對 always-loaded context 有機械式 byte 預算（`check_rules_hygiene.py`），
+而框架自己往 repo 塞一份 agent 指令檔，是**沒有人決定過的新 always-loaded 面**。
+兩個做法都成立（commit 掉 / `agentRules: false` 關掉）→ **待使用者決定，不默默選**。
+
+### D3-3 favicon 404
+
+每次載入 console 都有一條 `GET /favicon.ico 404`。**刻意不修**：補 icon 等於在骨架
+階段自行發明品牌視覺，違反約束 6。留給設計交付物 port 的那個 phase 一併處理。
+記在這裡是為了下次看到 console 錯誤時知道它已被判讀過 —— 未被判讀的雜訊會訓練人忽略 console。
+
+## 3.3 負面測試 —— 規則要能真的擋，才叫規則
+
+**邊界**（US-2 唯一有效的證明）：在 `audit-trail/` 放一個 import `core-model` 的檔案：
+
+```
+apps/api/src/audit-trail/TEMP-boundary-violation.ts
+  4:31  error  There is no policy allowing dependencies from elements of type
+               "audit-trail" to elements of type "core-model"   boundaries/dependencies
+✖ 1 problem (1 error, 0 warnings)          EXIT=1
+```
+
+刪檔後 `EXIT=0`。錯誤訊息**指名了兩個範疇與規則名** —— Day 1 那個「設定有效、lint 全綠、
+零強制力」的版本不會印出這一行。
+
+**i18n**：從 `en.json` 刪掉 `health.state.down`：
+
+```
+× en carries exactly the reference key set
+AssertionError: expected [ …(13) ] to deeply equal [ …(14) ]
+-   "health.state.down",
+Tests  1 failed | 7 passed (8)             EXIT=1
+```
+
+還原後 `8 passed (8)`。⭐ 值得記：**型別檢查抓不到這個** —— `TranslationKey` 是從
+`zh-Hant` 推導的，`en` 的型別是 `Record<string, string>`。parity 測試是唯一的閂門，
+這正是 `i18n-glossary.md:65` 說它是「整份規則裡唯一有強制力的部分」的原因。
+
+### D3-4 ⭐⭐ 覆蓋率門檻從來沒有被執行過 —— 第 6 次「綠燈但什麼都沒查」
+
+要勾 checklist `2.x` 的「新 code 覆蓋率 ≥ 80%」時才第一次跑 `test:cov`：
+
+```
+statements 45% · branches 21.42% · lines 43.75% · functions 28.57%   ← 全部低於 80
+health.controller.ts  0% ·  health.module.ts  0%
+```
+
+**`ci.yml:163` 跑的是 `npm run test`，不是 `test:cov`。** 約束 5 的 80% 門檻寫在
+`jest.config.js` 裡、寫在 CLAUDE.md 裡，而**沒有任何地方會執行它**。
+
+補了兩個測試檔（皆為真的能失敗的測試，不是為了衝數字）：
+
+| 檔案 | 測什麼 | 為什麼不是同義反覆 |
+|---|---|---|
+| `health/health.controller.spec.ts` | 用**真的 `HealthModule`** 編譯，只換掉 `PrismaService` | controller 若呼叫 service 後自己回一個樂觀的 payload，只驗 happy path 的測試會全過，而 drive-through 只有在資料庫剛好掛掉時才抓得到 |
+| `core-model/prisma.service.spec.ts` | `DATABASE_URL` 缺席時**在建構時 throw** | 那個守衛存在的唯一理由就是「不要讓設定錯誤變成間歇性的 runtime 錯誤」—— 而這只在有人檢查時才成立 |
+
+結果：**statements / functions / lines 各 100%**；branches **78.57%**，差 1.43。
+
+剩下的分支是什麼，用 lcov 查證過而非推測（`BRDA:31,0,1,0` / `BRDA:25,0,1,0`）：
+
+> 全部落在 **decorator metadata 的 emit 產物**上 ——
+> `typeof PrismaService !== "undefined" ? PrismaService : Object` 的 `Object` 那一支。
+> 它只在型別於裝飾時為 undefined 才會執行，**任何測試都到不了**。
+
+也就是說 babel provider 下這個門檻**寫再多正確的測試都不可能達成**。
+一個永遠達不到的 gate，教會每個人忽略 `test:cov` —— 跟 semgrep 掃到設計交付物是同一個病。
+
+試過 `coverageProvider: 'v8'`：總計剛好 **80.00%**、EXIT=0，但 controller 反而變 60%，
+**再加一個帶裝飾器的方法就會掉下去**。那是算術上的巧合，不是更好的量測 → **已還原，不採用**。
+
+→ 三個做法都成立，且其中一個要改 CI → **待使用者決定**（見 checklist 2.x）。
+
+## Gate 實際輸出（Day 3 收尾，本機）
+
+```
+lint -w apps/api        EXIT=0（違規檔已刪）
+test -w apps/web        Test Files 1 passed (1) · Tests 8 passed (8) · EXIT=0
+build -w apps/api       EXIT=0 · dist/generated/prisma 已隨 assets 複製（client.js 等在位）
+health（真 DB）          {"status":"up","db":"up"} → 停 DB → {"status":"up","db":"down"} → 起 DB → up
+標頭（真 runtime）       CSP / HSTS / X-Frame-Options: DENY / Referrer-Policy: no-referrer
+                        X-Content-Type-Options: nosniff · **X-Powered-By 不存在**
+                        CORS: Access-Control-Allow-Origin: http://localhost:3200（非萬用字元）
+```
+
+## 使用者拍板的兩個決定（Day 3 尾）
+
+**D3-2 → 關掉 `agentRules`。** `next.config.ts` 加 `agentRules: false`，刪掉兩個生成檔。
+判準是「**未經 review 的內容不該自己進 repo**」：那份 `CLAUDE.md` 會被 Claude Code 當
+project memory 載入，屬於 always-loaded 面，而本專案對這個面有機械式 byte 預算
+（`check_rules_hygiene.py`）—— 一份會隨 Next 升版自己改寫的指令檔正好在預算之外。
+它要警告的事（Next 16 與訓練資料不同）是真的，所以寫進我們自己的檔案，不靠它。
+
+⭐ **驗證方式**：改完設定後**殺掉 dev server 重跑** —— 生成通知從 log 消失、
+兩個檔沒有回來。設定改了不等於生效，這是同一條紀律的第 N 次應用。
+
+**D3-4 → `test:cov` 接進 CI，`branches` 80 → 70 並記錄理由。**
+
+| 改動 | 內容 |
+|---|---|
+| `ci.yml` Tests 步驟 | `npm run test -w apps/api` → **`npm run test:cov -w apps/api`** |
+| `jest.config.js` | `branches: 70`，並在區塊註解寫明 lcov 佐證、否決 v8 的理由、再收緊條件 |
+| `apps/web` | **維持 `npm run test`** —— vitest 要另裝 `@vitest/coverage-v8`，且 `page.tsx` 無元件測試，今天開啟只會逼出一個「低到能過」的門檻 → `AD-WebCoverage-1` |
+
+**重點不是那 10 個百分點，是那個 gate 過去沒有牙齒** —— 45% 一路綠到 Day 3。
+降門檻與不執行門檻，後者嚴重得多。`AD-CovThreshold-1` 記錄了再收緊的條件。
+
+## Remaining for Next Day
+
+- Day 4 closeout 全部（8 項）
+- `2.3` 的標頭斷言測試仍 🚧 —— **本次是手動實測，不是自動化斷言**，兩者不可互相替代
+- `2.3` Dockerfile 仍 🚧（`AD-ImageBuild-1`）· `docker build` 本機仍無法完成
