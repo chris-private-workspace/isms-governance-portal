@@ -115,6 +115,22 @@
   - DoD: multi-stage · 非 root user · base image 釘 digest
   - Verify: `docker build -f docker/api.Dockerfile .` 與 `-f docker/web.Dockerfile .`
 
+### 2.4 讓三個安全掃描真的掃（Day 2 新增 —— CI 首航發現，見 progress.md 發現 B）
+
+> ⚠️ 三項都是**改 CI/CD**，Developer Preferences 要求先問。已提出，等回覆。
+
+- [ ] **填 `security-scan.yml:142` 的 `SCA_CMD`**
+  - DoD: job log 出現真實的 audit 輸出，不是「SCA 指令未設定」
+  - Verify: `gh run view --job <id> --log`
+- [ ] **填 `security-scan.yml:194` 的 `SAST_CMD`**
+  - DoD: 同上；⚠️ 該行註解已提醒「linter 不算 SAST」
+  - Verify: 同上
+- [ ] **讓 trivy 找得到 Dockerfile**（改探測 glob，或改檔案位置／命名）
+  - DoD: job log 出現 `Detected config files num=N`（N ≥ 1）與 base image 掃描結果，不是「略過」
+  - Verify: 同上
+- [ ] **決定 `security-scan.yml:50` 的 `pull_request:` 觸發是否解封**
+  - DoD: 決定寫入 progress.md；若不解封，記錄 re-enable criteria（`release-process.md` 要求）
+
 ### 2.x Full gate
 
 - [ ] `npm run lint|type-check|test|build -w apps/api -w apps/web`（新 code 覆蓋率 ≥ 80%）·

@@ -72,17 +72,14 @@
 跨範疇使用的 dataclass / interface / enum / event schema **必須**定義在共用契約層，
 **絕不**在多處平行定義。
 
-```ts
-// ❌ 錯誤 —— 同一個概念定義兩次
-apps/api/src/core-model/risk.ts:        export enum RiskStatus { … }
-apps/api/src/modules/risk/status.ts:    export enum RiskStatus { … }   // 遲早會分歧
+以 `RiskStatus` 這個列舉為例（`Risk` 實體 M1 才建立，此處只談歸屬）：
 
-// ✅ 正確 —— 單一來源
-packages/types/src/risk.ts:             export enum RiskStatus { … }
-apps/api/src/core-model/risk.ts:        import { RiskStatus } from '@isms/types'
-apps/api/src/modules/risk/status.ts:    import { RiskStatus } from '@isms/types'
-apps/web/src/features/risk/badge.tsx:   import { RiskStatus } from '@isms/types'   // ui 也認同一份
-```
+| | 定義在哪 | 後果 |
+|---|---|---|
+| ❌ | `core-model` 一份、`modules` 再一份 | 建立當下兩邊一模一樣，所以沒有人會發現 |
+| ✅ | **只在 `packages/types`**，`core-model` / `modules` / `ui` 一律 import | 三個範疇認同一份定義，`ui` 也不例外 |
+
+`packages/types` 的匯入名是 `@isms/types`（見 `packages/types/package.json` 的 `exports`）。
 
 **為什麼**：平行定義在建立當下看起來一模一樣，但會**分歧**。
 分歧的那一天，bug 會出現在兩者的邊界上，而且極難 debug（兩邊各自看起來都對）。
