@@ -160,7 +160,15 @@ jobs:
             echo "::notice::monorepo scaffold absent — skipped until W01 M0 (ADR-0001)"
             exit 0
           fi
-          npm run test -w apps/api -w apps/web
+          # test:cov, not test — CLAUDE.md 約束 5 sets a >=80% floor, and until
+          # W01 Day 3 nothing ran it: coverage sat at 45% through a green CI.
+          # A threshold no job executes is a comment, not a gate.
+          npm run test:cov -w apps/api
+          # apps/web still runs plain `test`: vitest coverage needs
+          # @vitest/coverage-v8, and page.tsx has no component test yet, so
+          # enabling it today would only add a threshold set low enough to pass.
+          # Tracked as AD-WebCoverage-1 rather than left silent.
+          npm run test -w apps/web
 
       - name: Build
         run: |
