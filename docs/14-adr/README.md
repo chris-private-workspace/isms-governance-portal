@@ -23,6 +23,29 @@
 
 **判準一句話**：**六個月後有人問「為什麼不用 X」，你希望有份文件能回答嗎？**
 
+### ⭐ 什麼時候**可以無實作先寫**（`AD-RuleBoundary-1` 的仲裁）
+
+下方 §ADR vs Design Note 說「ADR 可以在沒有實作的情況下寫」，而 CLAUDE.md §禁止反模式
+禁止「先寫一批新規劃文件再實作」。兩者的交界是：
+
+> **只有存在 forcing function 時**，ADR 才可以無實作先寫。
+
+forcing function 的三種形狀（**必要條件，不是充分條件**）：
+
+| 形狀 | 例 |
+|---|---|
+| 里程碑 DoD 明文要求 | `07:31` 的 M0 要求 ADR-0001 與部署拓撲拍板 |
+| 外部動作需要這個答案 | Azure 資源申請單要知道計算平台 → ADR-0011 |
+| 這個決定正在阻斷別的工作 | ADR-0006 阻斷 M1 建表 |
+
+**沒有 forcing function 的 ADR 就是預寫規劃文件**，違反 CLAUDE.md §禁止反模式。
+⚠️ 反向也要防：**不要為了正當化預寫而製造 forcing function**。
+判準是「這件事**已經**在等這個答案」，不是「將來會等」。
+
+> **為什麼需要這條**：`CH-005` 起草時原提案一次寫 6 份 ADR，其中 3 份沒有任何東西在等它們。
+> 仲裁答案當時只存在於 `memory/feedback_doc_growth_follows_runtime.md`（非 always-loaded），
+> 所以同一個混淆在 `CH-009` 又發作一次。第 2 次 → 依 `.claude/rules/README.md` 強度階梯升級為明文。
+
 ---
 
 ## ADR vs Design Note vs CHANGE

@@ -20,10 +20,13 @@
 ```
 任務進來
   ├─ 符合 active phase plan 的 deliverable？  → Phase 軌   → 繼續讀本檔
-  ├─ 改現有行為（非 bug）且 < 3 天？          → Change 軌  → PROCESS.md §3
+  ├─ 改現有行為 或 既定設計（非 bug）< 3 天？ → Change 軌  → PROCESS.md §3
   ├─ 修壞掉 / 不正確的行為？                  → Bug 軌     → PROCESS.md §4
+  ├─ 純稽核 / 分析？ 產出就是一份 ADR？       → 不走軌 —— 寫報告 / 寫 ADR 即可
   └─ trivial（typo / 單行 / < 30 分鐘）？     → 直接 commit，免文件
 ```
+
+**既定設計** = 已 approve 且約束後續工作的（設計文件 / **已採納**的 ADR / 規格）；起草中的不算。
 
 **分類後向使用者確認軌別**，再開對應的 pre-doc。
 
@@ -32,6 +35,7 @@
 | Phase | `plan.md` + `checklist.md` |
 | Change | `spec.md`（使用者 approved）|
 | Bug | `report.md`（severity + repro 已確認）|
+| 不走軌 | 無 —— 報告 / ADR **本身就是產出**，再包一層 spec 只是把同一段歷史寫兩遍 |
 
 > 卡在分類上的話，**預設走比較重的那一軌** —— 事後降級比事後補文件容易。
 

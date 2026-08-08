@@ -29,10 +29,13 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ```
 任務進來
   ├─ 符合 active phase plan 的 deliverable？  → Phase 軌  docs/01-planning/W{NN}-*/
-  ├─ 改現有行為（非 bug）且 < 3 天？          → Change 軌 docs/03-implementation/changes/CH-NNN-*
+  ├─ 改現有行為 或 既定設計（非 bug）< 3 天？ → Change 軌 docs/03-implementation/changes/CH-NNN-*
   ├─ 修壞掉 / 不正確的行為？                  → Bug 軌    docs/03-implementation/bugs/BUG-NNN-*
+  ├─ 純稽核 / 分析？ 產出就是一份 ADR？       → 不走軌 —— 直接寫報告 / 寫 ADR
   └─ trivial（typo / 單行 / < 30 分鐘）？     → 直接 commit
 ```
+
+**既定設計** = 已 approve 且約束後續工作的（設計文件 / **已採納**的 ADR / 規格）；起草中的不算。
 
 判斷完**先向使用者確認軌別**，再開對應文件（plan+checklist / spec / report），才動 code。
 完整決策樹、lifecycle、binding rules R1-R9：[`docs/01-planning/PROCESS.md`](./docs/01-planning/PROCESS.md)。
@@ -56,8 +59,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 2. **Canonical core, governed local extensions** — 在地差異走受治理的擴充，不走分叉。
 3. **Entity-scoped by default** — 每筆記錄都有所屬實體，存取預設依此過濾；滾升是加法。
 4. **Evidence-grade by construction** — 稽核軌跡是寫入路徑的一部分，不是事後加的功能。
-5. **Deployment-portable** — 雲端／地端／主權隔離都要能跑。憲章的地端選項獨立於任何管轄區存在；
-   ADR-0010 選了單一雲端區域，但不得因此把架構焊死在 Azure 上。
+5. **Deployment-portable** — 雲端／地端／主權隔離都要能跑；ADR-0010 選了單一區域，但不得焊死在 Azure 上。
 6. **Build to the procedure, not the mockup** — 交付物對 UI 有權威性，領域邏輯以公司程序為準。
 
 ### Development Philosophy
@@ -79,7 +81,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 | **Pending / Next** | See [`docs/01-planning/BACKLOG.md`](./docs/01-planning/BACKLOG.md)（**有什麼**）· [`ROADMAP.md`](./docs/01-planning/ROADMAP.md)（**先做哪個**）|
 | **跨來源狀態** | See [`docs/01-planning/STATUS_AUDIT.md`](./docs/01-planning/STATUS_AUDIT.md) —— 問「現在全項目怎樣」時跑 `/status-audit`，**不要只讀 BACKLOG** |
 | **Open questions** | See [`docs/decision-form.md`](./docs/decision-form.md) |
-| **Tech Stack** | **NestJS 10 + Prisma 7 · PostgreSQL · Next.js + Tailwind · Entra ID · Azure（單一區域 × 3 環境）** —— ADR-0001 / 0007 / 0010 已採納（**0010 取代 0006**）。ADR-0002~0005 待 W01 spike，0011 待 `CH-009`，0008/0009 待 Wave 3，見 [`docs/14-adr/README.md`](./docs/14-adr/README.md) |
+| **Tech Stack** | **NestJS 10 + Prisma 7 · PostgreSQL · Next.js + Tailwind · Entra ID · Azure（單一區域 × 3 環境）** —— ADR-0001 / 0007 / 0010 已採納（**0010 取代 0006**）。ADR-0002~0005 待 W01 spike，0011 待 CH-010，0008/0009 待 Wave 3，見 [`docs/14-adr/README.md`](./docs/14-adr/README.md) |
 | **Main Branch** | `main` |
 | **Branch Protection** | PR required · **review_count=0**（單人開發 —— 沒有 reviewer）· no force-push · no deletions · linear history · enforce_admins。 補償機制：PR 開著睡一晚，隔天用 reviewer 的心態重讀一次。 |
 
@@ -100,7 +102,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 | 1 | 建置模式 | **內部自建**。商業平台僅為標竿／參考架構，絕非相依 | `00` D1 |
 | 2 | 租戶模型 | 多實體、多管轄、單一集團。**不是對外多租戶 SaaS** —— 組織階層 + 實體範疇存取 | `00` D2 · `03` |
 | 3 | 排序 | **Foundation-first**。分類法第一天就要容納 IT 資產／供應商／資料流 | `00` D4 |
-| 4 | 管轄區 | NE + SE Asia + Oceania；**印度與中國均排除** → **13 OpCo / 11 管轄區**。無在範圍內的硬性在地化要求 → 單一區域部署（ADR-0010）| `00` D6 |
+| 4 | 管轄區 | NE + SE Asia + Oceania；**印度與中國均排除** → **13 OpCo / 11 管轄區**，無硬性在地化要求 → 單一區域（ADR-0010）| `00` D6 |
 | 5 | 主驅動力 | 內部治理與可視性；**滾升儀表板是旗艦**，Wave 1 不提前拉合規／事件模組 | `00` D7 |
 | 6 | 目標使用者 | 完整三道防線 + 管理層；內部稽核延 Wave 2；**第一線 UX 要輕**（RCSA）| `00` D8 |
 | 7 | 風險評分 | `Likelihood(1–5) × MAX(FIN,BOP,LRY,REP,SIS)` = 1–25；控制前後各評；**≥16 需處理**，殘餘 ≥16 進 IT Risk Register；per-entity 校準只能改設定 | `02a` |
@@ -142,7 +144,6 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
    TLS 憑證、安全標頭、管理埠**不得沿用平台預設值** —— 要明確設定。
 8. **隱私 by design。** 資料最小化與目的限制是**架構層關注點，不是事後補丁**。
    ⚠️ **在地化能力不建** —— 中國移出後無在範圍內的管轄區要求它（ADR-0010），建了就是 AP-5。
-   資料最小化與目的限制不受此影響，仍然強制。
 9. **語言。** 程式碼／註解／技術文件用**英文**；任何終端使用者可見文字與 UI copy 用**繁體中文**。
 
 > ⚠️ `reference/` 與 `docs/reference/`（公司程序、掃描衍生指引、授權 ISO 標準）  <!-- path-check: ignore — 刻意不在版控中；CI checkout 後不存在 -->
@@ -243,9 +244,8 @@ Gate 全綠只證明「零件對」；curl 通過只證明「API 會回應」。
 - ✅ CI lint 強制檢查
 - **驗收**：30 分鐘換 provider 不改業務代碼
 
-> ⚠️ **本條的理由待重寫**：原論證建立在「中國在範圍內、推論可能須境內發生」，
-> 該前提已隨 **ADR-0010** 消失。**約束保留**（供應商鎖定 / 成本 / 可用性是獨立理由），
-> 但在重寫前**不要引用它的「合規機制」框架**。見 BACKLOG `AD-Constraint7-1`。
+> ⚠️ **理由待重寫**：原論證的前提（中國在範圍內）已隨 **ADR-0010** 消失。**約束保留**
+> （供應商鎖定 / 成本 / 可用性是獨立理由），但別再引用「合規機制」框架。見 `AD-Constraint7-1`。
 
 詳見 `docs/rules-on-demand/llm-agent-antipatterns.md`。
 
@@ -336,15 +336,15 @@ python scripts/lint/run_all.py
 |---------|------|
 | `apps/api`（NestJS）· `apps/web`（Next.js）· PostgreSQL | ⚠️ W01 M0 建立骨架時決定 |
 
-> 拓撲已定（**ADR-0010**，取代 0006）：**全球 Azure 單一區域，單一 tenant 內 3 個環境**
-> （dev / staging / prod）。**prod 獨立 subscription**；prod RTO 4h / RPO 15min。
+> 拓撲已定（**ADR-0010**，取代 0006）：全球 Azure **單一區域 × 3 環境**（dev/staging/prod），
+> **prod 獨立 subscription**，RTO 4h / RPO 15min。
 
 ### Environment Setup
 
 複製 `.env.example` 到 `.env` —— 完整變數清單即該檔內容，不在此重複。
 
-> **非顯而易見的部署要求**：三個環境（ADR-0010）各自獨立配置，且 **prod 在不同的 subscription**。
-> prod 的密鑰與端點**不是** staging 的超集 —— 不要用同一份 `.env` 加開關來湊。
+> **非顯而易見**：**prod 在不同的 subscription**（ADR-0010），其密鑰與端點**不是** staging 的
+> 超集 —— 不要用同一份 `.env` 加開關來湊。
 
 ---
 
