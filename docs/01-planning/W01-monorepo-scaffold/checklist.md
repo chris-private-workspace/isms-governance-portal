@@ -211,29 +211,40 @@
 
 ### 4.1 Change record 與 design note
 
-- [ ] **`docs/03-implementation/changes/CH-NNN-w01-monorepo-scaffold.md`**（單檔 1-page：
+- [x] **`docs/03-implementation/changes/CH-011-w01-monorepo-scaffold.md`**（單檔 1-page：
       Problem / Root Cause / Solution / Verification / Impact —— 含 drive-through PASS 與關掉的 AD）
-  - DoD: 建立前先查最大號（`docs/03-implementation/changes/` 目前最大為 CH-009）
-- [ ] **`docs/02-architecture/design-notes/W01-monorepo-scaffold.md`**（spike → 8-point gate）
+  - DoD: 建立前先查最大號 —— ⚠️ **用了 CH-011 不是 CH-010**：`ls` 目錄看不到被
+        **前向引用**預留的號（`ADR-0010:175` · `ADR-0011:16,157,158` · `CH-009/spec.md:165`
+        · `BACKLOG` 都指向 CH-010 = Azure 資源清單）。判準應改 grep → `AD-ChNumber-1`
+- [x] **`docs/02-architecture/design-notes/W01-monorepo-scaffold.md`**（spike → 8-point gate）
   - DoD: 每條不變式含 `file:line` 與可重現的驗證指令；
-        依 `docs/rules-on-demand/spike-design-note-gate.md` 自查
-- [ ] **M0 DoD 六項逐項標註**（`07:31`）—— 已關 / 部分 / **未關 + 解封條件**。
-      ⛔ 第 4 項 IaC 掃描**不得**打勾或標 N/A（`AD-IaCEvidence-1`）；DAST 同理（`AD-DAST-1`）
+        依 `docs/rules-on-demand/spike-design-note-gate.md` 自查 →
+        **verified ratio 21/22 ≈ 95%**，8-point 自查表在 retrospective
+- [x] **M0 DoD 六項逐項標註**（`07:31`）—— 已關 / 部分 / **未關 + 解封條件**
+      → retrospective §M0 DoD 逐項標註：**3 關閉 / 2 部分 / 1 無標的**
+  - DoD: ⛔ IaC 掃描（第 3 項）**未打勾亦未標 N/A**，寫「未關閉 + 二選一解封條件」
+        （`AD-IaCEvidence-1`）；DAST 同理列在第 2 項的部分關閉理由（`AD-DAST-1`）
 
 ### 4.2 Closeout
 
-- [ ] `retrospective.md` Q1-Q7 + calibration（`greenfield-scaffold` 0.60，第 1 個資料點；
-      ratio 出 band 就標記 re-point）
-- [ ] `CALIBRATION-MATRIX.md` —— 新增一行並**刪掉兩行 `<example>` 範例列**，
+- [x] `retrospective.md` Q1-Q7 + calibration（`greenfield-scaffold` 0.60，第 1 個資料點；
+      ratio 出 band 就標記 re-point）—— ratio ~**0.35 UNDER band**，
+      依 3-phase 規則**不 re-point**；⚠️ 工時未逐項記錄故資料點品質打折（`AD-TimeTracking-1`）
+- [x] `CALIBRATION-MATRIX.md` —— 新增一行並**刪掉兩行 `<example>` 範例列**，
       **≤ 1 行 ~250 字元**（lint 上限 400；完整敘述 → `CALIBRATION-LOG.md`）
-- [ ] Final gate sweep: `npm run lint|type-check|test|build -w apps/api -w apps/web` ·
-      `python scripts/lint/run_all.py` 6/6 · CI `gates` + `security-scan` 全綠
-- [ ] 導航檔: `CLAUDE.md` Current-Phase + Last-Updated + §Scopes 移除「骨架尚未建立」+
-      §Services/Ports 填埠號 · `MEMORY.md` pointer + subfile ·
+      —— log 的 `<example>` 節亦一併移除
+- [x] Final gate sweep: format / lint / type-check / test:cov / test / build **全 EXIT=0** ·
+      `python scripts/lint/run_all.py` **6/6** · CI `gates` **SUCCESS**（14 步，
+      Tests 步驟實測印出 `All files 100 | 78.57 | 100 | 100`）· `security-scan` **SUCCESS**（四 job）
+- [x] 導航檔: `CLAUDE.md` Current-Phase + Last-Updated + §Scopes 移除「骨架尚未建立」+
+      §Services/Ports 填埠號（3200 / 3210 / 5433）+ §Tech Stack 同步 NestJS 11（R-8 要求，
+      **ADR 內文未改**）· `MEMORY.md` pointer + subfile ·
       `BACKLOG.md`（`AD-SecScan-1` 更新為部分關閉；`AD-Placeholder-1` 的
-      `scope-boundaries.md` 實例 CLOSE）
-- [ ] `docs/01-planning/W01-example/.gitkeep` 刪除（模板殘留）
-- [ ] Anti-pattern 自檢（retro Q5）：AP-1..AP-7 → 違規數。**AP-3 特別注意**：
-      八個範疇目錄是否留下了無邏輯的空殼
+      `scope-boundaries.md` 實例 CLOSE；新增四條 W01 AD）
+- [x] `docs/01-planning/W01-example/.gitkeep` 刪除（模板殘留）
+- [x] Anti-pattern 自檢（retro Q5）：AP-1..AP-7 → 違規數 **0**（收尾時）。**AP-3 特別注意**：
+      八個範疇目錄只有 `.gitkeep`，**無空殼 module**；過程中出現 5 個 AP-3 全部關閉，
+      同形狀 ≥3 次已提結構性解法 `AD-NegativeGate-1`
 - [ ] **Commit** → ⏳ PR push + open → CI → merge: **PENDING USER CONFIRMATION**
       （push 是 outward-facing）→ merge 經 `gh` 驗證後翻 `status:` frontmatter
+      —— ⚠️ frontmatter 已於本次收尾翻為 `closed_partial`（R9 要求收尾即翻，非等 merge）

@@ -47,12 +47,10 @@ Bottom-up ~X hr → class-calibrated ~Y hr (mult Z) → agent-adjusted ~Y' hr (a
 乘數範圍 [0.4, 1.0]。**低於 0.4 代表你的 bottom-up 估算方式有系統性問題**，該修的是估算不是乘數。
 
 <!-- 新專案從空表開始。每個 phase closeout 加/更新一行。 -->
-<!-- 下面兩行是格式範例，第一個真實 phase closeout 時請替換掉。 -->
 
 | Scope class | Mult | 3-phase mean | Status（1 行）|
 |-------------|------|---------------|--------------|
-| `<example> greenfield-feature` | 0.55 | n/a (0 pt) | 範例行 — 第一個真實 closeout 時刪掉 |
-| `<example> mechanical-refactor` | 0.45 | n/a (0 pt) | 範例行 — 第一個真實 closeout 時刪掉 |
+| `greenfield-scaffold` | 0.60 | n/a (1 pt) | KEEP (W01 ratio ~0.35 UNDER band; 工時未逐項記錄，數字由 commit 時間戳回推故品質打折; if 2nd <0.70 → 0.40; → calibration-log) |
 
 ### 常見 scope class 起始建議值
 
