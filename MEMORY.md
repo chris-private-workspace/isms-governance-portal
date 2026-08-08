@@ -51,6 +51,9 @@
 - 57.1-27 <主題描述>（subfile 仍在磁碟上，用 Glob `project_phase57_*` 找）
 -->
 
+- W01 [Monorepo scaffold](memory/project_w01_monorepo_scaffold.md) — closed_partial 2026-08-08, PR #18; 八個休眠 gate 從「回報 SUCCESS 但什麼都沒檢查」變成真的會叫；**同一 phase 內「綠燈但空轉」出現 5 次**，是本專案目前最重要的結構性教訓.
+  Keywords: AD-NegativeGate-1 · 設定型強制力靜默失效 · boundaries/dependencies · test:cov 未被執行 · Risk Class C 陳舊進程 · greenfield-scaffold calibration · entity-scope 未實作
+
 ---
 
 ## Project — Planning / Roadmap

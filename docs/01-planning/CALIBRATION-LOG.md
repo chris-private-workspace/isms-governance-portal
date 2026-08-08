@@ -25,13 +25,13 @@ Log 是**歷史紀錄** —— 只有在要調整某個乘數、或要理解某�
 ## §1 — 逐 class 敘述
 
 <!-- 每個 scope class 一節，newest-first 累積資料點。 -->
-<!-- 下面是格式範例，第一個真實 closeout 時替換掉。 -->
 
-### `<example> greenfield-feature`
+<!-- 格式範例（W01 closeout 時範例節已刪除，保留註解形式供參）：
 
-**現行乘數**: 0.55 | **資料點**: 0
+### `<class>`
 
-<!--
+**現行乘數**: <mult> | **資料點**: <N>
+
 每個資料點一段，格式：
 
 #### Phase X.Y — ratio ~R（IN/OVER/UNDER band）
@@ -41,6 +41,30 @@ Log 是**歷史紀錄** —— 只有在要調整某個乘數、或要理解某�
 - **是雜訊還是訊號**：<這次的偏差是一次性的意外，還是這個 class 的系統性特徵？>
 - **行動**：KEEP / re-point to <new> / 等更多資料點
 -->
+
+### `greenfield-scaffold`
+
+**現行乘數**: 0.60 | **資料點**: 1
+
+#### Phase W01 — ratio ~0.35（UNDER band）
+
+- Bottom-up 24 hr → committed 14.4 hr (mult 0.60) → actual **~5 hr**
+- **⚠️ 量測基礎不足**：`progress.md` 全程沒有逐任務工時（`task-workflow.md` Step 5 要求
+  「Task X.Y — actual Z min」）。5 hr 是從 commit 時間戳回推的 ——
+  首個 commit `e6ddff1` 16:30 → Day 3 收尾 `6ec4bf9` 19:57 = 3h27m，
+  加上第一個 commit 之前的 plan 起草與 Day-0 verify，再加 Day 4 收尾。
+  **這是估算不是量測**，資料點品質因此打折 → `AD-TimeTracking-1`
+- **發生了什麼**：即使把量測誤差算進去，0.35 仍遠低於 band 下緣。兩個候選解釋，
+  本 phase 無法區分：(a) bottom-up 的 24 hr 是「人手寫」的尺度，而實際是 AI 輔助執行 ——
+  若如此，這個 class 的乘數應在 0.35-0.45；(b) 本 phase 的 scope 恰好高度模板化 ——
+  骨架大量沿用姊妹專案 `unified-operation-platform` 的已知形狀，探索成本比一般 greenfield 低。
+  值得注意的是，**耗時的不是「寫骨架」，而是五次「綠燈但什麼都沒做」的排查** ——
+  boundaries 設定六次不生效、三個掃描 job 空轉、build 產物起不來。
+  這類成本在 bottom-up 拆解時完全沒有對應的項目。
+- **是雜訊還是訊號**：**不知道**，這是第 1 個資料點。若第 2 個 phase 也 < 0.70，
+  那 (a) 就是訊號，應 re-point 到 0.40。
+- **行動**：**等更多資料點**。依 matrix §何時調整乘數，單次離群值忽略，需要 3-phase 移動證據。
+  第 1 個資料點就調乘數會讓它在兩極間振盪，永遠收斂不了。
 
 ---
 

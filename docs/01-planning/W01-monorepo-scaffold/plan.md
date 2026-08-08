@@ -1,5 +1,5 @@
 ---
-status: active   # draft | active | closed | closed_partial —— 機器可讀的唯一權威
+status: closed_partial   # draft | active | closed | closed_partial —— 機器可讀的唯一權威
 ---
 
 # Phase W01 Plan — Monorepo scaffold that turns the dormant gates on
@@ -11,7 +11,11 @@ status: active   # draft | active | closed | closed_partial —— 機器可讀�
 `AD-IaCEvidence-1`），TLS/憑證/管理埠屬部署期而 infra 尚未佈建。`apps/web` 有可見畫面 →
 **drive-through MANDATORY**。本 repo 內無藍本 → **需要 design note**。
 
-**Status**: Approved-to-execute（laitim2001 於 2026-08-08 核可；範圍先以兩題確認：僅 M0 骨架 · web 最小殼層）
+**Status**: **closed_partial**（2026-08-08 收尾）—— US-1/2/4/5/6 完成，**US-3 部分**：
+三個掃描 job 已真掃，但兩個 Dockerfile 從未被 build 過（`AD-ImageBuild-1`）；
+安全標頭的自動化斷言未寫（checklist `2.3` 🚧）。M0 DoD 六項中 3 關閉 / 2 部分 / 1 無標的。
+retrospective: [retrospective.md](./retrospective.md)
+（原核可紀錄：laitim2001 於 2026-08-08 核可；範圍以兩題確認：僅 M0 骨架 · web 最小殼層）
 
 **Branch**: `feature/W01-monorepo-scaffold`
 **Base**: `main` HEAD `dc0c880`（PR #17 —— `AD-IaCEvidence-1` 入 BACKLOG）
@@ -243,12 +247,15 @@ Gates: `run_all` 6/6 · CI `gates` SUCCESS **且五個 guard 步驟真的執行*
 
 ## 6. Deliverables
 
-- [ ] US-1 npm workspace 骨架，五個 CI 指令都存在且可跑
-- [ ] US-2 `eslint.config.mjs` 八分區 + 已填寫的 `scope-boundaries.md` + 負面測試證據
+- [x] US-1 npm workspace 骨架，五個 CI 指令都存在且可跑
+- [x] US-2 `eslint.config.mjs` 八分區 + 已填寫的 `scope-boundaries.md` + 負面測試證據
 - [ ] US-3 兩個 Dockerfile；SCA / SAST / 容器掃描三個 job 真的執行
-- [ ] US-4 i18n L0 + `GLOSSARY.md` + key 一致性測試接進 `npm run test`
-- [ ] US-5 drive-through PASS（含 `db: down` 的負面驗證）
-- [ ] US-6 design note + retrospective + calibration 回填
+      🚧 **部分**：三個 job 已真掃 ✅；兩個 Dockerfile 存在但**從未被 build 過** ——
+      本機 build 被公司 proxy 的容器內 TLS 攔截擋住（`AD-ImageBuild-1`）。
+      解封條件：CI 或部署環境跑一次 build
+- [x] US-4 i18n L0 + `GLOSSARY.md` + key 一致性測試接進 `npm run test`
+- [x] US-5 drive-through PASS（含 `db: down` 的負面驗證）—— 6 張截圖於 `artifacts/`
+- [x] US-6 design note + retrospective + calibration 回填
 
 ## 7. Workload Calibration
 

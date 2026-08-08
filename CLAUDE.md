@@ -76,12 +76,12 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 | Attribute | Value |
 |-----------|-------|
 | **Stage** | Wave 1 backbone — 建立共用骨幹，並用 Policy + Risk/Control 兩個最小模組端到端證明它 |
-| **Current Phase** | **W01** — 尚未開始；用 `/phase-start` 建立 plan + checklist |
+| **Current Phase** | **W01 closed_partial**（骨架已交付）—— M0 六項 DoD 仍未全關，見 `07` §Build sequence |
 | **History** | See [`MEMORY.md`](./MEMORY.md) + 各 phase 的 `retrospective.md` |  <!-- doc-links: ignore — MEMORY.md 由 bootstrap 複製到專案根 -->
 | **Pending / Next** | See [`docs/01-planning/BACKLOG.md`](./docs/01-planning/BACKLOG.md)（**有什麼**）· [`ROADMAP.md`](./docs/01-planning/ROADMAP.md)（**先做哪個**）|
 | **跨來源狀態** | See [`docs/01-planning/STATUS_AUDIT.md`](./docs/01-planning/STATUS_AUDIT.md) —— 問「現在全項目怎樣」時跑 `/status-audit`，**不要只讀 BACKLOG** |
 | **Open questions** | See [`docs/decision-form.md`](./docs/decision-form.md) |
-| **Tech Stack** | **NestJS 10 + Prisma 7 · PostgreSQL · Next.js + Tailwind · Entra ID · Azure Container Apps（單一區域 × 3 環境）** —— ADR-0001 / 0007 / 0010 / 0011 已採納（**0010 取代 0006**）。ADR-0002~0005 待 W01 spike，0008/0009 待 Wave 3，見 [`docs/14-adr/README.md`](./docs/14-adr/README.md) |
+| **Tech Stack** | **NestJS 11 + Prisma 7 · PostgreSQL 18 · Next.js 16 · Entra ID · Azure Container Apps（單一區域 × 3 環境）** —— ADR-0001 / 0007 / 0010 / 0011 已採納（**0010 取代 0006**）。ADR-0001 決定的是**框架不是版本**；W01 實裝當前主版本（ADR 內文未改）。**Tailwind 尚未安裝** —— 隨設計交付物 port 一併進來。ADR-0002~0005 待 spike，0008/0009 待 Wave 3，見 [`docs/14-adr/README.md`](./docs/14-adr/README.md) |
 | **Main Branch** | `main` |
 | **Branch Protection** | PR required · **review_count=0**（單人開發 —— 沒有 reviewer）· no force-push · no deletions · linear history · enforce_admins。 補償機制：PR 開著睡一晚，隔天用 reviewer 的心態重讀一次。 |
 
@@ -180,8 +180,9 @@ Integration → Data & Analytics → Infrastructure`，security-by-design 橫切
 | 8 | `ui` | `apps/web/` | 角色式 UI、滾升儀表板；消費設計交付物的 tokens 與 class 名 |
 
 > 目錄由 **ADR-0001**（NestJS monorepo）導出：每個範疇 = 一個 NestJS module，
-> 邊界由 `eslint-plugin-boundaries` **機械強制**而非 review 慣例。
-> ⚠️ **骨架尚未建立** —— W01 M0 的交付物。
+> 邊界由 `eslint-plugin-boundaries` **機械強制**而非 review 慣例 ——
+> `eslint.config.mjs` 的 policies 預設 disallow，違規時 lint 失敗並指名兩個範疇。
+> ⚠️ **八個目錄目前只有 `.gitkeep`，刻意不建空 module**（空 module 對「關掉會壞什麼」答不出來 = AP-3）。
 > 跨範疇 import 規則：`docs/rules-on-demand/scope-boundaries.md`（需要時 Read）。
 
 ---
@@ -308,20 +309,24 @@ Gate 全綠只證明「零件對」；curl 通過只證明「API 會回應」。
 ## Development Commands
 
 ```bash
-# ⚠️ 技術棧已由 ADR-0001 定案，但 **monorepo 骨架尚未建立**（W01 M0 的交付物）。
-#    下列指令在骨架建立前不可用 —— 形狀取自 unified-operation-platform。
+# 骨架已於 W01 交付，下列指令現在都能跑。
 
 # Lint / Format
-npm run lint -w apps/api && npm run lint -w apps/web
+npm run lint -w apps/api -w apps/web
+npm run format:check -w apps/api -w apps/web
 
 # Type check
-npm run type-check -w apps/api && npm run type-check -w apps/web
+npm run type-check -w apps/api -w apps/web
 
-# Test
-npm run test -w apps/api && npm run test -w apps/web
+# Test（api 用 jest、web 用 vitest —— 各跑各自生態的預設，不把一個 runner 塞進兩邊）
+npm run test -w apps/api -w apps/web
+npm run test:cov -w apps/api          # 覆蓋率門檻；CI 跑的是這個，不是 test
 
 # Build
-npm run build -w apps/api && npm run build -w apps/web
+npm run build -w apps/api -w apps/web
+
+# 本機 PostgreSQL
+docker compose -f docker/compose.yml up -d
 
 # DB migration（Prisma）
 npm run prisma:migrate -w apps/api
@@ -334,7 +339,9 @@ python scripts/lint/run_all.py
 
 | Service | Port |
 |---------|------|
-| `apps/api`（NestJS）· `apps/web`（Next.js）· PostgreSQL | ⚠️ W01 M0 建立骨架時決定 |
+| `apps/web`（Next.js）| **3200** |
+| `apps/api`（NestJS）| **3210** —— `/health` · `/api-docs` |
+| PostgreSQL（`docker/compose.yml`）| **5433** —— 綁 `127.0.0.1`，非 5432（避開本機既有 PostgreSQL）|
 
 > 拓撲已定（**ADR-0010**，取代 0006）：全球 Azure **單一區域 × 3 環境**（dev/staging/prod），
 > **prod 獨立 subscription**，RTO 4h / RPO 15min。
@@ -507,6 +514,6 @@ python scripts/lint/run_all.py
 
 ---
 
-**Last Updated**: 2026-08-08
+**Last Updated**: 2026-08-08（W01 closeout）
 **Project Start**: 2026-08-07
 **Template Version**: 2.6.1 (claude-code-dev-template)
