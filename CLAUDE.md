@@ -47,7 +47,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ### Mission
 
 為集團的區域 IT 辦公室建立**內部自建的 APAC ISMS 治理平台**（ISO/IEC 27001 + 27017），
-服務 12 個管轄區的 14 家 OpCo。旗艦能力是**跨實體滾升儀表板** ——
+服務 11 個管轄區的 13 家 OpCo。旗艦能力是**跨實體滾升儀表板** ——
 讓區域 ISO 一眼看見所有 OpCo 的 ISMS 現況，而不是每季用 Excel 收集。
 
 不是通用 GRC 套件。**ISMS 是組織主軸**，平台數位化公司**既有的表單與程序**，不是另造一套模型。
@@ -110,7 +110,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 | 9 | 表單來源 | 數位化**公司既有範本**；設計表單／工作流**照來源文件**，不得自行發明欄位 | `11`–`13` |
 | 10 | 產品定位 | **APAC ISMS Governance Platform**（27001 + 27017），非通用 GRC 套件 | `00` D11 |
 | 11 | 設計交付物 | 對 **UI 有權威性**；領域邏輯**以程序為準不以 mockup 為準**（風險表單單一 impact 值） | `15` |
-| 12 | 範圍規模 | **14 OpCo / 12 管轄區**；日本是 HQ 非 OpCo；忽略交付物中的印度／DPDP 樣本 | `15` §1 |
+| 12 | 範圍規模 | **13 OpCo / 11 管轄區**；日本是 HQ 非 OpCo；忽略交付物中的印度／DPDP 樣本 | `15` §1 |
 | 13 | 權限模型 | **六角色 × 十一模組**，在**導航／路由／動作**三層強制 + 實體範疇疊加，**伺服器端**，**含 agent 檢索** | `15` |
 | 14 | 自建路徑 | build-vs-buy 曾建議不要自建；stakeholder **知情下確認**。其風險現為設計約束 | `00` D10 |
 | 15 | Wave 2 | frameworks-first + 範圍紀律 + AI 輔助變更解析；內容訂閱**延後**（建介面不填充）；稽核輕量；控制測試手動 + 證據 | `10` |
@@ -507,6 +507,6 @@ python scripts/lint/run_all.py
 
 ---
 
-**Last Updated**: 2026-08-07
+**Last Updated**: 2026-08-08
 **Project Start**: 2026-08-07
 **Template Version**: 2.6.1 (claude-code-dev-template)
