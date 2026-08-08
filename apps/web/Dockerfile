@@ -8,13 +8,14 @@
 # Owner: docs/14-adr/0011-compute-platform.md
 #
 # Description:
-#   Same three properties as api.Dockerfile: multi-stage, non-root, pinned base
-#   tag. Uses Next.js standalone output so the runtime layer carries the server
-#   and its traced dependencies rather than the whole node_modules tree.
+#   Same three properties as apps/api/Dockerfile: multi-stage, non-root, pinned
+#   base tag. Uses Next.js standalone output so the runtime layer carries the
+#   server and its traced dependencies rather than the whole node_modules tree.
 #
-#   ⚠️ Pinned by tag, NOT yet by digest — same follow-up as api.Dockerfile.
+#   ⚠️ Pinned by tag, NOT yet by digest — same follow-up as apps/api/Dockerfile.
 #
 # Modification History (newest-first):
+#   - 2026-08-08: Move runtime to distroless (Phase W01) — 45 base-image CVEs
 #   - 2026-08-08: Initial creation (Phase W01)
 
 # --- build -------------------------------------------------------------------
@@ -33,7 +34,11 @@ COPY apps/web apps/web
 RUN npm run build -w apps/web
 
 # --- runtime -----------------------------------------------------------------
-FROM node:22.21.0-bookworm-slim AS runtime
+# Distroless: no npm, no shell, no package manager. Next's standalone output
+# already carries the server plus only the dependencies it traced, so this image
+# needs nothing a package manager would provide. See apps/api/Dockerfile for the
+# scan numbers that drove the move.
+FROM gcr.io/distroless/nodejs22-debian12:nonroot AS runtime
 ENV NODE_ENV=production
 ENV HOSTNAME=0.0.0.0
 ENV PORT=3200
@@ -43,6 +48,6 @@ COPY --from=build /repo/apps/web/.next/standalone ./
 COPY --from=build /repo/apps/web/.next/static ./apps/web/.next/static
 COPY --from=build /repo/apps/web/public ./apps/web/public
 
-USER node
 EXPOSE 3200
-CMD ["node", "apps/web/server.js"]
+# ENTRYPOINT is already /nodejs/bin/node — CMD is the script path alone.
+CMD ["apps/web/server.js"]
