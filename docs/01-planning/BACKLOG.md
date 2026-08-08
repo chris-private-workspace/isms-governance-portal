@@ -3,7 +3,7 @@
 **Purpose**: 所有 carryover AD、pending 決策、下個 phase 候選的**唯一權威清單**。
 
 **Created**: 2026-08-07
-**Last Modified**: 2026-08-07
+**Last Modified**: 2026-08-08
 **Status**: Active
 
 > ⚠️ **這是待辦事項的單一來源。**
@@ -55,6 +55,7 @@
 | AD-CIRequired-1 | **CI 尚未設為 required status check** —— `required_status_checks` 仍是 `null`，所以綠燈不擋任何東西。`07:31` 的 M0 DoD 要求它 | CH-006 | 🟡 P1 | W01 M0 骨架建立後設。現在設 = 用沒有實質內容的 gate 擋住所有 PR |
 | AD-DAST-1 | **DAST 從來就不存在** —— `security-scan.yml` 四個 job 是 `secret-scan` / `dependency-scan` / `static-analysis` / `container-scan`，沒有 DAST；但 `04:71` 與 `07:50` 都要求它。⚠️ **私有 VNet 讓它更難補**：infra team 已確認一定接公司 private VNet，而 GitHub 託管 runner 在公網上，接不到只存在私有網路的 staging | Azure 資源盤點 2026-08-08 | 🟡 P1 | 與 `AD-SecScan-1` 同源但**不同缺口**（那三個是有 job 但 skip，這個是根本沒 job）。補法需 VNet 內 self-hosted runner 或等價路徑 —— **M0 規劃 CI 時一併決定**，部署後才發現代價高得多 |
 | AD-SecScan-1 | **SCA / SAST / 容器掃描是 skip 不是 clean** —— 首次 security-scan 只有 gitleaks 真的執行（9 commits, no leaks）。三者未經任何檢查，guardrail 7 尚未滿足 | CH-006 | 🟡 P1 | 需 `package.json`（W01 M0）。**容器掃描分項已被 ADR-0011 推進** —— ACA 要求 Dockerfile，M0 交出後該 job 就可執行。推進時**必須依 `security-scan.yml:19-25` 的五步次序** |
+| AD-IaCEvidence-1 | **IaC 掃描義務已移交 infra team —— 本專案沒有 IaC 可掃**。infra 建立全部 Azure 資源（2026-08-08 確認）。`07:31` M0 DoD「IaC skeleton scanned」與 `04:73`「apply 前掃描」雙雙失去標的。**義務未消失，只是換手** | CH-010 前置 | 🟡 P1 | ⛔ M0 收尾**不得**逕行打勾或標 N/A —— 二選一：引用 infra 掃描證據，或明記「由內部第三方營運」。同時擴大 Entity Zero 證據缺口（5→9 項）。ADR-0011「IaC tool deferred to CH-010」的答案＝本專案不選 |
 | AD-LintOutput-1 | **`run_all.py:80` 失敗時只保留 detector 輸出的最後一行**，而那通常是提示語不是違規清單 —— CI 失敗訊息無法診斷 | CH-006 | 🟢 P2 | 目前用 workflow 的 `--verbose` 繞過。同型再現 → 改成 `returncode != 0` 時保留完整輸出 |
 | AD-Placeholder-1 | ⭐ **「模板佔位符未與本專案對齊」已發生 6 次**（`AD-RuleBoundary-1` / `AD-CssToken-1` / `AD-DocIndex-1` / ADR 檔名 / `CLAUDE.md` byte 預算 / `ci.yml`）| CH-006 | 🟡 P1 | **CH-007 只關掉第 6 類**（actionlint + 棘輪 detector）。⚠️ 原提案的「掃全 repo 佔位符」**已證實不可行** —— 512 命中約 500 個是合法慣例語彙（`W{NN}` / `NNN` / `<slug>`），會噴在自己的規則文件上。其餘四類需語義理解，`lint-detector-authoring.md:22` 明訂寫不出可靠 detector。**本條保持開啟** |
 | AD-ActionsNode-1 | `actions/checkout@v4` 用 Node 20，GitHub 已標 deprecated 並強制跑在 Node 24（4 個 security-scan job 皆有此 annotation） | CH-006 | 🟢 P2 | 現在只是警告；GitHub 移除 Node 20 支援時會直接壞掉 |
