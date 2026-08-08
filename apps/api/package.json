@@ -13,6 +13,7 @@
     "type-check": "tsc --noEmit -p tsconfig.json",
     "test": "jest",
     "test:cov": "jest --coverage",
+    "postinstall": "prisma generate",
     "prisma:generate": "prisma generate",
     "prisma:migrate": "prisma migrate dev"
   },

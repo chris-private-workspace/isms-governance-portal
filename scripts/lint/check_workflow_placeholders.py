@@ -84,20 +84,14 @@ PLACEHOLDER_RE = re.compile(r"<[^<>\n]{2,140}>")
 # ⚠️ Lowering a count or removing an entry is the POINT of this file. Raising one
 # is not: if a change needs a new placeholder, the placeholder is the thing to
 # reconsider, not this baseline.
-ALLOWED: dict[str, tuple[int, str]] = {
-    "security-scan.yml::<你的環境設置步驟>": (
-        2,
-        "dependency-scan 與 static-analysis 的語言環境設置 —— 需要 monorepo 骨架（W01 M0）",
-    ),
-    "security-scan.yml::<依賴漏洞掃描指令，例：pip-audit / npm audit --audit-level=low / cargo audit / govulncheck>": (
-        1,
-        "SCA_CMD —— 需要 package.json（W01 M0）。AD-SecScan-1",
-    ),
-    "security-scan.yml::<靜態安全掃描指令，例：bandit -r . -x ./tests -lll / gosec ./... ；注意 linter 不算 SAST>": (
-        1,
-        "SAST_CMD —— 需要 monorepo 骨架（W01 M0）。AD-SecScan-1",
-    ),
-}
+# 2026-08-08 (W01): emptied. All four entries were filled once the monorepo
+# scaffold existed — env setup ×2, SCA_CMD (`npm audit --audit-level=low`) and
+# SAST_CMD (semgrep). The ratchet requires dropping them in the same change,
+# which is why this is now a deliberate blank rather than a stale baseline.
+#
+# ⚠️ An empty baseline means the next placeholder introduced anywhere in
+# .github/workflows/ fails immediately. That is the intent.
+ALLOWED: dict[str, tuple[int, str]] = {}
 
 
 class Violation(NamedTuple):

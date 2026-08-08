@@ -108,6 +108,26 @@ jobs:
 
       # === 以下在 monorepo 骨架（W01 M0）建立前自動略過 =================
       # 指令由 ADR-0001 定案。骨架一出現就自動生效。
+      #
+      # ⚠️ W01 補上的缺口：原本這裡只有存在性 guard，**沒有人負責裝相依**。
+      #    骨架落地後 Format check 第一次真的執行，立刻 `prettier: not found`
+      #    (exit 127)。那個缺口在骨架之前不可能暴露 —— 那五步從未跑過。
+      #    這正是「解封 ≠ 完成」：guard 解除只代表命令會被執行，不代表會成功。
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+
+      - name: Install dependencies
+        run: |
+          if [ ! -f package.json ]; then
+            echo "::notice::monorepo scaffold absent — skipped until W01 M0 (ADR-0001)"
+            exit 0
+          fi
+          # `npm ci` 而非 `npm install`：CI 要的是照 lockfile 重現，不是解算。
+          # apps/api 的 postinstall 會跑 `prisma generate` —— 生成的 client 不進
+          # 版控，而 type-check / build 需要它存在。
+          npm ci
 
       - name: Format check
         run: |

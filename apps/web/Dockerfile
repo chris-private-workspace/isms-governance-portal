@@ -1,4 +1,7 @@
-# File: docker/web.Dockerfile
+# File: apps/web/Dockerfile
+#
+# ⚠️ Build context is the REPO ROOT, not this directory:
+#     docker build -f apps/web/Dockerfile .
 # Purpose: Production image for apps/web (Next.js).
 # Category: Tooling / container
 # Scope: Phase W01 (M0)

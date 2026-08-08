@@ -44,10 +44,12 @@ on:
   schedule:
     - cron: "0 2 * * 1"
   workflow_dispatch:
-  # 分流完成、門檻定好之後，取消下面這行的註解（見上面第 4 步）。
+  # 解封於 W01（2026-08-08）：四個 job 現在都真的執行，門檻也定了
+  # （SCA `--audit-level=low`、SAST semgrep `p/default`+`p/typescript`、
+  # trivy HIGH/CRITICAL + `--ignore-unfixed`）。在此之前解封只會得到綠燈假象。
   # 不要設 paths filter —— 依賴 / 憑證 / 容器三類的命中，
   # 跟這次 PR 改了哪個檔沒有必然關係。
-  # pull_request:
+  pull_request:
 
 permissions:
   contents: read
@@ -135,11 +137,20 @@ jobs:
     timeout-minutes: 20
     steps:
       - uses: actions/checkout@v4
-      # <你的環境設置步驟>
+
+      # `npm audit` 讀 package-lock.json，不需要 `npm ci` —— 少裝 851 個套件。
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
 
       - name: 掃描
         run: |
-          SCA_CMD='<依賴漏洞掃描指令，例：pip-audit / npm audit --audit-level=low / cargo audit / govulncheck>'
+          # `--audit-level=low` 是**目前最嚴且仍為綠**的門檻（W01 實測 0 findings）。
+          # 從最嚴開始，之後才不會有東西靜靜退步；真的擋到路時走上面那條逐條豁免，
+          # 不是一刀切調高 severity。
+          #
+          # 含 devDependencies 是刻意的：建置期供應鏈同樣在 guardrail 7 的範圍內。
+          SCA_CMD='npm audit --audit-level=low'
           case "$SCA_CMD" in
             '' | '<'*)
               echo "SCA 指令未設定 — 在 .github/workflows/security-scan.yml 填 SCA_CMD"
@@ -187,11 +198,25 @@ jobs:
     timeout-minutes: 15
     steps:
       - uses: actions/checkout@v4
-      # <你的環境設置步驟>
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      # 釘版本。pip 沒有像 gitleaks/trivy 那樣的 checksum 步驟可抄，
+      # `==` 是這條路徑上能做到的最強約束 —— 記下來，不假裝等價。
+      - name: 安裝 semgrep（釘版本）
+        run: |
+          python -m pip install --quiet --disable-pip-version-check semgrep==1.172.0
+          semgrep --version
 
       - name: 掃描
         run: |
-          SAST_CMD='<靜態安全掃描指令，例：bandit -r . -x ./tests -lll / gosec ./... ；注意 linter 不算 SAST>'
+          # eslint 不算 SAST（見本 job 上方警語）—— 所以用 semgrep，不是把 lint 再跑一次。
+          # `p/default` + `p/typescript`：策展規則集，不用 `--config auto`（後者會依帳號行為變動）。
+          # `--error`：有 finding 就非零退出，否則 job 會綠著印出 finding。
+          # 排除 generated：Prisma client 是產生物，不是我們的攻擊面。
+          SAST_CMD='semgrep scan --config p/default --config p/typescript --error --metrics=off --exclude node_modules --exclude "**/generated/**" .'
           case "$SAST_CMD" in
             '' | '<'*)
               echo "SAST 指令未設定 — 在 .github/workflows/security-scan.yml 填 SAST_CMD"
@@ -215,15 +240,18 @@ jobs:
         env:
           TRIVY_VERSION: "0.72.0"
         run: |
-          # glob 而非 `ls`（shellcheck SC2035/SC2045）：`./` 前綴讓 dash 開頭的
-          # 檔名不會被當成選項，而 `[ -f ]` 處理 glob 無匹配時保留字面值的情況。
-          have_dockerfile=0
-          for f in ./Dockerfile ./*/Dockerfile; do
-            [ -f "$f" ] && { have_dockerfile=1; break; }
-          done
-          if [ "$have_dockerfile" -eq 0 ]; then
+          # ⚠️ 原本是 `for f in ./Dockerfile ./*/Dockerfile` —— **只認第一層、
+          #    且檔名必須恰為 `Dockerfile`**。W01 首次跑到這裡時 repo 裡有兩個
+          #    Dockerfile，這個 glob 一個都沒配到，於是 trivy 從未安裝，
+          #    後續兩個步驟各印一行「略過」，而整個 job 是**綠的**。
+          #    失敗模式是靜默的綠燈，所以探測要寬，不要巧。
+          find . -path ./node_modules -prune -o -type f \
+            \( -name Dockerfile -o -name '*.Dockerfile' \) -print > dockerfiles.txt
+          if [ ! -s dockerfiles.txt ]; then
             echo "沒有 Dockerfile — 略過容器掃描"; exit 0
           fi
+          echo "找到 $(wc -l < dockerfiles.txt) 個 Dockerfile："
+          cat dockerfiles.txt
           base="https://github.com/aquasecurity/trivy/releases/download/v${TRIVY_VERSION}"
           tarball="trivy_${TRIVY_VERSION}_Linux-64bit.tar.gz"
           curl -sSLo "$tarball" "${base}/${tarball}"
@@ -265,9 +293,11 @@ jobs:
           # 上游一出修正就不再算 unfixed，立刻變紅。
           set -o pipefail
           rc=0
-          # glob 直接迭代，不走 `$(ls …)`（shellcheck SC2045：ls 輸出遇到含空白
-          # 的檔名會裂開）。glob 無匹配時 shell 保留字面值，故用 `[ -f ]` 過濾。
-          for df in ./Dockerfile ./*/Dockerfile; do
+          # 讀上一步寫下的清單，而不是重跑一次探測 —— 兩處各自 glob 正是
+          # 「安裝步驟找得到、掃描步驟找不到」這類分歧的來源。
+          # `while read` 而非 `for $(…)`：路徑含空白時不會裂開（SC2045/SC2086）。
+          [ -f dockerfiles.txt ] || { echo "沒有 Dockerfile 清單 — 略過"; exit 0; }
+          while IFS= read -r df; do
             [ -f "$df" ] || continue
             bases=$(grep -iE '^FROM ' "$df" | awk '{print $2}' | sort -u)
             for img in $bases; do
@@ -276,5 +306,5 @@ jobs:
                 --severity HIGH,CRITICAL --ignore-unfixed "$img" || rc=1
               echo "::endgroup::"
             done
-          done
+          done < dockerfiles.txt
           exit $rc
