@@ -1,0 +1,58 @@
+# File: .trivyignore.yaml
+# Purpose: Time-boxed exemptions for container base-image findings we cannot fix.
+# Category: Security / CI
+# Scope: Phase W01 (M0)
+# Owner: .github/workflows/security-scan.yml §container-scan
+#
+# ⚠️ READ THIS BEFORE ADDING A LINE.
+#
+# security-scan.yml records three rules for exemptions, all of which apply here:
+#   ① exempt per advisory with a reason — never lower the severity threshold,
+#      because that also waves through advisories that do not exist yet
+#   ② every exemption carries an expiry, and something must fail when it passes.
+#      trivy's `expired_at` is that something: past the date the finding returns
+#      on its own, so nobody has to remember
+#   ③ "upstream has no fix" and "we decided not to fix" are different reasons
+#      and must be written differently
+#
+# The entries below are a THIRD case worth naming: Debian published the fix
+# (3.0.19-1~deb12u2), but the distroless image has not been rebuilt with it. So
+# there is nothing to upgrade to at our layer and nothing for us to decide —
+# only an upstream rebuild to wait for, which is why the window is short.
+#
+# Created: 2026-08-08 (Phase W01)
+# Last Modified: 2026-08-08
+#
+# Modification History (newest-first):
+#   - 2026-08-08: Initial creation (Phase W01) — libssl3 in distroless nodejs22
+
+vulnerabilities:
+  # ── libssl3 in gcr.io/distroless/nodejs22-debian12:nonroot ────────────────
+  # Installed 3.0.18-1~deb12u2 · fixed upstream in 3.0.19-1~deb12u2.
+  # Expires 2026-09-07 (30 days). On expiry: re-pull the base and re-scan. If
+  # distroless has rebuilt, delete this whole file. If not, the decision is
+  # escalated — do NOT extend the date without re-triaging each entry.
+  - id: CVE-2026-31789
+    statement: >-
+      OpenSSL heap buffer overflow on 32-bit systems (CRITICAL). Debian has
+      published 3.0.19-1~deb12u2; the distroless image has not been rebuilt.
+      Our workloads run on amd64 (Azure Container Apps, ADR-0011), so the
+      32-bit precondition does not hold for us — this is deferred, not ignored.
+    expired_at: 2026-09-07
+  - id: CVE-2026-28387
+    statement: >-
+      OpenSSL arbitrary code execution (HIGH). Same libssl3 package, same
+      upstream fix, same rebuild wait.
+    expired_at: 2026-09-07
+  - id: CVE-2026-28388
+    statement: OpenSSL denial of service via NULL pointer dereference. Same package and wait.
+    expired_at: 2026-09-07
+  - id: CVE-2026-28389
+    statement: OpenSSL denial of service in CMS. Same package and wait.
+    expired_at: 2026-09-07
+  - id: CVE-2026-28390
+    statement: OpenSSL denial of service via NULL pointer dereference. Same package and wait.
+    expired_at: 2026-09-07
+  - id: CVE-2026-45447
+    statement: OpenSSL advisory in the same libssl3 package. Same upstream fix, same wait.
+    expired_at: 2026-09-07

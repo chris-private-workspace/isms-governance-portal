@@ -298,6 +298,13 @@ jobs:
           # 上游一出修正就不再算 unfixed，立刻變紅。
           set -o pipefail
           rc=0
+          # 每次都把豁免清單印出來。中低危不閘但要繼續看得到 —— 同一條原則
+          # 用在豁免上更重要：**看不見的豁免，三個月後就等於不存在的漏洞。**
+          if [ -f .trivyignore.yaml ]; then
+            echo "::group::目前生效的容器掃描豁免（含到期日）"
+            grep -E '^\s*(- id:|expired_at:)' .trivyignore.yaml || true
+            echo "::endgroup::"
+          fi
           # 讀上一步寫下的清單，而不是重跑一次探測 —— 兩處各自 glob 正是
           # 「安裝步驟找得到、掃描步驟找不到」這類分歧的來源。
           # `while read` 而非 `for $(…)`：路徑含空白時不會裂開（SC2045/SC2086）。
@@ -312,7 +319,10 @@ jobs:
             bases=$(grep -iE '^FROM ' "$df" | awk '{print $2}' | tail -1)
             for img in $bases; do
               echo "::group::$df -> $img"
+              # `--ignorefile` 明寫，不靠 trivy 對 `.trivyignore*` 的自動探測 ——
+              # 「被靜音了什麼」不該取決於某個檔案剛好在 cwd。
               ./trivy image --scanners vuln --exit-code 1 --no-progress \
+                --ignorefile .trivyignore.yaml \
                 --severity HIGH,CRITICAL --ignore-unfixed "$img" || rc=1
               echo "::endgroup::"
             done
