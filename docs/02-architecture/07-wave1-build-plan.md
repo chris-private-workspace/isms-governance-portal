@@ -61,6 +61,6 @@ From `04` — no milestone is done until: new data is entity-scoped at the datab
 
 - Treat M0–M9 as milestones/epics; open each as a focused work session.
 - Start every session by re-reading `CLAUDE.md` and the relevant `docs/` file(s).
-- Write the ADR before the code for anything on the open-decisions list (`06`); topology is settled (ADR-0010), so the next one on the critical path is **ADR-0011** (compute platform), which gates the Azure resource request.
+- Write the ADR before the code for anything on the open-decisions list (`06`). Topology (ADR-0010) and compute (ADR-0011) are settled, so **M0 is no longer ADR-blocked**; the next decisions — ADR-0003 / 0004 / 0005 — need spike measurements and cannot be written ahead of them.
 - Keep docs and code in sync in the same change; if the design is wrong, fix the doc, don't diverge silently.
 - Do not proceed past a milestone whose security gate fails.

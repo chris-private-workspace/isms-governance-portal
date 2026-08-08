@@ -34,7 +34,7 @@ Note on the backend choice: a framework with strong built-in **auth, permissions
 | ADR-0004 | Entity-scoping enforcement | PostgreSQL RLS strategy; how user scope maps to policies |
 | ADR-0005 | Governed extension storage | JSONB + central field catalog; validation approach |
 | ~~ADR-0006~~ → **ADR-0010** | Deployment topology | ✅ Settled: **single region, three environments** in one tenant. ADR-0006 (per-region) is superseded — China left scope |
-| ADR-0011 | Compute platform: App Service vs Container Apps | Prerequisite for the Azure resource request (`CH-009`) |
+| ADR-0011 | Compute platform | ✅ Settled: **Azure Container Apps** — `apps/api` internal ingress, `apps/web` external, one shared ACR. Makes ADR-0001's "containerised" binding |
 | ADR-0007 | Identity provider | Self-hosted (Keycloak) vs. managed IdP |
 | ADR-0008 | AI agent architecture | Self-built retrieval vs. Copilot Studio integration vs. hybrid per region (`14`) |
 | ADR-0009 | AI processing location & model-agnostic inference interface | Sovereignty control — where inference happens is a compliance decision, not a vendor preference (`14`) |
