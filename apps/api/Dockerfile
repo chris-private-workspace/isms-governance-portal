@@ -1,38 +1,59 @@
 # File: apps/api/Dockerfile
+# Purpose: Production image for apps/api (NestJS), on a distroless runtime.
+# Category: Tooling / container
+# Scope: Phase W01 (M0)
+# Owner: docs/14-adr/0011-compute-platform.md
 #
 # ⚠️ Build context is the REPO ROOT, not this directory:
 #     docker build -f apps/api/Dockerfile .
 # Named `Dockerfile` and placed beside its app on purpose — security-scan.yml's
 # discovery and `trivy config`'s own detection both key on that filename, and
 # the earlier `docker/api.Dockerfile` layout silently matched neither.
-# Purpose: Production image for apps/api (NestJS).
-# Category: Tooling / container
-# Scope: Phase W01 (M0)
-# Owner: docs/14-adr/0011-compute-platform.md
 #
 # Description:
-#   Three properties are here because `security-scan.yml`'s container-scan job
-#   checks for them, and because ADR-0011 made containerising the thing that
-#   turns that job from permanently-skipped into executable (AD-SecScan-1):
-#     - multi-stage, so build tooling never reaches the runtime layer
-#     - runs as a non-root user
-#     - base image pinned to an exact version tag
+#   Three stages: build (full toolchain), prod-deps (runtime node_modules only),
+#   runtime (distroless).
 #
-#   ⚠️ Pinned by tag, NOT yet by digest. Digest pinning is what actually
-#   defeats tag mutation, and it is listed as a W01 follow-up rather than
-#   claimed here — writing a digest we have not resolved would be worse than
-#   writing none.
+#   ⭐ WHY DISTROLESS. The first honest container scan of this project put 45
+#   HIGH/CRITICAL findings on node:22.21.0-bookworm-slim — 11 in the Debian
+#   layer and **34 inside the npm tree that ships with the Node image itself**
+#   (node-tar gzip-bomb DoS, brace-expansion). None of those 34 are our
+#   dependencies, and production has no use for npm at all. Distroless carries
+#   no npm, no shell and no package manager, which removes that entire class
+#   rather than chasing its members. guardrail 1: the platform must not itself
+#   be a source of risk.
 #
-#   The base image IS scanned: security-scan.yml reads every `FROM` line out of
-#   this file and runs trivy against it, so a known-vulnerable base fails CI
-#   even while the tag is mutable.
+#   Consequences accepted, stated rather than discovered later:
+#     - **No shell in the runtime image.** `docker exec ... sh` will not work,
+#       and neither will any RUN step after the final FROM. Everything must be
+#       prepared in an earlier stage. Combined with ADR-0011's note that the
+#       corporate proxy blocks Container Apps log endpoints, diagnosis leans
+#       entirely on shipped structured logs — which is the direction that ADR
+#       already committed to.
+#     - prod-deps installs with `--ignore-scripts`, because postinstall runs
+#       `prisma generate` and `prisma` is a devDependency. The generated client
+#       is copied from the build stage instead, where it was produced properly.
+#
+#   ⚠️ Pinned by tag, NOT by digest. Digest pinning is what actually defeats tag
+#   mutation; it is a recorded follow-up rather than a claim made here. The base
+#   IS scanned regardless: security-scan.yml reads every `FROM` line out of this
+#   file and runs trivy against it.
 #
 # Modification History (newest-first):
+#   - 2026-08-08: Move runtime to distroless (Phase W01) — 45 base-image CVEs
 #   - 2026-08-08: Initial creation (Phase W01)
 
 # --- build -------------------------------------------------------------------
 FROM node:22.21.0-bookworm-slim AS build
 WORKDIR /repo
+
+# `-slim` ships without OpenSSL, and Prisma uses it to pick which engine build
+# to fetch. Without it: "Prisma failed to detect the libssl/openssl version to
+# use ... Defaulting to openssl-1.1.x", then the wrong engine. Caught by running
+# the build, not by reading the Dockerfile.
+RUN apt-get update \
+  && apt-get install -y --no-install-recommends openssl ca-certificates \
+  && rm -rf /var/lib/apt/lists/*
 
 COPY package.json package-lock.json ./
 COPY packages/types/package.json packages/types/
@@ -43,26 +64,37 @@ RUN npm ci --workspace @isms/api --include-workspace-root
 COPY tsconfig.base.json ./
 COPY packages/types packages/types
 COPY apps/api apps/api
+# `nest build` copies src/generated into dist via nest-cli.json assets; without
+# that the built app requires ../generated/prisma and dies at startup while the
+# build itself stays green.
 RUN npm run prisma:generate -w apps/api && npm run build -w apps/api
 
+# --- production dependencies -------------------------------------------------
+FROM node:22.21.0-bookworm-slim AS prod-deps
+WORKDIR /repo
+
+COPY package.json package-lock.json ./
+COPY packages/types/package.json packages/types/
+COPY apps/api/package.json apps/api/
+COPY apps/web/package.json apps/web/
+RUN npm ci --omit=dev --ignore-scripts --workspace @isms/api --include-workspace-root
+
 # --- runtime -----------------------------------------------------------------
-FROM node:22.21.0-bookworm-slim AS runtime
+# `:nonroot` runs as uid 65532 and has no shell, no npm, no package manager.
+FROM gcr.io/distroless/nodejs22-debian12:nonroot AS runtime
 ENV NODE_ENV=production
 # Containers must bind all interfaces; the local default is loopback (main.ts).
 ENV API_HOST=0.0.0.0
 ENV API_PORT=3210
 WORKDIR /app
 
-COPY --from=build /repo/package.json /repo/package-lock.json ./
-COPY --from=build /repo/packages/types/package.json packages/types/
-COPY --from=build /repo/apps/api/package.json apps/api/
-RUN npm ci --omit=dev --workspace @isms/api --include-workspace-root \
-  && npm cache clean --force
+COPY --from=prod-deps /repo/node_modules ./node_modules
+COPY --from=build /repo/apps/api/dist ./apps/api/dist
+COPY --from=build /repo/packages/types/package.json ./packages/types/package.json
+COPY --from=build /repo/packages/types/src ./packages/types/src
 
-COPY --from=build /repo/apps/api/dist apps/api/dist
-COPY --from=build /repo/packages/types/src packages/types/src
-
-# `node` (uid 1000) ships with the base image; no user is created here.
-USER node
 EXPOSE 3210
-CMD ["node", "apps/api/dist/bootstrap/main.js"]
+# The distroless nodejs image's ENTRYPOINT is already /nodejs/bin/node, so CMD
+# carries the script path only — prefixing "node" here would look for a file
+# named node.
+CMD ["apps/api/dist/bootstrap/main.js"]

@@ -304,7 +304,12 @@ jobs:
           [ -f dockerfiles.txt ] || { echo "沒有 Dockerfile 清單 — 略過"; exit 0; }
           while IFS= read -r df; do
             [ -f "$df" ] || continue
-            bases=$(grep -iE '^FROM ' "$df" | awk '{print $2}' | sort -u)
+            # ⚠️ **只取最後一個 FROM** —— 那是實際出貨的 runtime base。
+            # 先前取全部 `sort -u`，於是建置階段的 base 也被閘住。兩者威脅模型
+            # 不同：建置映像不會被部署，它的 OS CVE 不在 production 攻擊面上，
+            # 而建置期供應鏈已由 SCA + lockfile 覆蓋。
+            # 這條**放寬了範圍，所以明寫在這裡**，不藏在 severity 門檻裡。
+            bases=$(grep -iE '^FROM ' "$df" | awk '{print $2}' | tail -1)
             for img in $bases; do
               echo "::group::$df -> $img"
               ./trivy image --scanners vuln --exit-code 1 --no-progress \

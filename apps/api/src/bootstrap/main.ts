@@ -35,6 +35,12 @@ import { AppModule } from './app.module';
 async function bootstrap(): Promise<void> {
   const app = await NestFactory.create(AppModule, { bufferLogs: false });
 
+  // Express advertises itself with `X-Powered-By` unless told not to. Helmet's
+  // option did NOT remove it — verified by reading the response headers, not by
+  // reading the config. Version disclosure is one of the finding classes `16`
+  // is derived from, so it is disabled at the adapter, where it actually lives.
+  app.getHttpAdapter().getInstance().disable('x-powered-by');
+
   // Explicit, not inherited. `04:93`: platform defaults are the risk.
   app.use(
     helmet({
@@ -52,7 +58,6 @@ async function bootstrap(): Promise<void> {
       referrerPolicy: { policy: 'no-referrer' },
       crossOriginOpenerPolicy: { policy: 'same-origin' },
       crossOriginResourcePolicy: { policy: 'same-origin' },
-      xPoweredBy: false,
     }),
   );
 

@@ -212,6 +212,70 @@ CI 的 `Architecture lints` 紅，本機我卻回報 6/6。真相：我用 `Sele
 **這是 guardrail 1 的直球題**：一套安全平台不得自身成為風險來源。
 處置方式是決策，不是修 bug，已列為 checklist 2.4 的新增項，**未勾選**。
 
+## ⭐⭐⭐ 產出物驗證：build 綠、CI 綠、**而程式跑不起來**
+
+決定改 distroless 之前先看了一眼 `dist`，結果撞到本 phase 最嚴重的一個：
+
+```
+dist/core-model/prisma.service.js   require("../generated/prisma")
+dist/generated                      ← 不存在
+```
+
+Prisma client 是 `.js`，`tsc` 不會搬（api 沒開 `allowJs`）。**`npm run build` EXIT=0、
+CI 全綠、測試全過，而產出的 artifact 一啟動就會炸。** 順帶發現
+`health.service.spec.js` 被編進 production build。
+
+修法：`nest-cli.json` 的 `assets` 把 `src/generated/**` 複製進 dist；
+新增 `tsconfig.build.json` 排除 `*.spec.ts` 與 `generated/`。
+
+### 然後真的把它開起來（backend drive-through）
+
+```
+docker compose up -d  →  isms-postgres-dev  Up (healthy)
+node dist/bootstrap/main.js
+  [Nest] LOG [NestApplication] Nest application successfully started
+  [isms-api] listening on http://127.0.0.1:3210 (api-docs at /api-docs)
+
+curl /health                     {"status":"up","db":"up"}
+docker stop isms-postgres-dev →  {"status":"up","db":"down"}     ← 負面驗證通過
+docker start（等 healthy）    →  {"status":"up","db":"up"}
+```
+
+**這證明 `/health` 不是硬編碼** —— AP-3 的判準在 runtime 成立，不只在測試裡。
+
+### 標頭逐條實測，抓到一個
+
+```
+Content-Security-Policy · Strict-Transport-Security · X-Content-Type-Options
+X-Frame-Options: DENY · Referrer-Policy · Cross-Origin-{Opener,Resource}-Policy   ✅
+X-Powered-By: Express                                                            🔴 還在
+```
+
+helmet 的 `xPoweredBy: false` **沒有生效**。改在 adapter 層
+`app.getHttpAdapter().getInstance().disable('x-powered-by')`，重測後消失。
+版本揭露正是 `16` 那 45 條 findings 的來源類別之一 ——
+**這是讀回應標頭抓到的，不是讀設定檔抓到的。**
+
+## 🔴 容器 build 在本機無法驗證（環境限制，非程式問題）
+
+改 distroless 後 `docker build` 撞到兩件事：
+
+| 問題 | 性質 | 處置 |
+|---|---|---|
+| `bookworm-slim` 缺 OpenSSL → Prisma 抓錯引擎 | **真實缺陷，各環境皆然** | build stage 加 `openssl ca-certificates` |
+| `self-signed certificate in certificate chain`（`binaries.prisma.sh`）| **本機環境限制** —— 公司 proxy 在**容器內**同樣 MITM TLS，容器沒有公司 CA | 不把 CA 塞進 repo 的 Dockerfile。GitHub runner 無此 proxy |
+
+⚠️ **由此浮現一個真實缺口：目前沒有任何地方會 build 這兩個映像。**
+CI 的 trivy job 依設計只掃 base image、不 build（`security-scan.yml:253` 明寫此取捨）。
+所以 Dockerfile 的正確性到部署當天才會被驗證。**已列為待記錄的 AD。**
+
+### trivy 範圍調整（放寬，明寫）
+
+base image 取值由「所有 `FROM` 的 `sort -u`」改為「**最後一個 `FROM`**」——
+即實際出貨的 runtime base。建置映像不會被部署，其 OS CVE 不在 production 攻擊面上，
+而建置期供應鏈已由 SCA + lockfile 覆蓋。**這是放寬範圍，所以寫在該行旁邊，
+不藏在 severity 門檻裡。**
+
 ## 🚧 尚未驗證（不可標為完成）
 
 - **CI 未跑** —— 五個 guard 步驟與三個 security-scan job 是否真的從 skip 轉為執行，

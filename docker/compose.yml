@@ -28,7 +28,10 @@ services:
     ports:
       - '127.0.0.1:5433:5432'
     volumes:
-      - isms-pgdata:/var/lib/postgresql/data
+      # ⚠️ PostgreSQL 18+ wants ONE mount at /var/lib/postgresql, not the older
+      # /var/lib/postgresql/data. With the old path the container starts, prints
+      # a pg_upgrade advisory and restart-loops. Verified by watching it loop.
+      - isms-pgdata:/var/lib/postgresql
     healthcheck:
       test: ['CMD-SHELL', 'pg_isready -U ${POSTGRES_USER:-isms_dev} -d ${POSTGRES_DB:-isms_dev}']
       interval: 5s
