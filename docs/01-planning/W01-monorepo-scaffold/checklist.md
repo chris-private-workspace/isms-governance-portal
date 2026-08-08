@@ -130,7 +130,9 @@
   - Verify: 同上
 - [x] **決定 `security-scan.yml:50` 的 `pull_request:` 觸發是否解封** —— **已解封**
   - DoD: 決定寫入 progress.md；若不解封，記錄 re-enable criteria（`release-process.md` 要求）
-- [ ] **處置 trivy 在 base image 找到的 CVE**（4 項管線修好後浮現的**真實發現**，非管線問題）
+- [x] **處置 trivy 在 base image 找到的 CVE**（4 項管線修好後浮現的**真實發現**，非管線問題）
+      —— distroless 把 45 降到 6；剩餘 6 條同屬 `libssl3`，以 `.trivyignore.yaml`
+      逐條豁免至 **2026-09-07**（trivy `expired_at` 原生到期）。`AD-TrivyExempt-1`
   - DoD: `node:22.21.0-bookworm-slim` 的 45 個 HIGH/CRITICAL 有明確處置 ——
         換 base、或逐條豁免 + 到期日（`security-scan.yml:161` 的閂門）。**不可調高 severity 門檻**
   - Verify: `gh run view <id> --json jobs` 的 `容器映像 — trivy` 為 success
