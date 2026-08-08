@@ -1,4 +1,10 @@
-# File: docker/api.Dockerfile
+# File: apps/api/Dockerfile
+#
+# ⚠️ Build context is the REPO ROOT, not this directory:
+#     docker build -f apps/api/Dockerfile .
+# Named `Dockerfile` and placed beside its app on purpose — security-scan.yml's
+# discovery and `trivy config`'s own detection both key on that filename, and
+# the earlier `docker/api.Dockerfile` layout silently matched neither.
 # Purpose: Production image for apps/api (NestJS).
 # Category: Tooling / container
 # Scope: Phase W01 (M0)
@@ -16,6 +22,10 @@
 #   defeats tag mutation, and it is listed as a W01 follow-up rather than
 #   claimed here — writing a digest we have not resolved would be worse than
 #   writing none.
+#
+#   The base image IS scanned: security-scan.yml reads every `FROM` line out of
+#   this file and runs trivy against it, so a known-vulnerable base fails CI
+#   even while the tag is mutable.
 #
 # Modification History (newest-first):
 #   - 2026-08-08: Initial creation (Phase W01)
