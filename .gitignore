@@ -58,6 +58,9 @@ obj/
 # === 流程工具產物 ===
 *.new
 # ↑ init_template.py --merge 產生的衝突檔。merge 完就刪，不要 commit
+.playwright-mcp/
+# ↑ 瀏覽器驅動時的暫存 snapshot / console log。drive-through 的**證據**要留，
+#   但留的是 W{NN}-*/artifacts/ 底下經過挑選的截圖，不是每次呼叫的原始輸出。
 
 # === 編輯器 ===
 .vscode/*
