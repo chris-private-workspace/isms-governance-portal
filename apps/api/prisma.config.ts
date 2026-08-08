@@ -40,8 +40,14 @@ for (const candidate of ['.env', '../../.env']) {
   }
 }
 
+// `prisma generate` needs no connection string; `prisma migrate` does. Declaring
+// the datasource only when DATABASE_URL is present keeps both honest: a fresh
+// clone and CI can generate the client with no .env, while migrate still fails
+// loudly rather than against a fake URL planted to keep CI quiet.
+const url = process.env.DATABASE_URL;
+
 export default defineConfig({
   schema: 'prisma/schema.prisma',
   migrations: { path: 'prisma/migrations' },
-  datasource: { url: env('DATABASE_URL') },
+  ...(url ? { datasource: { url: env('DATABASE_URL') } } : {}),
 });
