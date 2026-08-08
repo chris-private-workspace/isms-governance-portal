@@ -93,6 +93,12 @@ COPY --from=build /repo/apps/api/dist ./apps/api/dist
 COPY --from=build /repo/packages/types/package.json ./packages/types/package.json
 COPY --from=build /repo/packages/types/src ./packages/types/src
 
+# Explicit, even though the `:nonroot` tag already defaults to uid 65532.
+# Both trivy config and semgrep flagged its absence, and they are right for a
+# reason beyond the rule: a reader — and a scanner — cannot see a tag's default
+# user. `04:93` is exactly this, inherit versus state.
+USER nonroot
+
 EXPOSE 3210
 # The distroless nodejs image's ENTRYPOINT is already /nodejs/bin/node, so CMD
 # carries the script path only — prefixing "node" here would look for a file

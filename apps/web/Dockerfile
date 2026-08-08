@@ -48,6 +48,11 @@ COPY --from=build /repo/apps/web/.next/standalone ./
 COPY --from=build /repo/apps/web/.next/static ./apps/web/.next/static
 COPY --from=build /repo/apps/web/public ./apps/web/public
 
+# Explicit, even though the `:nonroot` tag defaults to uid 65532 — a scanner
+# cannot see a tag's default user, and neither can a reader. See
+# apps/api/Dockerfile for the finding that made this explicit.
+USER nonroot
+
 EXPOSE 3200
 # ENTRYPOINT is already /nodejs/bin/node — CMD is the script path alone.
 CMD ["apps/web/server.js"]
