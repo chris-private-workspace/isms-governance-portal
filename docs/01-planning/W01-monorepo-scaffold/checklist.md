@@ -41,7 +41,7 @@
 
 ### 1.1 填掉範疇權威表（**必須在寫 eslint 設定之前**）
 
-- [ ] **`scope-boundaries.md` §範疇定義 + §import 矩陣填為本專案的八個範疇**
+- [x] **`scope-boundaries.md` §範疇定義 + §import 矩陣填為本專案的八個範疇**
   - DoD: 兩節皆無 `<…>` 佔位符；八個範疇與 CLAUDE.md §Scopes 逐一對應；
         矩陣含三條不變式（`packages/types` 為葉節點 · `core-model` 不依賴模組 · `ui` 只走 HTTP+型別）
   - Verify: `python scripts/lint/run_all.py` 6/6 且 Grep `<範疇名>|_contracts` 於該檔零命中

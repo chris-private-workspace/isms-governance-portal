@@ -45,6 +45,34 @@ coverage                      n/a（repo 內零行 TypeScript）
 - Day 1.1 `scope-boundaries.md` 範疇表 + import 矩陣（**不依賴版本決定，可先做**）
 - Day 1.2 起需要 `D-nest-prisma-ver` 的回覆才能定 `package.json`
 
+---
+
+# Day 1 — 2026-08-08
+
+## Today's Accomplishments
+
+- **1.1 完成** —— `scope-boundaries.md` §範疇定義（8 列）+ §範疇歸屬決策樹 + §import 矩陣（8×8）
+  由模板佔位符填為本專案內容。順帶把 §共用型別 的 Python/`_contracts` 範例與 §常見違規表
+  改成本專案的真實範疇名 —— 否則同一份文件會同時存在兩套範疇詞彙。
+  - Verify: Grep `<範疇名>|<目錄>|<職責>|_contracts` → **0 命中**（DoD 要求）· run_all **6/6**
+  - Diff: `68 33 docs/rules-on-demand/scope-boundaries.md`
+
+### 矩陣裡三個需要說明的 ❌
+
+| 決定 | 理由 |
+|---|---|
+| `audit-trail` **連 `core-model` 都不 import** | 稽核若依賴領域結構，每加一個實體就要改稽核程式。只認契約層的通用形狀，guardrail 5 的「無旁路」才不會隨領域演進破洞 |
+| `core-model` 不能 import `entity-scope` | 下層不 import 上層。但 guardrail 4 要求每個存取都被 scope 包住 → 解法是 **DI 注入而非 import**：範疇化的 Prisma client 由 `entity-scope` 提供，型別住契約層，`core-model` 拿不到未範疇化的 client |
+| `modules/` 之間互不 import | 兩個模組要協作就下沉到共用範疇或走契約層，否則 Policy 與 Risk 會長成一團 |
+
+⚠️ 第二列**是設計意圖，尚未跑過** —— 已在該檔明確標示，由 ADR-0004 的 spike 驗證。
+它同時是 ADR-0001 §可證偽條件 #1 的承重假設。
+
+## 🚧 阻塞
+
+- **1.2 起需要 `D-nest-prisma-ver` 的回覆** —— `package.json` 要寫哪個 NestJS 主版本。
+  已向使用者表面化，等回覆。1.1 不受影響故先完成。
+
 ## Notes
 
 - Day-0 的 ROI 又一次由**版本**這一類漂移貢獻 —— plan 是照 ADR 寫的，而 ADR 是三天前寫的。

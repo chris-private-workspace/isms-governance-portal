@@ -4,8 +4,11 @@
 
 **Category / Scope**: Architecture / on-demand rule
 **Created**: 2026-08-07
-**Last Modified**: 2026-08-07
+**Last Modified**: 2026-08-08
 **Status**: Active
+
+> **Modification History**
+> - 2026-08-08: Fill scope table + import matrix for this project (W01) — was template placeholders
 
 **Trigger（什麼時候 Read）**: 新建檔案 / 跨範疇 import / 不確定某段代碼歸哪個範疇。
 
@@ -32,24 +35,34 @@
 
 ## 本專案的範疇定義
 
-<!-- ⚠️ 這一節必須依你的專案填寫。以下是範例格式。 -->
+> 權威來源是 `CLAUDE.md` §範疇（Scopes）。本表是它的可執行形式 ——
+> `eslint.config.mjs` 的 `boundaries` 分區逐一實作這張表與下方的矩陣。
+> **兩者不一致時以 `CLAUDE.md` 為準，並修正這裡與 eslint 設定。**
 
 | # | 範疇 | 目錄 | 職責 |
 |---|------|------|------|
-| 1 | <範疇名> | `<目錄>` | <職責> |
-
-> ⚠️ 這張表必須填 —— 範疇定義是「單一範疇歸屬原則」的基礎。
+| 1 | `core-model` | `apps/api/src/core-model/` | 實體圖：risk / control / obligation / policy / process / asset / entity / event / issue / evidence。canonical core + governed extensions |
+| 2 | `entity-scope` | `apps/api/src/entity-scope/` | 組織階層、entity scoping / RLS、管轄區標記 |
+| 3 | `identity` | `apps/api/src/identity/` | 認證（SSO/MFA）、entity-scoped 授權、三道防線分離、SoD |
+| 4 | `workflow` | `apps/api/src/workflow/` | 可設定狀態機、簽核、SLA、升級 |
+| 5 | `audit-trail` | `apps/api/src/audit-trail/` | Append-only、防篡改、證據等級日誌 |
+| 6 | `api` | `apps/api/src/contracts/` · `packages/types/` | API-first 契約層；連接器框架（後續 wave 填充）|
+| 7 | `modules` | `apps/api/src/modules/` | Wave 1 兩個證明模組：Policy Management、Risk + Control registers |
+| 8 | `ui` | `apps/web/` | 角色式 UI、滾升儀表板；消費設計交付物的 tokens 與 class 名 |
 
 ### 範疇歸屬決策樹
 
 ```
 這段代碼在做什麼？
-├── 處理外部輸入 / 輸出 HTTP → api
-├── 表達業務規則（與框架無關）→ domain
-├── 跟外部系統說話（DB / 佇列 / 第三方 API）→ infrastructure
-├── 跨範疇共用的型別 / 介面 → _contracts
-├── 使用者介面 → frontend
-└── 以上皆非 → 停下來，先釐清這是什麼
+├── 定義或持久化核心實體（risk / control / policy / asset / …）→ core-model
+├── 決定「誰看得到哪個實體的資料」（階層 / RLS / 滾升子樹）→ entity-scope
+├── 決定「你是誰、你能做什麼」（登入 / 角色 / SoD）→ identity
+├── 推進一份文件或請求的狀態（簽核 / SLA / 升級）→ workflow
+├── 記錄「發生過什麼」且不可竄改 → audit-trail
+├── 跨範疇共用的型別 / DTO / API 契約 → api（contracts + packages/types）
+├── 某個業務模組專屬的畫面邏輯與端點（Policy / Risk）→ modules
+├── 使用者介面 → ui
+└── 以上皆非 → 停下來，先釐清這是什麼（新增範疇的門檻見本檔最後一節）
 ```
 
 ---
@@ -59,15 +72,16 @@
 跨範疇使用的 dataclass / interface / enum / event schema **必須**定義在共用契約層，
 **絕不**在多處平行定義。
 
-```
-❌ 錯誤 —— 同一個概念定義兩次
-   api/schemas.py:      class OrderStatus(Enum): ...
-   domain/order.py:     class OrderStatus(Enum): ...   # 遲早會分歧
+```ts
+// ❌ 錯誤 —— 同一個概念定義兩次
+apps/api/src/core-model/risk.ts:        export enum RiskStatus { … }
+apps/api/src/modules/risk/status.ts:    export enum RiskStatus { … }   // 遲早會分歧
 
-✅ 正確 —— 單一來源
-   _contracts/order.py: class OrderStatus(Enum): ...
-   api/schemas.py:      from _contracts.order import OrderStatus
-   domain/order.py:     from _contracts.order import OrderStatus
+// ✅ 正確 —— 單一來源
+packages/types/src/risk.ts:             export enum RiskStatus { … }
+apps/api/src/core-model/risk.ts:        import { RiskStatus } from '@isms/types'
+apps/api/src/modules/risk/status.ts:    import { RiskStatus } from '@isms/types'
+apps/web/src/features/risk/badge.tsx:   import { RiskStatus } from '@isms/types'   // ui 也認同一份
 ```
 
 **為什麼**：平行定義在建立當下看起來一模一樣，但會**分歧**。
@@ -80,20 +94,40 @@
 
 ## 允許 / 禁止的 import 矩陣
 
-<!-- 依專案填寫。範例： -->
+源自 `CLAUDE.md` §分層的關鍵不變式：**上層可依賴下層，下層絕不 import 上層**。
+表格讀法：**列 import 欄**。
 
-| 從 ↓ 到 → | api | domain | infra | _contracts | frontend |
-|-----------|-----|--------|-------|-----------|----------|
-| **api** | — | ✅ | ✅ | ✅ | ❌ |
-| **domain** | ❌ | — | ❌ | ✅ | ❌ |
-| **infra** | ❌ | ❌ | — | ✅ | ❌ |
-| **_contracts** | ❌ | ❌ | ❌ | — | ❌ |
-| **frontend** | ✅(HTTP) | ❌ | ❌ | ✅(型別) | — |
+| 從 ↓ 到 → | api | core-model | entity-scope | audit-trail | identity | workflow | modules | ui |
+|---|---|---|---|---|---|---|---|---|
+| **api** | — | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ |
+| **core-model** | ✅ | — | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ |
+| **entity-scope** | ✅ | ✅ | — | ❌ | ❌ | ❌ | ❌ | ❌ |
+| **audit-trail** | ✅ | ❌ | ❌ | — | ❌ | ❌ | ❌ | ❌ |
+| **identity** | ✅ | ✅ | ✅ | ❌ | — | ❌ | ❌ | ❌ |
+| **workflow** | ✅ | ✅ | ✅ | ✅ | ✅ | — | ❌ | ❌ |
+| **modules** | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | — | ❌ |
+| **ui** | ✅(僅型別) | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | — |
 
 **關鍵不變式**：
-- `domain` **不依賴任何東西**（除了 `_contracts`）—— 業務規則不該知道 DB 或 HTTP 存在
-- `_contracts` **不依賴任何東西** —— 它是葉節點，所有人都能 import 它
-- 反向依賴（低層 import 高層）一律禁止
+
+- `api`（`contracts/` + `packages/types/`）是**葉節點** —— 誰都能 import 它，它 import 不了任何人。
+  跨範疇共用的型別只能住在這裡（見上方 §共用型別的單一來源）。
+- `core-model` **只依賴契約層** —— 實體圖不該知道誰在讀它、誰在稽核它。
+- `audit-trail` **連 `core-model` 都不 import**。刻意的：稽核軌跡若依賴領域結構，
+  每加一個實體就要改稽核程式；它只認契約層的通用形狀。這也讓 guardrail 5 的「無旁路」
+  不會隨領域演進而破洞。
+- `ui` 只經 **HTTP + 契約層型別**接觸後端，**不得** import `apps/api/src/**` 的任何實作。
+- 反向依賴（低層 import 高層）一律禁止；`modules/` 之間**也不得互相 import** ——
+  模組要協作就下沉到共用範疇或走契約層。
+
+### ⚠️ 一個尚未被驗證的設計意圖
+
+`core-model` 不能 import `entity-scope`（上表 ❌），但依 guardrail 4 每個資料存取都必須被
+entity scope 包住。解法是**經 DI 注入而非 import**：範疇化後的 Prisma client 由
+`entity-scope` 提供，其**型別**住在契約層，`core-model` 只認型別、拿不到未範疇化的 client。
+
+**這是設計意圖，尚未跑過。** ADR-0004 的 W01/W02 spike 負責驗證它 ——
+它同時是 ADR-0001 §可證偽條件 #1 的承重假設。驗證失敗則本節與上表都要重寫。
 
 ---
 
@@ -125,8 +159,9 @@ ls <contracts_dir>/
 | **範疇雜湊** | `tools/` 目錄裡有一堆不是 tool 的東西 | 把非 tool 邏輯移到它真正的範疇 |
 | **重複實作** | 兩個目錄各有一份幾乎一樣的 retry 邏輯 | 抽到共用層，刪掉其中一份 |
 | **私有 import** | `from domain._internal.helpers import x` | 改用 domain 的公開介面，或把 helper 提升成公開的 |
-| **反向依賴** | `domain/` import 了 `api/` 的東西 | 反轉依賴：把需要的型別下沉到 `_contracts` |
-| **契約平行定義** | 同一個 enum 在 3 個地方 | 移到 `_contracts`，其他地方 import |
+| **反向依賴** | `core-model/` import 了 `modules/` 的東西 | 反轉依賴：把需要的型別下沉到 `packages/types` |
+| **契約平行定義** | 同一個 enum 在 3 個地方 | 移到 `packages/types`，其他地方 import |
+| **繞過 entity scope** | `core-model/` 直接 import `entity-scope/` 的實作，或自己 new 一個未範疇化的 Prisma client | 只認契約層的型別，client 由 DI 注入（見 §import 矩陣的設計意圖）|
 
 ---
 
