@@ -50,7 +50,7 @@ Two minimal proof modules ride on the backbone to demonstrate it end-to-end: **P
 - **Everything is audited.** No state change bypasses the audit trail.
 - **Secure and fail-secure by default.** Deny by default; least privilege; validated inputs; no implicit trust between components.
 - **API-first.** The UI is a client of the same API everything else uses; this keeps integration and automation first-class.
-- **Deployment-portable.** The design must run in cloud, on-premises, or a sovereign/isolated deployment without re-architecture, because APAC data-residency requirements can force any of these.
+- **Deployment-portable.** The design must run in cloud, on-premises, or a sovereign/isolated deployment without re-architecture. (The residency driver for this is gone — ADR-0010 — but the charter's on-premises option is independent of it, and portability is what keeps the cloud choice reversible.)
 
 ## Deployment topology (target)
 
@@ -58,6 +58,6 @@ Two minimal proof modules ride on the backbone to demonstrate it end-to-end: **P
 - A relational database of record with row-level security for entity-scoping.
 - A separate, restricted store or table design for the append-only audit trail.
 - Secrets held in a managed secrets store, never in images or code.
-- Able to be deployed per-region where data residency demands local processing/storage (see `03` and `04`).
+- **A single deployment region, three environments** (dev / staging / prod) in one tenant — ADR-0010. Per-region partitioning is **not** built: no in-scope jurisdiction requires it, and an unused partitioning abstraction is AP-5 (the reasoning is in ADR-0010 §Options B).
 
 Concrete technology choices are proposed in `06` and tracked as ADRs — they are deliberately not hard-coded here.

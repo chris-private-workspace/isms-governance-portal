@@ -8,7 +8,12 @@ A high-fidelity design handoff (`design_handoff_isms_grc_platform`) now exists, 
 
 ## 1. ✅ RESOLVED — jurisdiction scope
 
-**Confirmed: India is removed, China is added.** The scope is **14 OpCos**:
+**Confirmed: India and China are both out of scope.** The scope is **13 OpCos**.
+
+> **History**: India was removed first; China was added, then removed on **2026-08-08** (`CH-008`)
+> as a product-scope decision. Both removals are recorded here rather than erased, because the
+> jurisdiction count drives the obligation library, the flagship dashboard, and the deployment
+> topology — a reader who sees only the final number cannot tell which of those were re-derived.
 
 | Code | Company | Country |
 |---|---|---|
@@ -25,21 +30,21 @@ A high-fidelity design handoff (`design_handoff_isms_grc_platform`) now exists, 
 | RID | PT Ricoh Indonesia | Indonesia |
 | RPH | Ricoh Philippines Inc | Philippines |
 | RVN | Ricoh Vietnam Co Ltd | Vietnam |
-| **RCN** | **China entity** *(code and legal name to confirm)* | **China** |
 
 ~~RIN — Ricoh India Ltd~~ — **removed from scope.** Remove India sample data and DPDP from the obligation plan.
+~~RCN — China entity~~ — **removed from scope 2026-08-08** (`CH-008`). Its code and legal name were never confirmed, which is a small piece of corroborating evidence that it was the least-established of the fourteen.
 
 ### Consequences
 
-- **PIPL data localisation is restored as a hard day-one requirement.** Per-region deployment capability (**ADR-0006**) is back to **blocking for M0** — the architecture must support storing and processing the China entity's data in-country without forking the codebase.
-- **AI processing location becomes a sovereignty control**, not a feature (`14`, ADR-0009). An external inference API may be unusable for the China entity; the inference endpoint must be swappable per region.
-- **12 jurisdictions** in scope for the obligation library: China (PIPL/DSL/CSL), Hong Kong (PDPO), Singapore (PDPA), Malaysia (PDPA), Thailand (PDPA), Indonesia (PDP Law), Philippines (Data Privacy Act), Vietnam (PDPD), Korea (PIPA), Taiwan (PDPA), Australia (Privacy Act), New Zealand (Privacy Act). **India/DPDP is out.**
-- The frameworks-first strategy (`10` §2) matters more, not less, at 12 jurisdictions: one ISO 27001 + 27017 control set with obligations mapped onto it, rather than twelve parallel libraries.
+- **No localisation requirement remains in scope** → single-region deployment (**ADR-0010**, superseding ADR-0006). M0 is unblocked on topology.
+- ~~AI processing location becomes a sovereignty control~~ — ⚠️ premise withdrawn with China. The model-agnostic inference interface survives on commercial grounds, not regulatory ones (`14`, `AD-Constraint7-1`).
+- **11 jurisdictions** in scope for the obligation library: Hong Kong (PDPO), Singapore (PDPA), Malaysia (PDPA), Thailand (PDPA), Indonesia (PDP Law), Philippines (Data Privacy Act), Vietnam (PDPD), Korea (PIPA), Taiwan (PDPA), Australia (Privacy Act), New Zealand (Privacy Act). **India/DPDP and China/PIPL are both out.**
+- The frameworks-first strategy (`10` §2) matters more, not less, at 11 jurisdictions: one ISO 27001 + 27017 control set with obligations mapped onto it, rather than eleven parallel libraries.
 
 ### Two small follow-ups
 
 - **Japan** is not an OpCo in this list. The most likely reason is that Japan is group HQ rather than an APAC subsidiary under this regional office — consistent with the design. Worth a one-line confirmation, but not blocking.
-- **Language set.** The design ships EN + 日本語. With China in and India out, and OpCos in Korea, Taiwan, Hong Kong and SE Asia, confirm the intended set — plausibly **EN + 简体中文 + 繁體中文 + 한국어 + 日本語** (the last for group reporting). i18n must be in place from M0 regardless of which languages ship first.
+- **Language set.** The design ships EN + 日本語. With both India and China out, and OpCos in Korea, Taiwan, Hong Kong and SE Asia, confirm the intended set — plausibly **EN + 繁體中文 + 한국어 + 日本語** (the last for group reporting). 简体中文 dropped with China. i18n must be in place from M0 regardless of which languages ship first.
 
 ## 2. Scope reframed: ISMS governance, not generic GRC
 
@@ -167,15 +172,15 @@ Accessibility conventions to preserve: **status is never colour alone** (always 
 
 | # | Action | Priority |
 |---|---|---|
-| 1 | ~~Resolve the jurisdiction conflict~~ → ✅ **Resolved: India out, China in.** ADR-0006 (per-region deployment for PIPL) is now blocking for M0 | **Done — ADR-0006 blocking** |
+| 1 | ~~Resolve the jurisdiction conflict~~ → ✅ **Resolved: India out; China added then removed 2026-08-08 (`CH-008`).** 13 OpCos / 11 jurisdictions. Topology settled by ADR-0010 | **Done** |
 | 2 | Confirm the language set (and Japan's status) | Medium |
 | 3 | ~~Accept the fuller audit-issues module (revises W2-2)~~ → ✅ **Accepted 2026-08-07 (CH-003).** Specified in [`17-audit-issues-module.md`](17-audit-issues-module.md) | **Done** |
 | 4 | ~~Add access management + legal hold to the foundation (`05`)~~ → ✅ **Already done** — `05` §Access management and §Records retention carry both. This row was stale. Entities now specified in `02a` §3.2 (CH-003) | **Done** |
 | 5 | Add Risk programme and OS portfolio to the module plan | Medium |
 | 6 | Build the risk form to five impact dimensions per `02a`, not the design's single value | Medium |
 | 7 | Confirm whether certifier-comment / company-reply fields remain in the ISMS profile | Low |
-| 8 | **`data.js` cannot be ported as-is** — the flagship dashboard is keyed by country, which structurally cannot hold 14 OpCos across 12 jurisdictions (§8) | **Blocking for M8** |
-| 9 | Rebuild the OpCo fixture: `opcos.js` has India and lacks China — inverted from §1 (§8) | **High** |
+| 8 | **`data.js` cannot be ported as-is** — the flagship dashboard is keyed by country, which structurally cannot hold 13 OpCos across 11 jurisdictions (Singapore ×2, Hong Kong ×2) (§8) | **Blocking for M8** |
+| 9 | Rebuild the OpCo fixture to the 13-OpCo list: `opcos.js` has `RIN` India, which is out (§8). ⚠️ With China also out, the fixture needs **13 rows, neither RIN nor RCN** | **High** |
 | 10 | ~~Decide how the RM Report register sheet relates to the live register~~ → ✅ **Decided 2026-08-07 (CH-003): versioned snapshot over the live register, not a second store.** Entities in `02a` §3.1 | **Done** |
 
 ---
@@ -188,10 +193,13 @@ above say** are recorded here; the rest stay in the analysis.
 
 ### 8.1 The sample data predates §1 — and contradicts itself
 
-`opcos.js` lists 14 OpCos including **`RIN` Ricoh India Ltd** with **no China entity** — exactly
-inverted from §1's resolution. But `data.js` has China and no India. **Two files in the same
-handoff disagree about the scope.** `Japan` is also used as an operating entity in five files,
-which §1 rules out.
+`opcos.js` lists 14 OpCos including **`RIN` Ricoh India Ltd** with **no China entity**; `data.js`
+has China and no India. **Two files in the same handoff disagree about the scope.** `Japan` is also
+used as an operating entity in five files, which §1 rules out.
+
+> **Simplified by `CH-008`**: with China now also out, the target is a single **13-OpCo** list
+> containing neither `RIN` nor `RCN`. The original audit finding (2026-08-07) recommended
+> substituting `RIN` → `RCN`; **that recommendation is superseded** — delete the row instead.
 
 ### 8.2 Two incompatible entity-keying conventions ⚠️
 

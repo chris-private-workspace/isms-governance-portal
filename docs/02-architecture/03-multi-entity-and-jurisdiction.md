@@ -38,17 +38,32 @@ Access is filtered by organisational entity **by default**. Enforce this as clos
 
 ## Jurisdiction & data residency
 
-- `Jurisdiction` carries a residency policy. Some APAC jurisdictions require data localisation (e.g. China PIPL); others permit cross-border transfer under conditions.
-- The architecture must allow **per-region deployment** of storage/processing where a jurisdiction demands it, without forking the codebase. The data model tags records with jurisdiction so residency rules can be applied and evidenced.
-- Where AI features are added later, *where the AI processing runs* is itself a residency control, not just a feature — treat it accordingly.
+- `Jurisdiction` carries a residency policy field. **No in-scope jurisdiction currently requires data localisation** — the only one that did was China, removed from scope on 2026-08-08 (`CH-008`).
+- The data model still tags records with jurisdiction, because that is what the obligation library needs (`10` frameworks-first). That purpose is independent of cross-border transfer.
+- Where AI features are added later, *where the AI processing runs* was framed as a residency control. ⚠️ That framing rested on China; see `AD-Constraint7-1`.
 
-> **Confirmed:** 14 OpCos across 12 jurisdictions (China, HK, SG, KR, TW, MY, TH, ID, PH, VN, AU, NZ). India is out of scope. See `15-design-alignment.md` §1 for the OpCo list.
+> **Confirmed:** 13 OpCos across 11 jurisdictions (HK ×2, SG ×2, KR, TW, MY, TH, ID, PH, VN, AU, NZ). India and China are both out of scope. See `15-design-alignment.md` §1 for the OpCo list.
 >
-> **China's inclusion makes localisation binding**: the China entity's data must be storable and processable in-country, and the platform must support this **without forking the codebase**. Settle this in ADR-0006 before M1 creates any table, since it constrains deployment topology, data partitioning and the inference endpoint used by the Wave 3 agent.
+> **No localisation requirement remains in scope** → single-region deployment (**ADR-0010**, superseding ADR-0006). The cost is stated there: if an in-scope jurisdiction tightens later, that is a re-architecture, not a configuration change.
 
-## Cross-border data classification (input to ADR-0006)
+## Cross-border data classification (retained as reference — no current consumer)
 
-> **Purpose of this section.** ADR-0006 cannot be answered in the abstract ("what does PIPL
+> ## ⚠️ 這一節保留為**參考**，不是待建規格
+>
+> China left scope on 2026-08-08 (`CH-008`), and it was the only in-scope jurisdiction with a
+> localisation requirement. **Everything below is retained as a data-classification reference**
+> — the field tiering is genuinely useful the day any jurisdiction tightens, and re-deriving it
+> would cost more than keeping it.
+>
+> **What must NOT be built in Wave 1**: the enforcement mechanism — database-layer transfer rules,
+> `posture_snapshot` replication, and the `cross_border_*` configuration on `Jurisdiction`
+> (`02a` §3). It has no consumer, and an abstraction with no consumer is **AP-5**
+> (`CLAUDE.md` §禁止反模式). ADR-0010 §Consequences carries this decision.
+>
+> The four questions for Legal at the end of this section are **moot** — there is no China border.
+> `AD-Decider-1` is closed on that basis.
+
+> **Purpose of this section (as written when China was in scope).** ADR-0006 cannot be answered in the abstract ("what does PIPL
 > require?"). It becomes answerable once you can point at the specific fields that would leave
 > the jurisdiction. This is that list. **Take it to Legal / the DPO — this repository is not
 > legal advice.** The engineering options in §Deployment consequences plug the answer straight in.

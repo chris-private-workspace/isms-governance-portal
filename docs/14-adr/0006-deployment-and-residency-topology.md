@@ -1,7 +1,7 @@
 # ADR-0006: Per-region deployment on Azure, with China on Azure China (21Vianet)
 
 **Date**: 2026-08-07
-**Status**: **已採納**
+**Status**: **已被 ADR-0010 取代**（2026-08-08 —— 中國移出範圍，前提消失；論證本身未被推翻）
 **Deciders**: laitim2001（專案擁有者 / 單一開發者）
 **Phase**: 無 —— `CH-005`
 

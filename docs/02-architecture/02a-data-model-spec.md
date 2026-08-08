@@ -23,7 +23,7 @@ not on this list; adding an entity means adding a row here in the same change.
 | Entity | Wave | Note |
 |---|---|---|
 | `OrgEntity` | 1 | The scoping and roll-up spine |
-| `Jurisdiction` | 1 | Includes the residency & cross-border configuration |
+| `Jurisdiction` | 1 | ⚠️ Built **without** the `cross_border_*` / `deployment_region` columns — no consumer since `CH-008` |
 | `Regulation` · `Obligation` | 1 | Foundation-ready; surfaced as a module in Wave 2 |
 | `Policy` | 1 | ⚠️ See §0.1 — known field gaps |
 | `Risk` | 1 | Five impact types, before/after control |
@@ -39,7 +39,7 @@ not on this list; adding an entity means adding a row here in the same change.
 | `Attestation` | 1 | |
 | `RiskManagementReport` · `RMReportVersion` | 1 | §3.1 — versioned snapshot over the live register |
 | `extension_field_catalog` | 1 | §1.3 |
-| `posture_snapshot` | 1 | §7 — also the residency interface (`03`) |
+| `posture_snapshot` | 1 | §7 — dashboard data source. ⚠️ Built **without** the replication columns (`CH-008`) |
 
 ### Foundation services — specified in this document (§3.2), described in `05`
 
@@ -147,7 +147,23 @@ Only entity-specific fields are shown; every entity also carries the §1.1 base 
 
 **Jurisdiction** — `code` (ISO country/region), `name`, `residency_policy` (enum: none/conditional/localised), `notes`, plus the residency configuration below.
 
-*Residency & cross-border configuration.* The classification these fields govern is in [`03-multi-entity-and-jurisdiction.md`](03-multi-entity-and-jurisdiction.md) §Cross-border data classification. Holding this as **configuration rather than code** is what lets the legal position change without re-architecture, and what makes "what crossed the border" evidenceable (guardrail 2).
+> ### ⚠️ Residency & cross-border configuration — **NOT BUILT in Wave 1**
+>
+> China left scope on **2026-08-08** (`CH-008`, ADR-0010) and was the only in-scope jurisdiction
+> with a localisation requirement. **These fields have no consumer.** Creating them, and the
+> database-layer enforcement rule below, would be **AP-5 speculative abstraction**
+> (`CLAUDE.md` §禁止反模式).
+>
+> **Retained as a specification, not a backlog item.** The design work (CH-001's field tiering,
+> the enforcement placement argument) is genuinely hard to re-derive and is cheap to keep on paper.
+> Build it the day a jurisdiction actually requires it — and re-read ADR-0010 §可證偽條件 #1 first,
+> because at that point the topology decision itself reopens.
+>
+> `Jurisdiction` **is** built in M2 — it carries jurisdiction tagging for the obligation library
+> (`10` frameworks-first). It is only the `cross_border_*` / `deployment_region` columns below
+> that are deferred.
+
+*Residency & cross-border configuration (specification only — see banner above).* The classification these fields govern is in [`03-multi-entity-and-jurisdiction.md`](03-multi-entity-and-jurisdiction.md) §Cross-border data classification. Holding this as **configuration rather than code** is what would let the legal position change without re-architecture, and what would make "what crossed the border" evidenceable (guardrail 2).
 
 | Field | Type | Notes |
 |---|---|---|
@@ -398,9 +414,10 @@ Design consequence: the entities above must carry the status/rating/date fields 
 
 Append-only in practice: snapshots are historical record — do not retro-edit them.
 
-**`metric_key` is a fixed, governed set** — the nine metrics `08` defines. It is not free-form,
-because each key is individually classified for cross-border transfer (`03` §Cross-border data
-classification) and an unclassified key would cross unreviewed:
+**`metric_key` is a fixed, governed set** — the nine metrics `08` defines. It is not free-form.
+The original reason was cross-border classification (`03`), which no longer applies; **the set
+stays governed anyway**, because a free-form key means the comparison matrix silently changes
+shape when someone adds one, and every entity's row must carry the same metrics to be comparable:
 
 `total_risks` · `high_critical_count` · `control_coverage_risk` · `control_coverage_effective` ·
 `overdue_tests` · `open_critical_issues` · `rcsa_completion` · `policy_attestation` · `posture_rag`
@@ -408,9 +425,13 @@ classification) and an unclassified key would cross unreviewed:
 > Adding a metric key means classifying it first. Treat the set as governed configuration with a
 > review step, the same way the extension field catalog (§1.3) governs custom fields.
 
-#### Replication fields (residency)
+#### Replication fields (residency) — **NOT BUILT in Wave 1**
 
-`posture_snapshot` is deliberately the **only** entity that crosses a residency boundary. That
+> Same reason as `Jurisdiction` §3's banner: with a single deployment region (ADR-0010) nothing
+> replicates, so these five columns have no consumer. **`posture_snapshot` itself is still built**
+> — it is the flagship dashboard's data source (`08`), independently of any border.
+
+`posture_snapshot` was designed as the **only** entity that crosses a residency boundary. That
 makes the border a narrow, fixed-schema, inspectable interface rather than a continuous
 cross-region query — reviewable once by Legal instead of per feature.
 
@@ -425,8 +446,9 @@ Replication is subject to the enforcement rule on `Jurisdiction` (§3) and, like
 change, writes to the append-only audit trail — a transfer is an auditable event, not a
 background detail.
 
-> **Consequence for dashboard freshness.** If China's snapshot replicates monthly while other
-> OpCos are queried live, the comparison matrix mixes two different as-at times — which is a
-> misleading view, not merely an inconsistent one. Resolve it by reading the matrix from
-> `posture_snapshot` for **all** entities (uniform as-at), keeping live queries for in-region
-> drill-down. Confirm before M8.
+> **Consequence for dashboard freshness — driver changed, conclusion survives.** The original
+> concern was China's monthly replication mixing as-at times with live-queried OpCos; with one
+> region that mismatch is gone. **But the fix is still right for a different reason**: a matrix
+> that computes some cells live and reads others from a snapshot compares different instants
+> regardless of geography. Read the matrix from `posture_snapshot` for **all** entities (uniform
+> as-at), keep live queries for drill-down. Confirm before M8 (`AD-Residency-1`, re-based).

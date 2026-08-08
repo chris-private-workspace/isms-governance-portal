@@ -35,7 +35,7 @@
 
 | # | 問題 | 決定 | 拍板日 | 去向 |
 |---|---|---|---|---|
-| OQ-1 | 部署與資料落地拓撲 | **分區部署於 Azure；中國區走 Azure China（21Vianet）；`cross_border_max_tier` 保守預設** | 2026-08-07 | [`0006`](./14-adr/0006-deployment-and-residency-topology.md) |
+| OQ-1 | 部署拓撲 | ~~分區部署於 Azure；中國區走 Azure China~~ → **重新拍板 2026-08-08**：中國移出範圍，改為**單一區域 × 3 環境**（dev/staging/prod），prod 獨立 subscription | 2026-08-08 | [`0010`](./14-adr/0010-single-region-deployment-topology.md)（取代 [`0006`](./14-adr/0006-deployment-and-residency-topology.md)）|
 | OQ-2 | 後端語言與框架 | **NestJS 10 + Prisma 7**，與 Next.js 前端同一 monorepo | 2026-08-07 | [`0001`](./14-adr/0001-backend-framework.md) |
 | OQ-5 | Identity provider | **Microsoft Entra ID**（OIDC），取代交付物指定的 Okta / SAML | 2026-08-07 | [`0007`](./14-adr/0007-identity-provider.md) |
 

@@ -1,6 +1,6 @@
 # APAC ISMS Governance Platform — Foundation & Backbone
 
-An internally built, multi-entity, multi-jurisdiction **ISMS governance platform** (ISO/IEC 27001 + 27017) for a regional IT office serving 14 APAC operating companies across 12 jurisdictions.
+An internally built, multi-entity, multi-jurisdiction **ISMS governance platform** (ISO/IEC 27001 + 27017) for a regional IT office serving 13 APAC operating companies across 11 jurisdictions.
 
 > **Central tenet — the platform must not itself be a source of risk.**
 > This is a system that manages security and risk. If the platform is itself insecure, fragile, or unauditable, it has no credibility. Every architectural and implementation decision in this repository is therefore held to the same standards the platform is designed to enforce. See [`docs/02-architecture/04-security-by-design.md`](docs/02-architecture/04-security-by-design.md). This is non-negotiable.
@@ -9,7 +9,7 @@ An internally built, multi-entity, multi-jurisdiction **ISMS governance platform
 
 Planning & architecture for the **Wave 1 backbone** — the shared foundation on which all future modules are built. The single most important artifact is the **core data model** ([`docs/02-architecture/02-core-data-model.md`](docs/02-architecture/02-core-data-model.md)); it is the heart of the system and the most common reason self-built GRC systems fail when it is done poorly.
 
-**No application code exists yet.** The nine foundational ADRs are all still open — see [`docs/14-adr/README.md`](docs/14-adr/README.md). ADR-0006 (per-region deployment for PIPL residency) is blocking for M0.
+**No application code exists yet.** Three foundational ADRs are in force — 0001 (backend), 0007 (identity), 0010 (single-region topology, superseding 0006) — and six remain open; see [`docs/14-adr/README.md`](docs/14-adr/README.md). M0 is unblocked.
 
 ## Confirmed context
 
@@ -18,7 +18,7 @@ Planning & architecture for the **Wave 1 backbone** — the shared foundation on
 | Build orientation | **Internal build** (not vendor selection) |
 | Audience | **Multi-entity, multi-jurisdiction single group** — regional IT office serving APAC subsidiaries (not external multi-tenant SaaS) |
 | Industry | **Technology & services** |
-| Jurisdictions | NE Asia (JP/KR/CN/HK/TW) + SE Asia (SG/MY/TH/ID/PH/VN) + Oceania (AU/NZ); India excluded. **China in scope → PIPL residency is a hard requirement.** |
+| Jurisdictions | NE Asia (KR/HK/TW) + SE Asia (SG/MY/TH/ID/PH/VN) + Oceania (AU/NZ); **India and China both excluded**. No in-scope jurisdiction imposes data localisation → single-region deployment (ADR-0010). Japan is group HQ, not an OpCo. |
 | Primary driver | **Internal governance & visibility** — the cross-entity roll-up dashboard is the flagship deliverable |
 | Target users | Full Three Lines + management (audit deferred to Wave 2) |
 | Sequencing | **Foundation-first** — backbone before modules |
