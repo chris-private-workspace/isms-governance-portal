@@ -13,7 +13,7 @@ Build an internal GRC platform that gives a regional IT office a single, trustwo
 | D3 | Industry: technology & services | Prioritises IT/cyber risk, privacy, third-party risk, ISO 27001 / SOC 2 alignment over BFSI-style prudential regimes. |
 | D4 | Foundation-first sequencing | Build the backbone before functional modules. |
 | D5 | Security-and-risk credibility tenet | The platform must not itself be a source of risk; it is subject to its own governance. |
-| D6 | **Jurisdictions: 14 OpCos across 12 jurisdictions** — China, Hong Kong (×2), Singapore (×2), Korea, Taiwan, Malaysia, Thailand, Indonesia, Philippines, Vietnam, Australia, New Zealand. **India excluded** (confirmed). Japan is group HQ, not an APAC OpCo. | **China in scope → PIPL data localisation is a hard requirement** (per-region deployment from day one; ADR-0006 blocking for M0). Data protection is the common regulatory thread across all in-scope jurisdictions. Full OpCo list in `15-design-alignment.md`. |
+| D6 | **Jurisdictions: 13 OpCos across 11 jurisdictions** — Hong Kong (×2), Singapore (×2), Korea, Taiwan, Malaysia, Thailand, Indonesia, Philippines, Vietnam, Australia, New Zealand. **India and China both excluded** (China removed 2026-08-08, `CH-008`). Japan is group HQ, not an APAC OpCo. | **No in-scope jurisdiction imposes data localisation** → single-region deployment (ADR-0010, superseding ADR-0006). ⚠️ The cost of that is stated in ADR-0010: if an in-scope jurisdiction tightens later, it is a re-architecture, not a configuration change. Data protection is the common regulatory thread across all in-scope jurisdictions. Full OpCo list in `15-design-alignment.md`. |
 | D7 | Primary driver: internal governance & visibility | Leadership / regional office needs to see posture across subsidiaries. Not a compliance deadline — confirms foundation-first, keeps Wave 1 lean, and makes the roll-up dashboard the flagship. |
 | D8 | Target users: full Three Lines + management | First-line business/ops, second-line risk & compliance, infosec/IT, and management consumers. Internal audit (third line) deferred to Wave 2. Implies lightweight first-line UX. |
 | D9 | Confirmed pain points | Data silos + Excel/email manual; inconsistency across subsidiaries; no posture visibility / reactive; multi-jurisdiction fragmentation. |
@@ -79,7 +79,7 @@ The prerequisites that gate Wave 1 scope are resolved (see D1–D9). No open ite
 - The core data model expresses risk ↔ control ↔ obligation ↔ policy ↔ process ↔ asset ↔ entity ↔ event ↔ issue as first-class, linked entities with stable IDs.
 - Any record can be scoped to an organisational entity and rolled up to the region; the roll-up dashboard shows posture across subsidiaries with drill-down.
 - An obligation can be tagged to a jurisdiction, and one control can satisfy obligations across multiple jurisdictions.
-- China / PIPL residency can be honoured via per-region deployment without code forks; the platform is localisable (zh-Hant, ja, ko, en + SEA).
+- The platform is localisable (zh-Hant, ja, ko, en + SEA). ~~Residency via per-region deployment~~ — no longer a foundation criterion; no in-scope jurisdiction requires it (ADR-0010).
 - Every state change is captured in a tamper-evident audit trail.
 - The platform can be registered and assessed inside its own system ("Entity Zero").
 - A security review of the foundation finds no control the platform enforces that the platform itself violates.

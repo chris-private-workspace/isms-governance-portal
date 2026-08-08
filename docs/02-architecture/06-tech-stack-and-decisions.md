@@ -33,16 +33,18 @@ Note on the backend choice: a framework with strong built-in **auth, permissions
 | ADR-0003 | Audit-trail hash-chain design | Per-row chain vs. periodic anchoring; verification routine |
 | ADR-0004 | Entity-scoping enforcement | PostgreSQL RLS strategy; how user scope maps to policies |
 | ADR-0005 | Governed extension storage | JSONB + central field catalog; validation approach |
-| ADR-0006 | Deployment & residency topology | Per-region deployment for data-residency jurisdictions |
+| ~~ADR-0006~~ → **ADR-0010** | Deployment topology | ✅ Settled: **single region, three environments** in one tenant. ADR-0006 (per-region) is superseded — China left scope |
+| ADR-0011 | Compute platform: App Service vs Container Apps | Prerequisite for the Azure resource request (`CH-009`) |
 | ADR-0007 | Identity provider | Self-hosted (Keycloak) vs. managed IdP |
 | ADR-0008 | AI agent architecture | Self-built retrieval vs. Copilot Studio integration vs. hybrid per region (`14`) |
 | ADR-0009 | AI processing location & model-agnostic inference interface | Sovereignty control — where inference happens is a compliance decision, not a vendor preference (`14`) |
 
 Add ADRs as new foundational decisions arise. Do not make these silently in code.
 
-> **ADR-0006 is blocking for M0.** China is in scope, so PIPL data localisation is a
-> hard day-one requirement — the deployment topology cannot be deferred until after
-> the data model is built. See `03-multi-entity-and-jurisdiction.md`.
+> **Topology is settled and M0 is no longer blocked by it.** China left scope on 2026-08-08
+> (`CH-008`), removing the only localisation requirement; **ADR-0010** supersedes ADR-0006 with a
+> single-region, three-environment deployment. The rollback window is still **M1** — changing the
+> region count after tables exist means data migration. See `03-multi-entity-and-jurisdiction.md`.
 
 ## ADR template
 

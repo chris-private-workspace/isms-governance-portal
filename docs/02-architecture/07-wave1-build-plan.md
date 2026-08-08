@@ -16,7 +16,7 @@ Wave 1 delivers the **backbone plus proof modules** that exercise it end-to-end.
 - **Risk scoring model corrected** to Likelihood × MAX(five impact types), 1–25, with the ≥16 treatment threshold (`02a`).
 
 **Foundation hard requirements (confirmed):**
-- **China / PIPL data residency** → per-region deployment capability from day one (see ADR-0006). Not optional.
+- ~~**China / PIPL data residency**~~ → **withdrawn.** China left scope 2026-08-08 (`CH-008`); no in-scope jurisdiction requires localisation, so the deployment is single-region (ADR-0010) and the partitioning capability is deliberately **not** built.
 - **Localisation / i18n** → Traditional Chinese, Japanese, Korean, English + SEA languages; timezone-aware.
 - **RBAC** covers first-line business/ops, second-line risk & compliance, infosec/IT, and management consumers; keep the **first-line UX lightweight** (RCSA) to avoid compliance fatigue.
 
@@ -28,9 +28,9 @@ Wave 1 delivers the **backbone plus proof modules** that exercise it end-to-end.
 
 | # | Milestone | Definition of done |
 |---|---|---|
-| M0 | **Repo, pipeline & deployment shape** | ADR-0001 settled; CI with SCA/SAST/DAST/secret-scanning **plus the automated secure-development DoD checks (`16`)**; IaC skeleton scanned; **per-region deployment topology decided (ADR-0006) so China/PIPL residency is honoured**; TLS/cert, security headers and management-port exposure configured explicitly (never platform defaults); i18n scaffolding in place |
+| M0 | **Repo, pipeline & deployment shape** | ADR-0001 settled; CI with SCA/SAST/DAST/secret-scanning **plus the automated secure-development DoD checks (`16`)**; IaC skeleton scanned; **deployment topology decided (ADR-0010 — single region, three environments)** and the compute platform settled (ADR-0011); TLS/cert, security headers and management-port exposure configured explicitly (never platform defaults); i18n scaffolding in place |
 | M1 | **Data foundation** | Core entities & relationships from `02` migrated; stable IDs, versioning, soft-delete; governed-extension mechanism working |
-| M2 | **Entity & jurisdiction model** | Org hierarchy; every record entity-scoped; **RLS enforcing scope at the database** (ADR-0004); jurisdiction tagging; residency honoured per D6 |
+| M2 | **Entity & jurisdiction model** | Org hierarchy; every record entity-scoped; **RLS enforcing scope at the database** (ADR-0004) — ⚠️ now the *only* isolation barrier, since ADR-0010 removed the physical one; jurisdiction tagging for the obligation library |
 | M3 | **Audit trail** | Append-only hash-chained log (ADR-0003); no domain write can bypass it; verify-integrity routine passes |
 | M4 | **Identity & RBAC** | OIDC + MFA; entity-scoped roles across the full Three Lines + management; SoD constraints enforced |
 | M5 | **Workflow engine** | Configurable state machine; SLA/escalation; drives the policy approval flow |
@@ -54,13 +54,13 @@ From `04` — no milestone is done until: new data is entity-scoped at the datab
 - Unit and integration tests for domain logic and relationships.
 - **Access-control tests** proving one entity cannot read/write another's data (app and — critically — database/RLS layer).
 - **Audit-trail tests** proving completeness (no bypass) and integrity (chain verification).
-- **Residency tests** proving in-scope-jurisdiction data is stored/processed where required.
+- ~~Residency tests~~ — **not applicable** (ADR-0010, single region). The access-control tests above absorb the weight this used to share.
 - Migration tests so the data model can evolve safely.
 
 ## Suggested Claude Code approach
 
 - Treat M0–M9 as milestones/epics; open each as a focused work session.
 - Start every session by re-reading `CLAUDE.md` and the relevant `docs/` file(s).
-- Write the ADR before the code for anything on the open-decisions list (`06`); ADR-0006 (residency topology) is now a priority because China is in scope.
+- Write the ADR before the code for anything on the open-decisions list (`06`); topology is settled (ADR-0010), so the next one on the critical path is **ADR-0011** (compute platform), which gates the Azure resource request.
 - Keep docs and code in sync in the same change; if the design is wrong, fix the doc, don't diverge silently.
 - Do not proceed past a milestone whose security gate fails.

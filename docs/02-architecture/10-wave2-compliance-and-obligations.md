@@ -36,7 +36,7 @@ Anchor on **one master control set** — **ISO 27001:2022 Annex A + ISO/IEC 2701
 
 | One master control (maintained once) | Simultaneously satisfies |
 |---|---|
-| Periodic access review | Access-control obligations under SG PDPA, CN PIPL, JP APPI, HK PDPO, … |
+| Periodic access review | Access-control obligations under SG PDPA, HK PDPO, KR PIPA, AU Privacy Act, … |
 | Encryption & transmission protection | Security-measure obligations across jurisdictions |
 | Incident notification procedure | Breach-notification obligations across jurisdictions |
 

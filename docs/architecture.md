@@ -48,17 +48,17 @@ security-by-design 橫切每一層。
 
 | # | 範疇 | 目錄 | 職責 |
 |---|------|------|------|
-| 1 | `core-model` | ⚠️ 待 ADR-0001 | 實體圖：risk / control / obligation / policy / process / asset / entity / event / issue / evidence |
-| 2 | `entity-scope` | ⚠️ 待 ADR-0001 | 組織階層、entity scoping / RLS、管轄區標記、資料落地路由 |
-| 3 | `identity` | ⚠️ 待 ADR-0001 | 認證（SSO/MFA）、entity-scoped 授權、三道防線分離、SoD |
-| 4 | `workflow` | ⚠️ 待 ADR-0001 | 可設定狀態機、簽核、SLA、升級 |
-| 5 | `audit-trail` | ⚠️ 待 ADR-0001 | Append-only、防篡改、證據等級日誌 |
-| 6 | `api` | ⚠️ 待 ADR-0001 | API-first 契約層；連接器框架（後續 wave 填充）|
-| 7 | `modules` | ⚠️ 待 ADR-0001 | Wave 1 兩個證明模組：Policy Management、Risk + Control registers |
-| 8 | `ui` | ⚠️ 待 ADR-0001 | 角色式 UI、滾升儀表板；消費設計交付物的 tokens 與 class 名 |
+| 1 | `core-model` | `apps/api/src/core-model/` | 實體圖：risk / control / obligation / policy / process / asset / entity / event / issue / evidence |
+| 2 | `entity-scope` | `apps/api/src/entity-scope/` | 組織階層、entity scoping / RLS、管轄區標記 |
+| 3 | `identity` | `apps/api/src/identity/` | 認證（SSO/MFA）、entity-scoped 授權、三道防線分離、SoD |
+| 4 | `workflow` | `apps/api/src/workflow/` | 可設定狀態機、簽核、SLA、升級 |
+| 5 | `audit-trail` | `apps/api/src/audit-trail/` | Append-only、防篡改、證據等級日誌 |
+| 6 | `api` | `apps/api/src/contracts/` · `packages/types/` | API-first 契約層；連接器框架（後續 wave 填充）|
+| 7 | `modules` | `apps/api/src/modules/` | Wave 1 兩個證明模組：Policy Management、Risk + Control registers |
+| 8 | `ui` | `apps/web/` | 角色式 UI、滾升儀表板；消費設計交付物的 tokens 與 class 名 |
 
-> **目錄欄位在 ADR-0001（後端語言與框架）拍板前無法填寫** —— 這是刻意的：
-> 先選框架再定目錄結構，不要反過來。
+> 目錄由 **ADR-0001**（NestJS monorepo）導出，邊界由 `eslint-plugin-boundaries` 機械強制。
+> ⚠️ **骨架尚未建立** —— W01 M0 的交付物。權威來源是 `CLAUDE.md` §Scopes。
 
 > 跨範疇 import 規則：[`rules-on-demand/scope-boundaries.md`](./rules-on-demand/scope-boundaries.md)
 > 跨範疇契約登記：[`02-architecture/cross-scope-interfaces.md`](./02-architecture/cross-scope-interfaces.md)
@@ -90,24 +90,27 @@ security-by-design 橫切每一層。
   [稽核軌跡]  append-only + hash chain（每次寫入與每次滾升讀取）
 ```
 
-> ⚠️ **跨區聚合這一段尚未有定案** —— 中國 PIPL 落地與跨區滾升直接衝突，
-> 由 **ADR-0006** 決定。M0 阻斷項，見 [`rules-on-demand/multi-tenant-data.md`](./rules-on-demand/multi-tenant-data.md) §滾升。
+> **跨區聚合已無跨區** —— 中國移出範圍後採單一區域部署（**ADR-0010**，取代 0006），
+> 滾升是同一個資料庫內的跨實體查詢。⚠️ **但它仍必須是明確、經授權、被稽核的 scope 擴張**
+> （CLAUDE.md 約束 8）—— 單一部署讓繞過更容易寫，所以範疇測試更重要而非更不重要。
+> 見 [`rules-on-demand/multi-tenant-data.md`](./rules-on-demand/multi-tenant-data.md) §滾升。
 
 ## 5. 關鍵技術決策
 
-**全部未拍板。** 9 份基礎 ADR 一份都還沒寫 —— 這是目前最大的單一阻斷點。
+**3 份已採納，M0 不再被 ADR 阻斷。** 其餘 6 份 + 新增的 0011 待條件成熟。
 
 | 決策 | 選了什麼 | ADR |
 |---|---|---|
-| 後端語言與框架 | ⚠️ 未定 | `14-adr/` ADR-0001 |
-| Workflow engine：自建 vs 嵌入 | ⚠️ 未定 | ADR-0002 |
-| 稽核軌跡 hash-chain 設計 | ⚠️ 未定 | ADR-0003 |
+| 後端語言與框架 | ✅ **NestJS 10 + Prisma 7**，monorepo | `14-adr/` ADR-0001 |
+| Workflow engine：自建 vs 嵌入 | ⚠️ 未定（方向：lean 狀態機自建）| ADR-0002 |
+| 稽核軌跡 hash-chain 設計 | ⚠️ 未定（方向：存 DB）| ADR-0003 |
 | Entity-scoping 強制方式 | ⚠️ 未定（方向：PostgreSQL RLS）| ADR-0004 |
 | 受治理擴充欄位儲存 | ⚠️ 未定（方向：JSONB + field catalog）| ADR-0005 |
-| **部署與資料落地拓撲** | ⚠️ 未定 —— **M0 阻斷項** | ADR-0006 |
-| Identity provider | ⚠️ 未定 | ADR-0007 |
+| **部署拓撲** | ✅ **單一區域 × 3 環境於全球 Azure** | ADR-0010（**取代 0006**）|
+| Identity provider | ✅ **Microsoft Entra ID (OIDC)** | ADR-0007 |
+| 計算平台：App Service vs Container Apps | ⚠️ 未定 —— `CH-009` 的前置 | ADR-0011 |
 | AI agent 架構 | ⚠️ 未定 | ADR-0008 |
-| AI 處理地點（主權控制）| ⚠️ 未定 | ADR-0009 |
+| AI 處理地點 | ⚠️ 未定（⚠️ 主權論據已隨中國移出失效）| ADR-0009 |
 
 完整清單與阻斷關係：[`14-adr/README.md`](./14-adr/README.md)
 選型原則與 ADR 模板：[`02-architecture/06-tech-stack-and-decisions.md`](./02-architecture/06-tech-stack-and-decisions.md)

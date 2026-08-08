@@ -9,16 +9,23 @@ The agent's value is entirely a function of the knowledge available to it. Build
 **However — two things must be decided early**, because they constrain architecture:
 
 1. **ADR: self-built vs. Copilot Studio integration** (see below).
-2. **Data residency of AI processing** — this is a Wave 1 architectural constraint, not a Wave 3 feature decision.
+2. ~~**Data residency of AI processing**~~ — ⚠️ premise withdrawn with China (ADR-0010). See below; the model-agnostic interface survives on non-regulatory grounds.
 
-## The sovereignty constraint (decide this first)
+## The sovereignty constraint — ⚠️ premise withdrawn, conclusion under review
 
-China (PIPL) is in scope. The build-vs-buy baseline study is explicit that treating **"AI as an external API call" is itself a sovereignty risk**, and that AI-processing location should be treated as a **control, not a feature**.
+> **China left scope on 2026-08-08** (`CH-008`, ADR-0010), and it was the only in-scope
+> jurisdiction with a localisation requirement. The sovereignty argument below **no longer has a
+> live driver**. The model-agnostic interface is still worth keeping — vendor lock-in, cost and
+> availability are independent reasons — but it must stop being justified as a *compliance*
+> mechanism until someone rewrites the case. Tracked as **`AD-Constraint7-1`**; this is also why
+> `CLAUDE.md` 約束 7 now carries a "reason under review" marker.
+
+The build-vs-buy baseline study is explicit that treating **"AI as an external API call" is itself a sovereignty risk**, and that AI-processing location should be treated as a **control, not a feature**. That argument stands on its own merits; what changed is that no in-scope entity now compels it.
 
 Consequences:
 
-- Where a jurisdiction requires localisation, the AI processing path must stay **in-boundary** for that entity's data — or that entity's data must be excluded from the external processing path.
-- The design must be **model-agnostic** so the inference endpoint can differ per region without changing application logic.
+- ~~Where a jurisdiction requires localisation, the AI processing path must stay in-boundary~~ — no in-scope jurisdiction currently does.
+- The design should remain **model-agnostic** so the inference endpoint can be changed without touching application logic. Justification is now commercial and operational, not regulatory.
 - Which data the agent may retrieve is governed by **the same entity-scoped RLS as everything else** — the agent must never become a way to read another entity's data.
 
 ## Option comparison
@@ -28,11 +35,11 @@ Consequences:
 | Control over data path | Full — can pin processing per region | Depends on Microsoft tenant/region configuration |
 | Effort | Higher; we own retrieval, grounding, evaluation | Lower; leverages existing M365 investment |
 | Fit with existing estate | Neutral | Strong if the group already runs M365/Copilot |
-| Sovereignty (China/PIPL) | Easier to satisfy with in-boundary inference | Needs careful verification per region; may not be feasible for all entities |
+| ~~Sovereignty~~ → data-path control | Full control over where inference happens | Depends on Microsoft tenant configuration. ⚠️ No longer a *compliance* differentiator (ADR-0010) — weigh it as an operational one |
 | Knowledge beyond the platform | Would need explicit connectors | Can reach SharePoint/Teams content natively |
 | Lock-in | Low | Higher |
 
-**Recommendation:** keep this an open **ADR** rather than deciding now, but design for a **model-agnostic retrieval interface** so either option (or both, per region) can plug in. A plausible landing point is a hybrid: Copilot Studio for entities where it is permitted and convenient, in-boundary self-hosted inference for entities with localisation requirements.
+**Recommendation:** keep this an open **ADR** rather than deciding now, but design for a **model-agnostic retrieval interface** so either option can plug in. ⚠️ The previous "hybrid per region" landing point assumed entities with localisation requirements; there are none left, so the realistic outcome is now a single choice rather than a split.
 
 ## Guardrails (non-negotiable)
 
@@ -52,7 +59,7 @@ The platform's credibility tenet applies fully to the agent:
 
 ## Useful early question types
 
-"What are our high residual risks in Japan?" · "Which controls satisfy PIPL cross-border transfer?" · "What does our incident procedure require for an S1?" · "Which vendors have access to Confidential information?" · "Is Malaysia's ISMS profile current?"
+"What are our high residual risks in Korea?" · "Which controls satisfy Singapore PDPA's access-control obligations?" · "What does our incident procedure require for an S1?" · "Which vendors have access to Confidential information?" · "Is Malaysia's ISMS profile current?"
 
 Each of these is answerable from the core data model — which is the point: the relationship graph built in Wave 1 is what makes the agent useful in Wave 3.
 

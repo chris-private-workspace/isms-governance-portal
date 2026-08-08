@@ -34,12 +34,12 @@
 
 | AD ID | 症狀 / 缺口 | 來源 phase | 優先度 | 備註 |
 |-------|------------|------------|--------|------|
-| AD-Residency-1 | 比較矩陣須對**所有**實體統一讀 `posture_snapshot`，否則中國（月快照）與其他 OpCo（即時）混用不同 as-at 時間，是誤導性視圖 | CH-001 | 🟡 P1 | M8 前確認；`02a` §7 已記 |
+| AD-Residency-1 | 比較矩陣須對**所有**實體統一讀 `posture_snapshot`。**驅動力已換**（CH-008）：原因不再是中國月快照 vs 即時，而是「部分格子即時算、部分讀快照」本身就在比較不同時刻 | CH-001 → 重述 CH-008 | 🟡 P1 | M8 前確認；`02a` §7 已更新 |
 | AD-DesignAlign-5 | `15` §7 #5：**OS portfolio** 模組尚未規格化；Risk programme 的**實體已定義**（`02a` §3.1）但**螢幕未規格化** | `15` | 🟡 P1 | `02a` §0 已列為「未規格化，不得建置」 |
 | AD-DesignAlign-2 | `15` §7 #2：確認語言集與日本地位 —— i18n 從 M0 就要在位 | `15` | 🟡 P1 | |
 | AD-DesignAlign-7 | `15` §7 #7：確認 ISMS profile 的 certifier-comment / company-reply 欄位是否保留 | `15` | 🟢 P2 | |
 | AD-Mockup-2 | **`data.js` 不可原樣移植** —— 旗艦儀表板以**國家**為鍵，結構上無法容納 14 OpCo（新加坡 2 家、香港 2 家）。約束 6 的 STOP-and-ask | CH-002 | 🔴 P0 | 阻斷 M8 |
-| AD-Mockup-3 | OpCo fixture 需重建：`opcos.js` 有 `RIN` 印度、缺 `RCN` 中國，與 `15` §1 完全相反；`Japan` 在 5 個檔案被當成營運實體 | CH-002 | 🔴 P0 | 移植前必做 |
+| AD-Mockup-3 | OpCo fixture 需重建為 **13 家**（CH-008 後）：`opcos.js` 的 `RIN` 印度要刪，**且不補 `RCN`**；`Japan` 在 5 個檔案被當成營運實體 | CH-002 → 更新 CH-008 | 🔴 P0 | 移植前必做。⚠️ 原稽核建議的「`RIN`→`RCN` 代換」已作廢，改為直接刪列 |
 | AD-Model-Gaps | `02a` 待決欄位級缺口：business unit 是階層節點還是自由文字、治理機構（ISC/ITSC）能否作為核准者、報告排程、通知規則、Policy 的檔案 metadata / TOC / 版本陣列、OrgEntity 的 OpCo function 欄位 | CH-002 | 🟡 P1 | 全數列在 `02a` §0.1 與 §0「未規格化」表 |
 | AD-RiskForm-1 | **風險表單實作的是另一套方法論**，不是欄位不足：僅 7 欄、**完全沒有 before/after 結構**、缺整條 asset→threat→vulnerability→CIA 鏈、`Owner` 是自由文字非 user 參照 | CH-004 | 🔴 P0 | `15` §4 已更新 |
 | AD-Incident-1 | **事件表單完全沒有 `11` 要求的 restricted block**（violating acts / motives / disciplinary action / president view）—— 連同它的 CISO/HR 權限隔離與存取稽核一併缺席 | CH-004 | 🔴 P0 | 隱私控制，`11` §Access control 明訂 |
@@ -51,7 +51,7 @@
 | AD-RuleBoundary-1 | **ADR 撰寫時機與「文檔成長跟隨 runtime」的交界未定義**：`14-adr/README.md:31` 說 ADR 可無實作先寫，CLAUDE.md §禁止反模式禁止預寫規劃文件，仲裁答案只在 `memory/feedback_doc_growth_follows_runtime.md:45`（非 always-loaded）| —（ADR 規劃討論）| 🟢 P2 | 第 1 次違反，依 `.claude/rules/README.md` 強度階梯**不升級為規則**；再發生 1 次則在 `14-adr/README.md` 補判準行 |
 | AD-CssToken-1 | **`mockup-fidelity.md:38` 紅線 7 在本專案是錯的**：它規定一律 `oklch(var(--token))`，但交付物 token 是 HEX（`styles/tokens.css:24` `--primary: #2A5BD7`）。`oklch(#2A5BD7)` 是無效 CSS 且**靜默失效**。同一缺陷在 playbook §4.2 Layer 3 | CH-005 | 🟡 P1 | ⚠️ **W01 前端第一頁之前必修**（一行）。CLAUDE.md 約束 6「不做色彩空間轉換」在本專案亦不適用 —— 那是模板帶來的通用警語 |
 | AD-DocIndex-1 | **`docs/02-architecture/README.md` §核心設計文件 仍是未填模板**：列的 `00-vision.md` / `01-architecture.md` / `02-tech-stack-decisions.md` 全部不存在，實際是 `00-project-charter.md` 等 27 份。**五個 detector 全部抓不到** —— 那些幻影檔名是純表格文字不是連結 | CH-005 | 🟢 P2 | 使用者反映「文件很多不知從何看起」的直接成因 |
-| AD-Decider-1 | **`03` §Questions for Legal 的四個問題仍無接觸途徑**：ADR-0006 已用最保守預設繞過（拓撲不受影響），但 `cross_border_max_tier` 因此鎖在最嚴 → 旗艦比較矩陣覆蓋 **13/14 OpCo** | CH-005 | 🟡 P1 | 放寬是設定變更非重架構。已向 **Regional ISO / Group CISO** 表面化（`03:137` 要求）記於 ADR-0006 §Consequences |
+| AD-Constraint7-1 | **CLAUDE.md 約束 7（LLM provider neutrality）的理由已失效** —— 原論證是「中國在範圍內，推論可能須境內發生 → 主權槓桿」，前提隨 ADR-0010 消失。約束保留（供應商鎖定／成本／可用性），但「合規機制」框架不可再引用 | CH-008 | 🟡 P1 | Wave 3 之前重寫。`14`、`14-adr/README.md` ADR-0009 列已標同一警語 |
 | AD-CIRequired-1 | **CI 尚未設為 required status check** —— `required_status_checks` 仍是 `null`，所以綠燈不擋任何東西。`07:31` 的 M0 DoD 要求它 | CH-006 | 🟡 P1 | W01 M0 骨架建立後設。現在設 = 用沒有實質內容的 gate 擋住所有 PR |
 | AD-SecScan-1 | **SCA / SAST / 容器掃描是 skip 不是 clean** —— 首次 security-scan 只有 gitleaks 真的執行（9 commits, no leaks）。三者未經任何檢查，guardrail 7 尚未滿足 | CH-006 | 🟡 P1 | 需 `package.json`（W01 M0）。推進時**必須依 `security-scan.yml:19-25` 的五步次序**，跳步會造成長期紅或假綠 |
 | AD-LintOutput-1 | **`run_all.py:80` 失敗時只保留 detector 輸出的最後一行**，而那通常是提示語不是違規清單 —— CI 失敗訊息無法診斷 | CH-006 | 🟢 P2 | 目前用 workflow 的 `--verbose` 繞過。同型再現 → 改成 `returncode != 0` 時保留完整輸出 |
@@ -86,6 +86,7 @@
 | — | 2026-08-07 | CH-005：三份基礎 ADR 拍板（0001 NestJS+Prisma · 0006 Azure 分區 · 0007 Entra ID）—— **解封 M0**；關閉 OQ-1/2/5 | `docs/03-implementation/changes/CH-005-foundation-adrs/` |
 | — | 2026-08-07 | CH-006：修好 `ci.yml`（自第一個 PR 起 11/12 次 run 失敗）—— **CI 首次綠燈**，`run_all` 首次在 CI 執行，gitleaks 首次掃描全歷史 | `docs/03-implementation/changes/CH-006-repair-ci-gates.md` |
 | — | 2026-08-07 | CH-007：actionlint（pin+SHA）+ 未填佔位符棘輪 detector；修 3 個既有 shellcheck 問題。**原「掃全 repo 佔位符」提案經枚舉後推翻** | `docs/03-implementation/changes/CH-007-placeholder-detector.md` |
+| — | 2026-08-08 | CH-008：**中國移出範圍**，拓撲收斂為單一區域 × 3 環境（ADR-0010 取代 0006）。覆蓋 grep 掃 34 檔／173 處，改 21 檔；順帶發現 CH-005 漏更新 `docs/architecture.md` §3+§5 | `docs/03-implementation/changes/CH-008-china-out-of-scope/` |
 
 ---
 
@@ -95,7 +96,8 @@
 
 | 決策 | 選項 | 卡在哪 | 誰決定 |
 |------|------|-------|--------|
-| **中國跨境資料層級** | T1 可出境 / 只有 `posture_rag` / 完全不可 | ~~M0、M1 全部~~ → **已不再阻斷**（ADR-0006 用最保守預設拍板了拓撲）。現在只卡 `cross_border_max_tier` 能否放寬，即旗艦矩陣是 13/14 還是 14/14 | ⚠️ Legal / DPO；四個問題已備妥於 `03` §Questions for Legal。見 `AD-Decider-1` |
+| ~~**中國跨境資料層級**~~ | — | ✅ **已消滅** —— 中國於 2026-08-08 移出範圍（`CH-008`），沒有中國邊界，`03` §Questions for Legal 的四個問題作廢。`AD-Decider-1` 一併關閉 | — |
+| **計算平台**：App Service vs Container Apps | 兩者 | ADR-0011；卡的是**兩者在 3 環境下的維運差異**與 `04:93` 的預設值繼承 | 專案擁有者；`CH-009` 的前置 |
 | 其餘 **5** 項開放決策（OQ-3/4/6/7/8）| 見 [`../decision-form.md`](../decision-form.md) | 各範疇 | 卡的是**證據不是決策者** —— OQ-3/4/6 需 W01 spike 的實測，OQ-7 需 spike，OQ-8 屬 Wave 3 |
 
 ---
