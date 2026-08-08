@@ -10,7 +10,8 @@
 12-ai-assistant/
 ├── 01-prompts/
 │   ├── session-start.template.md      <- 詳版 onboarding：session 起手載入的快照
-│   ├── compact-session.template.md    <- /compact 之前用的專案專屬摘要格式
+│   ├── compact-session.template.md    <- /compact 之前用的摘要格式（**模版，勿就地改**）
+│   ├── compact-session.md             <- ↑ 的專案專屬實際版（本專案用這份）
 │   └── SESSION_SUMMARY.template.md    <- slim 摘要（若有 SessionStart hook，自動注入）
 └── _TEMPLATE-handoff.md               <- 任務交接（含走過的死路）
 ```
