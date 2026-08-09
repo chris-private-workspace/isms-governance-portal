@@ -17,16 +17,21 @@
  *   Check 3 scans source rather than trusting types, because a key built at
  *   runtime would type-check and still be missing.
  *
+ *   Check 1 is now written as a function the suite also tests in the failing
+ *   direction (CH-012) — an assertion nobody has watched fail is
+ *   indistinguishable from one that cannot fail.
+ *
  * Created: 2026-08-08 (Phase W01)
- * Last Modified: 2026-08-08
+ * Last Modified: 2026-08-09
  *
  * Modification History (newest-first):
+ *   - 2026-08-09: CH-012 — assert the parity check both ways
  *   - 2026-08-08: Initial creation (Phase W01)
  */
 import { readdirSync, readFileSync, statSync } from 'node:fs';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
-import { DEFAULT_LOCALE, DICTIONARIES, LOCALES, t } from './index';
+import { DEFAULT_LOCALE, DICTIONARIES, LOCALES, type Locale, t } from './index';
 
 const SRC_ROOT = join(import.meta.dirname, '..');
 
@@ -38,11 +43,70 @@ function sourceFiles(dir: string): string[] {
   });
 }
 
-describe('i18n dictionaries', () => {
-  const referenceKeys = Object.keys(DICTIONARIES[DEFAULT_LOCALE]).sort();
+type Dictionaries = Record<string, Record<string, string>>;
+type ParityViolation = { locale: string; missing: string[]; extra: string[] };
 
-  it.each(LOCALES)('%s carries exactly the reference key set', (locale) => {
-    expect(Object.keys(DICTIONARIES[locale]).sort()).toEqual(referenceKeys);
+/**
+ * The parity comparison as a function rather than inline expectations, so the
+ * suite can assert it BOTH ways: silent on the real dictionaries, and loud on a
+ * broken one (CH-012).
+ *
+ * An assertion nobody has watched fail is indistinguishable from one that
+ * cannot fail. This one guards a failure the type checker cannot see —
+ * TranslationKey is derived from zh-Hant alone, so every other locale is typed
+ * `Record<string, string>` and may quietly lose a key.
+ *
+ * Lives here rather than in src/: a production module imported only by tests is
+ * side-track code (AP-1).
+ */
+function parityViolations(dicts: Dictionaries): ParityViolation[] {
+  const reference = new Set(Object.keys(dicts[DEFAULT_LOCALE] ?? {}));
+
+  return Object.entries(dicts)
+    .map(([locale, dict]) => {
+      const keys = new Set(Object.keys(dict));
+      return {
+        locale,
+        missing: [...reference].filter((key) => !keys.has(key)).sort(),
+        extra: [...keys].filter((key) => !reference.has(key)).sort(),
+      };
+    })
+    .filter((violation) => violation.missing.length > 0 || violation.extra.length > 0);
+}
+
+function withoutKey(locale: Locale, key: string): Dictionaries {
+  const kept = Object.entries(DICTIONARIES[locale]).filter(([name]) => name !== key);
+
+  return { ...DICTIONARIES, [locale]: Object.fromEntries(kept) };
+}
+
+describe('the parity check itself', () => {
+  // Any real key would do; this one is picked because the W01 drive-through
+  // exercised it on screen, so a failure here has a visible counterpart.
+  const SAMPLE_KEY = 'health.state.down';
+
+  it('reports nothing for the dictionaries we actually ship', () => {
+    expect(parityViolations(DICTIONARIES)).toEqual([]);
+  });
+
+  it('names the locale and the key when one goes missing', () => {
+    const violations = parityViolations(withoutKey('en', SAMPLE_KEY));
+
+    expect(violations).toEqual([{ locale: 'en', missing: [SAMPLE_KEY], extra: [] }]);
+  });
+
+  it('catches a key that exists only outside the reference locale', () => {
+    const drifted: Dictionaries = { ...DICTIONARIES, en: { ...DICTIONARIES.en, 'stray.key': 'x' } };
+
+    expect(parityViolations(drifted)).toEqual([
+      { locale: 'en', missing: [], extra: ['stray.key'] },
+    ]);
+  });
+});
+
+describe('i18n dictionaries', () => {
+  it('every locale carries exactly the reference key set', () => {
+    expect(parityViolations(DICTIONARIES)).toEqual([]);
   });
 
   it.each(LOCALES)('%s has no empty or whitespace-only values', (locale) => {

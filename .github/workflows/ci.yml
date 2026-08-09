@@ -146,6 +146,21 @@ jobs:
           fi
           npm run lint -w apps/api -w apps/web
 
+      # A separate step on purpose: this one exists precisely for the case where
+      # every other gate is green, so burying it inside Lint would hide the one
+      # signal it carries. On failure the job summary names it directly.
+      #
+      # It runs a deliberately illegal import past eslint-plugin-boundaries and
+      # requires the rule to reject it BY NAME. W01 shipped a boundaries config
+      # that was valid, linted green, and enforced nothing — six separate ways.
+      - name: Negative gates
+        run: |
+          if [ ! -f package.json ]; then
+            echo "::notice::monorepo scaffold absent — skipped until W01 M0 (ADR-0001)"
+            exit 0
+          fi
+          npm run lint:negative
+
       - name: Type check
         run: |
           if [ ! -f package.json ]; then

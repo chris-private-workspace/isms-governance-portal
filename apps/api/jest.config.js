@@ -25,7 +25,10 @@ module.exports = {
   testEnvironment: 'node',
   testRegex: '.*\\.spec\\.ts$',
   transform: { '^.+\\.ts$': ['ts-jest', { tsconfig: '<rootDir>/../tsconfig.json' }] },
-  collectCoverageFrom: ['**/*.ts', '!**/generated/**', '!bootstrap/**'],
+  // __fixtures__ holds files that exist to be REJECTED by another tool, never
+  // executed — counting them drags the total down by design, and by more with
+  // each one added (CH-012).
+  collectCoverageFrom: ['**/*.ts', '!**/generated/**', '!bootstrap/**', '!**/__fixtures__/**'],
   coverageDirectory: '../coverage',
   // === Why branches is 70 while everything else is 80 ===
   // Why: `emitDecoratorMetadata` — which Nest's DI requires — emits a ternary
