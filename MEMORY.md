@@ -53,6 +53,8 @@
 
 - W01 [Monorepo scaffold](memory/project_w01_monorepo_scaffold.md) — closed_partial 2026-08-08, PR #18; 八個休眠 gate 從「回報 SUCCESS 但什麼都沒檢查」變成真的會叫；**同一 phase 內「綠燈但空轉」出現 5 次**，是本專案目前最重要的結構性教訓.
   Keywords: AD-NegativeGate-1 · 設定型強制力靜默失效 · boundaries/dependencies · test:cov 未被執行 · Risk Class C 陳舊進程 · greenfield-scaffold calibration · entity-scope 未實作
+- W02 [Entity-scoping RLS spike](memory/project_w02_entity_scope_rls.md) — closed 2026-08-09; RLS 在應用層與資料庫層各自成立，ADR-0004 拍板；**Day-0 判定「fail-closed 免費」只在從未被 scope 過的連線上成立**，是本專案第一次 Day-0 結論被推翻.
+  Keywords: ADR-0004 · app_entity_scope · set_config transaction-local · GUC 定義為空字串 · AD-Day0Scope-1 · symbol brand EntityScope · assert-no-scope-bypass · spike calibration 1.10
 
 ---
 

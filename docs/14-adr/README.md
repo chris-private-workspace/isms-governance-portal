@@ -73,6 +73,7 @@ CHANGE record  一次變更的紀錄。做了什麼、為什麼這樣做、怎�
 | # | 決策 | Date | Status |
 |---|------|------|--------|
 | [0001](./0001-backend-framework.md) | 後端 = NestJS 10 + Prisma 7，與 Next.js 前端同一個 monorepo | 2026-08-07 | **已採納** |
+| [0004](./0004-entity-scoping-enforcement.md) | Entity scoping = PostgreSQL RLS，由 Prisma client extension 驅動（**W02 spike 實測後拍板；裁決 0001 §可證偽條件 #1 未觸發**）| 2026-08-09 | **已採納** |
 | [0006](./0006-deployment-and-residency-topology.md) | 分區部署於 Azure，中國區走 Azure China（21Vianet） | 2026-08-07 | **已被 [0010](./0010-single-region-deployment-topology.md) 取代** |
 | [0007](./0007-identity-provider.md) | Microsoft Entra ID，取代交付物指定的 Okta | 2026-08-07 | **已採納** |
 | [0010](./0010-single-region-deployment-topology.md) | 單一區域部署於 Azure，單一 tenant 內 3 個環境（**取代 0006**） | 2026-08-08 | **已採納** |
@@ -89,14 +90,14 @@ CHANGE record  一次變更的紀錄。做了什麼、為什麼這樣做、怎�
 ## 尚待撰寫（Wave 1 阻斷項）
 
 原本 9 份是專案啟動時識別出來的開放決策。**0001 / 0006 / 0007 已於 2026-08-07（`CH-005`）採納**，
-移到上方索引（0006 已於 2026-08-08 被 0010 取代，0011 於同日採納）；下表是**剩餘 6 份**。
+移到上方索引（0006 已於 2026-08-08 被 0010 取代，0011 於同日採納；
+**0004 已於 2026-08-09 由 W02 spike 採納**）；下表是**剩餘 5 份**。
 清單原本在舊的 `docs/adr/` 位置，套用開發流程模版重組時併入本索引。  <!-- path-check: ignore — 歷史位置，已不存在 -->
 
 | # | 決策 | 阻斷什麼 | 何時可寫 |
 |---|------|---------|---------|
 | ADR-0002 | Workflow engine：自建 vs. 嵌入 | 平台基礎服務 | **需先 spike**（`decision-form.md` OQ-7）|
 | ADR-0003 | Audit-trail hash-chain 設計 | guardrail 5（不可篡改稽核軌跡）| W01 spike 之後 —— 判準是寫入吞吐量，零 code 時量不出來 |
-| ADR-0004 | Entity-scoping 強制方式（PostgreSQL RLS 策略）| guardrail 4（一切 entity-scoped）| W01 spike 之後 —— ⭐ **驗證 ADR-0001 的承重假設** |
 | ADR-0005 | 受治理擴充欄位的儲存（JSONB + field catalog）| guardrail 3（核心資料模型）| W01 spike 之後 |
 | ADR-0008 | AI agent：自建檢索 vs. Copilot Studio 整合 vs. 分區混合 | Wave 3 | Wave 3 |
 | ADR-0009 | AI 處理地點與模型無關推論介面 | Wave 3 | Wave 3 —— ⚠️ 主權論據隨中國移出而失效（ADR-0010），**約束 7 的理由待重寫**（`AD-Constraint7-1`）|
