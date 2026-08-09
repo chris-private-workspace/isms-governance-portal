@@ -59,6 +59,15 @@
   - DoD: **零 chunk = FAIL**，不是 pass。regex 若因 Next 改版失效，
         「沒東西可檢查」當成「沒問題」正是本 CH 要消滅的靜默綠
   - Verify: `node scripts/smoke-probe.mjs --self-test` → 3 cases PASS
+- [ ] **修 `apps/api/Dockerfile:62` —— 加 `--ignore-scripts`**（範圍擴大，使用者 2026-08-09 拍板）
+  - 由來: `image-smoke` 首航即抓到。postinstall 的 `prisma generate` 跑在
+        `prisma/schema.prisma` 被 COPY 進去（`:66`）**之前** → `schema.prisma: file not found`
+  - ⭐ W01 **已知道這件事只修了一半**：header `:33-35` 明寫 prod-deps 需要
+        `--ignore-scripts`，`:80` 也確實加了 —— build 階段漏了。header 註解一併更正，
+        否則下一個人會照原文以為 build 階段不需要
+  - DoD: 本機失敗點從 `:62` **前進到 `:70`**（那裡才真的下載 engine，撞公司 proxy）——
+        **失敗形狀改變**是修法生效的證據；完整驗證只能靠 CI
+  - Verify: ⏳ CI 的 `Build api image` 步驟通過
 - [ ] **`docs/01-planning/BACKLOG.md` 同步**
   - DoD: `AD-ImageBuild-1` 關閉 · `AD-NegativeGate-1` 更新為 4/5（**不關閉**）·
         `AD-SecScan-1` 更新剩餘缺口只剩 DAST · **新增** trivy 完整 image 掃描的 AD
