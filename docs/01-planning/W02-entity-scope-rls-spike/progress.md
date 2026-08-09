@@ -320,3 +320,176 @@ migrate deploy: 20260809171812_entity_scope_fail_closed applied
 - 種子資料仍是手動塞的臨時資料；Day 3 的測試要有自己的 fixture
 - `.env` 已補 `DATABASE_URL_MIGRATE` 與 app 角色 —— **`.env` 不在版控，
   其他機器 clone 後仍要自己照 `.env.example` 補**
+
+---
+
+## Day 3 — 2026-08-09
+
+### Today's Accomplishments
+
+- Day 2 那 10 項一次性 drive **變成 20 個會在 CI 跑的測試**（app 層 12 + DB 直連 8）
+- 整合測試基礎設施從零建起（Day-0 `D-testinfra` 說它不存在）
+- 旁路 detector + **兩種弄壞法的元驗證**，且**不動 CI 就進了 CI**
+- 乾淨重啟揭露一個比 `dist` 舊 4 小時 10 分的進程（Risk Class C，第二次）
+- CI 接線（使用者 2026-08-09 拍板：ci.yml + 既有 compose）
+
+### Task 時間
+
+| Task | Actual | Est |
+|---|---|---|
+| 3.4 detector + fixture + 元驗證 | ~40 min | ~60 min |
+| 3.2/3.3 整合測試基礎設施 | ~50 min | ~90 min |
+| 3.2/3.3 20 個測試 | ~45 min | ~60 min |
+| 3.1 乾淨重啟 | ~15 min | ~20 min |
+| CI 接線 + init hook 驗證 | ~30 min | ~20 min |
+
+### 3.4 旁路 detector — 兩種弄壞法都跑過
+
+`scripts/assert-no-scope-bypass.mjs` 三條規則：`raw-query` · `unscoped-connection` ·
+`new-client`。allowlist **三個檔案**，每一個都是「實作這個機制的程式碼」而非「例外」。
+
+**第一版有假陽性**：它對 `health.service.ts` 的**兩段註解**開火 —— 那兩段正是在解釋
+為什麼 `$queryRaw` 不再出現在那裡。一個對「解釋自己的散文」開火的 detector，
+結局是有人不寫解釋、或有人把規則放寬，兩者都比它換掉的假陰性更糟。
+→ 比對前先剝註解；已註解掉的程式碼不是活的旁路，取消註解會立刻被抓回來。
+
+**元驗證（弄壞 → 紅 → 還原 → 綠）跑了兩種**：
+
+| 弄壞什麼 | 結果 |
+|---|---|
+| 生產程式碼加一行真旁路（`health.service.ts` 的 `connection.$queryRaw`）| **FAIL，兩條規則各報一次，指到 `:43`** |
+| 把 detector 自己的 `raw-query` pattern 改成永不匹配 | **self-test FAIL，且在掃描前就停** |
+| 兩者還原 | PASS（10 檔案掃描 · 0 旁路 · 3 allowlist · 跳過 8 test + 2 fixture）|
+
+第二種是重點：self-test **不在旗標後面**，每次執行都跑。一個 pattern 失效的 detector
+會報「0 violations」，而那跟乾淨的 repo 長得一模一樣。
+
+**CI 接線零改動**：掛進 `lint:negative`，而 `ci.yml` 的 `Negative gates` 步驟本來就跑它。
+
+### 3.2 / 3.3 整合測試 — 20 項，兩個檔案
+
+`entity-scope.int.spec.ts`（12）走真的 Nest module graph；
+`rls-direct.int.spec.ts`（8）**完全不經應用層**，用 `pg` 直連下 SQL ——
+`07:55` 要的正是這一層，而一個透過受測程式碼去問資料庫的測試，分不出是哪一層拒絕的。
+
+**「404 不是 403」在沒有 endpoint 的情況下驗在它真正發源的地方**：
+一個「不在你範疇內」的 id 與一個「從來不存在」的 id 必須**無法區分**。
+兩者都回 `null` 且 `toEqual` 彼此。若這裡就不同，之後任何 controller 都湊不出一致的
+404；而回 403 等於確認對方猜的 id 是真的。
+
+**兩個測試一開始是紅的**，原因是我的斷言：app 層測試留下一列**軟刪除**的 SG1 policy，
+直連測試沒過濾 `retired_at` 就數列數。改成斷言「**哪些實體可見**」而非「幾列」——
+既解掉檔案間的順序耦合，也更忠實：忽略 `retired_at` 的查詢本來就不代表生產行為。
+
+### ⭐ 這套測試自己也被弄壞過
+
+把 migration 的 policy 改成 `USING (true) WITH CHECK (true)`：
+
+```
+neutered  -> Test Suites: 2 failed | Tests: 14 failed, 6 passed, 20 total
+restored  -> Test Suites: 2 passed | Tests: 20 passed
+```
+
+（剩下 6 個通過的是不談隔離的那些：角色前提、`org_entities` 可讀、應用層空 scope 拒絕、
+未知 code 拒絕。合理。）
+
+### 基礎設施：每次重建，順便關掉一個紅旗
+
+`jest.int.config.js` + `test/int-global-setup.js`：**DROP / CREATE / migrate / seed**。
+選重建而非 truncate 的副作用是 —— **這是 `prisma migrate deploy` 第一次跑在乾淨資料庫上**。
+Day 1 記的紅旗（「只在已有資料的 `isms_dev` 上跑過」，與 CH-013 的「Dockerfile 從未被 build」
+同形狀）因此關掉。
+
+`int-global-setup.js` 開跑前先斷言連線角色 `rolsuper=f, rolbypassrls=f`，不成立就 throw ——
+Day 2 那個「十二項全綠但 RLS 全程沒生效」的教訓，成本是一個 query。
+
+`int-db.js` 另有一道守衛：目標資料庫名不以 `_test` 結尾就 abort。那些 URL 會被交給
+`DROP DATABASE`，而開發者的 `DATABASE_URL` 指的是 `isms_dev`。
+
+### 🔴 Coverage 差點讓 CI 紅（我自己造成的）
+
+加完整合測試後 `test:cov` 掉到 **39.91%**（門檻 80）。原因：`collectCoverageFrom: ['**/*.ts']`
+把兩個 `*.int.spec.ts` 算進去，而它們被 `testPathIgnorePatterns` 排除、**永遠不執行** →
+兩個大檔案各記 0%。**沒有一行生產程式碼改變，覆蓋率從 100% 掉到 39.91%。**
+→ `!**/*.int.spec.ts`。修好後 **95.95 / 82.35 / 88 / 96.29**。
+
+### 3.1 乾淨重啟 — Risk Class C 第二次現身
+
+```
+dist/entity-scope/scoped-prisma.provider.js  mtime  2026-08-09 17:24:28
+port 3210 持有者 PID 4684        started      2026-08-09 13:14:13
+                                 進程比 dist 舊  04:10:14
+```
+
+那個進程**從未載入過 `EntityScopeModule`**。若我拿它驗 wiring，得到的結論會是錯的。
+
+殺掉 4684 與其父 53092 → 確認 port 空出 → 重啟 → 新進程是唯一持有者且**比 dist 新**。
+證明 wiring 生效的 startup log 行：
+
+```
+[Nest] 36976  LOG [InstanceLoader] EntityScopeModule dependencies initialized +0ms
+[Nest] 36976  LOG [InstanceLoader] HealthModule dependencies initialized +0ms
+[isms-api] listening on http://127.0.0.1:3210 (api-docs at /api-docs)
+
+curl /health -> {"status":"up","db":"up"}
+```
+
+`/health` 這一下同時證明了受限角色 `isms_app_user` 在**真實 runtime** 下可用
+（`probe()` 的 `SELECT 1` 不需要任何表權限）。
+
+### ⭐ `init-app-role.sh` 的 initdb hook 第一次被真的執行
+
+Day 1 只走過 `npm run db:app-role` 的 fallback；**initdb hook 路徑從未執行過**，
+而 `image-smoke.yml` 與新的 ci.yml 步驟都靠它。
+
+用**拋棄式 compose project**（`-p ismsinitcheck` + `!override` 改 container name 與 port
+5434）起一個全新 volume 驗證，**不碰 `docker_isms-pgdata`**：
+
+```
+/usr/local/bin/docker-entrypoint.sh: running /docker-entrypoint-initdb.d/10-init-app-role.sh
+[init-app-role] isms_app_user ready (NOSUPERUSER, NOBYPASSRLS)
+isms_app_user super=false bypassrls=false login=true
+```
+
+接著把整合測試指向那個實例跑一遍 —— **20/20**。CI 路徑（乾淨 volume → initdb 建角色 →
+乾淨資料庫 migrate → 測試）因此在本機端到端驗過。拆除時只移除
+`ismsinitcheck_isms-pgdata`，`docker_isms-pgdata` 完好、容器仍 healthy。
+
+> 順帶記一個 compose 行為：override 的 `ports` 是**合併不是取代**，
+> 第一次嘗試因此同時綁 5433 與 5434 而失敗。要用 `ports: !override`。
+
+### Day 3 Gate
+
+```
+lint 0 · type-check 0 · format:check clean · run_all 6/6
+lint:negative PASS ×2（boundaries + no-scope-bypass）
+api unit test 33 · coverage 95.95/82.35/88/96.29（門檻 80/70/80/80）
+api integration test 20 · web test 10 · build clean
+```
+
+⚪ **無 UI → 全部 gate-only verified。** 上述任一項都不得被讀成「使用者可用」。
+
+### Plan deviation（R3）
+
+plan §4 未列而進入變更：`.github/workflows/ci.yml`（原標 UNTOUCHED「除非旁路 detector
+需要接線」—— 實際是**整合測試**需要接線，detector 反而不需要）·
+`apps/api/jest.config.js` · `apps/api/jest.int.config.js` · `apps/api/test/*.js` ·
+`apps/api/package.json` · 兩個 `*.int.spec.ts` · 一個 `__fixtures__`。
+
+### 意外 / 卡住
+
+- coverage 崩掉（見上），約 10 分鐘
+- detector 假陽性，約 10 分鐘
+- 兩個整合測試因我的斷言而紅，約 10 分鐘
+- compose override 的 ports 合併行為，約 5 分鐘
+
+### Remaining for Next Day
+
+- Day 4：design note（8-point gate）+ ADR-0004 + change record + closeout
+
+### 🚩 仍未驗
+
+- **ci.yml 的三個新步驟從未在 CI 跑過** —— 本機用拋棄式實例模擬過整條路徑，
+  但 GitHub runner 的 docker 行為、`cp .env.example .env` 的實際效果、
+  以及新步驟的 actionlint 結果，都要等 push
+- **`image-smoke.yml` 的 Day 1 角色改動同樣尚未經 CI**（自 Day 1 起就掛著）

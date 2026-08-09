@@ -24,11 +24,27 @@ module.exports = {
   rootDir: 'src',
   testEnvironment: 'node',
   testRegex: '.*\\.spec\\.ts$',
+  // `*.int.spec.ts` needs a real PostgreSQL and lives in jest.int.config.js.
+  // The suffix still ends in `.spec.ts` on purpose: eslint.config.mjs:142 keys
+  // its test exemptions off that pattern, and a name it did not recognise would
+  // put integration tests under the production import matrix.
+  testPathIgnorePatterns: ['\\.int\\.spec\\.ts$'],
   transform: { '^.+\\.ts$': ['ts-jest', { tsconfig: '<rootDir>/../tsconfig.json' }] },
   // __fixtures__ holds files that exist to be REJECTED by another tool, never
   // executed — counting them drags the total down by design, and by more with
   // each one added (CH-012).
-  collectCoverageFrom: ['**/*.ts', '!**/generated/**', '!bootstrap/**', '!**/__fixtures__/**'],
+  // `!**/*.int.spec.ts` is not tidiness: those files are excluded from this
+  // run, so counting them scores two never-executed files at 0% and drags the
+  // total under the threshold. Adding the first integration test dropped
+  // statements from 100% to 39.91% without a single line of production code
+  // changing.
+  collectCoverageFrom: [
+    '**/*.ts',
+    '!**/generated/**',
+    '!bootstrap/**',
+    '!**/__fixtures__/**',
+    '!**/*.int.spec.ts',
+  ],
   coverageDirectory: '../coverage',
   // === Why branches is 70 while everything else is 80 ===
   // Why: `emitDecoratorMetadata` — which Nest's DI requires — emits a ternary
