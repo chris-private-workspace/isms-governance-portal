@@ -56,9 +56,14 @@ WORKDIR /repo
 # to fetch. Without it: "Prisma failed to detect the libssl/openssl version to
 # use ... Defaulting to openssl-1.1.x", then the wrong engine. Caught by running
 # the build, not by reading the Dockerfile.
-RUN apt-get update \
-  && apt-get install -y --no-install-recommends ca-certificates \
-  && rm -rf /var/lib/apt/lists/*
+# META-VERIFICATION 3 (DO NOT MERGE): the whole RUN removed, which is the
+# actual pre-W01 state — `-slim` ships with neither openssl nor ca-certificates.
+# Attempt 1 removed only the `openssl` package name and kept ca-certificates;
+# apt reinstalled openssl anyway, because ca-certificates depends on it. That
+# run was green because nothing had changed, not because the gate is blind.
+# RUN apt-get update \
+#   && apt-get install -y --no-install-recommends openssl ca-certificates \
+#   && rm -rf /var/lib/apt/lists/*
 
 COPY package.json package-lock.json ./
 COPY packages/types/package.json packages/types/
