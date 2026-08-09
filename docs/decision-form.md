@@ -16,7 +16,6 @@
 
 | # | 問題 | 為什麼要現在決定 | 選項 | 卡住誰 | **誰能決定** | 提出日 |
 |---|---|---|---|---|---|---|
-| OQ-3 | **Entity-scoping 強制方式**（→ ADR-0004）| guardrail 4 要求「優先資料庫層強制」。若用 connection pooler 就無法 per-request `SET LOCAL`，必須降級為應用層 —— 那個降級要被記錄而非默默發生 | A: PostgreSQL RLS（每請求獨立連線）/ B: 應用層強制過濾（pooler 環境）/ C: 兩者並用（高風險表）| `core-model`、`entity-scope` 兩個範疇 | ⚠️ 未指定 | 2026-08-07 |
 | OQ-4 | **稽核軌跡 hash-chain 設計**（→ ADR-0003）| guardrail 5 要求平台能證明自己日誌的完整性。逐列鏈與週期性錨定的寫入成本與驗證成本差異很大，決定後改動代價高 | A: 逐列 hash chain / B: 週期性錨定 / C: 混合 | `audit-trail` 範疇 | ⚠️ 未指定 | 2026-08-07 |
 | OQ-6 | **受治理擴充欄位儲存**（→ ADR-0005）| guardrail 3 的「canonical core + governed local extensions」需要一個具體機制，否則各 OpCo 會各自加欄位 | A: JSONB + 中央 field catalog / B: EAV / C: 每實體側表 | `core-model` 範疇 | ⚠️ 未指定 | 2026-08-07 |
 | OQ-7 | **Workflow engine：自建 vs 嵌入**（→ ADR-0002）| 已確認參數：Wave 1 不做重量級 BPM。但「精簡可設定狀態機」的邊界要定義，否則會逐步長成 BPM | ⚠️ 需先 spike | `workflow` 範疇 | ⚠️ 未指定 | 2026-08-07 |
@@ -38,6 +37,7 @@
 | OQ-1 | 部署拓撲 | ~~分區部署於 Azure；中國區走 Azure China~~ → **重新拍板 2026-08-08**：中國移出範圍，改為**單一區域 × 3 環境**（dev/staging/prod），prod 獨立 subscription | 2026-08-08 | [`0010`](./14-adr/0010-single-region-deployment-topology.md)（取代 [`0006`](./14-adr/0006-deployment-and-residency-topology.md)）|
 | OQ-2 | 後端語言與框架 | **NestJS 10 + Prisma 7**，與 Next.js 前端同一 monorepo | 2026-08-07 | [`0001`](./14-adr/0001-backend-framework.md) |
 | OQ-5 | Identity provider | **Microsoft Entra ID**（OIDC），取代交付物指定的 Okta / SAML | 2026-08-07 | [`0007`](./14-adr/0007-identity-provider.md) |
+| OQ-3 | Entity-scoping 強制方式 | **選項 A：PostgreSQL RLS + Prisma client extension**（每個 operation 包進設 `app.entity_scope` 的 transaction）。W02 spike 實測後拍板 —— 選項 B 保留為**已記錄的降級路徑**（引入 pooler 時），選項 C **延後至 M3**（稽核/證據表出現時才有標的）| 2026-08-09 | [`0004`](./14-adr/0004-entity-scoping-enforcement.md) · design note `02-architecture/design-notes/W02-entity-scope-rls.md` |
 
 ---
 

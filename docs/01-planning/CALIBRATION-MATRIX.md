@@ -51,6 +51,7 @@ Bottom-up ~X hr → class-calibrated ~Y hr (mult Z) → agent-adjusted ~Y' hr (a
 | Scope class | Mult | 3-phase mean | Status（1 行）|
 |-------------|------|---------------|--------------|
 | `greenfield-scaffold` | 0.60 | n/a (1 pt) | KEEP (W01 ratio ~0.35 UNDER band; 工時未逐項記錄，數字由 commit 時間戳回推故品質打折; if 2nd <0.70 → 0.40; → calibration-log) |
+| `spike` | 0.65 | n/a (1 pt) | KEEP (W02 ratio 1.10 IN band; Day 0 未計時故 ~2 hr 為回推，且逐項加總不含間隙成本故偏低; 需 2 個乾淨資料點再議; → calibration-log) |
 
 ### 常見 scope class 起始建議值
 

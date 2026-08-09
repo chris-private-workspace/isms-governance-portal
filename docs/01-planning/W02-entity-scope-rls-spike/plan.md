@@ -1,5 +1,5 @@
 ---
-status: active  # draft | active | closed | closed_partial —— 機器可讀的唯一權威
+status: closed  # draft | active | closed | closed_partial —— 機器可讀的唯一權威
 ---
 
 # Phase W02 Plan — entity-scoping spike: prove RLS holds under Prisma
@@ -11,8 +11,12 @@ the spike measurements」。不做完整 M1 資料模型（使用者 2026-08-09 
 **產出 design note（spike 強制）+ ADR-0004。** 無 user-facing surface → **無 drive-through**，
 結論一律寫 gate-only verified。
 
-**Status**: Approved-to-execute（laitim2001 於 2026-08-09 核可 plan 並指示開 checklist 進 Day 0；
-範圍兩項同日拍板：最小 RLS spike 不做完整 M1 · 驗單一實體 + 授權子樹）
+**Status**: **CLOSED 2026-08-09** —— 七個 US 全部交付；ADR-0004 拍板、OQ-3 關閉、
+ADR-0001 §可證偽條件 #1 裁決未觸發。**兩項未完成已標 🚧 並轉 AD**
+（`AD-ScopedClientDI-1` · `AD-ScopeConcurrency-1`），見
+[retrospective.md](./retrospective.md) Q1。
+（原：Approved-to-execute，laitim2001 於 2026-08-09 核可 plan；範圍兩項同日拍板：
+最小 RLS spike 不做完整 M1 · 驗單一實體 + 授權子樹）
 
 **Branch**: `feature/W02-entity-scope-rls`
 **Base**: `main` HEAD `903ce35`（CH-013 closeout —— image-smoke 已在線）
