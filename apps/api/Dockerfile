@@ -57,7 +57,7 @@ WORKDIR /repo
 # use ... Defaulting to openssl-1.1.x", then the wrong engine. Caught by running
 # the build, not by reading the Dockerfile.
 RUN apt-get update \
-  && apt-get install -y --no-install-recommends openssl ca-certificates \
+  && apt-get install -y --no-install-recommends ca-certificates \
   && rm -rf /var/lib/apt/lists/*
 
 COPY package.json package-lock.json ./
