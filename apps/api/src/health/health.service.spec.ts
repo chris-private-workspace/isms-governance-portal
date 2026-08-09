@@ -11,16 +11,17 @@
  *   against a hardcoded constant.
  *
  * Created: 2026-08-08 (Phase W01)
- * Last Modified: 2026-08-08
+ * Last Modified: 2026-08-09
  *
  * Modification History (newest-first):
+ *   - 2026-08-09: Double PrismaService.probe() instead of $queryRaw (Phase W02)
  *   - 2026-08-08: Initial creation (Phase W01)
  */
 import { HealthService } from './health.service';
 import type { PrismaService } from '../core-model/prisma.service';
 
-function serviceWith(queryRaw: () => Promise<unknown>): HealthService {
-  return new HealthService({ $queryRaw: queryRaw } as unknown as PrismaService);
+function serviceWith(probe: () => Promise<unknown>): HealthService {
+  return new HealthService({ probe } as unknown as PrismaService);
 }
 
 describe('HealthService', () => {

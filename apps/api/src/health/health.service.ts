@@ -11,13 +11,20 @@
  *   serving. A health check that cannot report failure is exactly the
  *   Potemkin shape AP-3 describes — structure present, no behaviour behind it.
  *
+ *   It calls `probe()` rather than issuing the query itself. Health has no
+ *   principal and therefore no entity scope, so it is the one caller that
+ *   legitimately touches the database without one — narrowing its dependency to
+ *   a named liveness method keeps that exemption visible and countable instead
+ *   of leaving a general-purpose `$queryRaw` outside entity-scope (W02).
+ *
  * Key Components:
  *   - HealthService.check(): the only method; returns HealthResponse
  *
  * Created: 2026-08-08 (Phase W01)
- * Last Modified: 2026-08-08
+ * Last Modified: 2026-08-09
  *
  * Modification History (newest-first):
+ *   - 2026-08-09: Call PrismaService.probe() instead of $queryRaw (Phase W02)
  *   - 2026-08-08: Initial creation (Phase W01)
  */
 import { Injectable, Logger } from '@nestjs/common';
@@ -32,7 +39,7 @@ export class HealthService {
 
   async check(): Promise<HealthResponse> {
     try {
-      await this.prisma.$queryRaw`SELECT 1`;
+      await this.prisma.probe();
       return { status: 'up', db: 'up' };
     } catch (error) {
       // The API is still up; only its dependency is not. Say so precisely

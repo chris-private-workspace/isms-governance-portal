@@ -164,3 +164,159 @@ build clean · run_all 6/6 · prisma validate 🚀 · migrate deploy applied
 - 探測腳本全部寫在 scratchpad 或用完即刪，**未進 repo**
 - D-forcerls 用**獨立 database**（`w02_day0_probe` / `w02_probe2`）實測，用完 `DROP`，
   全程未碰 `isms_dev` 的資料。teardown 已驗證
+
+---
+
+## Day 2 — 2026-08-09
+
+### Today's Accomplishments
+
+- Client extension（承重）寫成並**用編譯後的生產類別對真 PostgreSQL 驗過**
+- 所有權移轉：`PrismaService` 不再是 client，`entity-scope` 成為唯一查詢面
+- 授權子樹解析（materialised path 前綴比對）+ `EntityScope` branded type
+- 🔴 **推翻一項 Day-0 結論** —— 見下方 D-failclosed-2，並補一個 migration 修正它
+
+### Task 時間
+
+| Task | Actual | Est |
+|---|---|---|
+| 2.0 承重形狀量測（3 輪 probe）| ~55 min | ~30 min |
+| 2.1 `scoped-prisma.provider.ts` | ~40 min | ~90 min |
+| 2.2 所有權移轉（含 health / app.module 連帶）| ~35 min | ~45 min |
+| 2.3 `entity-scope.resolver.ts` + 測試 | ~45 min | ~60 min |
+| 2.4 fail-closed migration（計畫外）| ~25 min | — |
+
+### 🔴 D-failclosed-2 — Day-0 的結論只在「從未被 scope 過的連線」上成立
+
+Day-0 記的是：不帶 `missing_ok` 的 `current_setting` 未設定時 `ERROR 42704`，
+所以 **fail-closed 由 PostgreSQL 免費提供**，`extension 不必自己實作`，
+`兩層獨立成立`。據此 §7 還**減了 0.5 hr**。
+
+Day 2 量到那句話的邊界：
+
+```
+virgin 連線，從未 scope 過        -> ERROR 42704        ← Day-0 量到的那個
+同一連線跑過一次 scoped query 後  -> 0 rows，無錯誤     ← Day-0 沒量到的那個
+```
+
+`set_config(…, true)` 的**值**是 transaction-local，但**「這個參數存在」不是** ——
+COMMIT 之後參數仍在，值為空字串。於是 `current_setting` 不再 raise，
+`string_to_array('', ',')` 得到空陣列，`= ANY('{}')` 濾掉每一列。
+
+**production 的 pooled 連線從第二個請求起全部處於後者。**
+失敗形態因此不是「query 報錯」，而是「這個 OpCo 沒有 policy」——
+`multi-tenant-data.md:207-210` 指名不得發生的那一種。
+
+**處置**：新增 migration `20260809171812_entity_scope_fail_closed`，
+policy 改走 `app_entity_scope()` 函式，把「未設定」與「空」都變成 `42501` 例外。
+psql 三案例實測：
+
+```
+從未設定       -> ERROR unrecognized configuration parameter "app.entity_scope"
+設為空字串     -> ERROR app.entity_scope is not set  (HINT: 必須走 extension)
+設為 SG1       -> 1 row
+```
+
+Day-0 減掉的 0.5 hr 因此**還回來**，且「兩層獨立成立」現在是**設計出來的**，不是撿到的。
+
+### 承重量測（三輪，全部在 scratchpad，未進 repo）
+
+| 量測 | 結果 |
+|---|---|
+| `$transaction([set_config, query(args)])` 是否同一 tx | ✅ **120 次交錯 scoped 讀（pool max 1 與 10）→ 0 錯** |
+| tx 後 scope 是否外洩 | ✅ 讀回 `''`，不帶到下一個請求 |
+| 頂層 `$allOperations` 是否也攔 raw | ✅ `scoped.$queryRaw` 看得到 scope |
+| `org_entities` 在 scoped 狀態下可讀 | ✅ 5 筆（全域表，無 policy）|
+| 跨實體 INSERT / UPDATE | ✅ 兩者皆 `42501 new row violates row-level security policy` |
+
+### ⚠️ 第一輪 probe 是**假的全綠**，而且是最危險的那種
+
+第一輪十二項**全部通過**，包含「跨實體寫應該被拒」那幾項 —— 它們沒被拒。
+原因：`.env`（本機、未追蹤）仍是 W01 的單一角色 URL，探測整輪**以 superuser 連線**，
+RLS 全程未生效。Day 1 只改了 `.env.example`；`.env` 不在版控裡，從沒被改。
+
+代價是真的：probe 8 把 SG1 的 policy **搬到了 HK1**，probe 7 在 HK1 插了一列。
+兩者都已還原（`git` 管不到資料，是我用 owner 角色手動修的）。
+
+> **若我沒跑這一輪，而是直接寫 provider 加測試 —— 測試會全綠，而且證明不了任何事。**
+> 這是本 session 第四次遇到「改了設定 ≠ 我以為的狀態達成」。
+
+**處置**：探測腳本自己先斷言前提（`rolsuper=f, rolbypassrls=f`，否則 abort）。
+`.env` 已補齊兩個 URL。
+
+### ⚠️ 第二輪的結論也是錯的（但錯在我的斷言）
+
+第二輪報「80 次交錯讀 → 40 次污染」。看起來像 extension 洩漏。
+實際是 probe 9 留下的一列還在 SG1，所以每次 SG1 查詢回 **2** 列而我斷言 `length === 1`。
+40 個「污染」全部是 `want=SG1, got=[SG1, SG1]` —— **沒有一次跨實體**。
+
+第三輪加了 premise check（先確認每個實體剛好 1 列，不成立就 abort）後重測 → 0 錯。
+
+> 兩輪連續踩到同一件事：**前提沒被斷言的測量，不管結果是綠是紅都不可採信。**
+
+### 設計決策（非架構級）
+
+- **`EntityScope` 用未匯出的 symbol brand** —— 其他模組沒有那個名字，就造不出這個型別。
+  鐵律 3「scope 只能來自憑證」因此是**編譯錯誤**而不是 review 意見。
+  TS 一開始拒絕我自己的 cast，那正是它在生效
+- **`PrismaService` 不再 `extends PrismaClient`** —— 改為持有 `connection` + `probe()`。
+  之前任何 injector 都離「未範疇化查詢」只有一個屬性存取；現在 `connection` 是**唯一
+  具名的入口**，Day 3 的 detector 可以講規則而不是列白名單
+- **`runScoped` 抽成獨立函式** —— 不是為了抽象，是為了讓「set_config 先、且在同一個 tx」
+  這件事能被單元測試斷言（雙重身份記錄 `$transaction` 收到什麼）
+- **health 改用 `probe()`** —— health 沒有 principal 也就沒有 scope，是唯一合法的無 scope
+  資料庫存取。收窄成具名方法讓這個豁免**可數**，而不是散在外面的一個 `$queryRaw`
+
+### Plan deviation（R3）
+
+plan §4 未列的三個檔案進入變更：`health.module.ts` · `health.service.ts` · `app.module.ts`
+（加上三個對應 spec）。原因是 2.2 的所有權移轉**強制**health 換掉相依 ——
+plan 起草時假設 core-model 會留下可注入的東西，實際上沒有。
+另加 plan §4 未列的第二個 migration（D-failclosed-2）。
+
+### Day 2 Gate
+
+```
+lint 0 · type-check 0 · lint:negative PASS · format:check clean
+api test 33（baseline 20，+13）· web test 10 · build clean · run_all 6/6
+migrate deploy: 20260809171812_entity_scope_fail_closed applied
+```
+
+### ⭐ 用編譯後的生產類別驅動真 PostgreSQL（不是單元測試，也不是 probe）
+
+單元測試用的是替身，probe 用的是我手寫的 pattern —— **生產程式碼是那個 pattern 的轉寫，
+而轉寫不是量測**。所以額外跑一輪：`require('./dist/...')` 取真的
+`PrismaService` / `EntityScopeResolver` / `ScopedPrismaFactory`，對真 DB、受限角色：
+
+```
+1  own entity read              -> ["SG1 access control policy"]
+2  cross-entity read by id      -> null
+3  cross-entity write           -> 42501 new row violates row-level security policy
+4  roll-up SG subtree           -> SG1 only（不含 HK1）
+5  roll-up APAC                 -> both
+6  unscoped via connection      -> 42501 app.entity_scope is not set   ← 不是 []
+7  factory with empty scope     -> EntityScopeError（未觸及 DB）
+8  resolver with unknown code   -> EntityScopeError
+9  拒絕後 HK1 policy 仍在 HK1   -> HK1
+10 全樹總列數                    -> 2（沒有被塞進去的列）
+```
+
+⚪ **無 UI → 本 phase 一律 gate-only verified**，上表不得被讀成「使用者可用」。
+
+### 意外 / 卡住
+
+- 兩輪前提錯誤的量測（見上），共約 25 分鐘。**兩次都不是被 gate 抓到的**
+- `prettier` 對 `entity-scope.resolver.spec.ts` 有格式差異，`--write` 修掉
+
+### Remaining for Next Day
+
+- Day 3：整合驗證（把上面那 10 項變成會在 CI 跑的測試）+ 旁路 detector + 元驗證
+- ⚠️ 上面那輪 drive 是**一次性腳本**，不在 CI 裡 —— 在它變成測試之前，
+  它證明的是「今天成立」，不是「明天不會壞」
+
+### Notes
+
+- 探測與 drive 腳本全部在 scratchpad，**未進 repo**
+- 種子資料仍是手動塞的臨時資料；Day 3 的測試要有自己的 fixture
+- `.env` 已補 `DATABASE_URL_MIGRATE` 與 app 角色 —— **`.env` 不在版控，
+  其他機器 clone 後仍要自己照 `.env.example` 補**

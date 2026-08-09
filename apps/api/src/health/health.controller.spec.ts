@@ -17,9 +17,10 @@
  *   exercised rather than asserted about.
  *
  * Created: 2026-08-08 (Phase W01)
- * Last Modified: 2026-08-08
+ * Last Modified: 2026-08-09
  *
  * Modification History (newest-first):
+ *   - 2026-08-09: Resolve through EntityScopeModule; double probe() (Phase W02)
  *   - 2026-08-08: Initial creation (Phase W01)
  */
 import { Test } from '@nestjs/testing';
@@ -27,10 +28,13 @@ import { HealthController } from './health.controller';
 import { HealthModule } from './health.module';
 import { PrismaService } from '../core-model/prisma.service';
 
-async function controllerWith(queryRaw: () => Promise<unknown>): Promise<HealthController> {
+// Since W02 the connection reaches health through EntityScopeModule rather than
+// from HealthModule's own providers, so compiling this graph is also what
+// proves that import is wired — a missing export would fail here, not at boot.
+async function controllerWith(probe: () => Promise<unknown>): Promise<HealthController> {
   const moduleRef = await Test.createTestingModule({ imports: [HealthModule] })
     .overrideProvider(PrismaService)
-    .useValue({ $queryRaw: queryRaw })
+    .useValue({ probe })
     .compile();
 
   return moduleRef.get(HealthController);
