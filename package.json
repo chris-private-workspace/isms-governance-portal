@@ -16,7 +16,7 @@
     "format": "prettier --write .",
     "format:check": "npm run format:check -w apps/api -w apps/web",
     "lint": "npm run lint -w apps/api -w apps/web",
-    "lint:negative": "node scripts/assert-boundary-gate.mjs",
+    "lint:negative": "node scripts/assert-boundary-gate.mjs && node scripts/assert-no-scope-bypass.mjs",
     "type-check": "npm run type-check -w apps/api -w apps/web",
     "test": "npm run test -w apps/api -w apps/web",
     "build": "npm run build -w apps/api -w apps/web",

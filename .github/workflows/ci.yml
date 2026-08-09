@@ -192,3 +192,41 @@ jobs:
             exit 0
           fi
           npm run build -w apps/api -w apps/web
+
+      # === Integration tests (W02) ======================================
+      # Started through docker/compose.yml rather than a `services:` block,
+      # and the reason is not convenience. The restricted app role is created
+      # by docker/init-app-role.sh, which compose runs on a fresh volume — on
+      # a runner, every time. A `services:` block would need that bootstrap
+      # written a second time in YAML, and then "how the app role is made"
+      # would have two implementations that drift apart (AP-6). One compose
+      # file serves local dev, image-smoke.yml and this job.
+      #
+      # ⚠️ These tests are the only thing standing between a broken RLS policy
+      # and a green build. Verified by neutering the policy to USING(true) on
+      # 2026-08-09: 14 of 20 turned red, and back to 20/20 on restore. Without
+      # this step that check only happens when someone remembers to run it.
+      # No existence guard on purpose. A step that skips when docker/compose.yml
+      # is missing is the trivy job W01 shipped green while scanning zero
+      # targets (image-smoke.yml:84-86). If the compose file disappears, the
+      # isolation tests must go red, not quiet.
+      - name: 啟動 PostgreSQL
+        run: docker compose -f docker/compose.yml up -d --wait
+
+      - name: Integration tests
+        run: |
+          # jest.int.config.js rebuilds isms_test from nothing, which also makes
+          # this the only place `prisma migrate deploy` runs against a clean
+          # database — the same gap CH-013 found in "the Dockerfile is never
+          # built". Its global setup refuses to continue if the connecting role
+          # is a superuser, because RLS does not apply to one and every
+          # assertion would pass while proving nothing.
+          #
+          # Copying .env.example also keeps it honest: if those values stop
+          # working against the compose file, this step says so.
+          [ -f .env ] || cp .env.example .env
+          npm run test:int -w apps/api
+
+      - name: PostgreSQL 日誌
+        if: always()
+        run: docker compose -f docker/compose.yml logs --no-color || true

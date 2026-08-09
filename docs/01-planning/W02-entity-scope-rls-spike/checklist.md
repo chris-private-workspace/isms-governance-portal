@@ -187,37 +187,71 @@ _(本 phase 無 user-facing surface。template 的 drive-through 改成對應的
 
 ### 3.1 Clean restart
 
-- [ ] **乾淨重啟後驗證 wiring** —— 比對 `dist` mtime 與程序啟動時間，**不只看 port 擁有者**
-  - DoD: Risk Class C。W01 踩過一次（跑著的 API 比 `dist` 舊 11m52s）
-  - Verify: 擷取證明 extension 生效的 startup log 行
+- [x] **乾淨重啟後驗證 wiring** —— 比對 `dist` mtime 與程序啟動時間，**不只看 port 擁有者**
+  - DoD: ⭐ **Risk Class C 第二次現身，而且更嚴重**：port 3210 的持有者比
+        `dist/entity-scope/scoped-prisma.provider.js` **舊 4 小時 10 分**
+        （13:14:13 vs 17:24:28）—— 它從未載入過 `EntityScopeModule`
+  - Verify: ✅ 殺掉 4684 + 父 53092 → port 空出 → 重啟 → 新進程唯一持有且**比 dist 新**。
+        Startup log：`[InstanceLoader] EntityScopeModule dependencies initialized` ·
+        `curl /health` → `{"status":"up","db":"up"}`（同時證明受限角色在真 runtime 可用）
 
 ### 3.2 四個範疇測試（約束 8）
 
-- [ ] **跨實體讀拒絕**（查無資料回 **404**，不區分「不存在」與「不在範疇內」）
-- [ ] **跨實體寫拒絕，且資料未變** —— ⚠️ 只驗回應碼會漏掉「回 404 但資料被改了」
-      （`multi-tenant-data.md:290-291`）
-- [ ] **RLS 層獨立成立** —— Day 1.3 的 `psql` 驗證納入自動化測試
-- [ ] **滾升角色只看到其授權子樹** —— 且**不經過**任何免 RLS 的連線
+- [x] **跨實體讀拒絕**（查無資料回 **404**，不區分「不存在」與「不在範疇內」）
+  - 📌 **本 phase 無 endpoint（plan §3.x），所以驗在它真正發源的地方**：
+        「不在範疇內」的 id 與「從不存在」的 id 必須**無法區分** —— 兩者皆 `null` 且
+        `toEqual` 彼此。這裡若不同，之後任何 controller 都湊不出一致的 404。
+        **HTTP 狀態碼映射隨 endpoint 一起延後，未偷偷當成已做**
+- [x] **跨實體寫拒絕，且資料未變** —— INSERT 與 UPDATE 各一項，皆 `42501`；
+      **拒絕後重讀**確認 HK1 仍只有原本那列、SG1 那列的 `org_entity_id` 未變。
+      另加一項**成功寫入自己實體**，否則「全部都失敗」也能通過上面兩項
+- [x] **RLS 層獨立成立** —— `rls-direct.int.spec.ts` 8 項，用 `pg` 直連下 SQL，
+      **不經 Nest、不經 Prisma、不經 extension**。含 `DELETE` → `42501`（無 DELETE 授權）
+- [x] **滾升角色只看到其授權子樹** —— SG 滾升只見 SG1；APAC 滾升見兩者；
+      **SG 不滾升則什麼都看不到**（否則「滾升」只是一個貼在既有行為上的標籤）
 
 ### 3.3 fail-closed（US-5）
 
-- [ ] **漏設 scope 時報錯，不是回空集合**
-  - DoD: 測試必須能**區分**「空結果」與「未設定 scope」——
-        「這個 OpCo 沒有風險」在本平台不是空畫面，是錯誤的保證
-        （`multi-tenant-data.md:207-210`）
+- [x] **漏設 scope 時報錯，不是回空集合**
+  - DoD: ✅ 同一條連線、同一個 query：`HK`（無 live policy）→ `[]`，
+        未設 scope → **throw `app.entity_scope is not set`**。兩者可區分
+  - DoD: ✅ 直連層另驗兩種未設定：從未 SET → `42704`；SET 成空字串 → `42501`
+  - DoD: ✅ 應用層在**資料庫看到之前**就拒絕空 scope（`EntityScopeError`）
 
 ### 3.4 旁路偵測（US-6）+ 元驗證
 
-- [ ] **`scripts/assert-no-scope-bypass.mjs`** + CI 接線
-  - DoD: 對象 `$queryRaw` / `$executeRaw` / 直接 import 未範疇化 client
-  - DoD: ⭐ **自己被弄壞過一次**（CH-012/013 建立的紀律）——
-        一個從沒紅過的 detector 就是下一個 Potemkin
-  - Verify: 弄壞 → 紅 → 還原 → 綠，三步都記進 progress.md
+- [x] **`scripts/assert-no-scope-bypass.mjs`** + CI 接線
+  - DoD: ✅ 三條規則 —— `raw-query`（`$queryRaw`/`$executeRaw`/`*Unsafe`）·
+        `unscoped-connection`（`.connection`）· `new-client`（`new PrismaClient(`）。
+        allowlist **3 個檔案**，每一個都是「實作這個機制的程式碼」而非「例外」
+  - DoD: ⭐ **CI 接線零改動** —— 掛進 `lint:negative`，而 ci.yml 的 `Negative gates`
+        步驟本來就跑它
+  - DoD: ⭐ **self-test 不在旗標後面，每次執行都跑** —— 一個 pattern 失效的 detector
+        會報「0 violations」，那跟乾淨的 repo 長得一模一樣
+  - Verify: ✅ **兩種弄壞法**：(1) 生產程式碼加真旁路 → FAIL 指到 `health.service.ts:43`，
+        兩條規則各報一次；(2) 把 detector 自己的 `raw-query` pattern 改成永不匹配 →
+        **self-test FAIL 且在掃描前就停**。兩者還原 → PASS。三步全記進 progress.md
+  - 📌 第一版有**假陽性**（對解釋自己的註解開火）→ 比對前先剝註解。理由寫在檔案裡
 
 ### 3.5 證據
 
-- [ ] `psql` 輸出 + 測試輸出 + observed-vs-intended → progress.md Day 3
+- [x] `psql` 輸出 + 測試輸出 + observed-vs-intended → progress.md Day 3
       （**無截圖，因為無 UI**；結論寫 **gate-only verified**）
+- [x] ⭐ **這套整合測試自己也被弄壞過** —— policy 改成 `USING (true) WITH CHECK (true)`
+      → **14/20 紅**；還原 → 20/20。否則它跟 Day 2 那個「十二項全綠」沒有分別
+- [x] ⭐ **`init-app-role.sh` 的 initdb hook 第一次被真的執行** —— Day 1 只走過
+      `db:app-role` 的 fallback。用拋棄式 compose project（`-p ismsinitcheck` +
+      `ports: !override` 換 port）在全新 volume 上驗，**未碰 `docker_isms-pgdata`**：
+      `[init-app-role] isms_app_user ready (NOSUPERUSER, NOBYPASSRLS)`。
+      再把整合測試指過去跑 → **20/20**，CI 路徑端到端在本機驗過
+- [x] **整合測試基礎設施**（Day-0 `D-testinfra`：它不存在）——
+      `jest.int.config.js` + `test/int-{db,env,global-setup}.js`。每次 DROP/CREATE/migrate/seed，
+      **副作用是 `prisma migrate deploy` 第一次跑在乾淨資料庫上**（Day 1 紅旗關閉）。
+      globalSetup 先斷言角色 `super=f bypassrls=f`；`int-db.js` 拒絕操作不以 `_test` 結尾的資料庫
+- [x] **CI 接線** —— 使用者 2026-08-09 拍板 **ci.yml + 既有 compose**（重用同一份 compose，
+      `init-app-role.sh` 的角色建立只有一個實作，三條路徑不會漂移）。
+      **新步驟不加存在性 guard** —— 「找不到就跳過」正是 W01 那個綠著掃 0 個目標的 trivy job
+  - Verify: ⏳ **待 push 後看 CI**（本機已用拋棄式實例模擬過整條路徑）
 
 ---
 
