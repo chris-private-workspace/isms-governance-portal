@@ -6,21 +6,22 @@
  * Owner: docs/02-architecture/04-security-by-design.md §93
  *
  * Description:
- *   Three things happen here and each is a guardrail-7 obligation rather than
- *   boilerplate. (1) Helmet is configured field by field, because `04:93`
- *   records that none of the organisation's 45 scan findings was an injection
- *   bug — every one was an inherited default. (2) CORS names one origin
- *   instead of reflecting the request's. (3) The listen address defaults to
- *   loopback, so a laptop running `npm run dev` does not publish the API to
- *   its whole network; the container image overrides it to 0.0.0.0.
+ *   Assembles the app in four steps: create, apply security, mount Swagger,
+ *   listen. The security step is delegated to `./security`, so that it can be
+ *   asserted by a test rather than inspected by eye (CH-012).
+ *
+ *   The listen address defaults to loopback, so a laptop running `npm run dev`
+ *   does not publish the API to its whole network; the container image
+ *   overrides it to 0.0.0.0.
  *
  * Key Components:
- *   - bootstrap(): assembles the app; every security decision is visible here
+ *   - bootstrap(): assembles the app and opens the port
  *
  * Created: 2026-08-08 (Phase W01)
- * Last Modified: 2026-08-08
+ * Last Modified: 2026-08-09
  *
  * Modification History (newest-first):
+ *   - 2026-08-09: Extract security config to ./security (CH-012)
  *   - 2026-08-08: Initial creation (Phase W01)
  *
  * Related:
@@ -29,43 +30,17 @@
 import 'reflect-metadata';
 import { NestFactory } from '@nestjs/core';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
-import helmet from 'helmet';
 import { AppModule } from './app.module';
+import { applySecurity } from './security';
 
 async function bootstrap(): Promise<void> {
   const app = await NestFactory.create(AppModule, { bufferLogs: false });
 
-  // Express advertises itself with `X-Powered-By` unless told not to. Helmet's
-  // option did NOT remove it — verified by reading the response headers, not by
-  // reading the config. Version disclosure is one of the finding classes `16`
-  // is derived from, so it is disabled at the adapter, where it actually lives.
-  app.getHttpAdapter().getInstance().disable('x-powered-by');
-
-  // Explicit, not inherited. `04:93`: platform defaults are the risk.
-  app.use(
-    helmet({
-      contentSecurityPolicy: {
-        directives: {
-          defaultSrc: ["'none'"],
-          frameAncestors: ["'none'"],
-          baseUri: ["'none'"],
-          formAction: ["'none'"],
-        },
-      },
-      hsts: { maxAge: 31_536_000, includeSubDomains: true, preload: false },
-      frameguard: { action: 'deny' },
-      noSniff: true,
-      referrerPolicy: { policy: 'no-referrer' },
-      crossOriginOpenerPolicy: { policy: 'same-origin' },
-      crossOriginResourcePolicy: { policy: 'same-origin' },
-    }),
-  );
-
-  // One named origin. Never `origin: true`, which reflects whatever asked.
-  app.enableCors({
-    origin: process.env.WEB_ORIGIN ?? `http://localhost:${process.env.WEB_PORT ?? '3200'}`,
-    credentials: true,
-  });
+  // Every header and CORS decision lives in security.ts, where security.spec.ts
+  // asserts it against `16` item by item. Inline here, the only available check
+  // was reading a curl dump by eye — which is how Permissions-Policy stayed
+  // missing for the whole of W01.
+  applySecurity(app);
 
   SwaggerModule.setup(
     'api-docs',

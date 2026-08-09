@@ -108,9 +108,11 @@
 
 ### 2.3 安全標頭與容器化
 
-- [ ] **`helmet` 明確設定（不沿用預設）+ 標頭斷言測試**
-      🚧 阻塞：helmet（api）與 `next.config.ts`（web）兩邊標頭皆已明確設定，
-      但**斷言測試尚未寫**，故本項未完成。`16` 逐條對照亦未做
+- [x] **`helmet` 明確設定（不沿用預設）+ 標頭斷言測試**
+      —— ✅ **由 `CH-012` 關閉**（2026-08-09）。`apps/api/src/bootstrap/security.spec.ts`
+      對照 `16` 的第 2 / 18 / 20 / 21 項逐條斷言 + CORS 單一具名 origin。
+      ⭐ 斷言一寫就抓到 W01 漏掉的 `Permissions-Policy`（`16:21` 要求，helmet 不提供）——
+      當初手動 curl 走查沒抓到，因為人是在確認「有沒有我設的那幾條」而非「`16` 要求的每一條」
   - DoD: 對照 `docs/02-architecture/16-secure-development-dod.md` 的 transport/headers 分項逐條標記
   - Verify: `npm run test -w apps/api`
 - [ ] **`docker/api.Dockerfile` · `docker/web.Dockerfile` · `.dockerignore`**
