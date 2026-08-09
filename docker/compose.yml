@@ -13,7 +13,14 @@
 #   network does not publish a database. Port 5433, not 5432, to avoid a
 #   collision with any locally installed PostgreSQL.
 #
+#   ⚠️ POSTGRES_USER is a SUPERUSER. Measured in W02 Day-0: rolsuper=t,
+#   rolbypassrls=t. A superuser bypasses row-level security entirely, and FORCE
+#   ROW LEVEL SECURITY does not constrain it — so the application must NOT
+#   connect as this role. init-app-role.sh creates the least-privilege login
+#   role for that, and .env.example keeps the two connection strings apart.
+#
 # Modification History (newest-first):
+#   - 2026-08-09: Phase W02 — add the least-privilege app role (D-superuser)
 #   - 2026-08-08: Initial creation (Phase W01)
 
 services:
@@ -25,9 +32,14 @@ services:
       POSTGRES_USER: ${POSTGRES_USER:-isms_dev}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-isms_dev_local_only}
       POSTGRES_DB: ${POSTGRES_DB:-isms_dev}
+      POSTGRES_APP_USER: ${POSTGRES_APP_USER:-isms_app_user}
+      POSTGRES_APP_PASSWORD: ${POSTGRES_APP_PASSWORD:-isms_app_local_only}
     ports:
       - '127.0.0.1:5433:5432'
     volumes:
+      # Runs ONLY when the data directory is empty. Existing volumes never see
+      # it — `npm run db:app-role` covers those, idempotently.
+      - ./init-app-role.sh:/docker-entrypoint-initdb.d/10-init-app-role.sh:ro
       # ⚠️ PostgreSQL 18+ wants ONE mount at /var/lib/postgresql, not the older
       # /var/lib/postgresql/data. With the old path the container starts, prints
       # a pg_upgrade advisory and restart-loops. Verified by watching it loop.

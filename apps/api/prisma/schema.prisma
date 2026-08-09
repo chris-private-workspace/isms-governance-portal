@@ -17,9 +17,10 @@
 //   join to be written correctly.
 //
 // Created: 2026-08-08 (Phase W01)
-// Last Modified: 2026-08-08
+// Last Modified: 2026-08-09
 //
 // Modification History (newest-first):
+//   - 2026-08-09: Phase W02 — first two tables, entity-scoped by RLS
 //   - 2026-08-08: Initial creation (Phase W01) — datasource + generator only
 
 // Prisma 7 removed `url` from the datasource block (P1012). The connection
@@ -34,4 +35,91 @@ datasource db {
 generator client {
   provider = "prisma-client-js"
   output   = "../src/generated/prisma"
+}
+
+// === Naming: DB columns are snake_case, Prisma properties are camelCase ===
+// Why: 02a specifies columns in snake_case (`org_entity_id` at 02a:90) and every
+// module document follows it, while Prisma's own convention is camelCase. @map
+// keeps both idiomatic instead of forcing one side to read wrong. The column
+// name is the one that appears in RLS policies, so it is the one that has to
+// match the design documents exactly.
+//
+// ⚠️ `org_entity_id`, NOT `entity_id`. Six documents under docs/02-architecture/
+// use `org_entity_id` (02a:90 · 03:99 · 11:73 · 12:42 · 13:37 · 17:35); the
+// `entity_id` spelling appears only in lower-authority places, which CLAUDE.md's
+// authority ordering settles in favour of the design documents (W02 D-fieldname).
+
+enum OrgEntityType {
+  region
+  country
+  legal_entity
+  business_unit
+
+  @@map("org_entity_type")
+}
+
+/// The scoping and roll-up spine (02a:25). Deliberately has NO org_entity_id of
+/// its own: it *defines* scope, so filtering it by scope would make the
+/// hierarchy unresolvable (multi-tenant-data.md:61 lists it as a legitimate
+/// global table).
+model OrgEntity {
+  id       String        @id @default(uuid()) @db.Uuid
+  code     String        @unique
+  name     String
+  type     OrgEntityType
+  parentId String?       @map("parent_id") @db.Uuid
+
+  /// Materialised hierarchy path (02a:146), e.g. "/apac/sg/sg-pte-ltd".
+  /// This is what makes an authorised-subtree roll-up a prefix match instead of
+  /// a recursive CTE inside an RLS policy, where a CTE would run per row.
+  path String
+
+  parent   OrgEntity?  @relation("OrgEntityHierarchy", fields: [parentId], references: [id])
+  children OrgEntity[] @relation("OrgEntityHierarchy")
+  policies Policy[]
+
+  version   Int       @default(1)
+  createdAt DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt DateTime  @updatedAt @map("updated_at") @db.Timestamptz(6)
+  retiredAt DateTime? @map("retired_at") @db.Timestamptz(6)
+
+  @@index([parentId])
+  @@index([path])
+  @@map("org_entities")
+}
+
+/// The one business table this spike needs. Policy was chosen over Risk because
+/// every one of its fields is scalar (02a:189) — Risk carries four FKs to tables
+/// this phase does not build (Asset, Threat, Vulnerability, User).
+///
+/// ⚠️ DELIBERATELY INCOMPLETE, and the omissions are listed rather than left to
+/// be discovered:
+///   - `ref_code`      — needs the <TYPE>-<ENTITY_CODE>-<seq> scheme (02a:103)
+///   - `status`        — needs the state machine in 02a §4 (M5 workflow)
+///   - `owner_user_id` — needs a User table (M4)
+///   - `created_by` / `updated_by` — same
+///   - `extensions`    — needs ADR-0005, not adopted
+///   - `category`, `effective_date`, `review_due`, `body_ref`,
+///     `requires_attestation` — the Policy module itself (M6)
+/// This is a scope-verification slice, not a Policy implementation.
+model Policy {
+  id String @id @default(uuid()) @db.Uuid
+
+  /// The whole point of this phase. NOT NULL, FK, and first in the composite
+  /// index because scope filtering is the first predicate of every query
+  /// (multi-tenant-data.md:50).
+  orgEntityId String @map("org_entity_id") @db.Uuid
+
+  title   String
+  version Int    @default(1)
+
+  orgEntity OrgEntity @relation(fields: [orgEntityId], references: [id])
+
+  createdAt DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt DateTime  @updatedAt @map("updated_at") @db.Timestamptz(6)
+  /// Soft delete (guardrail 3). Records are retired, never hard-deleted.
+  retiredAt DateTime? @map("retired_at") @db.Timestamptz(6)
+
+  @@index([orgEntityId, retiredAt])
+  @@map("policies")
 }
