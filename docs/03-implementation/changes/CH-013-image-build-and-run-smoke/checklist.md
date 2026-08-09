@@ -86,11 +86,16 @@
 
 ## 驗收（對應 spec §Verification）
 
-- [ ] **兩個 image 在 CI 真的 build 成功**
-  - Verify: `gh run view --log` 找到兩個 `docker build` 的成功輸出 ——
-        **不是看 job 綠燈**（W01 的 trivy job 就是綠著掃 0 個目標）
-- [ ] **兩個容器真的啟動，且探測斷言內容通過**
-  - Verify: CI log 印出探測到的實際回應內容，不只是「PASS」
+- [x] **兩個 image 在 CI 真的 build 成功**（run `31299823765`）
+  - Verify: log 兩行 —— `naming to docker.io/library/isms-api:smoke done` ·
+        `naming to docker.io/library/isms-web:smoke done`。**不是看 job 綠燈**
+  - ⭐ **api image 第一次被任何東西 build 成功**，同時關掉 D-6：
+        runner 上 `binaries.prisma.sh` 可達，本機那個 TLS 攔截確實只是公司 proxy
+- [x] **兩個容器真的啟動，且探測斷言內容通過**
+  - Verify: log 印出實際回應而不只是「PASS」——
+        `[smoke:api] PASS ... -> {"status":"up","db":"up"}` ·
+        `[smoke:web] PASS ... all 7 referenced assets`（逐一列出 7 個路徑）·
+        `容器日誌` 步驟印出 `[Nest] Nest application successfully started`
 - [x] **元驗證 1 — `CMD` 指向不存在的檔** → build 綠、**run 紅** ｜ 📍**本機**（web image，D-3）
   - 實測: `BUILD EXIT=0` · 容器 `Exited (1)` · 探測 `EXIT=1`
         `timed out after 90s ... Last seen: TypeError: fetch failed (ECONNREFUSED)`
@@ -104,14 +109,29 @@
         `/_next/static/chunks/3l04zcqx63h3y.js -> HTTP 404`
   - DoD: 還原後確認轉綠 ✅。**這一項是本 CH 最有價值的** —— 三層裡有兩層是綠的，
         只有最後一層叫。Day-0 量到兩者的 `GET /` **位元組數完全相同**（5824）
-- [ ] **元驗證 3 — 拿掉 `apps/api/Dockerfile:54-56` 的 openssl 安裝** → **build 或 run 紅**
-      ｜ 📍**只能在 CI**（本機 api build 被 proxy 擋，D-3）
-  - DoD: 用 W01 已修過的真實缺陷驗 gate 抓不抓得到。還原後確認轉綠
-  - ⚠️ **若拿掉 openssl 後什麼都沒壞**（distroless runtime 自帶 openssl、或 Prisma 已能
-        正確偵測）→ **誠實記錄「這個 gate 抓不到這一類」並改找另一個 api 側的負面案例**，
-        不得因為「反正另外兩個過了」就跳過。三個元驗證各自對應一類失效
-- [ ] **CI 時間實測並回填 spec §Impact**
-  - DoD: 確認與 `gates` 平行、未延長現有關鍵路徑
+- [x] **元驗證 3 — 拿掉 openssl 安裝** → ❌ **gate 抓不到這一類**（誠實記錄，非跳過）
+      ｜ 📍CI（PR #23，已關閉並刪分支；run `31300101058`）
+  - **結論**：CI log 出現 `Dockerfile:55-58` 註解引用的一字不差的警告
+        （`Prisma failed to detect the libssl/openssl version ... Defaulting to "openssl-1.1.x"`），
+        **但後續全部成功**：`✔ Generated Prisma Client (v7.9.1)` · build 綠 ·
+        `[smoke:api] PASS {"status":"up","db":"up"}`。缺 openssl 只產生警告，不產生可觀測故障
+  - ⚠️ **第一次嘗試無效，是我的方法錯誤**：只拿掉 `openssl` 套件名而保留 `ca-certificates` ——
+        後者在 Debian 上 **Depends on openssl**，apt 又把它裝回來了
+        （log: `Setting up openssl (3.0.20-1~deb12u2)`）。那次的綠代表**變因根本沒動**。
+        我用「改了設定」當作「效果改變」的證據，沒看實際安裝結果。
+        正確控制組是拿掉整個 `RUN`（也才是 `-slim` 的 pre-W01 真實狀態）
+  - 📌 **衍生**：`Dockerfile:55-58` 的「then the wrong engine」是從警告推出的**推論**不是觀測。
+        依 `AD-EslintSettingsClaim-1` 先例**不改那段註解**（單次觀測、不知 W01 當時全貌），
+        改為記 AD。保留 openssl 安裝仍然正確 —— 消除警告、不靠「預設剛好能用」
+- [x] **元驗證 4 — api 側的替代負面案例：DB 不可達時 `db:"up"` 斷言必須紅** ｜ 📍本機
+  - DoD: 對象是**探測腳本的斷言**而非 Dockerfile，所以本機可驗
+  - 實測: API 回 **HTTP 200** `{"status":"up","db":"down"}`（只看狀態碼的探測會放行）
+        → 探測 `EXIT=1`，`Last seen: db was "down"`
+  - ⭐ 這一項守著 api 探測裡**唯一超越「port 有回應」的部分**。若有人把斷言改成只檢查
+        `status`，probe 仍會綠 —— 那就是靜默失效
+- [x] **CI 時間實測並回填 spec §Impact**
+  - 實測: `映像 build + 啟動探測` **1m56s**（首次成功）· 對照 `gates` 1m5s。
+        獨立 workflow 天然平行，**未延長現有關鍵路徑**
 
 ## Drive-through（user-facing 才需要，PROCESS R8）
 

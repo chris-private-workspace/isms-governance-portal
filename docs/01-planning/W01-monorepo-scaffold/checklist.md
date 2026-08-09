@@ -119,9 +119,14 @@
       —— 📌 deviation：改放 `apps/api/Dockerfile` · `apps/web/Dockerfile`
       （原命名讓 trivy 探測與 `trivy config` 自動偵測**同時**失效）。
       multi-stage ✅ · `USER nonroot` 明寫 ✅ · runtime 改 distroless ✅
-      🚧 阻塞：**本機 `docker build` 跑不完** —— 公司 proxy 在容器內同樣 MITM TLS
-      （`binaries.prisma.sh` self-signed chain），且**不把公司 CA 塞進 repo 的 Dockerfile**。
-      `AD-ImageBuild-1`。解封條件：CI 或部署環境跑一次 build
+      ~~🚧 阻塞：本機 `docker build` 跑不完~~ → **CH-013 解除**（2026-08-09）：
+      `image-smoke.yml` 在 CI build 兩個 image 並啟動探測，run `31299823765` 全綠。
+      ⭐ **首航即抓到一個本項當時看不見的真實缺陷** —— build 階段在 `schema.prisma`
+      存在之前跑 `prisma generate`。本機的 proxy TLS 錯誤**遮住了它**，所以當時的
+      歸因（純 proxy 問題）只對了一半。`AD-ImageBuild-1` 已關閉。
+      🚧 **仍未達成**：DoD 第三項 **base image 釘 digest** —— 現在釘的是 tag。
+      Dockerfile 自稱那是「recorded follow-up」，但 CH-013 查證它**從未進過任何清單**
+      → 現已補記為 `AD-ImageDigest-1`。**本項因此維持未勾**
   - DoD: multi-stage · 非 root user · base image 釘 digest
   - Verify: `docker build -f apps/api/Dockerfile .` 與 `-f apps/web/Dockerfile .`
 

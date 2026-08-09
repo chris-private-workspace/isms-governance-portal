@@ -159,6 +159,95 @@ build 0 · run_all 6/6
 
 ---
 
+## 2026-08-09（CI 驗證）
+
+### ⭐ 首航即抓到一個真實缺陷
+
+`image-smoke` 第一次跑就讓 api build 紅了 —— **而且原因不是 D-6 預期的 TLS**：
+
+```
+Dockerfile:62  RUN npm ci --workspace @isms/api --include-workspace-root
+npm error  schema.prisma: file not found
+```
+
+詳見 spec §範圍變更。三件值得記的：
+
+1. **兩個缺陷疊在同一行，外層那個遮住了內層。** 本機看到的是 proxy 的
+   `self-signed certificate`，W01 當時也是（`W01/checklist.md:122` 的 🚧 就停在那個歸因）。
+   要一個**沒有 proxy 的環境**才會露出底下真正的 Dockerfile bug
+2. **W01 已經知道成因，只修了一半。** `apps/api/Dockerfile` header 明寫 prod-deps 需要
+   `--ignore-scripts`「because postinstall runs prisma generate」，prod-deps 也確實加了 ——
+   build 階段漏了
+3. 這個缺陷通過了 lint / type-check / test / `npm run build` / trivy **全部既有 gate**
+
+修法驗證用的是**改變後的失敗形狀**：本機失敗點從 `:62` 前進到 `:79`（那裡才真的下載
+engine，撞公司 proxy）。完整驗證靠 CI。
+
+### D-6 關閉
+
+run `31299823765` —— `naming to docker.io/library/isms-api:smoke done`。
+**api image 第一次被任何東西 build 成功**，runner 上 `binaries.prisma.sh` 可達。
+
+CI log 逐項可查（不是看 job 綠燈）：
+
+```
+受測對象：apps/api/Dockerfile · apps/web/Dockerfile
+isms-postgres-dev  Up 5 seconds (healthy)
+[smoke:api] PASS — /health -> {"status":"up","db":"up"}
+[smoke:web] PASS — ... all 7 referenced assets
+[Nest] Nest application successfully started
+映像 build + 啟動探測  pass  1m56s   （對照 gates 1m5s，平行不延長關鍵路徑）
+```
+
+### 元驗證 3：兩次嘗試，第一次是我的方法錯誤
+
+**Attempt 1 無效。** 我只拿掉 `openssl` 套件名而保留 `ca-certificates`，理由是
+「不混淆變因」。但 `ca-certificates` 在 Debian 上 **Depends on openssl** ——
+apt 又把它裝回來了（log: `Setting up openssl (3.0.20-1~deb12u2)`）。
+**那次的綠代表變因根本沒動，不代表 gate 是瞎的。**
+
+> ⚠️ 我用「改了設定」當作「效果改變」的證據，沒有去看實際安裝結果。
+> 這正是 `feedback_evidence_must_support_claim` 的形狀 —— 驗證做了，但推論是錯的。
+> **只有因為去解釋「為什麼沒壞」而讀了 log，才發現控制組是假的。**
+> 若當時直接把「gate 抓不到」寫進文件，那個錯誤結論會一路留到 BACKLOG。
+
+**Attempt 2（正確控制組：拿掉整個 `RUN`，也才是 `-slim` 的 pre-W01 真實狀態）**
+—— run `31300101058`，結果仍是**綠**，但這次是真的：
+
+```
+prisma:warn Prisma failed to detect the libssl/openssl version to use ...
+            Defaulting to "openssl-1.1.x".
+✔ Generated Prisma Client (v7.9.1) to ./src/generated/prisma in 313ms
+[smoke:api] PASS — {"status":"up","db":"up"}
+```
+
+**結論：缺 openssl 只產生警告，不產生可觀測故障 → 這個 gate 抓不到這一類。**
+衍生發現：`Dockerfile:55-58` 的「then the wrong engine」是從警告推出的**推論**不是觀測。
+依 `AD-EslintSettingsClaim-1` 先例**不改那段註解**（單次觀測、不知 W01 當時全貌），記 AD。
+
+### 元驗證 4（3 的替代，checklist 預先寫死的處理方式）
+
+對象改成**探測腳本的斷言**而非 Dockerfile，所以本機可驗：
+
+```
+THE TRAP:  HTTP 200   {"status":"up","db":"down"}   ← 只看狀態碼的探測會放行
+PROBE:     EXIT=1     Last seen: db was "down"
+```
+
+這一項守著 api 探測裡唯一超越「port 有回應」的部分。
+
+### 意外 / 卡住
+
+- `Start-Process` 起 node 時環境變數沒傳進去（log 全空、port 不監聽），
+  改用 `Start-Job` 才拿到 `[isms-api] listening on http://127.0.0.1:3292`。
+  **本機工具問題，與交付物無關**，記在這裡是因為它一度看起來像 API 起不來
+- `image-smoke.yml` 只在 `push:[main]` / `pull_request:[main]` 觸發，
+  所以元驗證 3 必須開 draft PR（#23，已關閉並刪分支）才跑得到。
+  `security-scan.yml:46` 有 `workflow_dispatch`，這個沒有 —— **暫不加**，draft PR
+  已解決當下需求且更接近真實觸發路徑
+
+---
+
 ## 完成摘要（收尾時填）
 
 **實際 vs spec**：
