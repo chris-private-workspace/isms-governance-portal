@@ -9,7 +9,7 @@ affects_components: []
 **Phase**: 無 —— 獨立 Change（W01 已 `closed_partial`）
 **Scope**: 工具鏈（eslint / vitest / jest）+ `bootstrap` — backend + FE 測試層（**NO migration** · **NO 新依賴**）
 **Status**: 已完成（laitim2001 於 2026-08-09 核可；Day-0 的 D-3 範圍問題同日拍板為「不做，記 AD」）
-**PR**: 待開
+**PR**: #20（**MERGED** `2a4160f`，2026-08-09 rebase merge）
 
 ---
 
