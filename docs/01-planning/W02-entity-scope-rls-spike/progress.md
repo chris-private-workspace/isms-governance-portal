@@ -557,3 +557,45 @@ test (web)      exit=0    test:int        exit=0    build        exit=0
 
 `gates` 掛在 Format check，而那一步排在新增的三個整合測試步驟**之前**。
 所以「ci.yml 的整合測試在 runner 上跑得起來」**仍然未驗** —— 下一輪才會知道。
+
+### 第二輪 CI — 六個 check 全綠，兩個紅旗關閉
+
+```
+gates 1m27s pass · 映像 build + 啟動探測 1m50s pass · SCA/SAST/trivy/gitleaks pass
+```
+
+**整合測試真的在 runner 上執行**（不是被跳過）：
+
+```
+[int] isms_test rebuilt, migrated and seeded; app role isms_app_user is least-privilege.
+PASS src/entity-scope/entity-scope.int.spec.ts · PASS src/entity-scope/rls-direct.int.spec.ts
+Tests: 20 passed, 20 total
+```
+
+前提斷言在 runner 上通過 → 那 20 個隔離測試是對著**真的會套用 RLS 的角色**跑的。
+`prisma migrate deploy` 也在 CI 的乾淨資料庫上跑了。
+
+**image-smoke 的角色斷言通過而非繞過**，且順帶證實昨天的診斷 ——
+同一個查詢分欄輸出是 `isms_app_user|f|f`，字串串接是 `super=false`。Day 1 我驗的是前者。
+
+### ⚠️ jest haste 警告：我差點又用零命中當證據
+
+CI 每次都印 `Haste module naming collision`（`dist/` 與 `src/` 的 generated prisma
+`package.json` 同名）。加了 `modulePathIgnorePatterns` 後跑 `npm run test:int`，
+grep 到 0 行警告 —— 我原本要據此宣稱修好了。
+
+依 `AD-GrepAssertion-1` 先驗負面方向，結果是：**把修正拿掉，警告一樣不出現**。
+所以那 0 行什麼都沒證明。
+
+真因是 **haste map 快取**：本機是熱的，CI 每次冷啟。用 `--no-cache` 才重現得出來：
+
+```
+無修正 + --no-cache -> 1 行警告
+有修正 + --no-cache -> 0 行警告
+test:int            -> exit=0（20/20 不變）
+```
+
+> 這是本 phase 第 5 次同一形狀，也是第一次**規則生效攔下了我自己**：
+> 昨天記的 `AD-GrepAssertion-1` 今天就派上用場。
+> 新的一層：**本機與 CI 的驗證條件不同時，本機的「沒看到」不等於「不存在」。**
+> 重現指令已寫進 `jest.int.config.js` 的註解，否則下一個人會重蹈一次。

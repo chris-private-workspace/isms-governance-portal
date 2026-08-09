@@ -27,6 +27,17 @@ module.exports = {
   rootDir: '.',
   testEnvironment: 'node',
   testRegex: 'src/.*\\.int\\.spec\\.ts$',
+  // rootDir is the package, not src/, because globalSetup lives in test/. That
+  // puts dist/ in scope too, and the compiled Prisma client's package.json
+  // collides by name with the source one — jest printed a haste-map warning on
+  // every run (PR #25, run 31322279179). Harmless, and that is the problem: a
+  // warning on every green run is how people learn to skim past jest's output.
+  //
+  // ⚠️ It only reproduces with a cold haste map. `npm run test:int` locally is
+  // silent whether or not this line is present, because the cache is warm —
+  // which is exactly how it reached CI unnoticed. Verify with
+  // `npx jest --config jest.int.config.js --listTests --no-cache`.
+  modulePathIgnorePatterns: ['<rootDir>/dist/'],
   transform: { '^.+\\.ts$': ['ts-jest', { tsconfig: '<rootDir>/tsconfig.json' }] },
   globalSetup: '<rootDir>/test/int-global-setup.js',
   setupFiles: ['<rootDir>/test/int-env.js'],
