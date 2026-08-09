@@ -4,7 +4,7 @@
 **Design note**: `docs/02-architecture/design-notes/W02-entity-scope-rls.md`
 **Change record**: `docs/03-implementation/changes/CH-014-w02-entity-scope-rls.md`
 **ADR**: `docs/14-adr/0004-entity-scoping-enforcement.md`
-**PR**: pending
+**PR**: #25（MERGED `02dffef`）
 
 ---
 

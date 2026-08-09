@@ -4,7 +4,7 @@
 **Phase**: W02
 **Scope**: `core-model` · `entity-scope` · 工具鏈（CI / lint / 測試基礎設施）
 **Components**: —
-**PR**: pending
+**PR**: #25（MERGED `02dffef`）
 
 ---
 

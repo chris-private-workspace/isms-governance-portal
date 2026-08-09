@@ -3,7 +3,7 @@
 **Phase**: W02 — entity-scoping spike: prove RLS holds under Prisma
 **Period**: 2026-08-09 ~ 2026-08-09
 **Plan**: [plan.md](./plan.md)  ← 四件套共置於同一個資料夾
-**PR**: PR-pending
+**PR**: #25（MERGED 2026-08-09T16:11:09Z，rebase，merge commit `02dffef`）
 **Change record**: `docs/03-implementation/changes/CH-014-w02-entity-scope-rls.md`
 
 ---

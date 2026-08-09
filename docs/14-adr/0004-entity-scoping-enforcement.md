@@ -140,7 +140,7 @@ credential management, not an undetectable code path. **ADR-0001 stands.**
 ## 相關
 
 - **相關 design note**: `docs/02-architecture/design-notes/W02-entity-scope-rls.md`
-- **實作**: `W02` · `CH-014` · PR pending
+- **實作**: `W02` · `CH-014` · PR #25（MERGED `02dffef`）
 - **驗證**: **ADR-0001 §可證偽條件 #1 — 未觸發**（見上）
 - **關閉**: `decision-form.md` OQ-3
 - **相關 ADR**: ADR-0001（本 ADR 驗證其承重假設）· ADR-0010（拿掉物理隔離，使 RLS 成為唯一屏障）·
