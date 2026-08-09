@@ -125,15 +125,26 @@ jobs:
       #    （那裡會跑 migration）。不在這裡重複，也不假裝這裡有驗。
       - name: Run api container
         run: |
+          # ⚠️ The predicate lives in SQL, not in a grep of the output, and that
+          # is a correction rather than a preference. The first version matched
+          # 'super=f bypassrls=f' against `'super='||rolsuper`, but concatenating
+          # a boolean yields `true`/`false`, not psql's displayed `t`/`f`. So the
+          # guard failed on a role that was correctly least-privilege (run
+          # 31321090681) — safe direction, but it had never once run in the form
+          # written here. Asserting on a row count removes the dependency on how
+          # PostgreSQL happens to render a boolean.
           echo "::group::app role must be least-privilege"
           docker compose -p "$COMPOSE_PROJECT" -f docker/compose.yml exec -T postgres \
             psql -U "$POSTGRES_USER" -d "$POSTGRES_DB" -tAc \
-            "SELECT rolname||' super='||rolsuper||' bypassrls='||rolbypassrls FROM pg_roles WHERE rolname='${POSTGRES_APP_USER}'" \
-            | tee role.txt
-          grep -q 'super=f bypassrls=f' role.txt || {
-            echo "::error::${POSTGRES_APP_USER} is not least-privilege — RLS would be void"
+            "SELECT rolname, rolsuper, rolbypassrls FROM pg_roles WHERE rolname='${POSTGRES_APP_USER}'"
+          ok=$(docker compose -p "$COMPOSE_PROJECT" -f docker/compose.yml exec -T postgres \
+            psql -U "$POSTGRES_USER" -d "$POSTGRES_DB" -tAc \
+            "SELECT count(*) FROM pg_roles WHERE rolname='${POSTGRES_APP_USER}' AND NOT rolsuper AND NOT rolbypassrls" \
+            | tr -d '[:space:]')
+          if [ "$ok" != "1" ]; then
+            echo "::error::${POSTGRES_APP_USER} is missing or not least-privilege — RLS would be void"
             exit 1
-          }
+          fi
           echo "::endgroup::"
 
           docker run -d --name isms-api-smoke \

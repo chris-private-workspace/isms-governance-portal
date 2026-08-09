@@ -493,3 +493,67 @@ plan §4 未列而進入變更：`.github/workflows/ci.yml`（原標 UNTOUCHED�
   但 GitHub runner 的 docker 行為、`cp .env.example .env` 的實際效果、
   以及新步驟的 actionlint 結果，都要等 push
 - **`image-smoke.yml` 的 Day 1 角色改動同樣尚未經 CI**（自 Day 1 起就掛著）
+
+---
+
+## Day 4 (cont.) — 2026-08-09 · PR #25 首輪 CI
+
+### 兩個紅，同一個根因
+
+PR #25 開出後六個 check：4 綠 2 紅。**兩個紅都是「grep 一段給人看的格式化輸出」**。
+
+| Check | 表面 | 真相 |
+|---|---|---|
+| `gates` / Format check | `entity-scope.int.spec.ts` 未格式化 | 我在 final sweep 用 `grep -c "^\[warn\]"` 數命中得 0，判定 clean。**prettier 的輸出帶 ANSI 色碼**，`[` 之後是 escape —— 那個 pattern 永不匹配。**0 命中被我讀成乾淨** |
+| `image-smoke` / Run api container | `isms_app_user is not least-privilege` | 角色**是**受限的。輸出是 `super=false bypassrls=false`，而我 grep `super=f bypassrls=f` —— `\|\|` 串接布林得到 `true`/`false`，不是 psql 顯示的 `t`/`f` |
+
+### 🔴 我在 commit message 與 PR 描述裡寫了「format clean」，那句話是假的
+
+不是「當時是真的、後來壞了」—— 是**我當時的檢查方式根本量不到東西**，而我把量不到當成了乾淨。
+`feedback_evidence_must_support_claim.md` 的第一列（命中數當證據）與第五列（零命中但搜錯範圍），
+一次同時發生。
+
+### image-smoke 那條至少往安全方向壞，但它揭露更嚴重的事
+
+誤擋（fail）而非誤放，所以沒有造成錯誤結論。但它意味著**那個斷言從未以 workflow 裡的形式被執行過** ——
+Day 1 我「驗過」的是另一個查詢（分別 select 三個欄位，psql 顯示 `f`），
+而 workflow 裡是字串串接。兩者輸出不同，我沒有察覺。
+
+同樣地，它**從來沒有負面案例**：沒有人驗過「拿一個 superuser 餵給它，它會不會擋」。
+
+### 修法：把判斷移進 SQL，不再 grep 字串
+
+```sql
+SELECT count(*) FROM pg_roles
+WHERE rolname='...' AND NOT rolsuper AND NOT rolbypassrls
+```
+
+本機實測兩個方向：
+
+```
+isms_app_user -> count=1  通過
+isms_dev      -> count=0  擋下     ← 這是它原本缺的負面案例
+```
+
+### 這是本 phase 同一形狀第 4 次
+
+1. Day 2 — `.env` 未同步，十二項探測全綠而 RLS 全程未生效
+2. Day 2 — 殘留 fixture 讓「40 次污染」的斷言失效
+3. Day 3 — detector 對**解釋自己的註解**開火（假陽性）
+4. **Day 4 — 兩個 grep 斷言各自壞在輸出格式上**
+
+前三次我修的是個案。第 4 次的共通結構已經很清楚：
+**拿一段為人類排版的文字去做機器判斷**。→ `AD-GrepAssertion-1`
+
+### Day 4 gate 重跑（**全部看退出碼，不看 grep**）
+
+```
+format:check    exit=0    lint            exit=0    type-check   exit=0
+lint:negative   exit=0    run_all.py      exit=0    test:cov     exit=0
+test (web)      exit=0    test:int        exit=0    build        exit=0
+```
+
+### ⚠️ 首輪 CI **沒有**驗到整合測試步驟
+
+`gates` 掛在 Format check，而那一步排在新增的三個整合測試步驟**之前**。
+所以「ci.yml 的整合測試在 runner 上跑得起來」**仍然未驗** —— 下一輪才會知道。

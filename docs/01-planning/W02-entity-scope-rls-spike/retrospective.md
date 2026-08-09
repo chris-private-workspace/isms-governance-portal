@@ -128,6 +128,7 @@ Day-0 的量測沒有錯，**它量的案例太窄**：只測了 virgin 連線�
 | `AD-ScopeFnCost-1` | `app_entity_scope()` 每列成本未 `EXPLAIN` 量測 | 資料量成長後量測 | 候選 |
 | `AD-EnvDrift-1` | 改了 `.env.example` 不等於改了 `.env`；本次讓整輪探測以 superuser 跑 | 啟動時斷言連線角色非 superuser（非只在測試裡） | 候選 |
 | `AD-AdRegistry-1` | plan 裡命名的 AD（`AD-RLS-Unverified`）**從未進 BACKLOG**，closeout 時無處可關；起草 change record 時又順手發明了 `AD-CleanDbMigrate-1` | plan §0 引用任何 `AD-*` 時，Day-0 Prong 1 順便驗它在 `BACKLOG.md` 存在；不存在就當場註冊或改用敘述 | 候選 |
+| `AD-GrepAssertion-1` | **PR #25 首輪兩個紅都是 grep 格式化輸出** —— `^\[warn\]` 撞 ANSI 色碼（0 命中被寫成「format clean」）· `super=f` 撞布林的 `true`/`false` 表示法（誤擋正確的角色，且該斷言從未以 workflow 裡的形式跑過）| 斷言用退出碼或結構化資料；非 grep 不可時必須有負面案例證明 pattern 會匹配 | 候選 |
 
 - [x] 已記入 `docs/01-planning/BACKLOG.md`
 
