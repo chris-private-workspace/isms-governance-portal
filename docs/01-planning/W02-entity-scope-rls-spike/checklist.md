@@ -123,31 +123,60 @@
 
 ### 2.1 Client extension ⭐ 承重
 
-- [ ] **`scoped-prisma.provider.ts`** —— 每個 operation 包 `$transaction` +
+- [x] **`scoped-prisma.provider.ts`** —— 每個 operation 包 `$transaction` +
       `set_config('app.entity_scope', …, true)`
-  - DoD: 形狀依 Day-0 **D-prisma7-rls** 的實測結果，不依 ADR-0001 的文字描述
-  - DoD: **fail-closed** —— scope 未設定時**拋錯**，不落到「policy 回空集合」那條路
-  - Verify: 單元測試 + 觀察實際送出的 SQL
+  - DoD: ✅ 形狀依實測，不依文字描述 —— **120 次交錯 scoped 讀（pool max 1 與 10）→ 0 錯**，
+        證明 `query(args)` 真的在同一個 tx 內；tx 後 scope 讀回 `''` 不外洩
+  - DoD: ⭐ **fail-closed** —— extension 在 `operation()` **被建立之前**就拒絕空 scope
+  - DoD: 🔴 **D-failclosed-2 推翻 Day-0**：Day-0 的「fail-closed 由 PostgreSQL 免費提供」
+        只在**從未被 scope 過的連線**上成立。`set_config` 之後 GUC 變成「已定義為空字串」，
+        `current_setting` 不再 raise → **靜默回 0 列**。pooled 連線從第二個請求起全部如此。
+        → 新增 migration `20260809171812_entity_scope_fail_closed`（plan §4 未列），
+        policy 改走 `app_entity_scope()`，未設定與空**都**是 `42501`。兩層現在是**設計的**
+  - Verify: ✅ 單元測試 6 項（斷言 set_config 排在 query **之前**、參數化非字串串接、
+        空 scope 時 `operation` **從未被呼叫**）+ 三輪 probe 的實際 SQL 行為
 
 ### 2.2 所有權移轉
 
-- [ ] **`prisma.service.ts` 不再匯出未範疇化 client**
-  - DoD: 所有權移到 `entity-scope`，`core-model` **經 DI 取得而非 import**
-        —— 這是 `prisma.service.ts:19-22` 寫下的設計意圖，**至今從未跑過**
-  - Verify: `npm run lint:negative`（boundaries 仍綠）+ `npm run lint -w apps/api`
+- [x] **`prisma.service.ts` 不再匯出未範疇化 client**
+  - DoD: ✅ **不再 `extends PrismaClient`** —— 改為持有 `connection` + `probe()`。
+        在此之前任何 injector 離「未範疇化查詢」只有一個屬性存取；現在 `connection`
+        是**唯一具名入口**，Day 3 的 detector 得以講規則而非列白名單。
+        新增測試直接斷言這個「不存在」（`service.policy` / `service.$queryRaw` 皆 undefined）——
+        否則哪天有人把 `extends` 加回去，不會有任何測試變紅
+  - DoD: 🚧 **「`core-model` 經 DI 取得而非 import」本日未能證明** ——
+        `core-model` 目前**沒有任何 repository**，建一個零消費者的 DI token 就是 AP-5 + AP-3。
+        Day 3 的範疇測試需要真正的消費者，屆時一併建立並驗證。**未勾此子項不代表已放棄**
+  - DoD: 📌 **量到一件 plan 沒預料的事**：`scope-boundaries.md:124` 說範疇化 client 的
+        **型別住在契約層** —— 那**做不到**。契約層是葉節點，不能 import `core-model`，
+        而範疇化 Prisma client 的型別必然是 generated 的。可行拆法是
+        **token 在 `api`、型別在 `core-model`、實例由 `entity-scope` 提供**。進 Day 4 design note
+  - Verify: ✅ `lint:negative` PASS · `lint -w apps/api -w apps/web` 0 · type-check 0
 
 ### 2.3 授權子樹
 
-- [ ] **`entity-scope.resolver.ts`** —— 從角色指派解析授權子樹
-  - DoD: **不是** query 參數、**不是** `if role == 'regional_iso': return all()`
-        （`multi-tenant-data.md:145`）
-  - DoD: 本 phase 無 OIDC（M4）→ scope 來源用最小替身，**且在 code 內明確標示為替身**
-        （反 AP-6：mock 必須可見）
-  - Verify: 子樹解析的單元測試（多層階層）
+- [x] **`entity-scope.resolver.ts`** —— 從角色指派解析授權子樹
+  - DoD: ✅ 子樹來自 materialised `path` 前綴比對（`02a:146` 指定該欄位的理由）。
+        `rollUp` 只決定「要不要展開到子孫」，**不決定要不要過濾** ——
+        APAC 指派與全域指派的差別是回傳哪些列，不是有沒有過濾
+  - DoD: ⭐ **`EntityScope` 用未匯出的 symbol brand** —— 其他模組沒有那個名字就造不出
+        這個型別。鐵律 3「scope 只能來自憑證」因此是**編譯錯誤**而非 review 意見
+        （TS 一開始拒絕我自己的 cast，那正是它在生效）
+  - DoD: ✅ 無 OIDC（M4）→ `PrincipalAssignment` 的 doc comment **明寫**今天唯一的
+        建構者是測試，且**刻意不接 HTTP**：一個會讀 request 的替身跟真的長得一樣（AP-6）。
+        **沒有建替身 source** —— 那會是沒有主流量呼叫者的 AP-1 + AP-3
+  - Verify: ✅ 7 項單元測試，含**兄弟分支斷言**（SG 滾升不得觸及 HK / HK1）——
+        一個「回傳全部」的 resolver 能通過此檔其餘每一項斷言，只有這一項會抓到它
 
 ### 2.x Full gate
 
-- [ ] lint 0 · lint:negative PASS · type-check 0 · api test ≥ 24 · build clean · run_all 6/6
+- [x] lint 0 · lint:negative PASS · type-check 0 · api test **33**（≥ 24；baseline 20）·
+      format:check clean · build clean · run_all 6/6
+- [x] ⭐ **編譯後的生產類別對真 PostgreSQL 驅動一輪**（受限角色，10/10 如預期）——
+      單元測試用替身、probe 用手寫 pattern，而**生產程式碼是那個 pattern 的轉寫，
+      轉寫不是量測**。⚪ 無 UI → 結論仍寫 **gate-only verified**
+  - ⚠️ 那輪 drive 是**一次性腳本、不在 CI**：它證明「今天成立」，不是「明天不會壞」。
+        Day 3 把它變成測試
 
 ---
 

@@ -12,13 +12,14 @@
  *
  *   The lifecycle assertions are thinner by nature, but they are what stands
  *   between `onModuleInit` and a rename that leaves the pool unconnected until
- *   the first query. They stub the inherited methods rather than calling
+ *   the first query. They stub the connection's methods rather than calling
  *   through, so the suite needs no database.
  *
  * Created: 2026-08-08 (Phase W01)
- * Last Modified: 2026-08-08
+ * Last Modified: 2026-08-09
  *
  * Modification History (newest-first):
+ *   - 2026-08-09: Follow the connection/probe split (Phase W02)
  *   - 2026-08-08: Initial creation (Phase W01)
  */
 import { PrismaService } from './prisma.service';
@@ -50,12 +51,24 @@ describe('PrismaService', () => {
     const service = new PrismaService();
     const connect = jest.fn<Promise<void>, []>().mockResolvedValue(undefined);
     const disconnect = jest.fn<Promise<void>, []>().mockResolvedValue(undefined);
-    Object.assign(service, { $connect: connect, $disconnect: disconnect });
+    Object.assign(service.connection, { $connect: connect, $disconnect: disconnect });
 
     await service.onModuleInit();
     await service.onModuleDestroy();
 
     expect(connect).toHaveBeenCalledTimes(1);
     expect(disconnect).toHaveBeenCalledTimes(1);
+  });
+
+  it('is not itself a queryable client — a table is not one property away', () => {
+    process.env.DATABASE_URL = VALID_URL;
+    const service = new PrismaService();
+
+    // W02 stopped this class extending PrismaClient. If it ever extends it
+    // again, every injector regains an unscoped `.policy.findMany()` and
+    // guardrail 4's application half is gone without a single test turning red
+    // — so this asserts the absence directly.
+    expect((service as unknown as Record<string, unknown>).policy).toBeUndefined();
+    expect((service as unknown as Record<string, unknown>).$queryRaw).toBeUndefined();
   });
 });
