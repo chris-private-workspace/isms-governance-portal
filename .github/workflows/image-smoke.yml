@@ -1,0 +1,153 @@
+# 容器映像 smoke test — build 兩個 image，啟動它們，證明它們真的在服務
+#
+# ── 為什麼另開一個 workflow，不塞進 ci.yml ────────────────────────────────
+#
+# 使用者 2026-08-09 拍板（CH-013）。build 失敗是**產物**的問題，與 ci.yml 那些
+# 針對原始碼的 gate 是不同類的訊號，分開才不會互相稀釋。
+# 代價已記錄在 spec §Impact：`AD-CIRequired-1` 日後要設**兩個** workflow 的
+# required check，不是一個。
+#
+# ── ⚠️ 這個 workflow 同樣**不使用 paths filter** ──────────────────────────
+#
+# 理由與 ci.yml:3-10 完全相同，在這裡重述而不只是引用 ——
+# 不重述的話，下一個人會很合理地想「build image 的 workflow 當然只該在
+# Dockerfile 改動時跑」，然後 docs-only PR 的 required check 從未回報，
+# PR 卡在 BLOCKED。那正是 ci.yml 那段註解花力氣講的事。
+#
+# 而且對本 workflow 還多一層理由：**image 的正確性不只取決於 Dockerfile**。
+# 改 apps/api/package.json 的 `start`、改 next.config 的 output、改 lockfile，
+# 三者都能弄壞 image 而完全不碰 Dockerfile。W01 的 `start` 指錯 entry file
+# 就是這一類（`08ddc0f`）。
+#
+# ── 為什麼 build 完還要 run ───────────────────────────────────────────────
+#
+# `docker build` 退出 0 只證明 image 組裝好了。W01 同時交付過
+# 「npm run build 成功」與「產物 require 不到 Prisma client」這兩件事。
+# `AD-NegativeGate-1` 要的是「build 產物真的能啟動」，所以這裡跑到探測為止。
+#
+# Modification History:
+#   - 2026-08-09: Initial creation (CH-013)
+
+name: image-smoke
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+env:
+  # ⚠️ 這三個不是密鑰，是**一次性測試容器**的認證，且與 docker/compose.yml:25-27
+  #    的預設值相同（那個檔已在版控中，gitleaks 全歷史掃描通過）。
+  #    在這裡明寫而不依賴 compose 的 `:-` 預設值，是為了讓 DB 容器與 api 容器
+  #    用的是**同一個來源**——否則兩邊各自漂移時，症狀會是「連不上」而不是「設定不一致」。
+  POSTGRES_USER: isms_dev
+  POSTGRES_PASSWORD: isms_dev_local_only
+  POSTGRES_DB: isms_dev
+  # compose 的預設 project name 來自**目錄名**（docker/ -> docker_default）。
+  # 明確指定，否則 network 名會隨著目錄改名而無聲改變。
+  COMPOSE_PROJECT: ismssmoke
+
+jobs:
+  smoke:
+    name: 映像 build + 啟動探測
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+
+      # 探測腳本只用 Node 內建的 fetch 與 fs，沒有相依 —— 所以不跑 npm ci，
+      # 也不需要 cache。setup-node 仍然明確釘版本：runner 預裝的 Node 版本會變，
+      # 而 `fetch` 與 top-level await 都有版本下限。
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      # ⚠️ 這一步排在 build 之前是刻意的：它最便宜，而且它守著本 workflow
+      #    唯一的解析邏輯。chunk 路徑的 regex 若因 Next 改版而失效，
+      #    smoke-probe 會把「找不到任何 asset」當作失敗（設計如此），
+      #    但先在這裡叫出來，診斷成本差一個數量級。
+      - name: 探測腳本自檢
+        run: node scripts/smoke-probe.mjs --self-test
+
+      # 兩個 Dockerfile 缺席時**必須紅，不可略過**。
+      # 一個「找不到就跳過」的守衛正是 W01 那個綠著掃 0 個目標的 trivy job
+      # （security-scan.yml:248-252）。本 workflow 的存在理由就是這兩個檔要被 build。
+      - name: 確認受測對象存在
+        run: |
+          missing=0
+          for df in apps/api/Dockerfile apps/web/Dockerfile; do
+            if [ ! -f "$df" ]; then
+              echo "::error::$df 不存在 —— 這個 workflow 的受測對象消失了"
+              missing=1
+            fi
+          done
+          [ "$missing" -eq 0 ] || exit 1
+          echo "受測對象：apps/api/Dockerfile · apps/web/Dockerfile"
+
+      # ── api ────────────────────────────────────────────────────────────
+      #
+      # ⚠️ build context 是 repo root，不是 Dockerfile 所在目錄
+      #    （apps/api/Dockerfile:7-8）。
+      - name: Build api image
+        run: docker build -f apps/api/Dockerfile -t isms-api:smoke .
+
+      # 用 compose 起 DB 而不是自己 docker run 一個 postgres：
+      # image tag 只寫在 docker/compose.yml:21 一處，兩邊不會漂移（AP-6）。
+      # `--wait` 等 compose.yml:35-39 的 healthcheck 通過，不是等容器存在。
+      - name: 啟動 PostgreSQL
+        run: |
+          docker compose -p "$COMPOSE_PROJECT" -f docker/compose.yml up -d --wait
+          docker compose -p "$COMPOSE_PROJECT" -f docker/compose.yml ps
+
+      # 容器內走服務名 postgres:5432 —— 5433 只是 host 上的 published port。
+      # 這條路徑在 CH-013 Day-0 用 `pg_isready` 與 `psql -tAc 'SELECT 1'` 實測過，
+      # 且**不需要放寬 compose.yml:29 的 127.0.0.1 bind**（那個 bind 是刻意的）。
+      - name: Run api container
+        run: |
+          docker run -d --name isms-api-smoke \
+            --network "${COMPOSE_PROJECT}_default" \
+            -e "DATABASE_URL=postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}" \
+            -p 127.0.0.1:3210:3210 \
+            isms-api:smoke
+          docker ps --filter name=isms-api-smoke --format '{{.Status}}'
+
+      - name: Probe api
+        run: node scripts/smoke-probe.mjs api http://127.0.0.1:3210
+
+      # ── web ────────────────────────────────────────────────────────────
+      - name: Build web image
+        run: docker build -f apps/web/Dockerfile -t isms-web:smoke .
+
+      # web 不需要 API 才能啟動：頁面是 'use client' 且 fetch 在 useEffect 內
+      # （apps/web/src/app/page.tsx:28,42-55），CH-013 Day-0 實測確認。
+      - name: Run web container
+        run: |
+          docker run -d --name isms-web-smoke \
+            -p 127.0.0.1:3200:3200 \
+            isms-web:smoke
+          docker ps --filter name=isms-web-smoke --format '{{.Status}}'
+
+      - name: Probe web
+        run: node scripts/smoke-probe.mjs web http://127.0.0.1:3200
+
+      # ── 診斷 ───────────────────────────────────────────────────────────
+      #
+      # ⚠️ 兩個 runtime 都是 distroless：沒有 shell，`docker exec ... sh` 不存在
+      #    （apps/api/Dockerfile:27-32）。容器 log 是失敗時唯一的線索，
+      #    所以無論如何都要抓出來 —— 這與 ADR-0011 §g5 記錄的「診斷靠 shipped
+      #    structured logs」是同一個約束。
+      - name: 容器日誌
+        if: always()
+        run: |
+          for c in isms-api-smoke isms-web-smoke; do
+            echo "::group::docker logs $c"
+            docker logs "$c" 2>&1 || echo "（$c 沒有啟動）"
+            echo "::endgroup::"
+          done
+          echo "::group::docker compose logs postgres"
+          docker compose -p "$COMPOSE_PROJECT" -f docker/compose.yml logs --no-color || true
+          echo "::endgroup::"
