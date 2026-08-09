@@ -194,29 +194,43 @@ ubuntu runner 跑，inline shell 可接受；若要能在開發機重現（受 p
 
 ### Gate
 
-<Day 4 填實際數字，含 baseline 對照>
+本機：`self-test PASS(3)` · `format:check` 0 · `prettier`（新檔）0 · `lint` 0 ·
+`lint:negative` PASS · `type-check` 0 · api **20 passed**（baseline 20）·
+web **10 passed**（baseline 10）· `build` 0 · `run_all` **6/6**
 
-`type-check` — · `run_all` —/6 · api test — passed（baseline 20）· web test — passed（baseline 10）· build clean
+> 測試數與 baseline 相同是預期的 —— 本 CH 沒有新增 jest/vitest 案例，
+> 腳本的測試是內建的 `--self-test`（理由見 checklist §測試）。
+
+CI（run `31299823765`）：六個 check 全 pass ·
+`映像 build + 啟動探測` **1m56s**（對照 `gates` 1m5s，平行不延長關鍵路徑）
 
 ### 新增測試
 
-<Day 4 填>
-
-⚠️ 本 CH 的「測試」主要是 CI workflow 本身，不是 jest/vitest 案例。
-若 Day 0 決定用 Node 腳本做探測，該腳本要有自己的單元測試（CH-012 的 `assert-boundary-gate.mjs`
-沒有 —— 那是本次可以做得比上次好的地方，但**不強制**，視腳本複雜度決定，理由寫進 checklist）。
+- `scripts/smoke-probe.mjs --self-test`（3 個 case）：只測 `extractChunkPaths` ——
+  這個檔唯一的解析邏輯，也是唯一會**靜默**失效的部分（regex 停止匹配 → 零命中）。
+  HTTP 路徑由元驗證覆蓋，不重複造 mock。排在 build 之前執行（最便宜的失敗）
 
 ### 元驗證 ⭐ 這是本 CH 唯一有效的證明
 
-三個獨立的「弄壞它看它紅」，每個對應一類真實失效：
+**四項，因為第 3 項的答案是負面的。**
 
-| # | 弄壞什麼 | 預期 | 對應真實缺陷 |
-|---|---|---|---|
-| 1 | 把 `apps/api/Dockerfile` 的 `CMD` 指向不存在的檔 | build 綠、**run 紅** | W01 的 `start` 指錯 entry（`08ddc0f`）|
-| 2 | 拿掉 `apps/web/Dockerfile:48` 的 `.next/static` COPY | build 綠、run 綠、**探測紅** | 「頁面開得起來但沒樣式」這一類 |
-| 3 | 拿掉 `apps/api/Dockerfile:54-56` 的 openssl 安裝 | **build 或 run 紅** | W01 已修過的真實缺陷，用它驗 gate 抓不抓得到 |
+| # | 弄壞什麼 | build | run | probe | 對應真實缺陷 |
+|---|---|---|---|---|---|
+| 1 | `CMD` 指向不存在的檔 | 🟢 | 🔴 `Exited (1)` | 🔴 `ECONNREFUSED` | W01 的 `start` 指錯 entry（`08ddc0f`）|
+| 2 | 拿掉 `apps/web/Dockerfile:48` 的 `.next/static` | 🟢 | 🟢 `Up` | **🔴 指名 chunk 404** | 「頁面開得起來但沒樣式」|
+| 3 | 拿掉 openssl 安裝 | 🟢 | 🟢 | **🟢 抓不到** | W01 已修過的缺陷 —— **見下** |
+| 4 | DB 不可達（3 的替代） | 🟢 | 🟢 **HTTP 200** | 🔴 `db was "down"` | 「API 活著但依賴死了」|
 
-**每一個都必須還原並確認轉綠。** 沒做過這三項，本 CH 不得標 done。
+1、2、4 皆已還原並確認轉綠。
+
+**第 3 項的誠實結論**：缺 openssl **只產生警告，不產生可觀測故障** ——
+CI log 出現 `Dockerfile:55-58` 引用的一字不差的警告，但 `✔ Generated Prisma Client (v7.9.1)`、
+build 綠、`{"status":"up","db":"up"}`。**這個 gate 抓不到這一類。**
+checklist 預先寫死的處理方式（改找另一個 api 側負面案例）生效 → 第 4 項。
+
+⚠️ **第 3 項的第一次嘗試是無效的，原因是我的方法錯誤** —— 只拿掉 `openssl` 套件名而保留
+`ca-certificates`，而後者在 Debian 上 Depends on openssl，apt 又裝回來了。
+那次的綠代表**變因沒動**。細節與教訓見 progress.md。
 
 ### Drive-through（user-facing 時 MANDATORY）
 
@@ -226,9 +240,15 @@ ubuntu runner 跑，inline shell 可接受；若要能在開發機重現（受 p
 > 它做的正是「開真產物、走主路徑、看它真的活著」，只是駕駛員是 CI 不是人。
 > 但這**不表示**本 CH 自己被 drive-through 過 —— 那兩件事不可混為一談。
 
-### ⚠️ Drive-through 抓到而 gate 沒抓到的
+### ⚠️ 新 gate 抓到而既有 gate 沒抓到的 ⭐
 
-<Day 4 填。沒有的話寫「無 —— gate 與元驗證結論一致」。>
+**`image-smoke` 第一次跑就抓到一個真實缺陷**：`apps/api/Dockerfile` 的 build 階段
+在 `prisma/schema.prisma` 存在之前跑 `prisma generate`。
+
+它通過了 **lint / type-check / test / `npm run build` / trivy 全部既有 gate**，
+因為在此之前沒有任何東西 build 過它。詳見 §範圍變更。
+
+這是本 CH 的成本在第一次執行就付清的直接證據。
 
 ---
 
@@ -239,8 +259,8 @@ ubuntu runner 跑，inline shell 可接受；若要能在開發機重現（受 p
 - **Config change**: 無新增環境變數進 `.env.example`。CI 內的 DB 連線字串是 workflow-local 的
   測試值，**不得**成為專案設定的一部分
 - **重啟需求**: N/A
-- **CI 時間**: 新 workflow 預估 3-6 分鐘（Day 0 P1 實測後回填）。**與 `gates` 平行，
-  不延長現有關鍵路徑**
+- **CI 時間**: 實測 **1m56s**（對照 `gates` 1m5s）。獨立 workflow 天然平行，
+  **未延長現有關鍵路徑**
 - **`AD-CIRequired-1` 的清單 +1** —— 日後設 required status check 時要設兩個 workflow
 - **Rollback**: 刪掉 `image-smoke.yml` 單一檔案，~2 分鐘。無其他檔案依賴它
 
