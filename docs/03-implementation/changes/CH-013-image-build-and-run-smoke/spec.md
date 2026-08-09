@@ -90,6 +90,38 @@ CI 的 `Build` 步驟跑的是 `npm run build`（`ci.yml:194`），那是 tsc / 
 > runner 無公司 proxy，**預期**可達 `binaries.prisma.sh` —— 但那是預期不是實測。
 > 若 CI 也失敗，本 CH 範圍要重新評估（改 Dockerfile 避免 build 期下載 engine 是另一個決定）。
 
+### 範圍變更（2026-08-09，使用者拍板）—— 修 CI 首航抓到的 Dockerfile 缺陷
+
+**原 §Scope 寫「不動 apps/ 原始碼」。此條擴大範圍，涵蓋 `apps/api/Dockerfile`。**
+
+`image-smoke` 第一次跑就讓 api build 紅了，而**原因不是 D-6 預期的 TLS**：
+
+```
+Dockerfile:62  RUN npm ci --workspace @isms/api --include-workspace-root
+npm error  schema.prisma: file not found
+```
+
+`apps/api` 的 postinstall 是 `prisma generate`，但在該層只有 package.json 們被 COPY 進去，
+`prisma/schema.prisma` 要到 `:66` 才進來。**這是一個真實的 Dockerfile 缺陷**，
+通過了 lint / type-check / test / `npm run build` / trivy 全部既有 gate ——
+因為在此之前**沒有任何東西 build 過它**。
+
+⭐ **W01 已經知道這件事，只修了一半**：`apps/api/Dockerfile:33-35` 明寫
+「prod-deps installs with `--ignore-scripts`, because postinstall runs `prisma generate`」，
+而 prod-deps（`:80`）確實加了 —— **build 階段漏了**。
+
+**修法**：`:62` 加 `--ignore-scripts`。最小且正確 —— `:70` 本來就明確跑
+`npm run prisma:generate`，那時 schema 已經在。header 註解一併更正
+（原文只提 prod-deps，會誤導下一個人以為 build 階段不需要）。
+
+**為什麼在本 CH 內修而不另開 Bug 軌**：不修的話 CH-013 完成不了（api image 永遠
+build 不起來，smoke 永遠紅），且缺陷是本 CH 直接產出的。形狀與 CH-012 處理
+`Permissions-Policy` 缺席相同。
+
+⚠️ **本機仍無法完整驗證這個修法** —— 本機的失敗會從 `:62` 前進到 `:70`
+（那裡才真的下載 engine，撞公司 proxy）。**失敗點前進本身是修法生效的證據**，
+但「CI 能否下載 engine binary」仍要等下一次 CI。**D-6 只關了一半。**
+
 ### 逐項變更
 
 **1. `.github/workflows/image-smoke.yml`（新）** — 對兩個 Dockerfile 各做 build → run → probe。

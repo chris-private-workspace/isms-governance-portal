@@ -30,9 +30,13 @@
 #       corporate proxy blocks Container Apps log endpoints, diagnosis leans
 #       entirely on shipped structured logs — which is the direction that ADR
 #       already committed to.
-#     - prod-deps installs with `--ignore-scripts`, because postinstall runs
-#       `prisma generate` and `prisma` is a devDependency. The generated client
-#       is copied from the build stage instead, where it was produced properly.
+#     - **Both npm ci steps pass `--ignore-scripts`**, because apps/api's
+#       postinstall runs `prisma generate`, and at that point in the build only
+#       package.json files have been copied — prisma/schema.prisma arrives
+#       later. prod-deps needs it for the same reason plus one more: `prisma`
+#       is a devDependency it does not install at all. The build stage runs
+#       prisma generate explicitly once the schema is present (see below);
+#       prod-deps copies the generated client from the build stage instead.
 #
 #   ⚠️ Pinned by tag, NOT by digest. Digest pinning is what actually defeats tag
 #   mutation; it is a recorded follow-up rather than a claim made here. The base
@@ -40,6 +44,7 @@
 #   file and runs trivy against it.
 #
 # Modification History (newest-first):
+#   - 2026-08-09: Add --ignore-scripts to the build stage (CH-013) — schema absent
 #   - 2026-08-08: Move runtime to distroless (Phase W01) — 45 base-image CVEs
 #   - 2026-08-08: Initial creation (Phase W01)
 
@@ -59,7 +64,11 @@ COPY package.json package-lock.json ./
 COPY packages/types/package.json packages/types/
 COPY apps/api/package.json apps/api/
 COPY apps/web/package.json apps/web/
-RUN npm ci --workspace @isms/api --include-workspace-root
+# `--ignore-scripts`: apps/api's postinstall is `prisma generate`, and only
+# package.json files exist at this layer — prisma/schema.prisma arrives with the
+# COPY below. Without it the build dies here with "schema.prisma: file not
+# found". Generation happens explicitly further down, where the schema is real.
+RUN npm ci --ignore-scripts --workspace @isms/api --include-workspace-root
 
 COPY tsconfig.base.json ./
 COPY packages/types packages/types
