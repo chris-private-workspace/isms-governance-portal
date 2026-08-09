@@ -93,4 +93,10 @@
 - [x] W01 `checklist.md` 2.3 的 🚧 標為關閉並指向本 CH
 - [x] 架構級決定有 ADR（R5）—— **無**。`applySecurity` 的抽取未跨分層：
       `bootstrap` 本來就不是範疇，它仍在同一個 composition root 目錄內
-- [ ] Commit → ⏳ PR push + merge: **PENDING USER CONFIRMATION**
+- [x] Commit → PR push + merge（使用者 2026-08-09 確認）
+  - DoD: **`gh` 驗證而非宣稱** —— `state=MERGED` · `mergedAt=2026-08-09T05:38:11Z` · tip `2a4160f`；
+        rebase merge，`git log --merges` 為空
+  - ⭐ **`Negative gates` 步驟首航確認不是空轉**：CI log 實際印出
+        `[lint:negative] PASS — boundaries/dependencies rejected audit-trail -> core-model`，
+        且步驟 12 為 `success` 而非 skipped。這一點值得單獨驗 ——
+        W01 六種失效方式裡有一種**只在 CI 的 cwd 下發作**，本機測不出來
