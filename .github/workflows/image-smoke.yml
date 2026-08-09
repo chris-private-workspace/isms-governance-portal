@@ -47,6 +47,14 @@ env:
   POSTGRES_USER: isms_dev
   POSTGRES_PASSWORD: isms_dev_local_only
   POSTGRES_DB: isms_dev
+  # ⚠️ POSTGRES_USER is a SUPERUSER, and a superuser bypasses row-level security
+  #    even with FORCE ROW LEVEL SECURITY (measured, W02 Day-0). If the api
+  #    container connected as it, this job would go green while proving nothing
+  #    about isolation — the project's recurring "green but hollow" shape.
+  #    docker/init-app-role.sh creates this least-privilege role on first boot,
+  #    which on a CI runner is every run.
+  POSTGRES_APP_USER: isms_app_user
+  POSTGRES_APP_PASSWORD: isms_app_local_only
   # compose 的預設 project name 來自**目錄名**（docker/ -> docker_default）。
   # 明確指定，否則 network 名會隨著目錄改名而無聲改變。
   COMPOSE_PROJECT: ismssmoke
@@ -106,11 +114,31 @@ jobs:
       # 容器內走服務名 postgres:5432 —— 5433 只是 host 上的 published port。
       # 這條路徑在 CH-013 Day-0 用 `pg_isready` 與 `psql -tAc 'SELECT 1'` 實測過，
       # 且**不需要放寬 compose.yml:29 的 127.0.0.1 bind**（那個 bind 是刻意的）。
+      #
+      # ⚠️ 連線用 **app 角色**（W02）。先斷言它真的是受限的 —— 否則這一步會在
+      #    角色設定壞掉時靜靜地退回成「用 superuser 跑」，而 job 照樣全綠。
+      #
+      # 📌 **這一步驗什麼、不驗什麼**（誠實的職責邊界）：
+      #    驗：image 能在**受限角色**下啟動並服務 `/health`。
+      #    不驗：RLS policy 的正確性、app 角色的表權限 —— `/health` 只跑
+      #    `SELECT 1`，那不需要任何表權限。**policy 與權限由 W02 的整合測試涵蓋**
+      #    （那裡會跑 migration）。不在這裡重複，也不假裝這裡有驗。
       - name: Run api container
         run: |
+          echo "::group::app role must be least-privilege"
+          docker compose -p "$COMPOSE_PROJECT" -f docker/compose.yml exec -T postgres \
+            psql -U "$POSTGRES_USER" -d "$POSTGRES_DB" -tAc \
+            "SELECT rolname||' super='||rolsuper||' bypassrls='||rolbypassrls FROM pg_roles WHERE rolname='${POSTGRES_APP_USER}'" \
+            | tee role.txt
+          grep -q 'super=f bypassrls=f' role.txt || {
+            echo "::error::${POSTGRES_APP_USER} is not least-privilege — RLS would be void"
+            exit 1
+          }
+          echo "::endgroup::"
+
           docker run -d --name isms-api-smoke \
             --network "${COMPOSE_PROJECT}_default" \
-            -e "DATABASE_URL=postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}" \
+            -e "DATABASE_URL=postgresql://${POSTGRES_APP_USER}:${POSTGRES_APP_PASSWORD}@postgres:5432/${POSTGRES_DB}" \
             -p 127.0.0.1:3210:3210 \
             isms-api:smoke
           docker ps --filter name=isms-api-smoke --format '{{.Status}}'

@@ -41,13 +41,25 @@ for (const candidate of ['.env', '../../.env']) {
 }
 
 // `prisma generate` needs no connection string; `prisma migrate` does. Declaring
-// the datasource only when DATABASE_URL is present keeps both honest: a fresh
-// clone and CI can generate the client with no .env, while migrate still fails
-// loudly rather than against a fake URL planted to keep CI quiet.
-const url = process.env.DATABASE_URL;
+// the datasource only when a URL is present keeps both honest: a fresh clone and
+// CI can generate the client with no .env, while migrate still fails loudly
+// rather than against a fake URL planted to keep CI quiet.
+//
+// ⚠️ DATABASE_URL_MIGRATE, not DATABASE_URL. W02 measured what the header above
+// only predicted: the application role must be one that RLS applies to, and the
+// migration role must own the schema. Falling back to DATABASE_URL keeps
+// single-role setups working, but the fallback is the unsafe direction — it is
+// here so migrations still run, never so the app can borrow owner privileges.
+const url = process.env.DATABASE_URL_MIGRATE ?? process.env.DATABASE_URL;
 
 export default defineConfig({
   schema: 'prisma/schema.prisma',
   migrations: { path: 'prisma/migrations' },
-  ...(url ? { datasource: { url: env('DATABASE_URL') } } : {}),
+  ...(url
+    ? {
+        datasource: {
+          url: process.env.DATABASE_URL_MIGRATE ? env('DATABASE_URL_MIGRATE') : env('DATABASE_URL'),
+        },
+      }
+    : {}),
 });
