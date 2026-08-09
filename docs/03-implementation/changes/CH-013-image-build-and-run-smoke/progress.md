@@ -1,6 +1,6 @@
 # CH-013 — Progress
 
-**Status**: draft
+**Status**: done
 **Spec**: [`spec.md`](./spec.md) · **Checklist**: [`checklist.md`](./checklist.md)
 
 ---
@@ -248,21 +248,44 @@ PROBE:     EXIT=1     Last seen: db was "down"
 
 ---
 
-## 完成摘要（收尾時填）
+## 完成摘要
 
-**實際 vs spec**：
+**實際 vs spec**：**一處範圍擴大**，已記在 spec §範圍變更並經使用者拍板 ——
+修 `apps/api/Dockerfile`（原 §Scope 寫「不動 apps/」）。其餘與 spec 一致；
+Day-0 推翻的四個假設全部依 R3 記在 §Day-0 changelog，原文保留未改寫。
 
 **Acceptance 逐條**：
 
 | # | 條件 | 結果 | 證據 |
 |---|---|---|---|
-| A1 | 兩個 image 在 CI 真的 build 成功 | | |
-| A2 | 兩個容器真的啟動且探測斷言內容通過 | | |
-| A3 | 元驗證 1 —— `CMD` 指錯 → run 紅 | | |
-| A4 | 元驗證 2 —— 拿掉 `.next/static` → 探測紅 | | |
-| A5 | 元驗證 3 —— 拿掉 openssl → build 或 run 紅 | | |
-| A6 | CI 時間未延長現有關鍵路徑 | | |
+| A1 | 兩個 image 在 CI 真的 build 成功 | ✅ PASS | run `31299823765` log 兩行 `naming to docker.io/library/isms-{api,web}:smoke done` —— **不是看 job 綠燈** |
+| A2 | 兩個容器真的啟動且探測斷言內容通過 | ✅ PASS | `[smoke:api] PASS -> {"status":"up","db":"up"}` · `[smoke:web] PASS ... all 7 referenced assets`（逐一列出）· `[Nest] Nest application successfully started` |
+| A3 | 元驗證 1 —— `CMD` 指錯 → run 紅 | ✅ PASS | build EXIT=0 / 容器 `Exited (1)` / probe EXIT=1 `ECONNREFUSED`；還原轉綠 |
+| A4 | 元驗證 2 —— 拿掉 `.next/static` → 探測紅 | ✅ PASS | build EXIT=0 / `Up` / probe EXIT=1 指名 chunk 404；還原轉綠 |
+| A5 | 元驗證 3 —— 拿掉 openssl → build 或 run 紅 | ❌ **FAIL（gate 抓不到）** | run `31300101058`：警告出現但 `✔ Generated Prisma Client` + `db:"up"`。**誠實記錄，非跳過** → `AD-OpensslClaim-1` |
+| A5' | 元驗證 4（A5 的替代，checklist 預先寫死） | ✅ PASS | API 回 **HTTP 200** `{"db":"down"}` → probe EXIT=1 `db was "down"` |
+| A6 | CI 時間未延長現有關鍵路徑 | ✅ PASS | `image-smoke` 1m44s ~ 1m56s，與 `gates`（1m5s）平行 |
 
-**Drive-through**：N/A（CI 基礎設施）—— 結論寫 **gate-only verified**
+**Drive-through**：N/A（CI 基礎設施）—— 結論 **gate-only verified**。
+唯一的例外是本 CH 交付物**自己**在 CI 上跑了真容器，但那不等於本 CH 被 drive-through 過。
 
-**留下的 carryover**：
+**留下的 carryover**（→ BACKLOG）：
+
+| AD | 狀態 |
+|---|---|
+| `AD-ImageBuild-1` | ✅ **關閉** |
+| `AD-NegativeGate-1` | 3/5 → **4/5**，不關閉。⚠️ 本 CH 順帶量到它的**邊界**：不造成可觀測故障的缺陷，負面案例對它無效 |
+| `AD-SecScan-1` | 剩餘缺口由「兩項」縮為**只剩 DAST** |
+| `AD-CIRequired-1` | 補註：現在要設**兩個** workflow |
+| `AD-ImageDigest-1` | 🆕 Dockerfile 自稱 digest pinning 是「recorded follow-up」，實際從未進過任何清單 |
+| `AD-OpensslClaim-1` | 🆕 `Dockerfile:55-58` 的斷言是推論不是觀測；**刻意不改註解** |
+| `AD-TrivyFullImage-1` | 🆕 完整 image 掃描的路徑現在存在了，但需要獨立的分流窗口 |
+
+**W01 checklist**：Dockerfile 項的 🚧 **部分解封** —— build 驗證關閉，
+但 DoD 第三項「base image 釘 digest」仍未達成，**該項維持未勾**。
+
+**這次最該記住的一件事**：元驗證 3 的第一次嘗試是綠的，而那個綠是假的 ——
+控制組沒有真的被套用（`ca-certificates` 把 openssl 依賴回來了）。
+**只因為去解釋「為什麼沒壞」才發現。** 若當時直接採信，
+「gate 抓不到這一類」這個錯誤結論會一路寫進 BACKLOG 並影響後續判斷。
+教訓不是「要小心」，而是具體的：**改了設定不等於效果改變，要看實際生效的結果**。

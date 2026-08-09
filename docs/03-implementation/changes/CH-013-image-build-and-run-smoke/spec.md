@@ -1,5 +1,5 @@
 ---
-status: approved   # proposed | approved | active | done | cancelled —— 機器可讀的唯一權威
+status: done       # proposed | approved | active | done | cancelled —— 機器可讀的唯一權威
 affects_components: []
 ---
 
@@ -8,8 +8,8 @@ affects_components: []
 **Date**: 2026-08-09
 **Phase**: 無 —— 獨立 Change（W01 已 `closed_partial`）
 **Scope**: 工具鏈（CI workflow + container）— **NO migration** · **NO 新依賴** · **不動 apps/ 原始碼**
-**Status**: 已核准（laitim2001 於 2026-08-09 核可；三個範圍決策同日拍板）
-**PR**: —
+**Status**: 已完成（laitim2001 於 2026-08-09 核可；三個範圍決策 + Dockerfile 修法的範圍擴大同日拍板）
+**PR**: #22（**MERGED** `56e040e`，2026-08-09 rebase merge）· #23（元驗證 3 專用，已關閉並刪分支）
 
 ---
 
