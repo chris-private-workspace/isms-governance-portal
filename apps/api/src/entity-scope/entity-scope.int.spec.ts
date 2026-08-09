@@ -155,7 +155,9 @@ describe('entity scoping (integration)', () => {
     // Day-0 could not see: set_config leaves app.entity_scope defined as '',
     // so current_setting stops raising and the policy filters everything away.
     // Migration 20260809171812 turned that back into an error.
-    await expect(prisma.connection.policy.findMany()).rejects.toThrow(/app\.entity_scope is not set/);
+    await expect(prisma.connection.policy.findMany()).rejects.toThrow(
+      /app\.entity_scope is not set/,
+    );
   });
 
   it('distinguishes "no records" from "no scope"', async () => {
@@ -165,7 +167,9 @@ describe('entity scoping (integration)', () => {
     const empty = await (await clientFor(['HK'])).policy.findMany();
     expect(empty).toEqual([]);
 
-    await expect(prisma.connection.policy.findMany()).rejects.toThrow(/app\.entity_scope is not set/);
+    await expect(prisma.connection.policy.findMany()).rejects.toThrow(
+      /app\.entity_scope is not set/,
+    );
   });
 
   it('refuses an empty scope in the application layer too, before the database sees it', async () => {
