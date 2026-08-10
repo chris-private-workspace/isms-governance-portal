@@ -4,7 +4,7 @@
 **Phase**: W03
 **Scope**: `core-model` · `entity-scope`（消費）· `modules` · bootstrap
 **Components**: —
-**PR**: PR-pending
+**PR**: **MERGED** #31（`b20f3f1`，2026-08-10）
 
 ---
 

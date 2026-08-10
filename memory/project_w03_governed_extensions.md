@@ -64,6 +64,32 @@ int 測試每次**重建** `isms_test`，所以整個 Day 2-3「int 全綠」
 
 用一致定義重算：W01 **0.35** · W02 **0.75** · W03 **0.34**。→ `AD-CalibrationMetric-1`
 
+### 5. ⭐⭐ 產物從來沒有以「部署時的組態」被執行過 —— PR #31 的 CI 才發現
+
+`映像 build + 啟動探測` 第一輪紅：**API 在 `NODE_ENV=production` 下拒絕啟動**。
+
+```
+DevPrincipalInProductionError: dev-principal was reached with NODE_ENV=production.
+Entity scope must come from a credential (CLAUDE.md 約束 8 鐵律 3)
+```
+
+`Dockerfile:94` 設 production → `PolicyModule.onModuleInit()` → 拋錯 → 程序死。
+
+**守衛是對的**（唯一的範疇來源是寫死的 SG1，讓它在 production 服務就是隔離事故）。
+錯的是**沒有任何別的東西可能發現這件事**：78 unit + 32 int 跑在 `NODE_ENV=test`，
+Day 3 的 clean restart 跑在 `development`。**沒有一項碰過 production 唯一會走的那條路徑。**
+
+→ 拍板：gate 改成正反兩面都驗（development 必須服務 / production 必須拒絕**且理由正確**），
+成為 `AD-NegativeGate-1` 的**第 6 個負面 gate**，且幾乎免費 —— 行為本來就在。
+
+**同一輪還紅了另一個**：Day 3 記的測試污染修法只成立一半 ——
+軟刪除擋不住沒有 `retiredAt` 過濾的查詢，而 **jest 的檔案順序本機與 CI 不同**
+（暖快取依時間 / 冷快取依大小）。**同一個 commit，本機綠、CI 紅。** → `AD-JestFileOrder-1`
+
+> 兩個缺陷的共同點：**都在 Day-0 三-prong 的射程外** ——
+> 一個需要跨 suite 的執行順序，一個需要部署時的環境變數。
+> Day-0 驗的是「plan 對 repo 的斷言」，這兩者都不是。
+
 ---
 
 ## 拍板 / 關閉

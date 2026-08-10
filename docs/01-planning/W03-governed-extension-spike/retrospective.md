@@ -3,7 +3,7 @@
 **Phase**: W03 — Governed extension storage, proven against RLS
 **Period**: 2026-08-10 ~ 2026-08-10（Day 0–4，單日）
 **Plan**: [plan.md](./plan.md)
-**PR**: PR-pending
+**PR**: **MERGED** #31（`b20f3f1`，2026-08-10T08:43:51Z，六個 required check 全 SUCCESS）
 **Change record**: `docs/03-implementation/changes/CH-018-w03-governed-extensions.md`
 **Design note**: `docs/02-architecture/design-notes/W03-governed-extensions.md`
 
