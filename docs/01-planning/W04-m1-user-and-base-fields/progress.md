@@ -12,10 +12,10 @@
 
 | ID | Finding | Implication | Verdict |
 |----|---------|-------------|---------|
-| **D1** | ⭐ **`users` 不在合法全域表清單上。** `multi-tenant-data.md:57-67` 列出五類（`org_entities` · `frameworks`/`framework_controls` · `threat_library`/`vulnerability_library` · `jurisdictions`/`regulations` · `risk_scales`），`:67` 明訂「這五類以外要新增全域表，**必須在 PR 描述中舉證**」，`:374` 的 checklist 重述同一要求 | D1 選 A（全域）需要**三件事**而非 plan §3.1 寫的一件：(a) ADR 承載理由 · (b) **PR 描述舉證**（plan 未提，這是規則指定的位置）· (c) **更新那張清單本身**，否則下次讀清單的人會判 `users` 為違規 | 🟡 小調整 → plan §8 加一行 |
-| **D2** | ⭐ **旁路 detector 的 allowlist 是「檔案層級」不是「表層級」。** `assert-no-scope-bypass.mjs:76-85` 的 `ALLOW` 映射的是「哪個**檔案**可以用 `$queryRaw` / `.connection` / `new PrismaClient`」，**沒有全域表的概念**。先例：`entity-scope.resolver.ts` 讀 `org_entities`（無 RLS 的全域表）被 allowlist 為 `unscoped-connection` | `users` 若無 RLS，`user.repository.ts` 要嘛**進 ALLOW**（detector docstring `:21-22` 明寫「每加一筆就是保證不成立的又一個地方」），要嘛**用範疇化 client 查一張沒有 RLS 的表**。⛔ Day 1 D1 拍板時必須連這個一起決定，否則 Day 2 才會撞到 | 🟡 需在 Day 1 一併決定 |
-| **D3** | **`assert-no-scope-bypass.mjs:20` docstring 說 "The allowlist is **four** entries"，實測輸出 `3 allowlisted`**（`ALLOW` 有 3 個 Map 條目、6 個 file-rule 配對 —— 都不是 4） | orphan claim（AP-7）。⛔ **不逕行改** —— 依 `AD-EslintSettingsClaim-1` 與 `AD-OpensslClaim-1` 的先例：只知道「今天是 3」，不知道「W02 當時是幾個」，改掉等於用猜測取代紀錄 → 記 BACKLOG | 🟢 記錄，不當場修 |
-| **D4** | `schema.prisma:101` 註解寫 `` `owner_user_id` — needs a User table (M4) `` | 本 phase 建了 `User` 之後這句就是 orphan claim。Day 2 補欄位時**必須同時更新該註解區塊**（plan §3.3 已涵蓋，此處是提醒） | ✅ 已在 plan 內 |
+| **D-globaltable** | ⭐ **`users` 不在合法全域表清單上。** `multi-tenant-data.md:57-67` 列出五類（`org_entities` · `frameworks`/`framework_controls` · `threat_library`/`vulnerability_library` · `jurisdictions`/`regulations` · `risk_scales`），`:67` 明訂「這五類以外要新增全域表，**必須在 PR 描述中舉證**」，`:374` 的 checklist 重述同一要求 | D1 選 A（全域）需要**三件事**而非 plan §3.1 寫的一件：(a) ADR 承載理由 · (b) **PR 描述舉證**（plan 未提，這是規則指定的位置）· (c) **更新那張清單本身**，否則下次讀清單的人會判 `users` 為違規 | 🟡 小調整 → plan §8 加一行 |
+| **D-detector-scope** | ⭐ **旁路 detector 的 allowlist 是「檔案層級」不是「表層級」。** `assert-no-scope-bypass.mjs:76-85` 的 `ALLOW` 映射的是「哪個**檔案**可以用 `$queryRaw` / `.connection` / `new PrismaClient`」，**沒有全域表的概念**。先例：`entity-scope.resolver.ts` 讀 `org_entities`（無 RLS 的全域表）被 allowlist 為 `unscoped-connection` | `users` 若無 RLS，`user.repository.ts` 要嘛**進 ALLOW**（detector docstring `:21-22` 明寫「每加一筆就是保證不成立的又一個地方」），要嘛**用範疇化 client 查一張沒有 RLS 的表**。⛔ Day 1 D1 拍板時必須連這個一起決定，否則 Day 2 才會撞到 | 🟡 需在 Day 1 一併決定 |
+| **D-allowlist-count** | **`assert-no-scope-bypass.mjs:20` docstring 說 "The allowlist is **four** entries"，實測輸出 `3 allowlisted`**（`ALLOW` 有 3 個 Map 條目、6 個 file-rule 配對 —— 都不是 4） | orphan claim（AP-7）。⛔ **不逕行改** —— 依 `AD-EslintSettingsClaim-1` 與 `AD-OpensslClaim-1` 的先例：只知道「今天是 3」，不知道「W02 當時是幾個」，改掉等於用猜測取代紀錄 → 記 BACKLOG | 🟢 記錄，不當場修 |
+| **D-userfk-comment** | `schema.prisma:101` 註解寫 `` `owner_user_id` — needs a User table (M4) `` | 本 phase 建了 `User` 之後這句就是 orphan claim。Day 2 補欄位時**必須同時更新該註解區塊**（plan §3.3 已涵蓋，此處是提醒） | ✅ 已在 plan 內 |
 | **D-user-spec** | Grep `\bUser\b` 於 `docs/02-architecture/*.md` → **僅 3 命中**：`02a:92`（base field FK 引用）· `02:37`（一列概念，指向 `05`）· `09:13`（表格標題 "User \| What they do here"，**與實體無關**） | **plan 的整個前提成立** —— `User` 確實沒有欄位規格 | ✅ 確認 |
 | **D-basefields** | `02a:86-98` 的 13 個 base field 逐欄比對 `schema.prisma:107-137` 的 `Policy` → 缺 **6 個**（`ref_code` · `status` · `owner_user_id` · `created_by` · `updated_by` · `is_active`） | plan §3.3 的「6 降到 ≤1」數字正確 | ✅ 確認 |
 | **D-statusenum** | `02a:300-312` Policy 狀態機 **6 態已規格化**（Draft → InReview → Approved → Published → UnderRevision → Retired） | D4（建 enum + 欄位、不建轉換強制）可行 | ✅ 確認 |
@@ -26,20 +26,25 @@
 ### Prong 覆蓋
 
 - **Prong 1（path）**: 10 個路徑驗證（NEW 2 · EDIT 4 · design-note 1 · ADR 目錄 · CH 編號 · migration 目錄），**0 個漂移**
-- **Prong 2（content）**: 4 個 plan 宣稱驗證（D-user-spec · D-globaltable · D-basefields · D-statusenum），**2 個漂移（D1 · D2）+ 1 個 orphan claim（D3）**
+- **Prong 2（content）**: 4 個 plan 宣稱驗證（D-user-spec · D-globaltable · D-basefields · D-statusenum），
+  **2 個漂移（`D-globaltable` · `D-detector-scope`）+ 1 個 orphan claim（`D-allowlist-count`）**
 - **Prong 2.5（child tree）**: **N/A** —— 無前端工作
 - **Prong 3（schema）**: 3 個驗證（`users` 零命中 · migration head 比對 · migration 目錄清單），**0 個漂移**
 
 > ⭐ **Prong 2 又一次是唯一有產出的 prong。** 三個發現全部來自「讀規則與 detector 的**原文**」，
 > 而不是路徑存不存在 —— 這與 `day0-plan-verify.md` 說的「路徑驗證單獨做是不夠的」一致。
-> 特別是 **D2**：它不在任何 plan 宣稱的射程內，是讀 D1 判準時**順著讀到 detector 實作**才發現的。
+> 特別是 **`D-detector-scope`**：它不在任何 plan 宣稱的射程內，
+> 是讀全域表判準時**順著讀到 detector 實作**才發現的。
+>
+> ⚠️ **命名**：本 phase 的 drift 用 `D-<name>`（W03 慣例）。plan §3.1 的**決定**用 `D1..D4` ——
+> 兩者是不同的東西。Day 0 初稿誤用 `D1..D4` 當 drift ID，Day 1 修正。
 
 ### Go / No-Go
 
 **範圍變動**: **~10%** → **繼續 Day 1**
 
-D1 與 D2 都是**新增的約束**而非範圍變動：D1 多兩個交付動作（PR 描述舉證 + 更新清單），
-D2 把一個 Day 2 才會撞到的決定提前到 Day 1。兩者都不改變 plan 的形狀。
+`D-globaltable` 與 `D-detector-scope` 都是**新增的約束**而非範圍變動：前者多兩個交付動作
+（PR 描述舉證 + 更新清單），後者把一個 Day 2 才會撞到的決定提前到 Day 1。兩者都不改變 plan 的形狀。
 依 `day0-plan-verify.md` 鐵律，**不改 plan §3 Technical Spec**，改動加進 **§8 Risks**。
 
 ### 時間
@@ -50,9 +55,61 @@ branch base `65ce121` → closeout commit，`git log` 機械導出。Day 4 retro
 
 ---
 
-## Day 1 — YYYY-MM-DD — 拍板 `User` 的形狀
+## Day 1 — 2026-08-10 — 拍板 `User` 的形狀
 
-<待填>
+### 四個決定
+
+| # | 決定 | 結論 | 依據 |
+|---|---|---|---|
+| **D1** | `users` 的範疇語義 | ✅ **A：全域表，無 `org_entity_id`** → [ADR-0012](../../14-adr/0012-user-scope-semantics.md) **已採納** | ⭐ `03:31` 明訂 "scope is derived from **role assignment**"；`03:23` 的 "every **domain record**" 列舉（risk/control/policy/asset）**不含 `User`** |
+| **D2** | `is_active` 存或算 | ✅ **不存** —— 用 `retired_at IS NULL` | §1.1 自己標它是 "Derived convenience flag"。存 = 造出第二個可能與 `retired_at` 不一致的真相；本專案已有 `AD-NegativeGate-1` 這類「兩份資料靜默分歧」的教訓 |
+| **D3** | `ref_code` 序號機制 | ✅ **counter 表 + `UPDATE … RETURNING`**，唯一約束兜底。⚠️ **並發保證未驗證 —— Day 2 用真並發測試證明** | sequence 需要 per (type, entity) **動態 DDL**（13 entity × N type = 數百個 sequence，且 DDL 在請求路徑上）；counter 表只要一列，行鎖僅阻塞同一組合。⛔ 應用層檢查排除 —— 那正是 `AD-GrepAssertion-1` 的形狀 |
+| **D4** | `status` 現在建 enum 嗎 | ✅ **建 enum + 欄位，不建轉換強制** | `02a:300-312` 的 6 態**已規格化**。docstring 必須明寫「**轉換今天沒有被任何東西擋住**」—— 否則會被讀成 workflow 已存在（AP-3） |
+
+### 產出
+
+- **ADR-0012** —— `users` 全域 + entity scope 住在 role assignment。**4 條可證偽條件**，
+  最可能開火的是「一個實體的管理員不得知道其他實體有哪些使用者存在」，且它**在 M4 開火不是更晚**
+- **`02a` §0 索引** —— `User` 加入 Foundation services 分區；
+  `Role` / `Permission` 加入 **"Not yet specified"** 分區並註明 M4（索引首次涵蓋 identity）
+- **`02a` §3.2 `User` 規格** —— 三個欄位（`oidc_subject` · `email` · `display_name`），
+  **逐項可追溯到 `05` §Identity**。同時明列**哪些 base field 不適用與為什麼**，
+  以及三個「刻意不建、沒有消費者不要加」（`home_org_entity_id` · `last_login` · 任何 role 欄位）
+- **`multi-tenant-data.md` 鐵律 1 擴充** —— **identity 是第三類**，不是在參考資料清單加第六列
+
+### Issues / Discoveries
+
+- 🚩 **`user.repository.ts` 砍掉**（使用者核可）。ADR-0012 拍板 `users` 為全域無 RLS 表之後，
+  它原本的理由「第二個**範疇化 client** 消費者」**不成立** —— 它屬於 `entity-scope.resolver.ts`
+  讀 `org_entities` 那一類。而今天沒有任何東西要讀 user（無端點、無 UI）→ 零消費者 = AP-5 + AP-3。
+  ⭐ **與 `AD-ScopedClientDI-1` 同一形狀**：W03 也是拍板後才發現提議的 DI token 沒有消費者。
+  **兩次都是「ADR 拍板改變了某個元件的存在理由」，而不是「估錯了工作量」。**
+  plan §4 標 DROPPED、checklist 2.2 標 🚧（**都不刪行**）；解封條件 **M4**
+- ⚠️ **`ref_code` 格式在兩處不一致**：`02a:89,103` 是三段 `<TYPE>-<ENTITY_CODE>-<seq>`
+  （例 `RISK-SG-000123`），而 `03:110` 的 tier-2 欄位表舉例是**兩段** `RSK-0987`。
+  判定**以 `02a` 為準** —— 它是資料模型的權威，`03:110` 是分類表的示意而非格式規格。
+  ⛔ 不當場改 `03`（記錄即可，非阻塞）
+- ⚠️ **`ref_code` 的消費者確認存在** —— 一度懷疑它與 `user.repository.ts` 同樣是零消費者，
+  但 `policy.controller.ts` 的 **POST 端點**（W03 交付）就是它的真實消費者：建立 policy 時要發號。
+  **與 repository 的差別是「有沒有人今天就會呼叫它」**，不是「是不是新東西」
+- 🔧 **修正一個我自己造成的命名衝突** —— Day 0 的 drift 用了 `D1..D4`，
+  而 plan §3.1 的**決定**也叫 `D1..D4`。W03 的慣例是 `D-<name>`（逐一確認過）。
+  Day-0 的四個已改名為 `D-globaltable` / `D-detector-scope` / `D-allowlist-count` / `D-userfk-comment`
+
+### Remaining for Next Day
+
+- Day 2 全部（`users` 表 + migration · `ref-code.ts` · `Policy` 補欄位 · 範疇測試）
+- ⛔ **Day 2 必須做的兩件「不在原 checklist 上」的事**：
+  (a) `schema.prisma:97-106` 的刻意缺欄清單要**逐項更新**（`D-userfk-comment`）；
+  (b) `ref_code` 的**並發測試**必須是「會抓到重號」的那種，不是「跑起來沒事」
+
+### Notes
+
+- ⭐ **ADR 寫完才發現 plan 的元件不需要存在** —— 這是本 phase 到目前為止最有價值的一次返工避免。
+  順序是對的：**先拍板語義，再決定要建什麼**。若照原 plan 先建 repository 再寫 ADR，
+  會得到一個有測試、有覆蓋率、通過所有 gate 的零消費者元件 —— 而**每一項 gate 都會是綠的**
+- **D3 的並發保證今天是論證不是量測。** 依 `verification-discipline.md`，
+  它在 Day 2 被真並發測試證明之前，一律標**未驗證**
 
 ---
 

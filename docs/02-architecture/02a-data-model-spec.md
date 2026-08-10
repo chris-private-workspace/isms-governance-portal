@@ -45,6 +45,7 @@ not on this list; adding an entity means adding a row here in the same change.
 
 | Entity | Wave | Described in |
 |---|---|---|
+| `User` | 1 | `05` §Identity · **scope semantics settled by [ADR-0012](../14-adr/0012-user-scope-semantics.md)** — the one entity with **no** `org_entity_id` besides `OrgEntity` |
 | `audit_log` | 1 | `05` §Audit trail · design is ADR-0003 |
 | `retention_policy` · `LegalHold` | 1 | `05` §Records retention |
 | `AccessRequest` · `AccessReviewCampaign` | 1 | `05` §Access management |
@@ -67,6 +68,7 @@ not on this list; adding an entity means adding a row here in the same change.
 | Risk programme module **UI** (the entities exist; the screens do not) | `AD-DesignAlign-5` |
 | Report schedules · notification rules | `AD-Model-Gaps` — described in `05`, no entity decided |
 | Governance bodies (ISC / ITSC) as approvers | `AD-Model-Gaps` — approvals are currently modelled as users only |
+| `Role` · `Permission` (and the `(user, role, entity_scope)` assignment) | **M4** — named in `02:37`, described in `05` §Identity, but no field-level spec. ⛔ Not built in W04: zero consumers until a real credential source exists. [ADR-0012](../14-adr/0012-user-scope-semantics.md) makes the assignment the expected home of entity scope |
 
 ### §0.1 Known field-level gaps in this document
 
@@ -254,6 +256,32 @@ source uses year-based labels), `prepared_by` (see note), `approved_by`, `effect
 Described in `05`; fields specified here so §0's index resolves to one place. Sources are `05`
 plus the design handoff's `accessRequests.js`, `accessReviews.js`, `sessionPolicy.js` and
 `retention.js`.
+
+**User** — `oidc_subject` (the IdP's subject claim; unique; the join key to the identity provider),
+`email`, `display_name`. Nothing else. Authentication is delegated to an OIDC provider and
+**the platform stores no password** (`05` §Identity), so there is no credential column to hold.
+
+> ### ⚠️ `User` is the second table with no `org_entity_id` — and the reason differs from `OrgEntity`'s
+>
+> `OrgEntity` is global because it *defines* scope. `User` is global because **scope is not a
+> property of a person**: `03:31` states that a user's scope is derived from their role
+> assignment, and a regional ISO legitimately spans 13 OpCos. Settled in
+> **[ADR-0012](../14-adr/0012-user-scope-semantics.md)**, which also records the cost —
+> a global table of people is cross-entity readable by construction, so **who may enumerate
+> users is an M4 application-layer decision, not something RLS answers**.
+>
+> **Which §1.1 base fields apply**: `id` · `version` · `created_at` / `updated_at` · `retired_at`.
+> **Which do not, and why**: `org_entity_id` (above) · `ref_code` (the `<TYPE>-<ENTITY_CODE>-<seq>`
+> scheme is entity-scoped by construction; a person has no owning entity) · `status` (§4 defines
+> no user lifecycle — account state belongs to the IdP) · `owner_user_id` (a person is not owned)
+> · `created_by` / `updated_by` (users arrive from the IdP, not from another user's action —
+> revisit at M4 if administrative provisioning is added) · `extensions` (no governed-extension
+> need has been shown for identity data; add it the day one is).
+>
+> ⛔ **Deliberately absent, do not add without a consumer**: `home_org_entity_id` (an employer
+> field would be read as the scope anchor — the exact misreading ADR-0012 exists to prevent),
+> `last_login` (no consumer), any role or permission column (**M4**, see §0's not-yet-specified
+> table).
 
 **audit_log** — see `rules-on-demand/multi-tenant-data.md` §稽核軌跡 for the field list and the
 hash-chain columns. Design is **ADR-0003** (open). Two properties are settled regardless:
