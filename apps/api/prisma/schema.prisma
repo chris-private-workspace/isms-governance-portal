@@ -17,9 +17,10 @@
 //   join to be written correctly.
 //
 // Created: 2026-08-08 (Phase W01)
-// Last Modified: 2026-08-09
+// Last Modified: 2026-08-10
 //
 // Modification History (newest-first):
+//   - 2026-08-10: Phase W03 — governed extensions (ADR-0005): JSONB + catalog
 //   - 2026-08-09: Phase W02 — first two tables, entity-scoped by RLS
 //   - 2026-08-08: Initial creation (Phase W01) — datasource + generator only
 
@@ -74,9 +75,10 @@ model OrgEntity {
   /// a recursive CTE inside an RLS policy, where a CTE would run per row.
   path String
 
-  parent   OrgEntity?  @relation("OrgEntityHierarchy", fields: [parentId], references: [id])
-  children OrgEntity[] @relation("OrgEntityHierarchy")
-  policies Policy[]
+  parent          OrgEntity?       @relation("OrgEntityHierarchy", fields: [parentId], references: [id])
+  children        OrgEntity[]      @relation("OrgEntityHierarchy")
+  policies        Policy[]
+  extensionFields ExtensionField[]
 
   version   Int       @default(1)
   createdAt DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
@@ -98,7 +100,7 @@ model OrgEntity {
 ///   - `status`        — needs the state machine in 02a §4 (M5 workflow)
 ///   - `owner_user_id` — needs a User table (M4)
 ///   - `created_by` / `updated_by` — same
-///   - `extensions`    — needs ADR-0005, not adopted
+///   - `extensions`    — DELIVERED in W03 (ADR-0005), see the field below
 ///   - `category`, `effective_date`, `review_due`, `body_ref`,
 ///     `requires_attestation` — the Policy module itself (M6)
 /// This is a scope-verification slice, not a Policy implementation.
@@ -113,6 +115,16 @@ model Policy {
   title   String
   version Int    @default(1)
 
+  /// Governed local extensions (ADR-0005). Every key must be declared in
+  /// `extension_fields`; a database trigger refuses undeclared keys, wrong types
+  /// and missing required fields.
+  ///
+  /// ⚠️ RLS does NOT see into this column — measured in W03 Day 0. A row whose
+  /// column says SG1 and whose JSONB claims org_entity_id = HK1 is accepted (and
+  /// still invisible to HK1, so there is no read leak). Anything that must be
+  /// scope-filtered is a COLUMN, never an extension key.
+  extensions Json @default("{}") @db.JsonB
+
   orgEntity OrgEntity @relation(fields: [orgEntityId], references: [id])
 
   createdAt DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
@@ -122,4 +134,46 @@ model Policy {
 
   @@index([orgEntityId, retiredAt])
   @@map("policies")
+}
+
+enum ExtensionDataType {
+  string
+  number
+  boolean
+
+  @@map("extension_data_type")
+}
+
+/// The central field catalog — the mechanism that makes an extension *governed*
+/// rather than merely permitted (ADR-0005). Adding a local field is an insert
+/// here, not a schema change.
+///
+/// `org_entity_id` is NULLABLE on purpose: NULL means a group-wide field. W03
+/// measured that one table serves both — a global key is accepted, an entity's
+/// own key is accepted, and another entity's key is refused.
+///
+/// ⚠️ Uniqueness needs TWO PARTIAL indexes, not `@@unique`. In PostgreSQL a
+/// UNIQUE constraint treats every NULL as distinct, so `@@unique([entityType,
+/// key, orgEntityId])` would happily accept the same global key twice. Prisma
+/// cannot express partial indexes, so they live in the migration SQL.
+model ExtensionField {
+  id String @id @default(uuid()) @db.Uuid
+
+  /// NULL = group-wide. Non-null = declared by, and only usable by, that entity.
+  orgEntityId String? @map("org_entity_id") @db.Uuid
+
+  /// Which canonical entity this field extends, e.g. "policy".
+  entityType String            @map("entity_type")
+  key        String
+  dataType   ExtensionDataType @map("data_type")
+  required   Boolean           @default(false)
+
+  orgEntity OrgEntity? @relation(fields: [orgEntityId], references: [id])
+
+  createdAt DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt DateTime  @updatedAt @map("updated_at") @db.Timestamptz(6)
+  retiredAt DateTime? @map("retired_at") @db.Timestamptz(6)
+
+  @@index([entityType, key])
+  @@map("extension_fields")
 }
