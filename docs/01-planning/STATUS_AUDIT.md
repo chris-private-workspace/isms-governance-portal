@@ -148,7 +148,7 @@ M0 DoD 第 5 項的「management-port exposure」（本次未取得實據，見 
 | **AD-2** | ✅ 已填 | [`ROADMAP.md`](./ROADMAP.md) 首次填入排序項（主線 7 + 死線 1 + 等外部 2 + 押後 3）· `CH-016` |
 | **AD-3** | ✅ 已填 | [`RISK_REGISTER.md`](./RISK_REGISTER.md) 8 活躍 + 3 已實現（四條標記為 Entity Zero 遷移候選）· [`DEFERRED_REGISTER.md`](./DEFERRED_REGISTER.md) 5 條 · `CH-016` |
 | **AD-4** | 🟡 部分 | 缺口已登記為 `AD-SecDoDAutomation-1`（BACKLOG）並進 ROADMAP 主線第 2 項。**28 點的分類與實作尚未做** |
-| **AD-5** | ✅ 已設 | 六個 check 設為 required（`strict: false`）· `CH-015`。⚠️ **擋人的能力尚未被觀測** —— 負面驗證待下一個 PR |
+| **AD-5** | ✅ 已設**並已驗證** | 六個 check 設為 required（`strict: false`）· `CH-015`。PR #29 觀測到 `BLOCKED`（check 未完成）→ `CLEAN`（六綠後），兩時點 `mergeable` 皆 `MERGEABLE` —— **擋與放兩個方向都成立** |
 | **AD-6** | 🔴 **原判斷被推翻** | CH-010 已於 `c11e64e` 進版控。但「detector 分不出未追蹤檔」這個歸因**是錯的** —— 見下方 |
 
 ##### ⚠️ AD-6 的原判斷被推翻（CH-016 處置時量到）

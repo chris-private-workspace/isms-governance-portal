@@ -4,7 +4,7 @@
 **Phase**: 無 —— 獨立 CH（`STATUS_AUDIT.md` 2026-08-10 §2.7 AD-5 的處置）
 **Scope**: CI / branch protection（shared infra —— **不在版控**）
 **Components**: —
-**PR**: 待開
+**PR**: #29
 
 ---
 
@@ -81,12 +81,22 @@ branch protection 不存在於版控中。
 | 六個 context 逐字 | ✅ 全部命中，`strict=false` |
 | 其他 14 個欄位 vs PUT 前快照 | ✅ 全部一致 —— 覆蓋式 PUT 未意外改動任何一項 |
 
-**負面驗證**: ❌ **未做** —— 我沒有證明「一個紅的 check 真的會擋住 merge」。
-依 `AD-NegativeGate-1`，任何宣稱會擋東西的機制都需要一個會被它擋住的案例。
-**下一個 PR 就是自然的驗證點**：開 PR 的當下若顯示 `Required statuses must pass before merging`，
-即為正面證據；本檔於該 PR 開啟後回填。
+**負面驗證**: ✅ **已觀測**（PR #29，設定後的第一個 PR）—— 依 `AD-NegativeGate-1`，
+任何宣稱會擋東西的機制都需要一個真的被它擋住的案例：
 
-**Verdict**: ⚪ **gate-only verified** —— 設定值已逐項核對，**擋人的能力尚未被觀測**。
+| 時點 | 六個 check | `mergeStateStatus` |
+|---|---|---|
+| PR 開啟當下 | IN_PROGRESS / QUEUED | **`BLOCKED`** ← 擋住了 |
+| 六個全綠後 | 全 `pass` | **`CLEAN`** ← 放行了 |
+
+兩個時點的 `mergeable` **都是 `MERGEABLE`**（無檔案衝突）—— 所以 `BLOCKED` 只可能來自
+required checks。設定之前這個 PR 會是 `CLEAN`：`required_approving_review_count` 是 0，
+沒有別的東西擋得住。
+
+⚠️ **仍未觀測的**：一個 **failed**（而非 pending）的 check 會不會擋。GitHub 的 required check
+語義是「必須 `success`」，pending 與 failure 走同一條判斷，但**沒有刻意製造失敗來證實**。
+
+**Verdict**: ✅ **PASS** —— 設定值逐項核對 + **擋與放兩個方向都被觀測**。
 
 ---
 
