@@ -74,6 +74,13 @@ ADR 定的是形狀（單一區域 × 3 環境、ACA、api internal ingress、�
 **不是規格**。下列是為了填表而導出的，全部標為估算，最終由 RIT 在 Section 2 定案：
 容器與資料庫 SKU、儲存容量、Application Gateway + WAF、managed identity、VNet 子網與 private DNS。
 
+**2026-08-10 修訂（使用者要求）**：目標敘述改為**八個治理範疇**（ISMS profile · ISMS AI agent ·
+policy and standards · incident reporting · OS portfolio · supplier management · risk management ·
+audit issues）；時程改為四個 task（8 月底前上線 → Phase 2-4 於 9/10/11 月）；資源表刪掉沒有要申請的
+列（Event Grid / AKS / Azure DevOps）。⚠️ 連帶一個實質變更：**Azure OpenAI 由「不需要」改為要申請**
+——「ISMS AI agent」是八個範疇之一。這不牴觸約束 7（模型透過中性 adapter 取用，是設定不是架構），
+但 **ADR-0008 / 0009 仍未拍板**，所以表單明寫這是**要容量不是選設計**，且 token 數是無流量支撐的估算。
+
 導出時有兩個**不是估算**的硬條件，因此在表單裡各講了不只一次：
 
 1. **資料庫必須是 PostgreSQL** —— RLS 是實體隔離機制，ADR-0010 之後它是唯一屏障（`0010` §g4）
@@ -99,7 +106,7 @@ ADR 定的是形狀（單一區域 × 3 環境、ACA、api internal ingress、�
 
 | 檢查 | 結果 |
 |---|---|
-| 核取方塊 | 33 個，`w14:checked val="1"` **與** 字元 ☐→☒ 兩者皆改 |
+| 核取方塊 | **27 個**，`w14:checked val="1"` **與** 字元 ☐→☒ 兩者皆改。原為 33，使用者 2026-08-10 手動改掉 6 個（整合 Yes→No · VPN client 與 S2S VPN 兩處清掉 · Password 兩處清掉）。**逐格比對確認是刻意變更，不是遺失** |
 | 表單 placeholder | 6 處由「串接」修正為「取代」（第一版真的產生過 `EmailN/A`）|
 | 結構化子表格 | 5 張全部填入：VM 規格 · Other Resources · 起停排程 · 來源→目的→協定→埠 · Timeline |
 | 架構圖 | 已內嵌，`word/media/image5.png` 與原檔位元組相同 |
@@ -117,6 +124,11 @@ ADR 定的是形狀（單一區域 × 3 環境、ACA、api internal ingress、�
 - **Breaking change**: no · **Migration**: no · **Config**: none · **重啟需求**: none
 - **對外動作**: 送出 PAR 是**難以回復**的外部動作（進 RIT 流程，終點 GM 核准）。
   送出前必須人工補完紅色欄位並複核。本 CH **不含送出**。
+- ⚠️ **送出前必須先解決一個表單內部矛盾**：「Integration with existing system?」現為 **No**，
+  但下方「If yes」區塊仍完整描述 Entra ID 整合，包含 **RIT 要建的三個 App Registration**。
+  兩種讀法都說得通，但表單不能一邊說沒有整合、一邊要求 App Registration。
+  不處理的風險是身分整合在 RIT 規劃中隱形，而沒有那三個 App Registration，M4 無法開始
+  （`ADR-0007` · `07:35`）。詳見 `PAR-fill-notes.md` §4b。
 - **Rollback**: 撤回或重送修訂版；repo 端回滾＝revert 本 CH 的 6 個檔案變更
 
 ---
