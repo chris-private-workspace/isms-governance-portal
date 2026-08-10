@@ -8,6 +8,7 @@
 **Status**: Active
 
 > **Modification History**
+> - 2026-08-10: Drop the duplicated negative-gate count — single source is BACKLOG (audit AD-8)
 > - 2026-08-10: Phase 無 —— 首次填入排序項（CH-016）；啟用門檻已達成，見下方 §為什麼現在啟用
 > - 2026-08-07: Initial creation from claude-code-dev-template v2.6.1
 
@@ -111,5 +112,7 @@
 | `AD-Incident-1`（🔴 P0）| **Wave 2** | 已確認參數 #5：Wave 1 不提前拉合規／事件模組。缺的 restricted block 連同它的 CISO/HR 權限隔離一起走 |
 
 > **第 5 條 P0 刻意不在本表**：`AD-NegativeGate-1`（🔴 P0 候選）不是一件「要做完的事」——
-> 它是每個 phase 都在消費的紀律（目前 5/5 個實例已交付負面案例），**刻意保持開啟**。
+> 它是每個 phase 都在消費的紀律，**刻意保持開啟**。
+> ⚠️ **實例計數不寫在這裡** —— 清單的唯一權威是 [`BACKLOG.md`](./BACKLOG.md) 的該列（審計 AD-8：
+> 同一個手動計數器寫在三處，W03 交付第 6 個時三處都沒跟上）。
 > 把它排進順序會製造「做完就關掉」的錯覺。

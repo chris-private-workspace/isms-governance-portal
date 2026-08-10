@@ -10,10 +10,11 @@ last_audit: 2026-08-10
 
 **Category**: Planning / Living document
 **Created**: 2026-08-07
-**Last Modified**: 2026-08-07
+**Last Modified**: 2026-08-10
 **Status**: Active
 
 > **Modification History**
+> - 2026-08-10: Add audit #2 + AD-7–11 disposition — five drifts closed same day
 > - 2026-08-07: Initial creation from claude-code-dev-template v2.6.1
 
 > **一句話定位**：這份**不是第二個 backlog**。
@@ -95,10 +96,11 @@ code 內的 `TODO(` / `FIXME` / `HACK(` · 各 track 自己的 `TRACKER.md` ·
 | ⚫ 卡使用者 / 卡外部 | **2** | `AD-DAST-1`（需 VNet 內 runner）· `AD-IaCEvidence-1`（義務已移交 infra team）—— **兩者本次重驗仍成立** |
 | 🟢 持續技術債 | **17** | P2（+3）|
 | ⚪ 已實證 defer | **5** | `DEFERRED_REGISTER.md` D001–D005，上次審計後由 `CH-016` 首次填入 |
-| ⚠️ 漂移發現 | **5** | AD-7 ~ AD-11，見 §2.7。**五條全部由 W03 自己的 closeout 造成** |
+| ⚠️ 漂移發現 | **5** | AD-7 ~ AD-11，見 §2.7。**五條全部由 W03 自己的 closeout 造成**。✅ **同日全數修正**（使用者要求）|
 
-> 上表數字來自 `BACKLOG.md` §Open Carryover ADs 的 **56 列**，其中 **3 列已標 ✅ CLOSED
+> 上表數字來自 `BACKLOG.md` §Open Carryover ADs：審計當下 **56 列**，其中 **3 列已標 ✅ CLOSED
 > 但未移出**（見 AD-7）→ **實際未關閉 53 條**（P0 5 / P1 31 / P2 17）。
+> **AD-7 處置後 §Open 為 53 列，列數與實際數首次相符。**
 > **逐項細節一律回該檔看** —— 本檔不複製（§5）。
 
 ### 2.1 🔴 上線硬關卡
@@ -110,7 +112,8 @@ code 內的 `TODO(` / `FIXME` / `HACK(` · 各 track 自己的 `TRACKER.md` ·
 
 **第 5 條是 `AD-NegativeGate-1`**（🔴 P0 候選）—— 不是一件會被做完的事，
 而是每個 phase 都在消費的紀律，**刻意保持開啟**。
-⚠️ **W03 交付了第 6 個實例**（production 拒絕啟動的負面 gate），三處計數未同步 → **AD-8**。
+⚠️ **W03 交付了第 6 個實例**（production 拒絕啟動的負面 gate），三處計數未同步 → **AD-8**
+（✅ 已處置：計數集中到 `BACKLOG.md` 一處，另兩處改為 link）。
 
 ### 2.2 🟠 已規劃、未執行
 
@@ -153,6 +156,23 @@ code 內的 `TODO(` / `FIXME` / `HACK(` · 各 track 自己的 `TRACKER.md` ·
 
 ⭐ **本次五條漂移的共同來源：W03 自己的 closeout。** 不是舊文件腐爛，是**剛做完的收尾
 沒有把所有狀態面推到底** —— 這比停更兩個月的登記冊更難察覺，因為每一份文件看起來都「剛更新過」。
+
+> ### ✅ 處置 — 2026-08-10 同日（使用者要求）
+>
+> **下表的「發現」欄刻意保留原文**（audit trail：發現了什麼 vs 現在是什麼是兩件事，見 §4 硬紀律二）。
+>
+> | AD | 處置 | 落在哪 |
+> |---|---|---|
+> | AD-7 | 三列 CLOSED 移出 §Open + 補 W03 的 §Shipped 列 | `BACKLOG.md` §Open（**56 → 53 列**，與實際數首次相符）· §Shipped（`CH-018` 從 0 次引用變成有列）|
+> | AD-8 | **改結構而非改數字** —— 計數集中到 `AD-NegativeGate-1` 一處，其餘兩處改為 link 並註明為何不複製 | `BACKLOG.md`（加 W03 第 6 個 + 唯一權威聲明）· `RISK_REGISTER.md` R5 · `ROADMAP.md` §押後 |
+> | AD-9 | R3 剩餘缺口改為只剩 `AD-PoolerScope-1`；緩解欄補上 W03 的並行常駐測試 | `RISK_REGISTER.md` R3 |
+> | AD-10 | 「其餘 5 項」→ 3 項，並就地標明 OQ-3 / OQ-6 各自的拍板日與 ADR | `BACKLOG.md` §Pending Decisions |
+> | AD-11 | Documentation Layout 格移除 0006，改標「已被 0010 取代」 | `CLAUDE.md`（淨減 byte，headroom 原僅 303）|
+>
+> ⭐ **AD-8 的處置刻意不只是「把 5 改成 6」** —— 那會讓同一個手動計數器繼續存在於三處，
+> 下一個 phase 交付第 7 個時必然再漂一次。**同一個數字寫在三個地方，本身就是缺陷。**
+> 這與 AD-10 是同一個病（`decision-form.md` 與 `BACKLOG.md` 各寫一次「五項」），
+> 而 AD-10 已經是它的**第二次**再現（上次審計的 AD-1 只修了其中一處）。
 
 | AD | 漂移 | 實據 | 建議 |
 |---|---|---|---|
