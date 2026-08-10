@@ -4,7 +4,7 @@
 **Phase**: 無 —— 獨立 CH
 **Scope**: `infra` / `docs` —— Azure 資源申請單（PAR）+ ADR-0010 / 0011 的參數回填（**NO 產品 code / NO migration**）
 **Components**: —
-**PR**: #TBD
+**PR**: #27 · #28（表單欄位還原）
 
 > **範圍由使用者 approve（2026-08-10）**：先填申請單，再回填 ADR-0010 的區域欄位並開本紀錄。
 
