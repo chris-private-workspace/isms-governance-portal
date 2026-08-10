@@ -91,12 +91,19 @@ that `AD-ChNumber-1` reserved the number for now resolve.
 
 ## 4. Still to complete before submitting
 
-- [x] ~~Requester name~~ (Chris Lai) · ~~Project Sponsor~~ (Dewey Lou) — entered 2026-08-10
-- [ ] Department · Project Manager · Project technical contact
-- [ ] **Number of Administrators** (Table 3) — Platform Admin + Regional ISO
-- [ ] **Number of internal users** (Table 4) — across 13 OpCos × six roles
+Every field the requestor owns is now filled — **no `[TO BE COMPLETED]` marker remains**:
+
+- [x] Requester (Chris Lai) · Project Sponsor (Dewey Lou) · Department (RAPO IT) ·
+      Project Manager (Dewey Lou) · Project technical contact (Chris Lai)
+- [x] **Number of internal users** — `[50-100]`, entered by hand
+- [x] **Number of Administrators** — `3–5`. ⚠️ **This one is an assumption, not a given number.**
+      The requestor supplied 50–100 total users; the administrator subset (Platform Admin +
+      Regional ISO) was not stated, and 3–5 is the reading that follows from
+      `15-design-alignment.md` §5.1. Correct it in five seconds if it is wrong.
 - [ ] Confirm the Request Date (currently 9 August 2026, while the schedule note says 10 August)
-- [ ] ⚠️ **Resolve the integration contradiction** — see §5
+- [ ] ⚠️ **Resolve the integration contradiction** — see §4b. This is the last substantive
+      item, and it is the one that can quietly cost M4 its App Registrations.
+- [ ] Open the file in Word once and check pagination before sending
 
 ---
 
