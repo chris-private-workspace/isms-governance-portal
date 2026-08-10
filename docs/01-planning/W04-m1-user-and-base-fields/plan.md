@@ -129,8 +129,11 @@ Day-0 重新驗證。
 
 ### 3.0 Architecture（檔案變更形狀）
 
+> ⚠️ **Day 1 範圍縮減（使用者核可 2026-08-10）**：原列的 `user.repository.ts` **不建** ——
+> 理由在 §3.x。原文保留於 §4 並標 DROPPED，不刪行。
+
 ```
-NEW       apps/api/src/core-model/user.repository.ts        + .spec.ts
+DROPPED   apps/api/src/core-model/user.repository.ts        ← 見 §3.x（零消費者）
 NEW       apps/api/src/core-model/ref-code.ts               + .spec.ts
 NEW       apps/api/prisma/migrations/<ts>_user_and_base_fields/migration.sql
 EDIT      apps/api/prisma/schema.prisma                     model User · Policy 補欄位 · enum
@@ -163,7 +166,7 @@ UNTOUCHED apps/web/**                                       無 UI 工作
 否則它就是一個沒有記錄的例外，而約束 8 的例外正是最不該靠記憶的東西。
 
 > ✅ **已拍板 2026-08-10（使用者）：A（全域）+ ADR。**
-> ⚠️ **Day-0 之後才知道的三件事**（見 progress.md D1 / D2，已入 §8）：
+> ⚠️ **Day-0 之後才知道的三件事**（見 progress.md `D-globaltable` / `D-detector-scope`，已入 §8）：
 > (a) 舉證位置規則明訂是 **PR 描述**（`multi-tenant-data.md:67` · `:374`），不只是 ADR；
 > (b) 必須**更新那張全域表清單本身**（`:57-66`），否則 `users` 對下一個讀者是違規；
 > (c) detector 的 allowlist 是**檔案層級**，`user.repository.ts` 的查詢路徑要一併決定。
@@ -202,6 +205,13 @@ UNTOUCHED apps/web/**                                       無 UI 工作
 
 ### 3.x 明確不做的事
 
+- ⭐ **`user.repository.ts`** — **Day 1 砍掉**（原在 §3.0）。ADR-0012 拍板 `users` 為全域無 RLS 表之後，
+  它原本的存在理由「第二個**範疇化 client** 消費者」**不成立** —— 它屬於 `entity-scope.resolver.ts`
+  讀 `org_entities` 那一類。而今天**沒有任何東西要讀 user**（無端點、無 UI），
+  所以它會是一個零消費者的結構 = AP-5 + AP-3。⭐ **與 `AD-ScopedClientDI-1` 同一形狀**：
+  W03 也是在拍板後才發現提議的 DI token 沒有消費者，最後正確地沒有建。
+  **`User` 真正的消費者是 `Policy` 的寫入路徑**（`created_by` / `owner_user_id`）。
+  → **解封條件：M4**（有真的憑證來源與使用者管理需求時）
 - **`Role` / `Permission`** — M4。今天建 = 零消費者的 AP-5
 - **認證 / OIDC 接線** — M4。`dev-principal` 仍是唯一範疇來源
 - **其餘 32 張 Wave 1 表** — 後續 slice。本 phase 的產出是**形狀**不是**數量**
@@ -222,8 +232,8 @@ coverage 不低於 baseline。
 |---|------|--------|
 | 1 | `apps/api/prisma/schema.prisma` | EDIT |
 | 2 | `apps/api/prisma/migrations/<ts>_user_and_base_fields/migration.sql` | NEW |
-| 3 | `apps/api/src/core-model/user.repository.ts` | NEW |
-| 4 | `apps/api/src/core-model/user.repository.spec.ts` | NEW |
+| 3 | ~~`apps/api/src/core-model/user.repository.ts`~~ | **DROPPED**（Day 1，§3.x）|
+| 4 | ~~`apps/api/src/core-model/user.repository.spec.ts`~~ | **DROPPED**（同上）|
 | 5 | `apps/api/src/core-model/ref-code.ts` | NEW |
 | 6 | `apps/api/src/core-model/ref-code.spec.ts` | NEW |
 | 7 | `apps/api/src/modules/policy/policy.int.spec.ts` | EDIT |
@@ -274,8 +284,8 @@ coverage 不低於 baseline。
 | Risk | Mitigation |
 |------|------------|
 | ⭐ **D1 選錯，32 張表的 FK 語義要重來** | ✅ 使用者已拍板 **A（全域）+ ADR**（2026-08-10）。Day 1 仍要**先論證再寫 code** —— 拍板的是方向，理由要能被寫成可證偽的 ADR |
-| **【Day-0 D1】全域表的舉證位置與清單本身** | `multi-tenant-data.md:67` / `:374` 明訂新增全域表**必須在 PR 描述中舉證** —— 不只是 ADR。故本 phase 需**三個動作**：ADR-**0012** · **PR 描述舉證** · **更新 `multi-tenant-data.md:57-66` 的清單**（否則下次讀清單的人會判 `users` 為違規）|
-| **【Day-0 D2】detector 的 allowlist 是檔案層級不是表層級** | `assert-no-scope-bypass.mjs:76-85` 沒有全域表的概念。`users` 無 RLS 時，`user.repository.ts` 要嘛進 `ALLOW`（docstring `:21-22`：每加一筆就是保證不成立的又一個地方），要嘛用範疇化 client 查無 RLS 的表。⛔ **Day 1 與 D1 一起決定**，不要留到 Day 2 撞上 |
+| **【Day-0 `D-globaltable`】全域表的舉證位置與清單本身** | `multi-tenant-data.md:67` / `:374` 明訂新增全域表**必須在 PR 描述中舉證** —— 不只是 ADR。故本 phase 需**三個動作**：ADR-**0012** · **PR 描述舉證** · **更新 `multi-tenant-data.md:57-66` 的清單**（否則下次讀清單的人會判 `users` 為違規）|
+| **【Day-0 `D-detector-scope`】detector 的 allowlist 是檔案層級不是表層級** | `assert-no-scope-bypass.mjs:76-85` 沒有全域表的概念。`users` 無 RLS 時，`user.repository.ts` 要嘛進 `ALLOW`（docstring `:21-22`：每加一筆就是保證不成立的又一個地方），要嘛用範疇化 client 查無 RLS 的表。⛔ **Day 1 與 D1 一起決定**，不要留到 Day 2 撞上 |
 | `ref_code` 併發重號 | 用資料庫層保證（sequence / unique constraint），**不用應用層檢查**。⚠️ 依 `AD-GrepAssertion-1`，要有一個**會抓到重號**的測試而非只看「跑起來沒事」 |
 | **Risk Class C** — 陳舊 dev server 掩蓋 wiring 修正 | Day 3 clean restart 前殺乾淨；驗證「活著的服務程序」不是「port 擁有者 PID」 |
 | **`AD-DevDbDrift-1`** — `isms_dev` 落後而 int 全綠 | Day-0 `D-devdb` 明確比對 migration head（W03 是 Day 3 才發現） |

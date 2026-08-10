@@ -20,7 +20,7 @@
         → **僅 3 命中**（`02a:92` FK 引用 · `02:37` 概念列 · `09:13` 無關表頭）→ **前提成立**
   - [x] **D-globaltable** — 讀 `docs/rules-on-demand/multi-tenant-data.md` 的合法全域表清單，
         確認 D1 選項 A 的判準真的存在且適用（**不要靠記憶引用**）
-        → ⚠️ **漂移 D1**：`users` 不在五類清單上；`:67` / `:374` 要求 **PR 描述舉證** + 需更新清單本身
+        → ⚠️ **漂移 `D-globaltable`**：`users` 不在五類清單上；`:67` / `:374` 要求 **PR 描述舉證** + 需更新清單本身
   - [x] **D-basefields** — 逐欄比對 `02a:86-98` 的 13 個 base field vs `schema.prisma` 的 `Policy`，
         確認「缺 6 個」這個數字（plan §3.3 依賴它）→ **確認 6 個**
   - [x] **D-statusenum** — 確認 `02a:300-312` 的 Policy 狀態機是 6 個狀態且已規格化（D4 依賴它）
@@ -49,31 +49,41 @@
 
 ### 1.1 ⛔ D1 — `users` 的範疇語義
 
-- [ ] **量測與論證三個選項**（plan §3.1 D1），產出可引用的證據而非偏好
+- [x] **量測與論證三個選項**（plan §3.1 D1），產出可引用的證據而非偏好
   - DoD: 三個選項各有一段「它會讓什麼表達不出來」；**引用 `05` §Identity 與 `multi-tenant-data.md` 原文**
   - Verify: 論證寫進 progress.md Day 1，**含反方論據**
-- [ ] **向使用者呈報 D1 並取得拍板**
+  - → ⭐ 讀 `03` 找到**比原論據更強的一行**：`03:31` "scope is derived from role assignment"
+- [x] **向使用者呈報 D1 並取得拍板**
   - DoD: 使用者明確選定；⛔ **助手不得代選**（CLAUDE.md §禁止反模式）
   - Verify: 拍板記錄在 progress.md，含日期與理由
-- [ ] **若判為全域表 → 寫 ADR 承載約束 8 的豁免**
+  - → 草稿先呈報再落地；使用者核可 A + ADR（2026-08-10）
+- [x] **若判為全域表 → 寫 ADR 承載約束 8 的豁免**
   - DoD: ADR 含**可證偽條件**（什麼證據出現代表這個決定錯了）
   - Verify: `Read` 該 ADR，確認 `**Status**: 已採納` 且理由不是「因為方便」
+  - → **ADR-0012 已採納**，4 條可證偽條件。⭐ 立場是「**規則的二分法不完整**」而非「users 是例外」
+- [x] **【Day 1 追加】`multi-tenant-data.md` 鐵律 1 擴充 identity 為第三類**
+  - DoD: 不是在參考資料清單加第六列（那五類**無個資**，這一類**有**）
+  - Verify: 含「join `users` 只能加欄位不能加列」的查詢規則 + 舉證位置是 PR 描述
 
 ### 1.2 D2 / D3 / D4 拍板
 
-- [ ] **D2 `is_active` 存或算** · **D3 `ref_code` 序號機制** · **D4 `status` enum 現在建否**
+- [x] **D2 `is_active` 存或算** · **D3 `ref_code` 序號機制** · **D4 `status` enum 現在建否**
   - DoD: 各一句決定 + 一句理由；D3 需**量測**並發行為，不是選一個看起來對的
   - Verify: 三個決定寫進 progress.md Day 1
+  - → D2 **不存**（用 `retired_at IS NULL`）· D3 **counter 表**（⚠️ **並發保證未驗證，Day 2 證明**）
+    · D4 **建 enum 不建轉換強制**
 
 ### 1.3 `User` 欄位規格入 `02a`
 
-- [ ] **`02a` §3 新增 `User` 規格 + §0 索引加列（同一個 change）**
+- [x] **`02a` §3 新增 `User` 規格 + §0 索引加列（同一個 change）**
   - DoD: 欄位**逐個可追溯到 `05` §Identity**；⛔ 無發明欄位；無密碼欄位
   - Verify: `python scripts/lint/run_all.py`（doc-links + path-references 不得紅）
+  - → 3 個欄位（`oidc_subject` · `email` · `display_name`）+ 明列**哪些 base field 不適用與為什麼**
+    + `Role`/`Permission` 進「Not yet specified」分區
 
 ### 1.x partial gate
 
-- [ ] `python scripts/lint/run_all.py` → 6/6
+- [x] `python scripts/lint/run_all.py` → 6/6
 
 ---
 
@@ -90,6 +100,11 @@
 - [ ] **第二個範疇化 client 消費者**（證明 W03 的形狀可複製）
   - DoD: **不持有裸 client**；範疇化實例走方法參數（比照 `policy.repository.ts:69-100`）
   - Verify: `npm run lint -w apps/api`（boundaries 規則）+ unit 測試
+  - 🚧 **阻塞 → 不做（Day 1 範圍縮減，使用者核可 2026-08-10）**：ADR-0012 拍板 `users` 為
+    **全域無 RLS 表**後，「範疇化 client 消費者」這個理由不成立 —— 它屬於
+    `entity-scope.resolver.ts` 讀 `org_entities` 那一類。且今天無端點、無 UI，
+    **零消費者 = AP-5 + AP-3**（與 `AD-ScopedClientDI-1` 同形狀）。
+    **解封條件：M4**（真憑證來源 + 使用者管理需求）。詳見 plan §3.x
 
 ### 2.3 `ref-code.ts` + 並發
 

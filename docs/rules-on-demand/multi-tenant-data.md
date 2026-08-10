@@ -64,7 +64,22 @@ CREATE INDEX idx_risk_assessments_entity_asset ON risk_assessments(entity_id, as
 | `jurisdictions` / `regulations` | 管轄區與法規參考資料 |
 | `risk_scales` | 集團標準量表。**per-entity 校準走設定表，不是分叉這張表**（參數 #7）|
 
-> 這五類以外要新增全域表，**必須在 PR 描述中舉證**。預設是「有 `entity_id`」，例外要說明。
+**Identity 資料是第三類** —— 既不是業務資料，也不是參考資料。上面五類**全部沒有個資**；
+這一類**有**，所以它不能混進那張表。
+
+| 表 | 為什麼沒有 `entity_id` |
+|---|---|
+| `users` | **範疇不是人的屬性。** `03:31` 明訂 user 的 scope 來自 **role assignment**，而區域 ISO 合法橫跨 13 個 OpCo —— 把 `entity_id` 放上去會讓旗艦場景（M8 滾升）表達不出來。拍板於 [ADR-0012](../14-adr/0012-user-scope-semantics.md) |
+
+> ⚠️ **這一類的代價與參考資料不同，不要一起讀**：一張全域的人員表**按構造就是跨實體可讀的**。
+> `03` 把「風險負責人姓名 + 職稱」分類為 tier 2 個資，所以這張表帶個資而**沒有資料庫層的實體過濾**。
+> **誰能列舉使用者是 M4 的應用層決定 —— RLS 答不了它。**
+>
+> 由此導出一條查詢規則：**join `users` 只能加欄位，永遠不能加列。**
+> 被範疇化的那張表的 RLS 仍在過濾；任何「從 `users` 出發去撈業務資料」的查詢是 scope-bypass 形狀。
+
+> 這三類以外要新增全域表，**必須在 PR 描述中舉證**。預設是「有 `entity_id`」，例外要說明。
+> ⛔ **舉證位置是 PR 描述，不只是 ADR** —— ADR 記的是決定，PR 描述是那個決定被**看見**的地方。
 
 ### 鐵律 2：所有 query 必須以範疇過濾
 
