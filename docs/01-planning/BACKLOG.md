@@ -3,7 +3,7 @@
 **Purpose**: 所有 carryover AD、pending 決策、下個 phase 候選的**唯一權威清單**。
 
 **Created**: 2026-08-07
-**Last Modified**: 2026-08-08
+**Last Modified**: 2026-08-10
 **Status**: Active
 
 > ⚠️ **這是待辦事項的單一來源。**
@@ -11,9 +11,10 @@
 > 那正是導航檔膨脹的路徑。
 
 > **本檔回答「有什麼工作」，不回答「先做哪個」。**
-> 待辦多到「讀完仍不知道下一步」時，才開 [`ROADMAP.md`](./ROADMAP.md) 那一層
-> （**只放順序 + 前置條件，細節一律 link 回這裡**）。早期不要開 —— 多一份就多一個漂移面。
-> 兩份都存在時，**收尾要同時改兩處**。
+> 順序層 [`ROADMAP.md`](./ROADMAP.md) **已於 2026-08-10 啟用**（CH-016）——
+> 本檔 §Open 達 48 條，超過「讀完仍不知道下一步」的門檻。
+> 它**只放順序 + 前置條件，細節一律 link 回這裡**。
+> ⚠️ **兩份都存在，收尾要同時改兩處** —— 只改一處就是下一次審計的漂移發現。
 
 ---
 
@@ -52,9 +53,11 @@
 | AD-CssToken-1 | **`mockup-fidelity.md:38` 紅線 7 在本專案是錯的**：它規定一律 `oklch(var(--token))`，但交付物 token 是 HEX（`styles/tokens.css:24` `--primary: #2A5BD7`）。`oklch(#2A5BD7)` 是無效 CSS 且**靜默失效**。同一缺陷在 playbook §4.2 Layer 3 | CH-005 | 🟡 P1 | ⚠️ **W01 前端第一頁之前必修**（一行）。CLAUDE.md 約束 6「不做色彩空間轉換」在本專案亦不適用 —— 那是模板帶來的通用警語 |
 | AD-DocIndex-1 | **`docs/02-architecture/README.md` §核心設計文件 仍是未填模板**：列的 `00-vision.md` / `01-architecture.md` / `02-tech-stack-decisions.md` 全部不存在，實際是 `00-project-charter.md` 等 27 份。**五個 detector 全部抓不到** —— 那些幻影檔名是純表格文字不是連結 | CH-005 | 🟢 P2 | 使用者反映「文件很多不知從何看起」的直接成因 |
 | AD-Constraint7-1 | **CLAUDE.md 約束 7（LLM provider neutrality）的理由已失效** —— 原論證是「中國在範圍內，推論可能須境內發生 → 主權槓桿」，前提隨 ADR-0010 消失。約束保留（供應商鎖定／成本／可用性），但「合規機制」框架不可再引用 | CH-008 | 🟡 P1 | Wave 3 之前重寫。`14`、`14-adr/README.md` ADR-0009 列已標同一警語 |
-| AD-CIRequired-1 | **CI 尚未設為 required status check** —— `required_status_checks` 仍是 `null`，所以綠燈不擋任何東西。`07:31` 的 M0 DoD 要求它 | CH-006 | 🟡 P1 | W01 M0 骨架建立後設。現在設 = 用沒有實質內容的 gate 擋住所有 PR。📌 **CH-013 起要設的是兩個 workflow**（`ci.yml` 的 `gates` + `image-smoke.yml` 的 smoke job），不是一個 —— 獨立 workflow 是使用者拍板的取捨，代價記在此 |
+| AD-RegisterUpkeep-1 | **三份 living 追蹤文件的維護沒有任何機械檢查** —— `ROADMAP.md` · `RISK_REGISTER.md` · `DEFERRED_REGISTER.md` 於 2026-08-10 首次填入（CH-016）。在此之前它們空了 3 天、跨 2 個 phase 與 15 個 CH，**沒有任何一次收尾察覺**。填完之後同一個失效模式仍然存在：停更兩個月不會有東西叫 | CH-016 | 🟡 P1 | `check_status_markers.py` 掃的是三軌 pre-doc 的 `status:`，不掃這三份。可行守衛：detector 比對 `Last Reviewed:` 與最近一次 phase closeout 的日期，落後 N 個 phase 即 fail。⚠️ **不要做成「檔案有沒有被改過」** —— 那會被一次 typo 修正騙過去 |
+| AD-CheckNameCoupling-1 | **workflow 的 `job.name:` 從 2026-08-10 起是 branch protection 的一部分，而沒有任何東西在看** —— 六個 required context 有五個是中文含 em dash 與全形括號（`憑證外洩 — gitleaks（全歷史）`），比對是逐字的。改一個字 → 所有 PR 卡在等一個永遠不出現的 context，**錯誤訊息不會說明原因** | CH-015 | 🟡 P1 | branch protection **不在版控**，所以這種漂移連 detector 都寫不了（本次 AD-5 就是靠人工審計才發現）。可行守衛：`ci.yml` 加一個 job 用 `gh api` 比對「required contexts ⊆ 本次 workflow 實際產生的 check name」——但它自己也得是 required 才有意義，形成先有雞先有蛋。**現階段的實際保護是本條 AD + `CH-015` 的 load-bearing 段落** |
 | AD-DAST-1 | **DAST 從來就不存在** —— `security-scan.yml` 四個 job 是 `secret-scan` / `dependency-scan` / `static-analysis` / `container-scan`，沒有 DAST；但 `04:71` 與 `07:50` 都要求它。⚠️ **私有 VNet 讓它更難補**：infra team 已確認一定接公司 private VNet，而 GitHub 託管 runner 在公網上，接不到只存在私有網路的 staging | Azure 資源盤點 2026-08-08 | 🟡 P1 | 與 `AD-SecScan-1` 同源但**不同缺口**（那三個是有 job 但 skip，這個是根本沒 job）。補法需 VNet 內 self-hosted runner 或等價路徑 —— **M0 規劃 CI 時一併決定**，部署後才發現代價高得多 |
 | AD-SecScan-1 | ~~SCA / SAST / 容器掃描是 skip 不是 clean~~ → **W01 部分關閉**：三者現在真的執行（SCA `npm audit --audit-level=low` · SAST `Ran 462 rules on 47 files: 0 findings` · trivy `Detected config files num=2`）。~~⚠️ 剩餘缺口：Dockerfile 從未被 build 過~~ → **CH-013 關閉該項**（`image-smoke.yml` 每個 PR build 兩個 image）。⚠️ **剩餘缺口只剩 DAST 無 job** | CH-006 → W01 → CH-013 | 🟡 P1 | **仍不可視為關閉** —— guardrail 7 要求 SCA/SAST/DAST 三者，DAST 見 `AD-DAST-1`。完全關閉條件現在**只剩 DAST 有 job** |
+| AD-SecDoDAutomation-1 | **`16` 的 28 點 secure-development DoD 沒有任何自動化檢查** —— `07:31` 的 M0 DoD 明文要求 "plus the **automated** secure-development DoD checks (`16`)"；CLAUDE.md guardrail 7 亦要求「每個 story 必須通過 28 點」。grep `scripts/` + `.github/` 對 `16-secure-development-dod` / `28-point` / `28 點` **零命中** —— 今天完全靠人記得 | STATUS_AUDIT 2026-08-10（AD-4）| 🟡 P1 | ⚠️ **在此之前這個缺口沒有任何 AD 在追蹤**，`AD-SecScan-1` 只涵蓋 SCA/SAST/容器掃描，兩者不重疊。✅ **分類已完成**（2026-08-10）→ [`09-analysis/secure-dev-dod-automation-classification-20260810.md`](../09-analysis/secure-dev-dod-automation-classification-20260810.md)：**A 已覆蓋 4+2 · B 今天可做 3+2 · C 無標的 7 · D 不可機械化 5 · N 需拍板 5**。⛔ **實作未做** —— 下一步是 B 類三點（#17 seed 檢查 · #10 瀏覽器儲存 · #25 危險 sink）。⛔ M0 收尾不得逕行打勾；**N 類五點需要一次責任邊界拍板**（見報告 §需要拍板的）|
 | AD-HelmetSilentOption-1 | ⭐ **傳一個不存在的 helmet 選項不會報錯，會靜默關掉一個預設開啟的保護**。CH-012 實測：`helmet()` → `X-Powered-By` 不存在；**`helmet({xPoweredBy:false})` → `X-Powered-By: Express`**（`xPoweredBy` 不是 helmet 的選項名，它的是 `hidePoweredBy`）。W01 出貨的就是中間那個 | CH-012 | 🟡 P1 | 這是 `AD-NegativeGate-1` 形狀的**函式庫層版本**，比自己寫的設定更難察覺 —— 連「選項名不存在」都不會被告知。`security.spec.ts` 現在會對這個錯誤失敗。通則：**任何以物件傳選項的安全中介層，都要有一條在 wire 上驗證的斷言**，不能只讀設定 |
 | AD-EslintSettingsClaim-1 | **`eslint.config.mjs:110-114` 的註解在 ESLint 10 下重現不出來** —— 該註解稱「`settings` 掛在有 `files` 的區塊會使 `boundaries/elements` 為空」，CH-012 實測加上 `files: ['apps/**/*.ts']` 後，從 repo 根與從 workspace cwd **兩種呼叫規則都照樣生效** | CH-012 | 🟢 P2 | ⚠️ **刻意不改那段註解** —— 只知道「試的那個形狀不會失效」，不知道「W01 當時是哪個形狀」。改掉等於用猜測取代紀錄。解法：下次動 eslint 設定時順手重現一次，確認後再改寫或刪除 |
 | AD-CacheControl-1 | **`apps/api` 完全沒有設 `Cache-Control`**，而 `16:22` 要求「敏感頁面與 **API 回應**使用 `no-store, private`；敏感內容不得 `public` 或 `max-age > 86400`」。CH-012 Day-0 P3 逐條抄 `16` 時發現（起草時的斷言表漏了這一項）| CH-012 Day 0 | 🟡 P1 | **刻意延後**（2026-08-09 拍板）：`/health` 不是敏感端點，今天嚴格說沒違反；而「什麼算 sensitive」是政策決定，比補一個 header 大。⛔ **M1 建第一個業務端點時必須先答** —— 預設值一旦錯過，就要逐個端點回頭補 |
@@ -81,7 +84,7 @@
 | AD-LintOutput-1 | **`run_all.py:80` 失敗時只保留 detector 輸出的最後一行**，而那通常是提示語不是違規清單 —— CI 失敗訊息無法診斷 | CH-006 | 🟢 P2 | 目前用 workflow 的 `--verbose` 繞過。同型再現 → 改成 `returncode != 0` 時保留完整輸出 |
 | AD-Placeholder-1 | ⭐ **「模板佔位符未與本專案對齊」已發生 6 次**（`AD-RuleBoundary-1` / `AD-CssToken-1` / `AD-DocIndex-1` / ADR 檔名 / `CLAUDE.md` byte 預算 / `ci.yml`）| CH-006 | 🟡 P1 | **CH-007 只關掉第 6 類**（actionlint + 棘輪 detector）。⚠️ 原提案的「掃全 repo 佔位符」**已證實不可行** —— 512 命中約 500 個是合法慣例語彙（`W{NN}` / `NNN` / `<slug>`），會噴在自己的規則文件上。其餘四類需語義理解，`lint-detector-authoring.md:22` 明訂寫不出可靠 detector。**W01 關掉第 7 個實例**（`scope-boundaries.md` 的範疇表與 import 矩陣，Day-0 `D-boundaries-matrix` 發現）✅。**本條仍保持開啟** |
 | AD-ActionsNode-1 | `actions/checkout@v4` 用 Node 20，GitHub 已標 deprecated 並強制跑在 Node 24（4 個 security-scan job 皆有此 annotation） | CH-006 | 🟢 P2 | 現在只是警告；GitHub 移除 Node 20 支援時會直接壞掉 |
-| AD-StaleRecordRef-1 | **跨記錄的「編號引用」沒有任何 detector 在看** —— `ADR-0010:73` 指向 `CH-009`，而 CH-009 早已改派給 track-classification fix；同一份 ADR 的 §相關 在 2026-08-08 記了那次改派，73 行卻沒跟著改。`check_path_references.py` 驗的是**路徑**，`CH-NNN` / `ADR-NNNN` / `AD-Xxx-N` 這類引用不在射程內 | CH-010 | 🟢 P2 | 與 `AD-ChNumber-1` 相鄰但不同：那條講**怎麼選號**，這條講**號被改派後舊引用不會有人叫**。同型再現 1 次即升級為 detector（判準明確：引用的編號要能解析到一份存在且 slug 相符的記錄）|
+| AD-StaleRecordRef-1 | **跨記錄的「編號引用」沒有任何 detector 在看** —— `ADR-0010:73` 指向 `CH-009`，而 CH-009 早已改派給 track-classification fix；同一份 ADR 的 §相關 在 2026-08-08 記了那次改派，73 行卻沒跟著改。`check_path_references.py` 驗的是**路徑**，`CH-NNN` / `ADR-NNNN` / `AD-Xxx-N` 這類引用不在射程內 | CH-010 → **再現 CH-016** | 🟡 **P1**（升級）| 與 `AD-ChNumber-1` 相鄰但不同：那條講**怎麼選號**，這條講**號被改派後舊引用不會有人叫**。⭐ **升級條件已成立** —— 審計 AD-6 原本被判為「detector 分不出未追蹤檔」，CH-016 量測後**推翻**：9 處 `CH-010` 引用中**只有 1 處是 markdown 連結**（`0010:187`，與檔案同時建立所以 `check_doc_links.py` 從沒機會開火），其餘 8 處是 inline code `` `CH-010` `` —— **那不是路徑，是編號**，兩個 detector 都不在射程內。⛔ **實作前必須先拍板一件事**：`AD-ChNumber-1` 明訂**前向引用預留編號是合法的**（CH-010 正是如此），所以 detector 不能單純要求「編號必須解析得到」—— 需要一個「預留 vs 失效」的判準（候選：前向引用要在 BACKLOG 或 ROADMAP 有對應列）|
 
 **優先度判準**：
 
@@ -97,7 +100,8 @@
 
 > 📋 **跨來源審計 2026-08-10（首次）—— 6 個漂移發現（AD-1 ~ AD-6）**：
 > [`STATUS_AUDIT.md`](./STATUS_AUDIT.md) §2.7。**細節不複製到這裡**（PROCESS R7 / STATUS_AUDIT §5）。
-> 其中 **AD-4 是一個沒有任何 AD 在追蹤的 M0 缺口**（`16` 的 28 點無自動化）。
+> AD-4 揭露的 M0 缺口已登記為 `AD-SecDoDAutomation-1`（本表）——
+> 審計當下它是六條裡唯一**沒有任何 AD 在追蹤**的一條。
 
 ---
 
@@ -121,6 +125,8 @@
 | — | 2026-08-08 | CH-009：修三軌分類在 pre-code 階段的失效 —— Change 判準加「既定設計」+ 兩條「不走軌」路徑；**修好 `PROCESS.md` §3.1 與 §4.1 對同一輸入的相反路由**；關 `AD-RuleBoundary-1`（ADR forcing-function 判準入 `14-adr/README.md`）| `docs/03-implementation/changes/CH-009-track-classification-fix/` |
 | **W01** | 2026-08-08 | **Monorepo scaffold** — MERGED (PR #18, `ce72564`)，`closed_partial`。八個休眠 gate 從「回報 SUCCESS 但什麼都沒檢查」變成真的會叫；**同形狀「綠燈但空轉」一個 phase 內 5 次** → `AD-NegativeGate-1`。M0 DoD：3 關閉／2 部分／1 無標的 | `docs/01-planning/W01-monorepo-scaffold/retrospective.md` · `docs/03-implementation/changes/CH-011-w01-monorepo-scaffold.md` |
 | **W02** | 2026-08-09 | **Entity-scoping RLS spike** — MERGED (PR #25, `02dffef`)，`closed`。第一張業務表與它的隔離同一個 migration；**約束 8 四個範疇測試在應用層與資料庫層各自成立**（20 個整合測試，8 個完全不經應用層）。**推翻 Day-0 一項承重結論**：fail-closed 只在從未被 scope 過的連線上免費 → 補 `app_entity_scope()`。**裁決 ADR-0001 §可證偽條件 #1 未觸發** → ADR-0004 拍板，關 OQ-3 | `docs/01-planning/W02-entity-scope-rls-spike/retrospective.md` · `docs/03-implementation/changes/CH-014-w02-entity-scope-rls.md` · `docs/02-architecture/design-notes/W02-entity-scope-rls.md` |
+| — | 2026-08-10 | **CH-015**：六個 CI check 設為 required（`strict: false`）—— 在此之前 `required_status_checks` 整個 key 缺席，全綠擋不住任何東西。關 `AD-CIRequired-1`（解封條件成立兩次未被察覺）。⚠️ **擋人的能力尚未被觀測** —— 負面驗證待下一個 PR | `docs/03-implementation/changes/CH-015-required-status-checks.md` |
+| — | 2026-08-10 | **CH-016**：`ROADMAP` / `RISK_REGISTER` / `DEFERRED_REGISTER` 三份**從未被使用**的權威來源首次填入。關審計 AD-2 / AD-3。⭐ 與 CH-015 **同一個根因第 4、5 次**（解封條件寫在沒人回頭看的地方）；`RISK_REGISTER` 兼作 Entity Zero 的**過渡承載體**，四條標記待 M4/M5 遷入平台自己的系統。順帶量到 **M1 的 DoD 依賴尚未拍板的 ADR-0005**（`07:32`）| `docs/03-implementation/changes/CH-016-activate-tracking-registers.md` |
 
 ---
 
