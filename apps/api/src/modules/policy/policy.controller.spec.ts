@@ -28,12 +28,14 @@ import {
 } from '@nestjs/common';
 import { ExtensionValidationError } from '../../core-model/extension-validator';
 import type { PolicyRepository } from '../../core-model/policy.repository';
+import { ScopeRefusedError } from '../../core-model/scope-refusal';
 import type { EntityScope, EntityScopeResolver } from '../../entity-scope/entity-scope.resolver';
 import type { ScopedPrismaFactory } from '../../entity-scope/scoped-prisma.provider';
 import type { Policy } from '../../generated/prisma';
 import { PolicyController } from './policy.controller';
 
 const SG1 = '00000000-0000-0000-0000-0000000000c0';
+const HK1 = '00000000-0000-0000-0000-0000000000c1';
 const MINE = 'policy-mine';
 
 function policy(id: string): Policy {
@@ -158,6 +160,42 @@ describe('PolicyController', () => {
 
     expect(error).toBeInstanceOf(UnprocessableEntityException);
     expect(error.getResponse()).toMatchObject({ key: 'nope' });
+  });
+
+  // ---- a refused write is 404, not 500 ----
+
+  it('answers 404 when the database refuses the write for scope', async () => {
+    const { controller, repo } = build();
+    (repo as { create: unknown }).create = async () => {
+      throw new ScopeRefusedError(HK1);
+    };
+
+    const error = await controller.create({ orgEntityId: HK1, title: 'planted' }).catch((e) => e);
+
+    // 500 was the pre-fix behaviour: an authorisation outcome filed as an
+    // outage, which loses the attempt in the noise of real failures.
+    expect(error).toBeInstanceOf(NotFoundException);
+    expect(error.message).not.toMatch(/scope|denied|forbidden|permission/i);
+  });
+
+  it('answers a refused write identically to a write naming nothing real', async () => {
+    const { controller, repo } = build();
+    (repo as { create: unknown }).create = async (_c: unknown, input: { orgEntityId: string }) => {
+      // Both cases arrive here as the same error, because postgres evaluates the
+      // RLS WITH CHECK before the foreign key and never reaches 23503 (W03 Day 3
+      // measured 4 × 42501, 0 × 23503 against the running API).
+      throw new ScopeRefusedError(input.orgEntityId);
+    };
+
+    const real = await controller.create({ orgEntityId: HK1, title: 'x' }).catch((e) => e);
+    const fictional = await controller
+      .create({ orgEntityId: '11111111-2222-3333-4444-555555555555', title: 'x' })
+      .catch((e) => e);
+
+    expect(real.getStatus()).toBe(fictional.getStatus());
+    expect(real.message.replace(HK1, 'X')).toBe(
+      fictional.message.replace('11111111-2222-3333-4444-555555555555', 'X'),
+    );
   });
 
   it('does not swallow errors that are not the caller fault', async () => {
