@@ -147,8 +147,21 @@ jobs:
           fi
           echo "::endgroup::"
 
+          # ⚠️ NODE_ENV is overridden to development ON PURPOSE, and the step
+          # below is what keeps that honest. apps/api/Dockerfile:94 sets
+          # NODE_ENV=production, and with it the image REFUSES to boot: the
+          # only source of entity scope today is a hard-coded dev principal,
+          # and serving entity-scoped data from one in production would be a
+          # data-isolation incident, not a rough edge (CLAUDE.md 約束 8).
+          #
+          # So this step proves "the artifact starts and serves" — which needs
+          # a configuration it can start in — and the NEXT step proves it will
+          # not start in the configuration that would actually be deployed.
+          # Overriding without that second step would be AP-6: a gate testing a
+          # combination nobody will ever deploy.
           docker run -d --name isms-api-smoke \
             --network "${COMPOSE_PROJECT}_default" \
+            -e NODE_ENV=development \
             -e "DATABASE_URL=postgresql://${POSTGRES_APP_USER}:${POSTGRES_APP_PASSWORD}@postgres:5432/${POSTGRES_DB}" \
             -p 127.0.0.1:3210:3210 \
             isms-api:smoke
@@ -156,6 +169,48 @@ jobs:
 
       - name: Probe api
         run: node scripts/smoke-probe.mjs api http://127.0.0.1:3210
+
+      # 📌 負面案例（`AD-NegativeGate-1`：宣稱會擋東西的機制，要有一個被它擋住的
+      #    常駐案例）。PR #31 是這個行為第一次被觀測到 —— 本機所有測試都跑在
+      #    NODE_ENV=test，而這是唯一會用**部署時的組態**執行真實產物的地方。
+      #
+      #    三種結果分開判，因為它們的意義完全不同：
+      #      仍在執行  → 守衛沒開火（最危險：production image 會起來並服務）
+      #      退出碼 0  → 乾淨結束，不是拒絕
+      #      退出且理由對 → 通過
+      #
+      #    ⚠️ 只有在「容器確實退出」（結構性訊號，來自 docker wait 的退出碼）
+      #    成立之後才 grep log 找理由 —— 兩個獨立訊號，不是拿一段格式化文字
+      #    當唯一證據（`AD-GrepAssertion-1`）。
+      - name: 拒絕在 production 啟動（負面案例）
+        run: |
+          docker run -d --name isms-api-prod-refusal \
+            --network "${COMPOSE_PROJECT}_default" \
+            -e "DATABASE_URL=postgresql://${POSTGRES_APP_USER}:${POSTGRES_APP_PASSWORD}@postgres:5432/${POSTGRES_DB}" \
+            isms-api:smoke
+
+          code=$(timeout 60 docker wait isms-api-prod-refusal || echo STILL_RUNNING)
+
+          echo "::group::container log"
+          docker logs isms-api-prod-refusal 2>&1 || true
+          echo "::endgroup::"
+
+          if [ "$code" = "STILL_RUNNING" ]; then
+            echo "::error::image still running with NODE_ENV=production — the dev-principal guard did not fire, and a deployed image would serve entity-scoped data from a hard-coded scope"
+            docker rm -f isms-api-prod-refusal >/dev/null 2>&1 || true
+            exit 1
+          fi
+          if [ "$code" = "0" ]; then
+            echo "::error::image exited cleanly with NODE_ENV=production — expected a refusal, got a normal shutdown"
+            exit 1
+          fi
+          if ! docker logs isms-api-prod-refusal 2>&1 | grep -q 'DevPrincipalInProductionError'; then
+            echo "::error::image exited ($code) with NODE_ENV=production, but NOT because of the dev-principal guard — something else is broken"
+            exit 1
+          fi
+
+          echo "✅ production 啟動被拒絕（exit $code），理由是 DevPrincipalInProductionError"
+          echo "   解封條件：M4 提供真的憑證來源之後，這一步要改成「production 必須起得來」"
 
       # ── web ────────────────────────────────────────────────────────────
       - name: Build web image

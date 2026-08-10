@@ -179,6 +179,38 @@ plan §7 承諾「本 phase 逐日計時，補上 W02 缺的乾淨資料點」�
 
 ---
 
+## Q8 — Addendum：本 retro 寫完之後，CI 推翻了其中兩句 ⭐
+
+本檔第一版於 PR #31 開出之前寫成。CI 隨後紅了兩個 check，而它們各推翻了上面的一句話。
+**原文保留不改**，修正記在這裡 —— 差距本身就是紀錄。
+
+| 上面寫了什麼 | CI 量到什麼 |
+|---|---|
+| Q4「做得好的」列了測試污染的修法 | **只成立一半** —— 軟刪除擋不住沒有 `retiredAt` 過濾的查詢，而 jest 的檔案順序本機與 CI 不同（暖快取依時間 / 冷快取依大小）。**同一個 commit，本機綠、CI 紅** |
+| Q5 AP-3「0，且是量出來的」 | 仍然成立，但**涵蓋範圍比我寫的窄** —— 78 unit + 32 int 全跑在 `NODE_ENV=test`，Day 3 clean restart 跑在 `development`。**沒有任何一項碰過 production 路徑**，而那是部署唯一會走的那條 |
+
+### 第二列是本 phase 真正的教訓
+
+`映像 build + 啟動探測` 揭露：**API 在 `NODE_ENV=production` 下拒絕啟動**
+（`Dockerfile:94` → `PolicyModule.onModuleInit()` → `DevPrincipalInProductionError`）。
+
+守衛是對的 —— 今天唯一的範疇來源是寫死的 SG1，讓它在 production 起來就是部署一個
+資料隔離事故。但這意味著**一個 required check 會永遠紅到 M4**，那比沒有 check 更糟。
+
+使用者拍板：**改 gate，正反兩面都驗** —— development 下必須起得來（保住 CH-013 的證明），
+production 下必須拒絕且理由正確。這是 `AD-NegativeGate-1` 的**第 6 個負面 gate**，
+而且幾乎免費：行為本來就在，只是從沒有人在部署組態下執行過產物。
+
+### 對 Q3「Day-0 投報率」的補充
+
+Day-0 三-prong 驗的是 **plan 對 repo 的斷言**。這兩個缺陷都不在那個射程內：
+一個需要**跨 suite 的執行順序**才會出現，一個需要**部署時的環境變數**才會出現。
+→ 兩者都只有 CI 抓得到，這正是 required check 存在的理由。
+
+**新增 AD**：`AD-JestFileOrder-1`（見 BACKLOG）
+
+---
+
 ## Design Note 8-Point Self-Check
 
 | # | Point | 狀態 | 備註 |
