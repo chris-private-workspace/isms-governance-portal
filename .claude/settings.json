@@ -17,7 +17,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "echo \"REMINDER: 沒有 approved 的 pre-doc 不要開始寫 code（PROCESS R1）。碰到核心約束先 STOP and ask。\"",
+            "command": "echo \"REMINDER: 沒有 approved 的 pre-doc 不要開始寫 code（PROCESS R1）。碰到核心約束先 STOP and ask。順路發現的問題記進 BACKLOG，不當場開 CH —— 除非阻塞、安全、或使用者要求。\"",
             "statusMessage": "紀律提醒"
           }
         ]
