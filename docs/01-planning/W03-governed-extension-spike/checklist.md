@@ -39,31 +39,31 @@
 
 ### 1.1 三方案最小實測
 
-- [ ] **JSONB + 中央 catalog 的最小可跑案例**
+- [x] **JSONB + 中央 catalog 的最小可跑案例**
   - DoD: `Policy.extensions` 寫入 / 讀出 / 查詢各一次，**且在 RLS 之下**
   - Verify: 探測腳本先斷言角色前提，再跑；輸出寫入 progress.md
-- [ ] **量到 `WITH CHECK` 對 JSONB 內容的涵蓋範圍**（D-jsonb-rls）
+- [x] **量到 `WITH CHECK` 對 JSONB 內容的涵蓋範圍**（D-jsonb-rls）
   - DoD: 明確回答「RLS 管不管得到 JSONB 內部的 `org_entity_id`」——
         管不到則 catalog 驗證**必須**在寫入路徑，這句話進 ADR
   - Verify: 直接 `pg` 連線實測，不經應用層
-- [ ] **catalog 的範疇歸屬兩種都建一次**（D-catalog-scope）
+- [x] **catalog 的範疇歸屬兩種都建一次**（D-catalog-scope）
   - DoD: entity-scoped 與全域各一個最小案例，各自的代價寫成一句話
   - Verify: 兩個案例的實際 SQL + 結果進 progress.md
-- [ ] ⚠️ **對有狀態行為必含「第二次呼叫」案例**（`AD-Day0Scope-1` —— W02 的承重結論就是這樣被推翻的）
+- [x] ⚠️ **對有狀態行為必含「第二次呼叫」案例**（`AD-Day0Scope-1` —— W02 的承重結論就是這樣被推翻的）
 
 ### 1.2 ADR-0005
 
-- [ ] **`docs/14-adr/0005-governed-extension-storage.md` 採納**
+- [x] **`docs/14-adr/0005-governed-extension-storage.md` 採納**
   - DoD: Options 表（A/B/C）· Decision · Consequences · **≥3 條可證偽條件，每條指得出量測方式** ·
         §Security & compliance impact（本專案強制的第五區塊，`06:70`）
   - Verify: `python scripts/lint/run_all.py`（doc-links + path-references）
-- [ ] **`decision-form.md` OQ-6 移入已拍板**，去向指向 ADR-0005
+- [x] **`decision-form.md` OQ-6 移入已拍板**，去向指向 ADR-0005
   - DoD: §開放中不再有 OQ-6；§已拍板新增一列含拍板日
   - Verify: `grep -n "OQ-6" docs/decision-form.md`
 
 ### 1.x Partial gate
 
-- [ ] `npm run lint -w apps/api` · `npm run type-check -w apps/api` · `run_all` 6/6
+- [x] `npm run lint -w apps/api` · `npm run type-check -w apps/api` · `run_all` 6/6
 
 ---
 
