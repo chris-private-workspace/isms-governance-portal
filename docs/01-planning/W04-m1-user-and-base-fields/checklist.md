@@ -203,7 +203,7 @@ _(⚪ **無 user-facing surface** → drive-through 不適用。本 phase 一律
 
 - [x] `retrospective.md` Q1-Q7 + calibration（`spike` 0.65，**第 3 個資料點，第一個以一致定義登記**；
       `actual` = branch base → closeout commit 的牆鐘跨度）
-  - → **actual ~4.9 hr / committed 5.9 = ratio 0.83 IN band** → **KEEP 0.65**。
+  - → **actual 4.79 hr / committed 5.9 = ratio 0.81 IN band** → **KEEP 0.65**。
     ⭐ 價值不在數字：三個點的單位史是「人力工時估計 / 事後回推牆鐘 / **事前宣告牆鐘**」，
     **有效樣本數其實是 1**，第一次真正的 3-phase 窗口要到 W06
 - [x] `CALIBRATION-MATRIX.md` 那一行 —— **≤ 1 行 ~250 字元**（lint 上限 400；完整敘述 → `CALIBRATION-LOG.md`）

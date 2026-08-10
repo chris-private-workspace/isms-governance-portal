@@ -39,9 +39,9 @@
 - **Agent-delegated**: `no`（plan §7 預先宣告；`agent_factor` 1.0 → 三段式）
 - **Bottom-up est**: 9 hr
 - **Committed (calibrated)**: 5.9 hr（mult 0.65）
-- **Actual**: **~4.9 hr** —— 牆鐘跨度，`git log` 機械導出：
+- **Actual**: **4.79 hr** —— 牆鐘跨度，`git log` 機械導出：
   base `65ce121`（2026-08-10 17:38:17）→ closeout commit
-- **Ratio**: 4.9 / 5.9 = **0.83**
+- **Ratio**: 4.79 / 5.9 = **0.81**
 - **Band 判定**: **IN**（0.7–1.2）
 
 **發生了什麼**：ratio 在 band 內，但**這個資料點的價值不在數字而在定義**。
@@ -60,7 +60,7 @@ W02 的 1.10 是不同的量，W03 的 0.34 雖是牆鐘但當時是**回溯導�
 
 - [x] 已回填 `CALIBRATION-MATRIX.md`（≤ 1 行 ~250 字元）
 - [x] 完整敘述已寫入 `CALIBRATION-LOG.md` §1
-- [x] `|R - 1.0|` = 17% < 30% → **不需**新增 AD
+- [x] `|R - 1.0|` = 19% < 30% → **不需**新增 AD
 
 ---
 

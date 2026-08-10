@@ -301,7 +301,7 @@ W02/W03/W04 的每一個表層級 GRANT 都疊在一個沒有任何 migration �
 ### Calibration
 
 `git log` 機械導出：base `65ce121`（**17:38:17**）→ closeout commit。
-**actual ~4.9 hr / committed 5.9 hr = ratio 0.83（IN band）**。
+**actual 4.79 hr / committed 5.9 hr = ratio 0.81（IN band）**。
 
 ⭐ **這個資料點的價值不在數字**：`spike` 現在有 3 個點，但 W02 是人力工時估計、
 W03 是事後回推的牆鐘、**只有 W04 是事前宣告定義再照量的**。
