@@ -117,14 +117,29 @@
 - 反向依賴（低層 import 高層）一律禁止；`modules/` 之間**也不得互相 import** ——
   模組要協作就下沉到共用範疇或走契約層。
 
-### ⚠️ 一個尚未被驗證的設計意圖
+### 範疇化 client 如何抵達 `core-model`（W02 量測 + W03 實裝）
 
 `core-model` 不能 import `entity-scope`（上表 ❌），但依 guardrail 4 每個資料存取都必須被
-entity scope 包住。解法是**經 DI 注入而非 import**：範疇化後的 Prisma client 由
-`entity-scope` 提供，其**型別**住在契約層，`core-model` 只認型別、拿不到未範疇化的 client。
+entity scope 包住。**實際成立的形狀是三段，而且與原本的設計意圖不同**：
 
-**這是設計意圖，尚未跑過。** ADR-0004 的 W01/W02 spike 負責驗證它 ——
-它同時是 ADR-0001 §可證偽條件 #1 的承重假設。驗證失敗則本節與上表都要重寫。
+| 段 | 住在哪 | 為什麼是這裡 |
+|---|---|---|
+| **型別**（`ScopedPolicyClient`）| **`core-model`** —— `apps/api/src/core-model/scoped-client.types.ts` | ⚠️ **不是契約層。** 契約層是葉節點，**不能 import generated Prisma 型別**（W02 量到）。所以 `core-model` 自己宣告它需要的**結構型別** |
+| **實例** | `entity-scope` 提供（`ScopedPrismaFactory`）| 範疇來自憑證，是 per-request 的 |
+| **傳遞** | **方法參數**，由 `modules` 層傳入 | `modules` 是矩陣上唯一同時能 import 兩者的層 |
+
+> **原本的設計意圖是「經 DI 注入 + 型別住契約層」，兩半都沒有成立。**
+> 型別住不了契約層（上表第一列）；DI token 今天建就是**零消費者的 token**（AP-5 + AP-3）——
+> 範疇化 client 是 per-request 的，singleton provider 拿不住，而 request-scoped provider
+> 需要一個憑證來源，那是 **M4**。
+> 紀錄：`AD-ScopedClientDI-1`（W03 關閉）· `docs/02-architecture/design-notes/W03-governed-extensions.md` §2.3
+
+**這個形狀的關鍵性質**：repository **沒有自己的 client**
+（`apps/api/src/core-model/policy.repository.ts`）。不存在「忘記範疇化」的程式碼路徑 ——
+不是因為有人記得檢查，而是**沒有東西可以拿來查**。
+
+機械強制：`npm run lint -w apps/api`（`eslint-plugin-boundaries` 對跨範疇 import 開火）+
+`node scripts/assert-no-scope-bypass.mjs`（旁路 detector，含 self-test）。
 
 ---
 

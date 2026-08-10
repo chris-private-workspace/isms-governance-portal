@@ -60,14 +60,14 @@
 
 | # | 項目 | 標記 | 前置條件 | 細節 |
 |---|---|---|---|---|
-| 1 | `AD-CacheControl-1` —— 定義「什麼算 sensitive」的 `Cache-Control` 預設 | ⬜ | — | [`BACKLOG.md`](./BACKLOG.md) |
+| 1 | `AD-CacheControl-1` —— 定義「什麼算 sensitive」的 `Cache-Control` 預設 | ✅ | — | W03（2026-08-10）—— 判準是「entity-scoped 嗎」不是「敏感嗎」→ 全域無例外清單 |
 | 2 | `AD-SecDoDAutomation-1` —— `16` 的 28 點**分類** | ✅ | — | [分類報告](../09-analysis/secure-dev-dod-automation-classification-20260810.md)（2026-08-10）|
 | 2b | `AD-SecDoDAutomation-1` —— **B 類三點**（#17 seed 資料無 checksum-valid 卡號 · #10 瀏覽器儲存禁令 · #25 危險 sink）| ⬜ | 第 2 項（已完成）| 同上 §建議的實作順序 |
 | 2c | **拍板：Entra ID 之後，`16` #11–15 的密碼／憑證責任邊界** | ⬜ | — | 同上 §需要拍板的 —— **可能值得一份 ADR** |
-| 3 | **OQ-6 spike → ADR-0005** —— 受治理擴充欄位的儲存機制 | ⬜ | — | [`decision-form.md`](../decision-form.md) |
-| 4 | **M1 — Data foundation** | ⬜ | 第 1 · 3 項 —— `07:32` 的 DoD 明文含「governed-extension mechanism working」，那就是 ADR-0005 | [`07:32`](../02-architecture/07-wave1-build-plan.md) |
-| 5 | `AD-ScopedClientDI-1` —— 範疇化 client 的 DI 接線（token 在 `api` / 型別在 `core-model`）| ⬜ | M1 的**第一個 repository** —— 在那之前建 = 零消費者的 DI token = AP-5 + AP-3 | [`BACKLOG.md`](./BACKLOG.md) |
-| 6 | `AD-ScopeConcurrency-1` —— 並行範疇汙染的常駐測試 | ⬜ | 第 5 項 | [`BACKLOG.md`](./BACKLOG.md) |
+| 3 | **OQ-6 spike → ADR-0005** —— 受治理擴充欄位的儲存機制 | ✅ | — | W03（2026-08-10）—— [`ADR-0005`](../14-adr/0005-governed-extension-storage.md)；兩層獨立性已元驗證 |
+| 4 | **M1 — Data foundation** | ⬜ | ~~第 1 · 3 項~~ **前置已清空**（2026-08-10）—— `07:32` 的 DoD「governed-extension mechanism working」現有實裝與元驗證 | [`07:32`](../02-architecture/07-wave1-build-plan.md) |
+| 5 | `AD-ScopedClientDI-1` —— 範疇化 client 如何抵達 `core-model` | ✅ | — | W03（2026-08-10）—— ⚠️ **結論與原提議不同**：token 不建（零消費者），型別是 `core-model` 自宣告的結構型別，實例走方法參數 |
+| 6 | `AD-ScopeConcurrency-1` —— 並行範疇汙染的常駐測試 | ✅ | — | W03（2026-08-10）—— 40 次**交錯**查詢，逐列斷言 |
 | 7 | `AD-SecDoDAutomation-1` **實作** | ⬜ | 第 2 項的分類結果 —— 跳過分類會建出對人工項目無效的假 gate | [`BACKLOG.md`](./BACKLOG.md) |
 | 8 | **拍板：編號引用的「預留 vs 失效」判準** —— `AD-StaleRecordRef-1` 的 detector 前置 | ⬜ | — | [`BACKLOG.md`](./BACKLOG.md) —— 前向引用預留編號是**合法的**（`AD-ChNumber-1`），detector 不能單純要求「解析得到」|
 

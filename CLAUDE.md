@@ -76,12 +76,12 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 | Attribute | Value |
 |-----------|-------|
 | **Stage** | Wave 1 backbone — 建立共用骨幹，並用 Policy + Risk/Control 兩個最小模組端到端證明它 |
-| **Current Phase** | **W02 closed** — entity-scoping RLS spike；ADR-0004 拍板、OQ-3 關閉、ADR-0001 §可證偽條件 #1 未觸發。M0 六項 DoD 仍未全關，見 `07` §Build sequence |
+| **Current Phase** | **W03 closed** — governed-extension spike；ADR-0005 拍板、OQ-6 關閉、第一個業務端點上線（API-level verified，無 UI）。M1 前置已清空 |
 | **History** | See [`MEMORY.md`](./MEMORY.md) + 各 phase 的 `retrospective.md` |  <!-- doc-links: ignore — MEMORY.md 由 bootstrap 複製到專案根 -->
 | **Pending / Next** | See [`docs/01-planning/BACKLOG.md`](./docs/01-planning/BACKLOG.md)（**有什麼**）· [`ROADMAP.md`](./docs/01-planning/ROADMAP.md)（**先做哪個**）|
 | **跨來源狀態** | See [`docs/01-planning/STATUS_AUDIT.md`](./docs/01-planning/STATUS_AUDIT.md) —— 問「現在全項目怎樣」時跑 `/status-audit`，**不要只讀 BACKLOG** |
 | **Open questions** | See [`docs/decision-form.md`](./docs/decision-form.md) |
-| **Tech Stack** | **NestJS 11 + Prisma 7 · PostgreSQL 18 · Next.js 16 · Entra ID · Azure Container Apps（單一區域 × 3 環境）** —— ADR-0001 / 0004 / 0007 / 0010 / 0011 已採納（**0010 取代 0006**）。ADR-0001 決定的是**框架不是版本**；W01 實裝當前主版本（ADR 內文未改）。**Tailwind 尚未安裝** —— 隨設計交付物 port 一併進來。ADR-0002 / 0003 / 0005 待 spike，0008/0009 待 Wave 3，見 [`docs/14-adr/README.md`](./docs/14-adr/README.md) |
+| **Tech Stack** | **NestJS 11 + Prisma 7 · PostgreSQL 18 · Next.js 16 · Entra ID · Azure Container Apps（單一區域 × 3 環境）** —— ADR-0001 / 0004 / 0005 / 0007 / 0010 / 0011 已採納（**0010 取代 0006**）。ADR-0001 決定的是**框架不是版本**；W01 實裝當前主版本（ADR 內文未改）。**Tailwind 尚未安裝** —— 隨設計交付物 port 一併進來。ADR-0002 / 0003 待 spike，0008/0009 待 Wave 3，見 [`docs/14-adr/README.md`](./docs/14-adr/README.md) |
 | **Main Branch** | `main` |
 | **Branch Protection** | PR required · **review_count=0**（單人開發 —— 沒有 reviewer）· no force-push · no deletions · linear history · enforce_admins。 補償機制：PR 開著睡一晚，隔天用 reviewer 的心態重讀一次。 |
 
@@ -402,7 +402,7 @@ python scripts/lint/run_all.py
 | [`docs/01-planning/`](./docs/01-planning/README.md) | PROCESS · BACKLOG · ROADMAP · registers · calibration · `_templates/` · phase folder `W{NN}-*/` |
 | [`docs/03-implementation/`](./docs/03-implementation/README.md) | `changes/CH-NNN-*` · `bugs/BUG-NNN-*` |
 | [`docs/06-reference/`](./docs/06-reference/README.md) | ⭐ 設計交付物 `design_handoff_isms_grc_platform/` + mockup→production playbook |
-| [`docs/14-adr/`](./docs/14-adr/README.md) | ⭐ 架構決定記錄 —— **0001 / 0004 / 0006 / 0007 / 0010 / 0011 已採納；0002 / 0003 / 0005 待 spike，0008 / 0009 待 Wave 3** |
+| [`docs/14-adr/`](./docs/14-adr/README.md) | ⭐ 架構決定記錄 —— **0001 / 0004 / 0005 / 0006 / 0007 / 0010 / 0011 已採納；0002 / 0003 待 spike，0008 / 0009 待 Wave 3** |
 | [`docs/INFORMATION-FLOW.md`](./docs/INFORMATION-FLOW.md) | ⭐ 開發資訊流地圖 |
 | `MEMORY.md` + `memory/` | 跨 session 記憶（index + subfile）|
 
@@ -514,6 +514,6 @@ python scripts/lint/run_all.py
 
 ---
 
-**Last Updated**: 2026-08-09（W02 closeout）
+**Last Updated**: 2026-08-10（W03 closeout）
 **Project Start**: 2026-08-07
 **Template Version**: 2.6.1 (claude-code-dev-template)
