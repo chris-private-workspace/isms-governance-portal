@@ -13,8 +13,8 @@
 - **Phase scope**: US-1 `User` 欄位規格 · US-2 範疇語義拍板 · US-3 `users` 表 ·
   US-4 `Policy` base fields + 發號 · US-5 元驗證 · US-6 closeout
 - **驗證期間**: 2026-08-10（Day 0–4，單日）
-- **Calibration**: bottom-up 9 hr / committed 5.9 hr (mult 0.65) / actual **~4.9 hr**（牆鐘）/
-  ratio **0.83** —— ⭐ **spike class 的第 3 個資料點，且是第一個與前一個以同一定義量測的**
+- **Calibration**: bottom-up 9 hr / committed 5.9 hr (mult 0.65) / actual **4.79 hr**（牆鐘）/
+  ratio **0.81** —— ⭐ **spike class 的第 3 個資料點，且是第一個與前一個以同一定義量測的**
 - **驗證增量**: +8 unit（78 → 86）· +2 integration（32 → 34）· drive-through **N/A（無 UI）**
 - ⚪ **無 user-facing surface** —— 本文件所有結論一律 **API-level verified**，
   **不得**被讀成「使用者可用」

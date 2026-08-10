@@ -124,7 +124,7 @@ Day 2 撞到 **checksum 不符**。**驗了「有沒有套用」，沒驗「套�
 
 ## Calibration
 
-`spike` 第 3 個資料點：bottom-up 9 / committed 5.9 (mult 0.65) / **actual ~4.9 牆鐘 / ratio 0.83 IN band**。
+`spike` 第 3 個資料點：bottom-up 9 / committed 5.9 (mult 0.65) / **actual 4.79 hr 牆鐘 / ratio 0.81 IN band**。
 
 ⭐ **價值不在數字**：這是第一個**在 plan 起草時就先宣告量測定義、再照著量**的點
 （W02 是人力工時估計、W03 是事後回推）。
