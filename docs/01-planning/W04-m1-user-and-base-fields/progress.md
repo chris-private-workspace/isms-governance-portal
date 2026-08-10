@@ -286,6 +286,48 @@ W02/W03/W04 的每一個表層級 GRANT 都疊在一個沒有任何 migration �
 
 ---
 
-## Day 4 — YYYY-MM-DD — Closeout
+## Day 4 — 2026-08-10 — Closeout
 
-<待填>
+### 產出
+
+| 檔案 | 內容 |
+|---|---|
+| `docs/03-implementation/changes/CH-019-w04-user-and-base-fields.md` | Problem / Root Cause / Solution（**4 個 load-bearing 細節**）/ Verification / Impact |
+| `docs/02-architecture/design-notes/W04-user-and-base-fields.md` | spike extract —— 7 個已驗證不變式、6 個 open invariant、**verified ratio 22/23 ≈ 96%** |
+| `retrospective.md` | Q1-Q7 + 8-point 自查 + **AP 自檢 1 個違規（AP-6）** |
+| `CALIBRATION-MATRIX.md` / `-LOG.md` | `spike` 第 3 個資料點，**第一個先宣告定義再量的** |
+| 導航檔 | `CLAUDE.md`（2 行）· `MEMORY.md` + subfile · `BACKLOG.md` · `ROADMAP.md` |
+
+### Calibration
+
+`git log` 機械導出：base `65ce121`（**17:38:17**）→ closeout commit。
+**actual ~4.9 hr / committed 5.9 hr = ratio 0.83（IN band）**。
+
+⭐ **這個資料點的價值不在數字**：`spike` 現在有 3 個點，但 W02 是人力工時估計、
+W03 是事後回推的牆鐘、**只有 W04 是事前宣告定義再照量的**。
+有效樣本數其實是 **1**，第一次真正的 3-phase 窗口判定要到 **W06**。
+好消息是從這裡開始它是單調的。
+
+### Anti-pattern 自檢的一個誠實結果
+
+**AP-6 記 1 個違規**（不是 0）：`isms_test` 與 `isms_dev` 用不同方式建起來，
+schema 層權限只在其中一條路徑上存在 → **bug 在 dev 重現、在 test 完全不重現**。
+這正是 AP-6 的定義形狀，只是方向相反。**修了症狀（新 migration），根因（兩條路徑不對等）仍在**
+→ `AD-DbBuildPathParity-1`。
+
+⚠️ 同時記下 **AP-3 最接近的一次**：`status` enum 建了但轉換無強制、`created_by`/`updated_by`
+永遠是 NULL。判定不是 Potemkin **因為兩者都在 docstring 明文宣告** ——
+而這個判定**依賴那兩段註解繼續存在**。
+
+### `AD-UserEntitySpec-1` 只關掉一半，而那是對的
+
+原 AD 涵蓋 `User` / `Role` / `Permission`。本 phase 只建 `User`。
+`Role` / `Permission` 進了 `02a` §0 的 "Not yet specified" 分區並綁 M4 ——
+從「三處互相指向、無一處定義」變成「**明確列為未規格化，因此依 §0 自己的規則不得建置**」。
+AD 的實際傷害（32 張表的 FK 沒有標的 → M4 回頭加欄位，成本超線性）**只存在於 `User` 半邊**，
+而那半邊已經完全解除。
+
+### Remaining
+
+- ⏳ **PR push + open** —— push 是 outward-facing，**待使用者確認**
+- CI 六個 check 未驗（本機全綠，`AD-DbBuildPathParity-1` 提醒：**CI 綠不涵蓋 reset 過的庫**）
