@@ -21,7 +21,7 @@
  * Created: 2026-08-10 (Phase W03)
  * Last Modified: 2026-08-10
  */
-import type { ExtensionField, Policy } from '../generated/prisma';
+import type { ExtensionField, OrgEntity, Policy, RefCodeCounter } from '../generated/prisma';
 import { ExtensionValidationError } from './extension-validator';
 import { PolicyRepository, type CreatePolicyInput } from './policy.repository';
 import { ScopeRefusedError } from './scope-refusal';
@@ -48,11 +48,14 @@ interface Recorder {
   client: ScopedPolicyClient;
   createCalls: unknown[];
   catalogQueries: unknown[];
+  /** W04: every allocation attempt, so a rejected write can be shown not to burn one. */
+  counterUpserts: unknown[];
 }
 
 function recordingClient(catalog: ExtensionField[]): Recorder {
   const createCalls: unknown[] = [];
   const catalogQueries: unknown[] = [];
+  const counterUpserts: unknown[] = [];
 
   const client: ScopedPolicyClient = {
     policy: {
@@ -71,9 +74,21 @@ function recordingClient(catalog: ExtensionField[]): Recorder {
         return catalog;
       },
     },
+    refCodeCounter: {
+      upsert: async (args) => {
+        counterUpserts.push(args);
+        return { orgEntityId: SG1, entityType: 'policy', lastSeq: 7 } as RefCodeCounter;
+      },
+    },
+    orgEntity: {
+      findUnique: async (args) => {
+        void args;
+        return { id: SG1, code: 'SG1' } as OrgEntity;
+      },
+    },
   };
 
-  return { client, createCalls, catalogQueries };
+  return { client, createCalls, catalogQueries, counterUpserts };
 }
 
 const input: CreatePolicyInput = { orgEntityId: SG1, title: 'Access Control' };
@@ -112,6 +127,32 @@ describe('PolicyRepository', () => {
     expect(catalogQueries[0]).toMatchObject({
       where: { entityType: 'policy', retiredAt: null },
     });
+  });
+
+  // ---- W04: the reference code is issued, never accepted ----
+
+  it('stamps a ref_code the caller had no way to supply', async () => {
+    const { client, createCalls } = recordingClient([]);
+
+    await repo.create(client, input);
+
+    // 000007 is the double's lastSeq, so this also proves the value came from
+    // the counter rather than from anything in the input.
+    expect(createCalls[0]).toMatchObject({ data: { refCode: 'POL-SG1-000007' } });
+    expect(JSON.stringify(input)).not.toContain('refCode');
+  });
+
+  it('does not burn a reference number when validation rejects the payload', async () => {
+    const { client, counterUpserts } = recordingClient([catalogRow()]);
+
+    await expect(
+      repo.create(client, { ...input, extensions: { notDeclared: 'x' } }),
+    ).rejects.toBeInstanceOf(ExtensionValidationError);
+
+    // Ordering, asserted rather than assumed: validate first, allocate second.
+    // Reversed, every rejected payload would leave a hole in the sequence — a
+    // defect no test that only checks the rejection would ever notice.
+    expect(counterUpserts).toHaveLength(0);
   });
 
   // ---- the load-bearing negative ----

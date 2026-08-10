@@ -108,7 +108,13 @@ describe('entity scoping (integration)', () => {
     const client = await clientFor(['SG1']);
 
     await expect(
-      client.policy.create({ data: { orgEntityId: HK1, title: 'planted by SG1' } }),
+      // ref_code is NOT NULL from W04, and these tests write through the client
+      // rather than the repository, so they supply it themselves. The 9xxxxx
+      // band is reserved for tests: ref_code_counters starts at 1 and climbs, so
+      // a hand-written test code cannot collide with an issued one.
+      client.policy.create({
+        data: { orgEntityId: HK1, title: 'planted by SG1', refCode: 'POL-HK1-900001' },
+      }),
     ).rejects.toThrow(/row-level security/i);
 
     // Asserting the rejection alone would miss "refused, but wrote anyway".
@@ -134,7 +140,7 @@ describe('entity scoping (integration)', () => {
     const client = await clientFor(['SG1']);
 
     const created = await client.policy.create({
-      data: { orgEntityId: SG1, title: 'written by SG1' },
+      data: { orgEntityId: SG1, title: 'written by SG1', refCode: 'POL-SG1-900002' },
     });
     expect(created.orgEntityId).toBe(SG1);
 

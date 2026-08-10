@@ -20,9 +20,11 @@
  *   never once applied. Asserting the premise costs one query.
  *
  * Created: 2026-08-09 (Phase W02)
- * Last Modified: 2026-08-09
+ * Last Modified: 2026-08-10
  *
  * Modification History (newest-first):
+ *   - 2026-08-10: Phase W04 — users, policy ref_code, counters derived from seed
+ *   - 2026-08-10: Phase W03 — extension catalog seeded via the owner connection
  *   - 2026-08-09: Initial creation (Phase W02)
  */
 const { spawnSync } = require('node:child_process');
@@ -53,16 +55,45 @@ const SEED = {
       '/apac/hk/hk1',
     ],
   ],
+  // W04. No real personal data and no real mailbox: example.* is reserved by
+  // RFC 6761 and the names describe roles, not people (guardrail 7 forbids
+  // realistic PII in seed data, and an ISMS platform seeding fake staff would
+  // be exactly the kind of self-violation guardrail 1 rules out).
+  users: [
+    // [id, oidcSubject, email, displayName]
+    [
+      '00000000-0000-0000-0000-0000000000d0',
+      'oidc|seed-sg1-owner',
+      'sg1.owner@example.internal',
+      'SG1 Policy Owner (seed)',
+    ],
+    [
+      '00000000-0000-0000-0000-0000000000d1',
+      'oidc|seed-hk1-owner',
+      'hk1.owner@example.internal',
+      'HK1 Policy Owner (seed)',
+    ],
+  ],
+  // ref_code is explicit here, and the counters are derived from these rows
+  // below rather than hard-coded. Hard-coding both is how a seed and its
+  // sequence drift apart: the first policy created through the API would be
+  // issued a number already taken, and the unique index would reject a write
+  // the caller did nothing wrong to make.
   policies: [
+    // [id, orgEntityId, title, refCode, ownerUserId]
     [
       '00000000-0000-0000-0000-0000000000f0',
       '00000000-0000-0000-0000-0000000000c0',
       'SG1 access control policy',
+      'POL-SG1-000001',
+      '00000000-0000-0000-0000-0000000000d0',
     ],
     [
       '00000000-0000-0000-0000-0000000000f1',
       '00000000-0000-0000-0000-0000000000c1',
       'HK1 access control policy',
+      'POL-HK1-000001',
+      '00000000-0000-0000-0000-0000000000d1',
     ],
   ],
   // W03 (ADR-0005). Seeded through the OWNER connection on purpose: a global
@@ -128,12 +159,27 @@ module.exports = async function globalSetup() {
       [id, code, name, type, parentCode, path],
     );
   }
-  for (const [id, orgEntityId, title] of SEED.policies) {
+  for (const [id, oidcSubject, email, displayName] of SEED.users) {
     await seed.query(
-      'INSERT INTO policies (id, org_entity_id, title, updated_at) VALUES ($1, $2, $3, now())',
-      [id, orgEntityId, title],
+      `INSERT INTO users (id, oidc_subject, email, display_name, updated_at)
+       VALUES ($1, $2, $3, $4, now())`,
+      [id, oidcSubject, email, displayName],
     );
   }
+  for (const [id, orgEntityId, title, refCode, ownerUserId] of SEED.policies) {
+    await seed.query(
+      `INSERT INTO policies (id, org_entity_id, title, ref_code, owner_user_id, updated_at)
+       VALUES ($1, $2, $3, $4, $5, now())`,
+      [id, orgEntityId, title, refCode, ownerUserId],
+    );
+  }
+  // Derived, not declared: the counter must reflect what was just seeded, and
+  // the only way to guarantee that is to compute it from those rows. Identical
+  // to the backfill in 20260810185500_user_and_base_fields for the same reason.
+  await seed.query(
+    `INSERT INTO ref_code_counters (org_entity_id, entity_type, last_seq, updated_at)
+     SELECT org_entity_id, 'policy', count(*), now() FROM policies GROUP BY org_entity_id`,
+  );
   for (const [id, orgEntityId, entityType, key, dataType, required] of SEED.extensionFields) {
     await seed.query(
       `INSERT INTO extension_fields (id, org_entity_id, entity_type, key, data_type, required, updated_at)

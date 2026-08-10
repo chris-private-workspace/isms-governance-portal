@@ -28,19 +28,27 @@
  *   zero consumers — AP-5 plus AP-3, which AD-ScopedClientDI-1 names explicitly.
  *
  * Key Components:
- *   - ScopedPolicyClient: the delegates a policy repository needs, and no others
+ *   - ScopedRefCodeClient: what issuing a reference code needs
+ *   - ScopedPolicyClient: the above, plus the delegates a policy repository needs
  *
  * Created: 2026-08-10 (Phase W03)
  * Last Modified: 2026-08-10
  *
  * Modification History (newest-first):
+ *   - 2026-08-10: Add ScopedRefCodeClient (W04) — ScopedPolicyClient extends it
  *   - 2026-08-10: Initial creation (Phase W03) — structural shape, not a token
  *
  * Related:
  *   - docs/rules-on-demand/scope-boundaries.md §一個尚未被驗證的設計意圖
  *   - apps/api/src/entity-scope/scoped-prisma.provider.ts:106 — what satisfies this
  */
-import type { ExtensionField, Policy, Prisma } from '../generated/prisma';
+import type {
+  ExtensionField,
+  OrgEntity,
+  Policy,
+  Prisma,
+  RefCodeCounter,
+} from '../generated/prisma';
 
 /**
  * Deliberately narrow: only the operations a policy repository performs.
@@ -49,12 +57,29 @@ import type { ExtensionField, Policy, Prisma } from '../generated/prisma';
  * any table; handed this, it can reach two, and adding a third is a visible
  * edit here rather than an unnoticed line in a method body.
  */
-export interface ScopedPolicyClient {
+export interface ScopedPolicyClient extends ScopedRefCodeClient {
   readonly policy: {
     findMany(args?: Prisma.PolicyFindManyArgs): Promise<Policy[]>;
     create(args: Prisma.PolicyCreateArgs): Promise<Policy>;
   };
   readonly extensionField: {
     findMany(args?: Prisma.ExtensionFieldFindManyArgs): Promise<ExtensionField[]>;
+  };
+}
+
+/**
+ * What issuing a reference code needs, and nothing else.
+ *
+ * Split from ScopedPolicyClient rather than merged into it: the issuer is used
+ * by every repository that mints a ref_code, and a shared interface that
+ * happens to also expose `policy` would let a future caller reach a table it
+ * has no business touching.
+ */
+export interface ScopedRefCodeClient {
+  readonly refCodeCounter: {
+    upsert(args: Prisma.RefCodeCounterUpsertArgs): Promise<RefCodeCounter>;
+  };
+  readonly orgEntity: {
+    findUnique(args: Prisma.OrgEntityFindUniqueArgs): Promise<OrgEntity | null>;
   };
 }
