@@ -193,12 +193,96 @@ coverage **94.11 / 90.42 / 92.45 / 94.76**（baseline 93.69 / 90.21 / 92 / 94.32
 
 ---
 
-## Day 3 — YYYY-MM-DD — API-level 驗證
+## Day 3 — 2026-08-10 — API-level 驗證
 
 _(⚪ 本 phase **無 user-facing surface** → drive-through 不適用。
 一律標 **API-level verified**，不暗示可用性。)_
 
-<待填>
+### Clean restart
+
+| 項目 | 觀察 |
+|---|---|
+| port **3210**（API） | **空的** —— 無孤兒程序 |
+| port **3200**（web） | ⚠️ 有 listener（PID 36748，**8/8 啟動，不是我開的**）→ **不碰**（`local-runtime-ops.md` §4；本 phase `apps/web` UNTOUCHED）|
+| 啟動方式 | `node dist/bootstrap/main.js`（**重 build 後的新程序，非 watch 模式**）—— `--reload` 只重載模組碼、不重跑 startup |
+| startup 證據 | 三個路由 mapped · ⭐ **`DevPrincipal` 警告有出現**（W03 的 mock 誠實原則生效）|
+| 收尾 | ⚠️ `TaskStop` 停了 npm 但**子程序仍在 listening** —— 正是 Risk Class C 加強版描述的情況。確認 PID 51136 的 cmdline 與啟動時間確為我啟動的那個，才 kill。**驗到「無 API 程序殘留」，不只是「port 空了」** |
+
+`isms_dev` 在 reset 後是空的 → 重新 seed（org_entities 5 · extension_fields 4 · users 1）。
+⭐ **刻意不 seed policies**，讓 counter 從 0 開始，才能驗到「第一次發號 = 000001」。
+
+### 🚩 首次探測就 500 —— 而所有 gate 都是綠的
+
+```
+GET /policies  → 500    POST /policies → 500
+```
+
+log：`permission denied for schema public`（**42501**），發生在 `entity-scope.resolver.ts:84` 讀 `org_entities`。
+
+**根因 —— 兩條建庫路徑產生的 schema 權限不同，而只有一條被測試過**：
+
+| 路徑 | 做什麼 | `public` schema 的 ACL |
+|---|---|---|
+| `int-global-setup.js`（**isms_test**）| `CREATE DATABASE` → 從 **template1 複製** | 帶內建的 `GRANT USAGE TO PUBLIC` → 應用角色**免費繼承** |
+| `prisma migrate reset`（**isms_dev**）| **不 drop database** —— `DROP SCHEMA public CASCADE` + `CREATE SCHEMA public` | **ACL 為 null** = 只有 owner 有權限 |
+
+實測：`schema_acl: <null>` · `has_schema_privilege('isms_app_user','public','USAGE') = false`。
+
+⭐ **這個權限從來沒有被本 repo 的任何東西授予過** —— 它是從 template 繼承的，而**被測試的恰好是繼承到的那一條路徑**。
+W02/W03/W04 的每一個表層級 GRANT 都疊在一個沒有任何 migration 陳述過的假設上。
+
+⚠️ **我自己的一個錯誤結論**：reset 之後我查了 `information_schema.role_table_grants` 就寫下
+「GRANT 與 RLS **全部完好**」。那是**表層級**的證據，被用來回答一個涵蓋 **schema 層級**的問題 ——
+`feedback_evidence_must_support_claim` 的形狀。**證據是真的，結論超出了它的射程。**
+
+**處置**：新增 `20260810215500_grant_schema_usage`（**不改已套用的 migration** —— 那正是今天稍早
+踩過的 checksum 坑）。`GRANT USAGE`，**不給 CREATE**：能 DDL 的角色也能 drop 掉約束它的 RLS policy。
+實測 `has_usage: true · has_create: false`。
+
+### API-level 驗證（真進程 + 真 PostgreSQL + 真 RLS，11 個案例）
+
+| # | 案例 | 預期 | 實際 | |
+|---|---|---|---|---|
+| 1 | `GET /policies`（空庫）| `[]` + dev 標記 | `{"data":[],"_devPrincipal":true,"_warning":…}` | ✅ |
+| 2 | `POST` 第一筆 | **`POL-SG1-000001`** | `POL-SG1-000001` | ✅ ⭐ 空 counter 起算 |
+| 3 | `POST` 第二筆 | `POL-SG1-000002` | `POL-SG1-000002` | ✅ 遞增 |
+| 4 | 新欄位的預設值 | `status=draft`；三個 user FK 為 null | 完全相符 | ✅ **誠實：今天沒有憑證可填** |
+| 5 | `POST` 跨實體（HK1）| **404**，非 500/403 | 404 `org entity …c1 not found` | ✅ |
+| 6 | `POST` 不存在的實體 | **與 #5 同形狀** | 404，除 id 外**逐字相同** | ✅ ⭐ oracle 防護成立 |
+| 7 | `POST` 未宣告的擴充 key | 422 + key | `422 {"key":"notDeclared"}` | ✅ |
+| 8 | `GET /policies` | 2 筆，含 refCode | 2 筆 | ✅ |
+| 9 | `Cache-Control`（200 **與** 404）| `no-store, private` | 兩者皆是；`x-powered-by` 不存在 | ✅ |
+| 10 | `GET` 不存在的 policy id | 404 | 404 | ✅ |
+| 11 | **422 之後 counter 的狀態** | 未被燒號 | `last_seq=2, policies=2` | ✅ ⭐ |
+
+⭐ **#6 值得特別記**：拒絕點已經**從 policy insert 移到了 counter upsert**（發號在前），
+而「不存在」與「不是你的」仍然不可區分。**同一個保證，在不同的位置重新成立。**
+
+⭐ **#11 是 unit test 驗過的順序在真進程上的確認** —— validate 在 allocate 之前，
+所以被拒絕的 payload 不會在序號上留洞。
+
+### 元驗證（checklist 3.3）
+
+| 弄壞什麼 | 結果 |
+|---|---|
+| 發號的 `{ increment: 1 }` → 固定值（Day 2 已做）| int **2 failed**，含並發測試的 size 斷言 |
+| `ref_code_counters` 的 RLS policy → `USING(true) WITH CHECK(true)` | int **2 failed** —— 見下 |
+| 兩者還原 | int **34 passed** |
+
+第二列的兩個失敗**不是同一件事的兩個症狀**：
+
+1. `refuses to issue a code for an entity outside the scope` —— **resolved to `"PRB-HK1-000001"`**。
+   SG1 的 client 成功替 HK1 發了號。這是直接證據。
+2. `2b. a nonexistent entity id is refused the same way as a real out-of-scope one` ——
+   預期 `ScopeRefusedError`，收到 `PrismaClientKnownRequestError`。
+   ⭐ **這是新知識**：counter 的 RLS 失效**不只是「能替別人發號」** ——
+   它讓錯誤型別改變，於是「不存在」與「不是你的」**重新變得可區分**。
+   **W04 的發號路徑現在是 W03 那個 oracle 防護的一部分**，而在寫它的時候沒有人知道。
+
+### Verdict
+
+✅ **API-level verified against a clean process** —— 真進程 + 真 PostgreSQL + 真 RLS，11 案例 + 2 組元驗證。
+⚠️ **不是「可用」**：沒有 UI，沒有人透過 UI 用過它。W01–W04 至今**零 UI drive-through**。
 
 ---
 
