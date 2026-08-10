@@ -32,12 +32,13 @@
  *
  * Key Components:
  *   - PolicyRepository.list(): scoped read
- *   - PolicyRepository.create(): catalog read -> validate -> insert
+ *   - PolicyRepository.create(): catalog read -> validate -> insert -> translate refusal
  *
  * Created: 2026-08-10 (Phase W03)
  * Last Modified: 2026-08-10
  *
  * Modification History (newest-first):
+ *   - 2026-08-10: Translate an RLS-refused insert (W03) — drive-through saw 500
  *   - 2026-08-10: Initial creation (Phase W03) — first scoped-client consumer
  *
  * Related:
@@ -47,6 +48,7 @@
 import { Injectable } from '@nestjs/common';
 import type { Policy } from '../generated/prisma';
 import { validateExtensions } from './extension-validator';
+import { ScopeRefusedError, isScopeRefusal } from './scope-refusal';
 import type { ScopedPolicyClient } from './scoped-client.types';
 
 const ENTITY_TYPE = 'policy';
@@ -86,12 +88,22 @@ export class PolicyRepository {
 
     validateExtensions(extensions, catalog);
 
-    return client.policy.create({
-      data: {
-        orgEntityId: input.orgEntityId,
-        title: input.title,
-        extensions: extensions as object,
-      },
-    });
+    try {
+      return await client.policy.create({
+        data: {
+          orgEntityId: input.orgEntityId,
+          title: input.title,
+          extensions: extensions as object,
+        },
+      });
+    } catch (error) {
+      // A refused write is an authorisation outcome, not a fault. Translating it
+      // here rather than at the controller keeps the driver's error shape inside
+      // core-model, which is the layer that owns the Prisma types.
+      if (isScopeRefusal(error)) {
+        throw new ScopeRefusedError(input.orgEntityId);
+      }
+      throw error;
+    }
   }
 }

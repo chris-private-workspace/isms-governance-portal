@@ -277,3 +277,123 @@ port 3210（api，起於 08-09 19:30）與 3200（web，起於 08-08 20:54）的
 
 **因此本 phase 至今為 `gate-only verified`，且沒有任何 runtime 觀測** ——
 Day 0 已證明那兩個進程比 `dist` 舊 4h20m，所以對它們 curl 得到的任何結果都不可採信。
+
+---
+
+## Day 3（續）— 2026-08-10 — Clean restart 與第一次 runtime 觀測
+
+**使用者許可殺掉 3210 的 api 進程**（3200 web 依建議不動 —— 本 phase 不碰前端）。
+
+### 3.1 Clean restart — 完成
+
+進程鏈追到底：`bash 24332 → bash 49456 → npm 21728 → cmd 16380 → node 36976`。
+`dist/bootstrap/main.js` 的 mtime 是 `08-10 14:31`，而該進程起於 `08-09 19:30` ——
+**比它宣稱在跑的產物舊 19 小時**（Day 0 記的是 4h20m，之後 dist 又被重建過）。
+
+殺完逐項驗：port 3210 **無 listener**；repo 內存活的 node 只剩 web 的兩個（3200）。
+另外三個專案的進程（azurite · playwright MCP · `ai-enterprise-knowledge-solution-project` 的 3001）
+**全程未動**。
+
+startup log 的三行證據：
+
+```
+LOG  [InstanceLoader] PolicyModule dependencies initialized
+LOG  [RouterExplorer] Mapped {/policies, GET} · {/policies/:id, GET} · {/policies, POST}
+WARN [DevPrincipal] DEV PRINCIPAL ACTIVE — /policies is scoped by a hard-coded
+     assignment (SG1), not by any credential. This must not reach a deployed environment.
+```
+
+第三行是 `dev-principal.spec.ts` 那個「boot 時宣告而不是靜靜啟動」的斷言**在真 runtime 的對應物**。
+
+### 前置：dev DB 缺 W03 的前提
+
+`isms_dev` **從未套用過 `20260810134319_governed_extensions`** —— int 測試每次重建自己的
+`isms_test`，所以整個 Day 2-3 沒有任何東西會發現 dev DB 落後。`migrate deploy` 補上，
+並用 owner 連線 seed 4 筆 catalog（2 全域 + SG1 + HK1，形狀同 int seed）。
+
+> 這本身是一個訊號：**「int 綠」不涵蓋「開發者的資料庫可用」**。兩者用不同的資料庫，
+> 而只有其中一個會自我修復。
+
+### ⭐ Drive-through 抓到 67 unit + 31 int 全部沒抓到的缺陷
+
+| 案例 | 修正前 | 修正後 |
+|---|---|---|
+| A 列表（範疇只來自 dev principal）| 200 · 只見 SG1 一列 | 同 |
+| B 範疇內單筆 | 200 | 同 |
+| C 真實但跨實體的 id | **404** | 同 |
+| D 從未存在的 id | **404**（與 C 逐字同形）| 同 |
+| E 全域 key + 自有 key | 201 · `extensions` 原樣回存 | 同 |
+| F 未宣告 key | 422 · 帶 `key` | 同 |
+| G 型別不符 | 422 · `expects number but got string` | 同 |
+| H **借用 HK1 宣告的 key** | 422 · `not declared` | 同 |
+| **I 跨實體寫入** | 🔴 **500 Internal server error** | ✅ **404 `org entity <id> not found`** |
+| J 缺 title | 400 | 同 |
+| 全案 | `Cache-Control: no-store, private` | 同 |
+
+**I 的根因**：RLS 以 `42501` 拒絕（資料**確實沒落地** —— 重讀 HK1 仍只有原本一列），
+但 `policy.controller` 沒有翻譯這個錯誤，直接讓它冒成 500。
+
+**為什麼 gate 抓不到**：`policy.int.spec.ts` 案例 2 斷言的是 **repository 層**
+（`rejects.toThrow()`），從未經過 controller；而 controller 的 unit spec 有一條
+「不吞不是呼叫者錯的錯誤」—— 範疇拒絕就落在那條的「不是呼叫者的錯」裡。
+**兩邊各自都對，缺的是它們之間那一段。**
+
+### 修正前先量，而不是先假設 ⭐
+
+直覺修法是「把 42501 映成 404」。但那要先回答一個問題：
+**不存在的實體 id 會不會走到 FK violation（23503）而得到不同的答案？**
+若會，這個「修正」會親手造出 404 vs 500 的 oracle —— 正是約束 8 禁止的那個。
+
+實測（對著跑著的 API，三個 POST）：
+
+```
+42501 (RLS WITH CHECK) blocks : 4
+23503 (FK violation)   blocks : 0
+```
+
+> **Postgres 在 FK 約束之前先評估 RLS `WITH CHECK`** —— 不存在的實體 id 根本走不到
+> 那個會告訴呼叫者「它不存在」的約束。**寫入路徑上「不存在」與「不是你的」不可區分，
+> 是資料庫保證的，不是應用層記得要回一樣的答案。**
+
+修正前三個案例（不存在 / HK1 / SG 祖先）都是 500，修正後都是 404 且**逐字節同形**，
+差異只有呼叫者自己送進來的 id。log 中未處理的 42501 堆疊：**4 → 0**。
+
+這條排序事實已釘成常駐測試（`policy.int.spec.ts` 案例 **2b**）——
+不釘的話，下次 Postgres 升版把順序翻回去，這個區別會**悄悄**回來。
+
+### 這次修改的檔案
+
+| 檔案 | 範疇 | 內容 |
+|---|---|---|
+| `core-model/scope-refusal.ts` | `core-model` | **NEW** —— `ScopeRefusedError` + `isScopeRefusal()`（結構式找 SQLSTATE，不比對訊息文字：訊息隨語系與版本變，SQLSTATE 不變）|
+| `core-model/scope-refusal.spec.ts` | `core-model` | **NEW** —— fixture 是**從真 log 轉錄的**錯誤形狀，不是想像的形狀；含 5 條「必須不匹配」|
+| `core-model/policy.repository.ts` | `core-model` | create() 翻譯 42501；其餘錯誤原樣拋出 |
+| `core-model/policy.repository.spec.ts` | `core-model` | +2：翻譯成立 / outage 不被吞 |
+| `modules/policy/policy.controller.ts` | `modules` | `ScopeRefusedError` → 404 |
+| `modules/policy/policy.controller.spec.ts` | `modules` | +2：404 且訊息不得出現 scope/denied/forbidden；兩案例同形 |
+| `modules/policy/policy.int.spec.ts` | `modules` | 案例 2 強化為 `toBeInstanceOf`；**新增 2b** 釘住 RLS-before-FK |
+
+⚠️ **這 7 個檔案不在 plan §4 清單內** —— deviation 記於此。它們是 3.1 的 Verify
+（drive-through）找出的、3.2 交付物自身的缺陷，屬於把 3.2 做完，不是新範圍。
+
+### Gate（修正後重跑，逐項退出碼，不經 pipe）
+
+`lint 0 · type-check 0 · format 0 · test:cov 0` —— unit **78**（Day 3 的 67 → **+11**）·
+coverage **93.69/90.21/92/94.32**（branch 88.88 → **90.21**）· int **32**（31 → **+1**）·
+`build 0` · `lint:negative 0`（17 檔 0 bypass）· `run_all 6/6`
+
+### 驗證層級（誠實標記）
+
+| 層 | 狀態 |
+|---|---|
+| Gate | ✅ 全綠 |
+| Curl / probe | ✅ 11 個案例 + 3 個 oracle 探測 |
+| **Drive-through（真 UI）** | ⚪ **N/A —— 本 phase 無 user-facing surface**。上表是**真進程 + 真 PostgreSQL + 真 RLS**，不是 UI |
+
+→ 收尾措辭：**API-level verified against a clean process**。**不寫「可用」** ——
+沒有人透過 UI 用過它，因為還沒有 UI。
+
+### 環境還原
+
+drive-through 建的 2 筆 policy 已 **retire**（軟刪除，與 domain 同語意）；
+`GET /policies` 回到原本的單列。HK1 全程只有原本那一列 —— **沒有任何東西被種進去**。

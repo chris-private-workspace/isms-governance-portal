@@ -17,6 +17,10 @@
  *      exists, which tells a caller they guessed right (CLAUDE.md 約束 8). The
  *      scoped client cannot see the row at all, so "denied" and "absent" reach
  *      this code as the same thing — which is the point, not a limitation.
+ *      The write path answers 404 for the same reason: the database refuses an
+ *      out-of-scope INSERT and a nonexistent entity id with the identical error
+ *      (W03 Day 3 measured 4 × 42501, 0 × 23503), so it too cannot distinguish
+ *      them. Before this, that refusal surfaced as 500 — see scope-refusal.ts.
  *   2. **The scope is never read from the request.** No header, no query
  *      parameter, no body field. Today it comes from a dev stub that announces
  *      itself; at M4 it comes from the token, and this file changes by one line.
@@ -32,6 +36,7 @@
  * Last Modified: 2026-08-10
  *
  * Modification History (newest-first):
+ *   - 2026-08-10: Answer 404 for a scope-refused write (W03) — was leaking 500
  *   - 2026-08-10: Initial creation (Phase W03)
  *
  * Related:
@@ -50,6 +55,7 @@ import {
 } from '@nestjs/common';
 import { ExtensionValidationError } from '../../core-model/extension-validator';
 import { PolicyRepository } from '../../core-model/policy.repository';
+import { ScopeRefusedError } from '../../core-model/scope-refusal';
 import { EntityScopeResolver } from '../../entity-scope/entity-scope.resolver';
 import { ScopedPrismaFactory } from '../../entity-scope/scoped-prisma.provider';
 import { DEV_PRINCIPAL_MARKER, devPrincipal } from './dev-principal';
@@ -119,6 +125,12 @@ export class PolicyController {
           message: error.message,
           key: error.key,
         });
+      }
+      // Same answer the read path gives, for the same reason: the caller named
+      // an entity they cannot see, and whether it exists is not something they
+      // get to learn. 500 would have been a refusal filed as an outage.
+      if (error instanceof ScopeRefusedError) {
+        throw new NotFoundException(error.message);
       }
       throw error;
     }

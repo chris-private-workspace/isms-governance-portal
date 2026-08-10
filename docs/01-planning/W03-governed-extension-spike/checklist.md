@@ -120,9 +120,20 @@ _(本 phase 無 user-facing surface，故 drive-through **N/A**。收尾一律�
 
 ### 3.1 Clean restart
 
-- [ ] 🚧 **阻塞（待使用者許可）：殺掉陳舊 dev server / 孤兒 worker，確認新程序是 3210 的唯一擁有者**
+- [x] **殺掉陳舊 dev server / 孤兒 worker，確認新程序是 3210 的唯一擁有者**（使用者於 08-10 許可）
   - DoD: 列程序看 PID/PPID/StartTime，任何父程序已死或 StartTime 早於本次重啟者強制殺掉
   - Verify: 擷取證明 `PolicyModule` 已載入的 startup log 行（見 `local-runtime-ops.md`）
+  - ✅ 舊進程比 `dist` 舊 19h；殺鏈 4 層；port 無 listener；web 3200 與其他專案進程未動；
+        startup log 三行證據（`PolicyModule` · 三條路由 · `DEV PRINCIPAL ACTIVE` 警告）
+
+### 3.1b Runtime 觀測（3.1 解封後執行）
+
+- [x] **dev DB 補上 W03 的前提**
+  - DoD: `20260810134319_governed_extensions` 套用到 `isms_dev` + seed 4 筆 catalog
+  - Verify: `prisma migrate deploy` exit 0；`SELECT` 列出 4 筆（2 全域 / SG1 / HK1）
+- [x] **11 個案例的 API 級驗證**（真進程 + 真 PostgreSQL + 真 RLS）
+  - DoD: 三個端點各走一次主路徑 + 每個拒絕分支各一次；全案 `Cache-Control: no-store, private`
+  - Verify: 輸出寫檔後 Read，逐案記入 progress.md（**不看 shell 即時 stdout**）
 
 ### 3.2 第一個業務端點
 
@@ -152,6 +163,17 @@ _(本 phase 無 user-facing surface，故 drive-through **N/A**。收尾一律�
 - [x] **RLS policy → `USING (true)` → 範疇測試紅** → 還原 → 綠
   - DoD: 兩次「弄壞 → 紅 → 還原 → 綠」的實際輸出（含紅了幾個）記入 progress.md
   - Verify: 每次都跑 `npm run test:int -w apps/api` 並記退出碼
+
+### 3.6 修正 3.1b 找到的缺陷（**checklist 起草時不存在 —— drive-through 產生的**）
+
+- [x] **跨實體寫入被拒時回 404，不再冒 500**
+  - DoD: **先量再修** —— 證明「不存在的實體 id」與「跨實體的實體 id」在資料庫層
+        已是同一個錯誤（否則 42501→404 會親手造出 oracle）；修正後三個案例逐字節同形
+  - Verify: 實測 `42501 × 4 / 23503 × 0`；log 中未處理的 42501 堆疊 4 → 0
+- [x] **把 RLS-before-FK 的排序釘成常駐測試**
+  - DoD: `policy.int.spec.ts` 案例 **2b** —— 不存在的 id 與跨實體的 id 得到同一個錯誤類別；
+        Postgres 升版翻轉順序時**必須紅**，不能悄悄恢復可區分性
+  - Verify: `npm run test:int -w apps/api`（int 31 → 32）
 
 ---
 

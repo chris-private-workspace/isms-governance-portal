@@ -24,6 +24,7 @@
 import type { ExtensionField, Policy } from '../generated/prisma';
 import { ExtensionValidationError } from './extension-validator';
 import { PolicyRepository, type CreatePolicyInput } from './policy.repository';
+import { ScopeRefusedError } from './scope-refusal';
 import type { ScopedPolicyClient } from './scoped-client.types';
 
 const SG1 = '00000000-0000-0000-0000-0000000000c0';
@@ -133,5 +134,31 @@ describe('PolicyRepository', () => {
 
     await expect(repo.create(client, input)).rejects.toThrow(/required extension field/);
     expect(createCalls).toHaveLength(0);
+  });
+
+  // ---- translating what the database refused ----
+
+  it('turns a refused insert into a scope error naming only what the caller sent', async () => {
+    const { client } = recordingClient([]);
+    client.policy.create = async () => {
+      throw { code: 'P2039', meta: { driverAdapterError: { cause: { code: '42501' } } } };
+    };
+
+    const error = await repo.create(client, input).catch((e: unknown) => e);
+
+    expect(error).toBeInstanceOf(ScopeRefusedError);
+    expect((error as ScopeRefusedError).orgEntityId).toBe(SG1);
+  });
+
+  it('leaves an outage alone — only 42501 is an authorisation outcome', async () => {
+    const { client } = recordingClient([]);
+    const boom = new Error('connection lost');
+    client.policy.create = async () => {
+      throw boom;
+    };
+
+    // The distinction is the whole point: swallowing this one would file a real
+    // failure as "not found" and hide it from anyone watching error rates.
+    await expect(repo.create(client, input)).rejects.toBe(boom);
   });
 });

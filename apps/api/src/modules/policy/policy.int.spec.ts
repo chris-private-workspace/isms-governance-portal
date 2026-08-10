@@ -22,11 +22,13 @@
  * Last Modified: 2026-08-10
  *
  * Modification History (newest-first):
+ *   - 2026-08-10: Pin RLS-before-FK ordering (W03) — what makes the write 404 safe
  *   - 2026-08-10: Initial creation (Phase W03)
  */
 import { Test, type TestingModule } from '@nestjs/testing';
 import { PolicyRepository } from '../../core-model/policy.repository';
 import { ExtensionValidationError } from '../../core-model/extension-validator';
+import { ScopeRefusedError } from '../../core-model/scope-refusal';
 import { EntityScopeResolver } from '../../entity-scope/entity-scope.resolver';
 import { ScopedPrismaFactory } from '../../entity-scope/scoped-prisma.provider';
 import { PolicyModule } from './policy.module';
@@ -91,11 +93,37 @@ describe('policy module (integration)', () => {
   it('2. cross-entity write is refused, and the row is unchanged afterwards', async () => {
     const sg1 = await clientFor(['SG1']);
 
-    await expect(repo.create(sg1, { orgEntityId: HK1, title: 'planted by SG1' })).rejects.toThrow();
+    await expect(
+      repo.create(sg1, { orgEntityId: HK1, title: 'planted by SG1' }),
+    ).rejects.toBeInstanceOf(ScopeRefusedError);
 
     // The refusal is only half the claim. Re-read as HK1 to prove nothing landed.
     const hk1Rows = await repo.list(await clientFor(['HK1']));
     expect(hk1Rows.map((r) => r.title)).toEqual(['HK1 access control policy']);
+  });
+
+  /**
+   * The ordering this pins is what makes the controller's 404 safe rather than
+   * an oracle. Measured against the running API on 2026-08-10: 4 × SQLSTATE
+   * 42501, 0 × 23503 — postgres evaluates the RLS WITH CHECK before the foreign
+   * key, so a nonexistent entity id never reaches the constraint that would have
+   * told the caller it was nonexistent.
+   *
+   * If a postgres upgrade ever reverses that, this test fails and the write path
+   * has silently regained the ability to distinguish "absent" from "not yours".
+   */
+  it('2b. a nonexistent entity id is refused the same way as a real out-of-scope one', async () => {
+    const sg1 = await clientFor(['SG1']);
+
+    const fictional = await repo
+      .create(sg1, { orgEntityId: '11111111-2222-3333-4444-555555555555', title: 'x' })
+      .catch((e: unknown) => e);
+    const realButOthers = await repo
+      .create(sg1, { orgEntityId: HK1, title: 'x' })
+      .catch((e: unknown) => e);
+
+    expect(fictional).toBeInstanceOf(ScopeRefusedError);
+    expect(realButOthers).toBeInstanceOf(ScopeRefusedError);
   });
 
   it('3. an out-of-scope id is indistinguishable from one that never existed', async () => {
