@@ -254,6 +254,9 @@ int 20 · build 0 · `run_all` 6/6 · `lint:negative` PASS · `assert-no-scope-b
    `maxWorkers: 1` 決定順序，**但不會撤銷寫入**。修法：寫入的 suite 必須在 `afterAll`
    **retire 自己建的列**。⚠️ 只能軟刪除 —— `isms_app` 沒有 DELETE 權限（guardrail 3），
    **那是設計在起作用**：能硬刪的測試等於用了應用程式沒有的權限。
+
+   > 🔴 **這一段的修法只成立了一半，PR #31 的 CI 才揭露。** 見下方「Day 4（續）」。
+   > 原文保留不改 —— 當時的判斷與後來量到的差距本身就是紀錄。
 2. **全域 catalog 欄位無法用 scoped client 建立** —— `WITH CHECK` 要求 `= ANY(scope)`，
    而全域欄位的 `org_entity_id` 是 NULL。這**不是 bug 是設計**（替全體宣告不是單一 OpCo
    有權做的事），實際後果是 seed 必須走 owner 連線。⚠️ `int-global-setup.js` 因此被修改，
@@ -397,3 +400,98 @@ coverage **93.69/90.21/92/94.32**（branch 88.88 → **90.21**）· int **32**�
 
 drive-through 建的 2 筆 policy 已 **retire**（軟刪除，與 domain 同語意）；
 `GET /policies` 回到原本的單列。HK1 全程只有原本那一列 —— **沒有任何東西被種進去**。
+
+---
+
+## Day 4（續）— 2026-08-10 — PR #31 的 CI 抓到本機抓不到的兩件事
+
+六個 required check：**四個安全掃描全綠**，`gates` 與 `映像 build + 啟動探測` 紅。
+兩者性質完全不同。
+
+### 🔴 ① `gates` — Day 3 記的污染修法**只成立了一半**
+
+`entity-scope.int.spec.ts:69` 多看到一列 `"governed extensions accepted"`。
+
+**兩層根因，缺一不會發生**：
+
+1. **軟刪除擋不住沒有過濾的查詢** —— `afterAll` 確實 retire 了自己建的列，但
+   `entity-scope.int.spec.ts:69` 呼叫的是 `policy.findMany()`，**沒有 `retiredAt` 過濾**，
+   retired 的列照樣回來。`PolicyRepository.list()` 有過濾，所以 `policy.int.spec.ts` 自己看不到 —— 
+   **修法在自己的 suite 裡看起來有效**。
+2. **jest 的檔案順序本機與 CI 不同** —— 冷快取依檔案大小、暖快取依上次執行時間。
+   本機剛好 `entity-scope` 先跑，CI 是 `policy` 先跑。**同一個 commit，一邊綠一邊紅。**
+
+**真正的缺陷其實在斷言本身**：`toEqual(['SG1 access control policy'])` 除了隔離之外，
+還斷言了「沒有其他 SG1 列」—— 那是 **fixture 記帳，不是隔離性質**，而測試名稱
+（"sees its own entity and nothing else"）從來沒有宣稱過它。
+
+修法：斷言改成測試名稱一直在宣稱的那件事 —— **每一列都屬於 SG1，且 HK1 那列不在其中**。
+
+**驗證用的是失敗的那個順序**，不是本機順序：
+
+```
+npx jest --config jest.int.config.js --runTestsByPath \
+  src/modules/policy/policy.int.spec.ts \
+  src/entity-scope/entity-scope.int.spec.ts \
+  src/entity-scope/rls-direct.int.spec.ts
+→ 32 passed, exit 0
+```
+
+失敗對照組不需要另外製造 —— **CI run `31367293849` 就是**。
+
+→ `AD-JestFileOrder-1`
+
+### ⭐ ② `映像 build + 啟動探測` — 不是 bug，是守衛正確開火
+
+容器 log（`docker logs`，非推論）：
+
+```
+DevPrincipalInProductionError: dev-principal was reached with NODE_ENV=production.
+Entity scope must come from a credential (CLAUDE.md 約束 8 鐵律 3);
+this stub is a development affordance and must be removed at M4.
+```
+
+`apps/api/Dockerfile:94` 設 `ENV NODE_ENV=production` → `PolicyModule.onModuleInit()` →
+`warnDevPrincipalActive()` 拋錯 → Nest init 失敗 → 程序死 → 探測 ECONNREFUSED。
+
+> **這個 gate 是唯一會用「部署時的組態」執行真實產物的地方。**
+> 本機 78 個 unit + 32 個 int **全部跑在 `NODE_ENV=test`**，
+> Day 3 的 clean restart 跑在 `NODE_ENV=development`。
+> 沒有任何一項會碰到這條路徑 —— 而它剛好是 production 唯一會走的那條。
+
+**守衛是對的**：今天唯一的範疇來源是寫死的 SG1，讓它在 production 起來就是把
+一個資料隔離事故部署出去（約束 8：隔離失敗不是一般 bug，是合規事故）。
+
+但**一個永遠不會綠的 required check 會擋住所有 PR 到 M4** —— 那比沒有這個 check 更糟，
+因為它會訓練人忽略它、或逼人把它關掉。
+
+**使用者拍板（2026-08-10）：改 gate，正反兩面都驗。**
+
+| Step | 斷言 |
+|---|---|
+| `Run api container` + `Probe api` | `-e NODE_ENV=development` → **必須起得來並服務 `/health`**（保住 CH-013「產物真的能啟動」的證明）|
+| **`拒絕在 production 啟動（負面案例）`**（新增）| 不覆蓋 NODE_ENV → **必須退出**，且理由必須是 `DevPrincipalInProductionError` |
+
+負面 step 把三種結果分開判，因為意義完全不同：
+
+- **仍在執行** → 守衛沒開火（最危險：production image 會起來並服務）
+- **退出碼 0** → 乾淨結束，不是拒絕
+- **退出且理由對** → 通過
+
+⚠️ **先看結構性訊號（`docker wait` 的退出碼），成立之後才 grep log 找理由** ——
+兩個獨立訊號，不是拿一段格式化文字當唯一證據（`AD-GrepAssertion-1`）。
+
+⚠️ **`job.name` 逐字未動**（`映像 build + 啟動探測`）—— 它是 branch protection 的
+required context，比對是逐字的（`AD-CheckNameCoupling-1`）。已用 js-yaml 解析後印出確認。
+
+**解封條件寫進 step 的輸出裡**：M4 提供真的憑證來源之後，這一步要改成「production 必須起得來」。
+
+### 這是 `AD-NegativeGate-1` 的第 6 個負面 gate
+
+而且它**幾乎是免費的** —— 行為本來就存在，只是從來沒有人在部署組態下執行過產物。
+前 5 個：boundaries fixture · i18n parity · 安全標頭逐條 · build 產物能啟動 · RLS 真的在擋。
+
+### Gate（修正後本機重跑）
+
+`lint 0 · type-check 0 · format 0 · run_all 6/6` · int **32**（本機順序）·
+int **32**（**強制 CI 順序**）· YAML 解析 OK 且 `job.name` 未變

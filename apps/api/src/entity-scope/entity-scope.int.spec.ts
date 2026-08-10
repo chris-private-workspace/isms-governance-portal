@@ -23,6 +23,7 @@
  * Last Modified: 2026-08-09
  *
  * Modification History (newest-first):
+ *   - 2026-08-10: Assert isolation, not an exact row list (W03) — order-dependent on CI
  *   - 2026-08-09: Initial creation (Phase W02)
  */
 import { Test, type TestingModule } from '@nestjs/testing';
@@ -63,10 +64,29 @@ describe('entity scoping (integration)', () => {
 
   // === 1. cross-entity read denied ==========================================
 
+  /**
+   * ⚠️ Asserted as an isolation property, NOT as an exact row list.
+   *
+   * The first version compared the titles to `['SG1 access control policy']`,
+   * which also asserted "no other SG1 row exists" — fixture bookkeeping, not
+   * isolation. That held only while this was the only suite touching policies.
+   * W03 added one that WRITES, and jest orders suites by file size on a cold
+   * cache but by previous timings on a warm one, so the two suites ran in one
+   * order locally and the other on CI: green here, red there, same commit.
+   *
+   * Soft-deleting the other suite's rows does not fix it either, because this
+   * query passes no `retiredAt` filter — a retired row is still returned.
+   *
+   * So the assertion now says what the test name has always claimed: every row
+   * belongs to SG1, and HK1's row is not among them.
+   */
   it('sees its own entity and nothing else', async () => {
     const rows = await (await clientFor(['SG1'])).policy.findMany();
 
-    expect(rows.map((r) => r.title)).toEqual(['SG1 access control policy']);
+    expect(rows.length).toBeGreaterThan(0);
+    expect(rows.every((r) => r.orgEntityId === SG1)).toBe(true);
+    expect(rows.map((r) => r.id)).toContain(SG1_POLICY);
+    expect(rows.map((r) => r.id)).not.toContain(HK1_POLICY);
   });
 
   it('cannot read another entity by id, and cannot tell it apart from a row that never existed', async () => {
