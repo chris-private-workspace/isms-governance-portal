@@ -66,7 +66,7 @@
 | 2b | `AD-SecDoDAutomation-1` —— **B 類三點**（#17 seed 資料無 checksum-valid 卡號 · #10 瀏覽器儲存禁令 · #25 危險 sink）| ⬜ | 第 2 項（已完成）| 同上 §建議的實作順序 |
 | 2c | **拍板：Entra ID 之後，`16` #11–15 的密碼／憑證責任邊界** | ⬜ | — | 同上 §需要拍板的 —— **可能值得一份 ADR** |
 | 3 | **OQ-6 spike → ADR-0005** —— 受治理擴充欄位的儲存機制 | ✅ | — | W03（2026-08-10）—— [`ADR-0005`](../14-adr/0005-governed-extension-storage.md)；兩層獨立性已元驗證 |
-| 4 | **M1 — Data foundation** | ⬜ | ~~第 1 · 3 項~~ **前置已清空**（2026-08-10）—— `07:32` 的 DoD「governed-extension mechanism working」現有實裝與元驗證 | [`07:32`](../02-architecture/07-wave1-build-plan.md) |
+| 4 | **M1 — Data foundation** | ⬜ | ~~第 1 · 3 項~~ **前置已清空**（2026-08-10）—— `07:32` 的 DoD「governed-extension mechanism working」現有實裝與元驗證。⭐ **第一個 deliverable 是最小 `User`**（拍板 2026-08-10，`AD-UserEntitySpec-1`）—— 其餘每張表的 3 個 base-field FK 都指向它，晚建等於回頭改 32 張表 | [`07:32`](../02-architecture/07-wave1-build-plan.md) |
 | 5 | `AD-ScopedClientDI-1` —— 範疇化 client 如何抵達 `core-model` | ✅ | — | W03（2026-08-10）—— ⚠️ **結論與原提議不同**：token 不建（零消費者），型別是 `core-model` 自宣告的結構型別，實例走方法參數 |
 | 6 | `AD-ScopeConcurrency-1` —— 並行範疇汙染的常駐測試 | ✅ | — | W03（2026-08-10）—— 40 次**交錯**查詢，逐列斷言 |
 | 7 | `AD-SecDoDAutomation-1` **實作** | ⬜ | 第 2 項的分類結果 —— 跳過分類會建出對人工項目無效的假 gate | [`BACKLOG.md`](./BACKLOG.md) |

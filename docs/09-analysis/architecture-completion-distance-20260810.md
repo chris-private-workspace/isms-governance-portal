@@ -72,6 +72,9 @@
 
 **強度：已驗證**（`grep 'User'` 於 `02a` 僅 1 命中，即 `:92`）。→ 已登記 `AD-UserEntitySpec-1`
 
+> ✅ **已拍板 2026-08-10（使用者）**：先建最小 `User`，作為 **M1 的第一個 deliverable**。
+> 拍板的是**排序**；欄位集合待 M1 plan 定義，且 `02a` §0 的索引列必須在同一個 change 內補上。
+
 ### C4 — 前端：30 個螢幕，實作 0 個，且沒有任何速度資料點
 
 `design_handoff_isms_grc_platform/fragments/` = **27 screens + 3 shell**。
