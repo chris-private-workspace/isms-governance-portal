@@ -1,5 +1,5 @@
 ---
-status: active   # draft | active | closed | closed_partial —— 機器可讀的唯一權威
+status: closed   # draft | active | closed | closed_partial —— 機器可讀的唯一權威
 ---
 
 # Phase W04 Plan — M1 slice 1: the shape every table copies
@@ -10,7 +10,9 @@ status: active   # draft | active | closed | closed_partial —— 機器可讀�
 不建其餘 32 張表（後續 slice）。⚪ **無 user-facing surface** → drive-through 不適用，
 一律標 **API-level verified**。✅ **需要 design note**（spike：`User` 的範疇語義無前例可循）。
 
-**Status**: **Approved-to-execute**（使用者核可 2026-08-10，同時拍板 §3.1 **D1 = A（全域）+ ADR**。
+**Status**: **CLOSED 2026-08-10**（六個 US 全數交付；checklist 2.2 `user.repository.ts` 🚧
+**經使用者核可的範圍縮減**，解封 M4 —— 見 §3.x。retrospective Q1 逐項對照）
+　　　　　起草時：**Approved-to-execute**（使用者核可 2026-08-10，同時拍板 §3.1 **D1 = A（全域）+ ADR**。
 Day-0 三-prong 已跑：10 path · 4 content · 3 schema，**2 個漂移 + 1 個 orphan claim**，
 範圍變動 ~10% → 繼續 Day 1。詳見 [progress.md](./progress.md) Day 0）
 
@@ -260,12 +262,12 @@ coverage 不低於 baseline。
 
 ## 6. Deliverables
 
-- [ ] US-1 `User` 欄位規格進 `02a` §3 + §0 索引列
-- [ ] US-2 D1 拍板 + 理由記錄（ADR 或 design note，依判斷）
-- [ ] US-3 `users` 表 + migration + 範疇處置
-- [ ] US-4 `Policy` base fields 補齊 + `ref-code.ts`
-- [ ] US-5 元驗證 + 常駐負面案例
-- [ ] US-6 design note + CH-019 + closeout
+- [x] US-1 `User` 欄位規格進 `02a` §3 + §0 索引列
+- [x] US-2 D1 拍板 + 理由記錄（ADR 或 design note，依判斷）→ **ADR-0012 已採納**
+- [x] US-3 `users` 表 + migration + 範疇處置（**記錄在案的豁免**，非 RLS）
+- [x] US-4 `Policy` base fields 補齊（6 → 1）+ `ref-code.ts`
+- [x] US-5 元驗證 2 組 + 常駐負面案例
+- [x] US-6 design note + CH-019 + closeout
 
 ## 7. Workload Calibration
 

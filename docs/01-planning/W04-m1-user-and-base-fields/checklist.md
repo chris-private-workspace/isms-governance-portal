@@ -188,23 +188,43 @@ _(⚪ **無 user-facing surface** → drive-through 不適用。本 phase 一律
 
 ### 4.1 Change record + design note
 
-- [ ] **`docs/03-implementation/changes/CH-019-w04-user-and-base-fields.md`**
+- [x] **`docs/03-implementation/changes/CH-019-w04-user-and-base-fields.md`**
       （Problem / Root Cause / Solution / Verification / Impact —— 含 **API-level verified** 標示
       + 關掉的 `AD-UserEntitySpec-1`）
-- [ ] **design note**（spike gate —— `docs/rules-on-demand/spike-design-note-gate.md` 8 點）
+  - → 4 個 load-bearing 細節；⭐ 記下「`grant_schema_usage` 對 CI 是 no-op」——
+    **這個 migration 的價值在 CI 上量不到**，正是缺口能活到 Day 3 的原因
+- [x] **design note**（spike gate —— `docs/rules-on-demand/spike-design-note-gate.md` 8 點）
   - DoD: 是 **extract 不是 pre-write**；每個宣稱附 `file:line`
   - Verify: 8-point gate 逐項自查寫進 retrospective
+  - → 7 個已驗證不變式 · 6 個 open invariant · **verified ratio 22/23 ≈ 96%**。
+    第 5 點 🟡：§2.7 無 fixture，**而原因本身就是結論**（CI 的建庫路徑量不到它）
 
 ### 4.2 Closeout
 
-- [ ] `retrospective.md` Q1-Q7 + calibration（`spike` 0.65，**第 3 個資料點，第一個以一致定義登記**；
+- [x] `retrospective.md` Q1-Q7 + calibration（`spike` 0.65，**第 3 個資料點，第一個以一致定義登記**；
       `actual` = branch base → closeout commit 的牆鐘跨度）
-- [ ] `CALIBRATION-MATRIX.md` 那一行 —— **≤ 1 行 ~250 字元**（lint 上限 400；完整敘述 → `CALIBRATION-LOG.md`）
-- [ ] Final gate sweep: lint 0 · type 0 · format 0 · unit ≥78 · int ≥32 · web 10 · build 0 ·
+  - → **actual ~4.9 hr / committed 5.9 = ratio 0.83 IN band** → **KEEP 0.65**。
+    ⭐ 價值不在數字：三個點的單位史是「人力工時估計 / 事後回推牆鐘 / **事前宣告牆鐘**」，
+    **有效樣本數其實是 1**，第一次真正的 3-phase 窗口要到 W06
+- [x] `CALIBRATION-MATRIX.md` 那一行 —— **≤ 1 行 ~250 字元**（lint 上限 400；完整敘述 → `CALIBRATION-LOG.md`）
+  - → matrix 行約 190 字元；`run_all` 的 rules-hygiene 已驗（**≤ 400 chars** 檢查通過）
+- [x] Final gate sweep: lint 0 · type 0 · format 0 · unit ≥78 · int ≥32 · web 10 · build 0 ·
       `run_all` 6/6 · `lint:negative` PASS
-- [ ] 導航檔: `CLAUDE.md` Current-Phase + Last-Updated（**各 1 行**）· `MEMORY.md` pointer + subfile ·
+  - → lint **0** · type **0** · format **0** · unit **86**（12 suites）· int **34**（3 suites）·
+    web **10** · build **0** · `run_all` **6/6** · `lint:negative` **PASS（18 檔 0 bypass, 3 allowlisted）** ·
+    coverage **94.11 / 90.42 / 92.45 / 94.76**
+  - → ⚠️ 途中 `lint:negative` 回 **exit 1**：是我把 script 當成在 `apps/api`（它在 root）。
+    **退出碼揭露的，不是輸出**（`AD-GrepAssertion-1` 的形狀，這次又守住了）
+- [x] 導航檔: `CLAUDE.md` Current-Phase + Last-Updated（**各 1 行**）· `MEMORY.md` pointer + subfile ·
       `BACKLOG.md` CLOSE `AD-UserEntitySpec-1` **並移出 §Open + 加 §Shipped 列**（審計 AD-7 的教訓）·
       `ROADMAP.md` 第 4 項標記進度（**兩處都要改**）
-- [ ] Anti-pattern 自檢（retro Q5）：AP-1..AP-7 → 違規數
+  - → CLAUDE.md 另改 2 處 ADR 清單（0012 已採納）—— 屬「真的變了才動」。
+    §Open **56 條**（`AD-UserEntitySpec-1` 已移除）；順帶把 BACKLOG 開頭 stale 的「48 條」加註日期。
+    ⭐ **`AD-NegativeGate-1` 那列已更新第 7 個實例** —— 它是計數的唯一權威（審計 AD-8 的教訓）
+- [x] Anti-pattern 自檢（retro Q5）：AP-1..AP-7 → 違規數
+  - → **1**（AP-6）：`isms_test` 與 `isms_dev` 建法不同 → bug 在 dev 重現、test 不重現。
+    **修了症狀，根因仍在** → `AD-DbBuildPathParity-1`。
+    AP-3 最接近的一次（`status` 無轉換強制 · user FK 永遠 NULL）判定**不是** Potemkin，
+    **因為兩者都在 docstring 明文宣告** —— 而這個判定依賴那兩段註解繼續存在
 - [ ] **Commit** → ⏳ PR push + open → CI → merge: **PENDING USER CONFIRMATION**
       （push 是 outward-facing）→ merge 經 `gh` 驗證後翻 `status:` frontmatter
