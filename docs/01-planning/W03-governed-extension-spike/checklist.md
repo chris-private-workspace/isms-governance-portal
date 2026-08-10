@@ -203,5 +203,10 @@ _(本 phase 無 user-facing surface，故 drive-through **N/A**。收尾一律�
       而 W02 已量到「型別住契約層」做不到、W03 Day 2 實裝三段拆法。**用量到的形狀取代設計意圖**
 - [ ] Anti-pattern 自檢（retro Q5）：AP-1..AP-7 → 違規數
 - [ ] **`plan.md` frontmatter `status:` 翻為 `closed`**（PROCESS R9 —— 只 commit code 不算收尾）
-- [ ] **Commit** → ⏳ PR push + open → CI → merge: **PENDING USER CONFIRMATION**
-      （push 是 outward-facing）→ merge 經 `gh` 驗證後翻狀態標籤
+- [x] **Commit** → PR push + open → CI → merge（使用者於 2026-08-10 授權 push + open PR）
+  - ✅ **PR #31 MERGED** `b20f3f1`（`2026-08-10T08:43:51Z`）—— 經 `gh pr view` 驗證，
+        非採信回報（`feedback_verify_pr_merged_via_tool_not_claim`）
+  - ✅ 六個 required check 全 SUCCESS。⚠️ **第一輪紅了兩個**（int 順序相依 + production
+        拒絕啟動）—— 見 progress.md「Day 4（續）」；兩者都是本機 gate 射程外的東西
+  - ✅ 新增的負面 step **實際開火過**（log 逐字：`✅ production 啟動被拒絕（exit 1），
+        理由是 DevPrincipalInProductionError`）—— 不是「job 綠所以應該有跑」
