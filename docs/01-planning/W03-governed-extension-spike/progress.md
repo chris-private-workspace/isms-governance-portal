@@ -8,7 +8,7 @@
 |----|---------|-------------|---------|
 | **D-proc-freshness** | api 進程 PID 36976 啟動於 `2026-08-09 19:30:13`，而 `dist/entity-scope/*.js` 的 mtime 是 `2026-08-09 23:50:16` —— **進程比它要執行的產物早 4h20m**。web 進程 PID 36748 啟動於 `2026-08-08 20:54`，早於 W01 交付 | 這兩個進程的**任何 runtime 觀測都不可採信**。Day 3 的 clean restart 不是可選項。⚠️ W02 記錄的是「舊 4h10m」——**幾乎是同一個進程，當時發現後並沒有真的被換掉**（Risk Class C 第 3 次）| 🟡 已知風險 → plan §8 已有一行；Day 3.1 處理 |
 | **D-scopefn-shape** | `app_entity_scope()` 回傳 **`uuid[]`** 不是 `uuid`；policy 實為 `org_entity_id = ANY (app_entity_scope())`；scope 從 `app.entity_scope` 讀**逗號分隔**的 uuid 清單。函式為 `STABLE` + `SECURITY INVOKER` | plan 起草時憑記憶假設單一 uuid，probe 因此第一輪失敗。**repository 的 scope 是多值**，並行測試要用不同的 **id 集合**而非單一 id。§3.2 具體化，未推翻 | 🟡 小調整 |
-| **D-jsonb-rls** ⭐ | 五案例實測（受限角色，前提已斷言）：**CASE1** 欄位 SG1 + JSONB 內宣稱 `org_entity_id=HK1` → **INSERT 被放行**；**CASE2** SG1 讀得回；**CASE3** HK1 `sees=0`（**無讀取洩漏**）；**CASE4** 欄位層級跨實體寫入 → `violates row-level security policy`（控制組成立）；**CASE5** scope 帶兩個 id → 滾升正常 | ⭐ **`WITH CHECK` 完全不管 JSONB 內容**。好消息：不造成讀取洩漏。壞消息：**catalog 驗證必須在寫入路徑，而且是唯一一道防線** —— entity scoping 有 RLS 當第二層，擴充欄位治理沒有。直接回答 `06:35` 留白的 "validation approach"，並成為 ADR-0005 的可證偽條件與 §Security impact 素材 | 🟢 §3.1 未被推翻，**被具體化** |
+| **D-jsonb-rls** ⭐ | 五案例實測（受限角色，前提已斷言）：**CASE1** 欄位 SG1 + JSONB 內宣稱 `org_entity_id=HK1` → **INSERT 被放行**；**CASE2** SG1 讀得回；**CASE3** HK1 `sees=0`（**無讀取洩漏**）；**CASE4** 欄位層級跨實體寫入 → `violates row-level security policy`（控制組成立）；**CASE5** scope 帶兩個 id → 滾升正常 | ⭐ **`WITH CHECK` 完全不管 JSONB 內容**。好消息：不造成讀取洩漏。壞消息：**catalog 驗證必須在寫入路徑，而且是唯一一道防線** —— entity scoping 有 RLS 當第二層，擴充欄位治理沒有。直接回答 `06:35` 留白的 "validation approach"，並成為 ADR-0005 的可證偽條件與 §Security impact 素材 | 🟢 §3.1 未被推翻，**被具體化**。⚠️ **本列「唯一一道防線」的推論已於 Day 1 被推翻**（trigger 看得到 JSONB）—— 見 Day 1 段。**原文保留不改**，維持「當時判斷 vs 後來量到」的審計軌跡 |
 | **D-probe-setup** | 第一輪 probe 的 `CREATE POLICY` 因型別不符而失敗，留下一張 **FORCE-RLS 但無 policy** 的表（＝全部拒絕）。`CASE2 sg1_sees=0` / `CASE3 hk1_sees=0` **看起來像結果，實際什麼都沒證明** | **前提斷言必須涵蓋 setup，不只角色**。第二輪加入 `SETUP ok: policy present` 才有效。這是「前提沒被斷言的測量，綠紅都不可採信」的**第 2 次**（W02 第 1 次是殘留 fixture 汙染斷言）| 🟢 已修正；教訓進 retro |
 | **D-scopedclient-split** | `scope-boundaries.md:120-128` **仍寫著**「型別住在契約層」的設計意圖，並自承「尚未跑過……**驗證失敗則本節與上表都要重寫**」。W02 已量到它做不到（契約層是葉節點，不能 import generated Prisma 型別）| W03 Day 2 就是那個驗證。**已加一條 Day 4 checklist 項**：用量到的三段拆法取代該節的設計意圖文字 | 🟢 已納入 checklist |
 | **D-schema-claims** | `schema.prisma:95-104` 的 8 個刻意缺欄清單與 plan §0 **逐項一致**；`Policy` 全欄位確為 scalar；`extensions` 標註 `needs ADR-0005, not adopted` | plan §0 的 Root cause 表無需修正 | ✅ |
@@ -46,7 +46,7 @@ W02 的 12.1 hr 也是從 commit 時間戳回推的。這使 `AD-TimeTracking-1/
 它們要求的資料在目前的執行模式下**只能回推，不能量測**。
 **Day 4 retro 要正面處理這一條**，而不是再記一次「這次也沒計時」。
 
-### Remaining for Day 1
+### Remaining for Day 1（Day 0 當下的規劃 —— 實際結果見下方 Day 1 段）
 
 - 1.1 三方案最小實測（`D-jsonb-rls` 已完成其中最關鍵的一項 —— catalog 範疇歸屬與
   「第二次呼叫」案例仍待做）
@@ -58,3 +58,52 @@ W02 的 12.1 hr 也是從 commit 時間戳回推的。這使 `AD-TimeTracking-1/
   其結論已完整轉錄到本檔 `D-jsonb-rls` 一列
 - `isms_dev`（compose 的 `POSTGRES_USER`）是 **superuser 且 bypassrls** ——
   compose.yml 註解已警告。所有 RLS 實測一律 `SET ROLE isms_app_user` 後進行
+
+---
+
+## Day 1 — 2026-08-10 — OQ-6 三方案實測 → ADR-0005
+
+### 量測結果（受限角色 `isms_app_user`，前提與 setup 皆已斷言）
+
+| Q | 問題 | 結果 | 對 ADR 的意義 |
+|---|------|------|--------------|
+| **Q1** | `CHECK` constraint 能否查 catalog 表？ | ❌ `ERROR: cannot use subquery in check constraint` | **靜態 constraint 出局** —— catalog 是動態資料，CHECK 看不到它 |
+| **Q2** | trigger 能否查 catalog 並拒絕？ | ✅ CASE-C（借用 HK1 的 key）與 CASE-D（未宣告的 key）**皆被 `23514` 擋下** | ⭐ **catalog 驗證可以有 DB 層第二道防線** |
+| **Q3** | trigger 內的 catalog 讀取是否被 RLS 過濾？ | trigger 為 **`INVOKER`**；CASE-E `hk1_catalog_rows=2`（全域 1 + 自己 1）| catalog 的 RLS 與 trigger 相容，不需要 `DEFINER`（後者會以 owner 身分跑，是提權面） |
+| **Q4** | 單一 catalog 能否同時服務全域與 per-entity 欄位？ | ✅ nullable `org_entity_id` + policy `IS NULL OR = ANY(scope)`：全域 key 通過、自己的 key 通過、**別人的 key 被擋** | **D-catalog-scope 有答案了**：不必二選一 |
+| **Q5** | `app_entity_scope()` 第二次呼叫行為一致？ | CASE-F `first=1 second=1`；CASE-G（已被 scope 過的連線、未設 scope 的新 tx）→ **`app.entity_scope is not set`** | ⭐ W02 補的 `app_entity_scope()` **fail-closed 在第二次呼叫仍成立** —— `AD-Day0Scope-1` 要求的「第二次呼叫案例」已覆蓋 |
+
+### ⭐ 這推翻了 Day 0 的一個推論
+
+Day 0 的 `D-jsonb-rls` 記著「catalog 驗證**必須在寫入路徑，而且是唯一一道防線**」。
+**那句話是錯的。** 正確的是：**RLS 看不到 JSONB，但 trigger 看得到** ——
+catalog 驗證可以有 DB 層背書，正如 entity scoping 有 RLS。
+
+兩者的差別在於**誰寫表達式**：RLS policy 是靜態表達式（因此看不到動態的 catalog），
+trigger 是程式（因此可以查表）。Day 0 從「RLS 不管 JSONB」跳到「DB 完全幫不上忙」，
+**跳過了 trigger 這一格**。
+
+### ⚠️ 本輪 probe 的輸出瑕疵（要記，因為它差點造成相反結論）
+
+`Q1` 的 `ALTER TABLE ... ADD CONSTRAINT` 失敗後，緊接的
+`SELECT 'Q1 UNEXPECTED: CHECK with subquery was accepted'` **仍然印了出來** ——
+它不在 transaction 內，而 `\set ON_ERROR_STOP off` 讓 psql 繼續執行下一句。
+
+CASE-C / CASE-D 沒有這個問題，因為它們在 `BEGIN...COMMIT` 內，
+錯誤讓整個 transaction abort，後續語句被忽略。
+
+> **通則**：`ON_ERROR_STOP off` 之下，**非交易語句**的失敗不會阻止後面那句「宣告成功」的訊息。
+> 斷言式的探測腳本，每個 case 都要包在 transaction 裡，否則失敗與成功會印出同一段文字。
+> 這是「證據要真的支持結論」在本 phase 的第 2 次（Day 0 的 `D-probe-setup` 是第 1 次）。
+
+### Today's Accomplishments
+
+- 1.1 三方案最小實測 —— Q1-Q5 全部有結論；`D-catalog-scope` 與 `AD-Day0Scope-1`
+  要求的「第二次呼叫」案例一併覆蓋
+- 1.2 ADR-0005 起草與採納（見 `docs/14-adr/0005-governed-extension-storage.md`）
+
+### Notes
+
+- probe 腳本留在 scratchpad，**未進版控**（一次性量測）。結論已完整轉錄至上表
+- **效能未量**：trigger 每次寫入要對每個 JSONB key 查一次 catalog。今天資料量是個位數，
+  量不出東西 —— 與 `AD-ScopeFnCost-1` 同樣的狀況，寫成 ADR-0005 的可證偽條件
