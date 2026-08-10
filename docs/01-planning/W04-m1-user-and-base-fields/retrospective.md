@@ -3,7 +3,7 @@
 **Phase**: W04 — M1 slice 1: the shape every table copies
 **Period**: 2026-08-10 ~ 2026-08-10（Day 0–4，單日）
 **Plan**: [plan.md](./plan.md)  ← 四件套共置於同一個資料夾
-**PR**: ⏳ PR-pending（branch `feature/W04-m1-user-base-fields`）
+**PR**: **MERGED** #34（`5bb0c9f`，2026-08-10 23:05 +0800）—— **六個 required check 全 SUCCESS**
 **Change record**: `docs/03-implementation/changes/CH-019-w04-user-and-base-fields.md`
 
 ---

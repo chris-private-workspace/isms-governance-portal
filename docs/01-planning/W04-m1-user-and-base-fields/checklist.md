@@ -226,5 +226,9 @@ _(⚪ **無 user-facing surface** → drive-through 不適用。本 phase 一律
     **修了症狀，根因仍在** → `AD-DbBuildPathParity-1`。
     AP-3 最接近的一次（`status` 無轉換強制 · user FK 永遠 NULL）判定**不是** Potemkin，
     **因為兩者都在 docstring 明文宣告** —— 而這個判定依賴那兩段註解繼續存在
-- [ ] **Commit** → ⏳ PR push + open → CI → merge: **PENDING USER CONFIRMATION**
-      （push 是 outward-facing）→ merge 經 `gh` 驗證後翻 `status:` frontmatter
+- [x] **Commit** → PR push + open → CI → merge（**使用者於 2026-08-10 明確指示 push**）
+  - → **PR #34 MERGED**（`5bb0c9f`，23:05 +0800）—— 六個 required check **全 SUCCESS**：
+    gates · 映像 build + 啟動探測 · gitleaks · SCA · SAST · trivy
+  - → ⭐ merge **經 `gh pr view` 驗證**（`state=MERGED` + `mergeCommit` + `mergedBy`），
+    **不憑「PR merged」這句話**（`feedback_verify_pr_merged_via_tool_not_claim`）
+  - → `status:` frontmatter 已於 closeout commit 翻為 `closed`；四處 `PR-pending` 標籤已翻

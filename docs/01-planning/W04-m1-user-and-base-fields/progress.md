@@ -327,7 +327,21 @@ schema 層權限只在其中一條路徑上存在 → **bug 在 dev 重現、在
 AD 的實際傷害（32 張表的 FK 沒有標的 → M4 回頭加欄位，成本超線性）**只存在於 `User` 半邊**，
 而那半邊已經完全解除。
 
-### Remaining
+### PR #34 — MERGED
 
-- ⏳ **PR push + open** —— push 是 outward-facing，**待使用者確認**
-- CI 六個 check 未驗（本機全綠，`AD-DbBuildPathParity-1` 提醒：**CI 綠不涵蓋 reset 過的庫**）
+使用者 2026-08-10 明確指示 push。**PR #34 merged `5bb0c9f`（23:05 +0800），六個 required check 全 SUCCESS。**
+merge 狀態**經 `gh pr view` 驗證**（`state=MERGED` + `mergeCommit` + `mergedBy`），不憑宣稱。
+
+| Check | 結果 |
+|---|---|
+| gates | ✅ SUCCESS |
+| 映像 build + 啟動探測 | ✅ SUCCESS |
+| 憑證外洩 — gitleaks（全歷史）· 依賴漏洞 SCA · 靜態安全 SAST · 容器映像 trivy | ✅ 四項全 SUCCESS |
+
+⚠️ **CI 全綠不涵蓋本 phase 修的那個缺陷。** `grant_schema_usage` 對 CI 是 **no-op** ——
+CI 的庫用 `CREATE DATABASE` 從 template1 建起，**早就繼承了那個權限**。
+這在 PR 描述裡是**事前寫明的**，不是事後發現。→ `AD-DbBuildPathParity-1` 仍然開著。
+
+⭐ **W03 的首航在「映像 build + 啟動探測」抓到缺陷，本次沒有** ——
+但那不代表這一關這次沒做事：它是唯一以**部署時組態**執行產物的地方，
+而本 phase 動了 schema（`prisma generate` 在 build 階段重跑）。**綠燈這次是資訊，不是慣例。**

@@ -4,7 +4,7 @@
 **Phase**: W04（M1 slice 1）
 **Scope**: `core-model` · `entity-scope`（消費，未修改）· `modules`（測試）
 **Components**: —
-**PR**: ⏳ PR-pending（branch `feature/W04-m1-user-base-fields`）
+**PR**: **MERGED** #34（`5bb0c9f`，2026-08-10）
 
 ---
 

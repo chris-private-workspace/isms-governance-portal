@@ -57,7 +57,7 @@
   Keywords: ADR-0004 · app_entity_scope · set_config transaction-local · GUC 定義為空字串 · AD-Day0Scope-1 · symbol brand EntityScope · assert-no-scope-bypass · spike calibration 1.10
 - W03 [Governed extensions](memory/project_w03_governed_extensions.md) — MERGED #31 (`b20f3f1`) 2026-08-10; ADR-0005 拍板 + 第一個業務端點；**元驗證量到 validator 死掉時 trigger 仍在擋**（兩層獨立性是量到的不是推論的），且 **RLS `WITH CHECK` 在 FK 之前評估**讓「不存在」與「不是你的」在寫入路徑天然同形.
   Keywords: ADR-0005 · JSONB governed extension catalog · validate_extensions trigger · 42501 before 23503 · ScopeRefusedError · 404-not-500 · Cache-Control 判準非清單 · AD-CalibrationMetric-1 · AD-DevDbDrift-1
-- W04 [User and base fields](memory/project_w04_user_and_base_fields.md) — closed 2026-08-10; ADR-0012 拍板 `users` 全域無 `org_entity_id`（範疇是 role assignment 的屬性不是人的）；**元驗證產出新知識** —— counter 的 RLS 失效讓 W03 的 oracle 防護重新變得可區分.
+- W04 [User and base fields](memory/project_w04_user_and_base_fields.md) — MERGED #34 (`5bb0c9f`) 2026-08-10; ADR-0012 拍板 `users` 全域無 `org_entity_id`（範疇是 role assignment 的屬性不是人的）；**元驗證產出新知識** —— counter 的 RLS 失效讓 W03 的 oracle 防護重新變得可區分.
   Keywords: ADR-0012 · identity 是第三類 · ref_code_counters entity-scoped · upsert increment 原子發號 · permission denied for schema public · template1 繼承 · AD-DbBuildPathParity-1 · AD-MigrationChecksum-1 · 拒絕點從 insert 移到 counter
 
 ---
