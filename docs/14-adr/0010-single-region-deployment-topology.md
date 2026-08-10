@@ -70,11 +70,17 @@ decision, and that expiry is recorded rather than quietly inherited.
 
 | Parameter | Value |
 |---|---|
-| Regions | **1** (global Azure; region choice deferred to `CH-009` with the resource request) |
+| Regions | **1** — **RCI3, Azure Singapore Datacenter** (global Azure). The *count* is this ADR's decision; the *region* was settled by `CH-010` on 2026-08-10 with the resource request |
 | Environments | **3** — `dev` · `staging` · `prod` |
 | Subscriptions | `prod` isolated; `dev` + `staging` share. Rationale: subscription is Azure's cleanest permission boundary, which is what guardrail 6 (least privilege / SoD) wants |
 | `prod` RTO / RPO | **4 hours / 15 minutes** |
 | `dev` / `staging` RTO / RPO | 1 working day / 24 hours; no HA |
+
+<!-- 2026-08-10: parameter back-fill by CH-010, NOT a change of decision — the reasoning above is
+     untouched (see 14-adr/README.md §取代舊 ADR 的流程). The Regions row previously read
+     "region choice deferred to CH-009": a stale pointer, since CH-009 was reassigned to the
+     track-classification fix. The §相關 note at the foot of this file recorded that reassignment
+     on 2026-08-08 but this row was not updated with it. -->
 
 The RPO is tighter than an internal governance tool would normally warrant. The reason is
 guardrail 5: losing audit-trail entries is not data loss, it is a **break in an evidence chain**.
@@ -178,5 +184,7 @@ guardrail 5: losing audit-trail entries is not data loss, it is a **break in an 
 - **相關 ADR**: ADR-0001 (its third API consumer is spent — see 這個決定約束了什麼) ·
   ADR-0007 (two identity planes collapse to one) · ADR-0009 (the sovereignty rationale for
   `CLAUDE.md` 約束 7 loses its China basis — tracked as `AD-Constraint7-1`)
+- **參數回填**: [`CH-010`](../03-implementation/changes/CH-010-azure-resource-request.md) settled the
+  region — **RCI3, Azure Singapore** — on 2026-08-10, closing the only value this ADR left open
 - **關閉**: `AD-Decider-1` · `decision-form.md` OQ-1 re-points here
 - **不再適用**: the four questions for Legal at `03:152`

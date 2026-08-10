@@ -75,12 +75,13 @@
 | AD-OpensslClaim-1 | **`apps/api/Dockerfile:55-58` 的「then the wrong engine」是推論不是觀測** —— CH-013 元驗證 3 拿掉整個 `RUN` 實測（CI run `31300101058`）：警告確實出現（一字不差），但 `✔ Generated Prisma Client (v7.9.1)`、build 綠、`{"status":"up","db":"up"}`。缺 openssl 在此組態下**只有警告，無可觀測故障** | CH-013 | 🟢 P2 | ⚠️ **刻意不改那段註解**（`AD-EslintSettingsClaim-1` 先例：單次觀測、不知 W01 當時全貌）。**保留 openssl 安裝仍然正確** —— 消除警告、不靠「預設剛好能用」。順帶：`image-smoke` **抓不到這一類**，因為它不造成故障 |
 | AD-TrivyFullImage-1 | **trivy 仍只掃 base image，不掃 build 出來的完整 image** —— `security-scan.yml:286-291` 明寫此取捨與缺口（`apt-get install` 進去的套件不被覆蓋）。CH-013 現在**會 build 出兩個 image**，餵給 trivy 的路徑首次存在 | CH-013 | 🟡 P1 | 使用者 2026-08-09 拍板**本次不做**：第一次掃完整 image 會涵蓋應用層 `node_modules`，很可能噴出一批現存 findings，需要 `security-scan.yml:13-37` 明訂的分流窗口五步 —— 混進 CH-013 會讓它收不掉 |
 | AD-TrivyExempt-1 | **`libssl3` 六條豁免於 2026-09-07 到期** —— distroless base 的 OpenSSL（CVE-2026-31789 CRITICAL 等）。Debian 已出 `3.0.19-1~deb12u2`，distroless 尚未重建 | W01 | 🟡 P1 | 到期即自動變紅（trivy `expired_at`，無需有人記得）。到期時：重拉 base 重掃 → 已重建就刪掉 `.trivyignore.yaml`；未重建則**逐條重新分流**，不可靜靜延期 |
-| AD-IaCEvidence-1 | **IaC 掃描義務已移交 infra team —— 本專案沒有 IaC 可掃**。infra 建立全部 Azure 資源（2026-08-08 確認）。`07:31` M0 DoD「IaC skeleton scanned」與 `04:73`「apply 前掃描」雙雙失去標的。**義務未消失，只是換手** | CH-010 前置 | 🟡 P1 | ⛔ M0 收尾**不得**逕行打勾或標 N/A —— 二選一：引用 infra 掃描證據，或明記「由內部第三方營運」。同時擴大 Entity Zero 證據缺口（5→9 項）。ADR-0011「IaC tool deferred to CH-010」的答案＝本專案不選 |
+| AD-IaCEvidence-1 | **IaC 掃描義務已移交 infra team —— 本專案沒有 IaC 可掃**。infra 建立全部 Azure 資源（2026-08-08 確認）。`07:31` M0 DoD「IaC skeleton scanned」與 `04:73`「apply 前掃描」雙雙失去標的。**義務未消失，只是換手** | CH-010 | 🟡 P1 | ⛔ M0 收尾**不得**逕行打勾或標 N/A —— 二選一：引用 infra 掃描證據，或明記「由內部第三方營運」。同時擴大 Entity Zero 證據缺口（5→9 項）。ADR-0011「IaC tool deferred to CH-010」的答案＝本專案不選（CH-010 已記錄）。**仍未關閉：答案有了，證據沒有** —— PAR 第 7 點已向 RIT 索取 |
 | AD-WebCoverage-1 | **`apps/web` 的覆蓋率不受任何門檻約束** —— W01 Day 3 把 `test:cov` 接進 CI 時只涵蓋 `apps/api`（vitest 需另裝 `@vitest/coverage-v8`，且 `page.tsx` 尚無元件測試，今天開啟只會逼出一個「低到能過」的門檻）。約束 5 的 ≥80% 目前只對後端成立 | W01 | 🟡 P1 | 與其設一個假門檻不如記在這裡。解法：裝 `@vitest/coverage-v8` + jsdom/testing-library，替 `page.tsx` 補元件測試（三個渲染分支已在 Day 3 手動驗過，正好是測試的規格），再把 web 納入 CI 的 `test:cov` |
 | AD-CovThreshold-1 | **`apps/api` 的 branches 門檻由 80 降為 70**（`jest.config.js`）—— `emitDecoratorMetadata` 每個被裝飾的建構子／回傳型別都會 emit 一個測試到不了的三元分支（lcov 佐證 `BRDA:31,0,1,0`），真實上限 78.57%。**不是放寬品質要求，是移除一個沒有正確做法能通過的 gate** | W01 | 🟢 P2 | statements / functions / lines 維持 80（現況皆 100%）。再收緊條件寫在 `jest.config.js` 的區塊註解裡：Nest DI 不再需要 reflect-metadata，或該類分支變成可排除時 |
 | AD-LintOutput-1 | **`run_all.py:80` 失敗時只保留 detector 輸出的最後一行**，而那通常是提示語不是違規清單 —— CI 失敗訊息無法診斷 | CH-006 | 🟢 P2 | 目前用 workflow 的 `--verbose` 繞過。同型再現 → 改成 `returncode != 0` 時保留完整輸出 |
 | AD-Placeholder-1 | ⭐ **「模板佔位符未與本專案對齊」已發生 6 次**（`AD-RuleBoundary-1` / `AD-CssToken-1` / `AD-DocIndex-1` / ADR 檔名 / `CLAUDE.md` byte 預算 / `ci.yml`）| CH-006 | 🟡 P1 | **CH-007 只關掉第 6 類**（actionlint + 棘輪 detector）。⚠️ 原提案的「掃全 repo 佔位符」**已證實不可行** —— 512 命中約 500 個是合法慣例語彙（`W{NN}` / `NNN` / `<slug>`），會噴在自己的規則文件上。其餘四類需語義理解，`lint-detector-authoring.md:22` 明訂寫不出可靠 detector。**W01 關掉第 7 個實例**（`scope-boundaries.md` 的範疇表與 import 矩陣，Day-0 `D-boundaries-matrix` 發現）✅。**本條仍保持開啟** |
 | AD-ActionsNode-1 | `actions/checkout@v4` 用 Node 20，GitHub 已標 deprecated 並強制跑在 Node 24（4 個 security-scan job 皆有此 annotation） | CH-006 | 🟢 P2 | 現在只是警告；GitHub 移除 Node 20 支援時會直接壞掉 |
+| AD-StaleRecordRef-1 | **跨記錄的「編號引用」沒有任何 detector 在看** —— `ADR-0010:73` 指向 `CH-009`，而 CH-009 早已改派給 track-classification fix；同一份 ADR 的 §相關 在 2026-08-08 記了那次改派，73 行卻沒跟著改。`check_path_references.py` 驗的是**路徑**，`CH-NNN` / `ADR-NNNN` / `AD-Xxx-N` 這類引用不在射程內 | CH-010 | 🟢 P2 | 與 `AD-ChNumber-1` 相鄰但不同：那條講**怎麼選號**，這條講**號被改派後舊引用不會有人叫**。同型再現 1 次即升級為 detector（判準明確：引用的編號要能解析到一份存在且 slug 相符的記錄）|
 
 **優先度判準**：
 
@@ -93,6 +94,10 @@
 
 > **定期誠實化**：P3 的東西放超過 10 個 phase 還沒動 → 刪掉它。
 > 一份沒人相信的待辦清單比沒有清單更糟。
+
+> 📋 **跨來源審計 2026-08-10（首次）—— 6 個漂移發現（AD-1 ~ AD-6）**：
+> [`STATUS_AUDIT.md`](./STATUS_AUDIT.md) §2.7。**細節不複製到這裡**（PROCESS R7 / STATUS_AUDIT §5）。
+> 其中 **AD-4 是一個沒有任何 AD 在追蹤的 M0 缺口**（`16` 的 28 點無自動化）。
 
 ---
 

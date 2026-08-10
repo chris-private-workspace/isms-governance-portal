@@ -113,6 +113,10 @@ sounds good will otherwise be re-proposed.
   sibling's shape and is also the least-privilege default (guardrail 6).
 - **IaC tool is not decided here.** ARM/Bicep (what the sibling wrote by hand) versus Terraform is
   deferred to `CH-010`; `04:73` requires only that whatever is chosen is scanned before apply.
+  <!-- 2026-08-10: pointer only — the decision and its reasoning are untouched. -->
+  ⚠️ **`CH-010`'s answer is neither**: Regional IT creates and operates every Azure resource, so this
+  project authors no IaC and has nothing of its own to scan. `04:73`'s obligation moved rather than
+  vanished — obtaining RIT's scan evidence is still open as `AD-IaCEvidence-1`.
 
 ### 可證偽條件 ⭐
 
