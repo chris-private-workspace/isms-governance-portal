@@ -1,0 +1,32 @@
+-- Phase W04 — grant the application role USAGE on the schema it lives in.
+--
+-- ⚠️ This is a gap that existed since W02 and was invisible because of how the
+-- two databases are built. Found by W04 Day 3, when the API returned 500 on
+-- every endpoint with `permission denied for schema public` (42501).
+--
+--   isms_test  — int-global-setup.js issues CREATE DATABASE, which copies
+--                template1. template1's `public` schema carries the built-in
+--                GRANT USAGE TO PUBLIC, so the application role inherits it and
+--                every integration test passes.
+--
+--   isms_dev   — `prisma migrate reset` does NOT drop the database. It issues
+--                DROP SCHEMA public CASCADE followed by CREATE SCHEMA public,
+--                and a freshly created schema has a NULL ACL: the owner holds
+--                everything, PUBLIC holds nothing. Table-level GRANTs are then
+--                useless, because reaching a table requires USAGE on its schema
+--                first.
+--
+-- So the privilege was never granted by anything in this repository — it was
+-- inherited from a template, on one of the two paths, and the tested path was
+-- the one that inherited it. Every table GRANT in W02/W03/W04 sat on top of an
+-- assumption no migration stated.
+--
+-- Granting it here makes the privilege explicit and path-independent: whichever
+-- way the database was created, the migration that needs the access also grants
+-- it.
+--
+-- ⚠️ USAGE only, never CREATE. The application role must not be able to add or
+-- drop objects — that is the migration role's job, and a role that can DDL its
+-- own tables can also drop the RLS policies that constrain it.
+
+GRANT USAGE ON SCHEMA public TO isms_app;

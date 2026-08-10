@@ -154,21 +154,33 @@ _(⚪ **無 user-facing surface** → drive-through 不適用。本 phase 一律
 
 ### 3.1 Clean restart
 
-- [ ] **殺掉陳舊 dev server / 孤兒 worker，確認新程序是該 port 唯一擁有者**
+- [x] **殺掉陳舊 dev server / 孤兒 worker，確認新程序是該 port 唯一擁有者**
   - DoD: 驗「活著的服務程序」不是「port 擁有者 PID」（Risk Class C 加強版）
   - Verify: 擷取證明 wiring 生效的 startup log 行
-- [ ] **`isms_dev` 套用本 phase 的 migration**（`AD-DevDbDrift-1` 的直接對策）
+  - → port 3210 **本來就空**（無孤兒）。port 3200 有一個 **8/8 啟動、非我開啟**的 web dev server
+    → **不碰**（§4；本 phase `apps/web` UNTOUCHED）
+  - → ⚠️ **收尾時 `TaskStop` 停了 npm 但子程序仍在 listening** —— 正是 Risk Class C 加強版的情況。
+    確認 cmdline + 啟動時間後 kill，並驗到「**無 API 程序殘留**」而不只是「port 空了」
+- [x] **`isms_dev` 套用本 phase 的 migration**（`AD-DevDbDrift-1` 的直接對策）
+  - → 並重新 seed（reset 後為空）。⭐ **刻意不 seed policies**，讓 counter 從 0 起算
 
 ### 3.2 API-level 驗證
 
-- [ ] **對真進程走完 `User` 與 `Policy` 的主路徑**，逐案例記 observed-vs-intended
-- [ ] **oracle 探測**：不存在的 id 與不屬於你的 id **回同一個答案**（比照 W03 案例 2b）
+- [x] **對真進程走完 `User` 與 `Policy` 的主路徑**，逐案例記 observed-vs-intended
+  - → **11 個案例全數 PASS**。🚩 **首次探測即 500** → 根因是 `permission denied for schema public`，
+    兩條建庫路徑的 schema 權限不同而只有一條被測試過 → 新 migration 修復（見 progress）
+- [x] **oracle 探測**：不存在的 id 與不屬於你的 id **回同一個答案**（比照 W03 案例 2b）
+  - → 兩者除 id 外**逐字相同**。⭐ 拒絕點已從 policy insert 移到 counter upsert，**保證在新位置重新成立**
 
 ### 3.3 元驗證（US-5 —— `AD-NegativeGate-1` 第 7 個實例）
 
-- [ ] **把本 phase 每個「宣稱會擋東西」的機制各中性化一次**
+- [x] **把本 phase 每個「宣稱會擋東西」的機制各中性化一次**
   - DoD: 每次都記「弄壞什麼 → 幾個測試紅 → 還原 → 綠」。⭐ **若某個機制弄壞後沒有東西紅，那就是缺口不是通過**
   - Verify: 表格記入 progress.md Day 3
+  - → 發號原子性（Day 2）**2 紅** · counter RLS **2 紅** · 還原 **34 綠**
+  - → ⭐ **counter RLS 那組產出新知識**：它的失效不只是「能替別人發號」，
+    還讓錯誤型別改變 → **「不存在」與「不是你的」重新變得可區分**。
+    W04 的發號路徑**成了 W03 oracle 防護的一部分**，而寫的時候沒有人知道
 
 ---
 
