@@ -1,5 +1,5 @@
 ---
-status: active
+status: closed
 ---
 
 # Phase W03 Plan — Governed extension storage, proven against RLS
@@ -11,8 +11,11 @@ status: active
 **範圍決定：不含前端頁面** —— 因此無 drive-through，收尾標 `gate-only verified`。
 **是 spike phase → design note MANDATORY**。
 
-**Status**: Approved-to-execute（使用者於 2026-08-10 核可並指示開始 Day 0；
-範圍經同日 AskUserQuestion 選定「後端垂直切片」）
+**Status**: **CLOSED**（2026-08-10）—— 原為 Approved-to-execute（使用者於 2026-08-10 核可並
+指示開始 Day 0；範圍經同日 AskUserQuestion 選定「後端垂直切片」）。
+收尾見 [retrospective.md](./retrospective.md)。⚠️ **範圍有一處超出 §4**：
+`core-model/scope-refusal.ts` 等 7 檔 —— Day 3 API 級驗證找出的、US-3 交付物自身的缺陷，
+deviation 記於 [progress.md](./progress.md)「Day 3（續）」
 
 **Branch**: `feature/W03-governed-extension`
 **Base**: `main` HEAD `5bbc252`（CH-017 節流閘 + hook）

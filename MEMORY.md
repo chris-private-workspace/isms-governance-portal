@@ -55,6 +55,8 @@
   Keywords: AD-NegativeGate-1 · 設定型強制力靜默失效 · boundaries/dependencies · test:cov 未被執行 · Risk Class C 陳舊進程 · greenfield-scaffold calibration · entity-scope 未實作
 - W02 [Entity-scoping RLS spike](memory/project_w02_entity_scope_rls.md) — closed 2026-08-09; RLS 在應用層與資料庫層各自成立，ADR-0004 拍板；**Day-0 判定「fail-closed 免費」只在從未被 scope 過的連線上成立**，是本專案第一次 Day-0 結論被推翻.
   Keywords: ADR-0004 · app_entity_scope · set_config transaction-local · GUC 定義為空字串 · AD-Day0Scope-1 · symbol brand EntityScope · assert-no-scope-bypass · spike calibration 1.10
+- W03 [Governed extensions](memory/project_w03_governed_extensions.md) — closed 2026-08-10; ADR-0005 拍板 + 第一個業務端點；**元驗證量到 validator 死掉時 trigger 仍在擋**（兩層獨立性是量到的不是推論的），且 **RLS `WITH CHECK` 在 FK 之前評估**讓「不存在」與「不是你的」在寫入路徑天然同形.
+  Keywords: ADR-0005 · JSONB governed extension catalog · validate_extensions trigger · 42501 before 23503 · ScopeRefusedError · 404-not-500 · Cache-Control 判準非清單 · AD-CalibrationMetric-1 · AD-DevDbDrift-1
 
 ---
 
