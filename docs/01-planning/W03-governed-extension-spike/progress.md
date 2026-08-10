@@ -206,3 +206,74 @@ int 20 · build 0 · `run_all` 6/6 · `lint:negative` PASS · `assert-no-scope-b
 
 - ⛔ **需先確認範圍**：`/policies` endpoint 的 scope 從哪來？今天沒有 identity（M4），
   而約束 8 鐵律 3 規定 scope **只能**來自憑證／session。三個選項待使用者拍板，見下方
+
+---
+
+## Day 3 — 2026-08-10 — 第一個業務端點 + 整合驗證
+
+### 交付
+
+| 項 | 內容 |
+|---|---|
+| 3.2 | `GET /policies` · `GET /policies/:id` · `POST /policies`（`:id` 是 404-not-403 的載體）|
+| 3.2 | **Cache-Control 政策**（關 `AD-CacheControl-1`）—— 見下 |
+| 3.3 | 約束 8 四個範疇測試，**透過 repository 而非直接用 client** |
+| 3.4 | 並行範疇汙染常駐測試（關 `AD-ScopeConcurrency-1`）—— 40 次交錯，逐列斷言 |
+| 3.5 | 元驗證 ×2 —— 見下 |
+| — | `dev-principal.ts`（使用者拍板選項 B）+ 兩個新 spec |
+
+### `AD-CacheControl-1`：判準而不是 header
+
+`16:22` 要的是「敏感回應 `no-store, private`」。難的是**判準**：逐端點決定就要維護一份清單，
+而清單過時的方向是洩漏。本專案採用的規則（`security.ts` §CACHE_CONTROL）：
+
+> 問題不是「這個端點敏感嗎」，而是「**這個回應是 entity-scoped 嗎**」——
+> 而約束 8 要求每筆業務記錄都是 entity-scoped，所以只要回傳記錄，答案永遠是是。
+> 不是 entity-scoped 的只有不含記錄的回應（`/health`、OpenAPI schema），
+> 而快取一個存活探測的價值是負的。
+> **→ 全域 `no-store, private`，沒有例外清單。**
+
+### ⭐ 元驗證：兩層是獨立的，這是量到的不是宣稱的
+
+| 弄壞什麼 | 結果 |
+|---|---|
+| **trigger 中性化**（註解掉 `CREATE TRIGGER`）| int **3 failed** —— 正是那三個繞過 validator 的「database refuses」測試。exit=1 |
+| **validator 中性化**（開頭 `return`）| unit **8 failed** · int **只有 2 failed** |
+
+**第二列是本 phase 最有價值的一個觀測。** validator 完全死掉時，int 只紅 2 個而不是全部 ——
+那三個「database refuses」**仍然通過**，因為 trigger 還在擋。
+
+→ **應用層完全失效時，資料完整性仍然成立。** 這是 ADR-0005 宣稱的「兩層形狀」的直接證據，
+不是從設計推論出來的。ADR-0004 否決選項 C 的理由正是「無法證明它擋得住任何東西的第二層
+與註解無異」—— 這一層證明得出來。
+
+### 踩到的三個坑
+
+1. **測試間污染（Risk Class A 變體）**：`policy.int.spec.ts` 是**第一個會寫入的 suite**，
+   第一次跑就讓 W02 的 `entity-scope.int.spec.ts` 紅了 —— 它斷言 SG1 的精確列表。
+   `maxWorkers: 1` 決定順序，**但不會撤銷寫入**。修法：寫入的 suite 必須在 `afterAll`
+   **retire 自己建的列**。⚠️ 只能軟刪除 —— `isms_app` 沒有 DELETE 權限（guardrail 3），
+   **那是設計在起作用**：能硬刪的測試等於用了應用程式沒有的權限。
+2. **全域 catalog 欄位無法用 scoped client 建立** —— `WITH CHECK` 要求 `= ANY(scope)`，
+   而全域欄位的 `org_entity_id` 是 NULL。這**不是 bug 是設計**（替全體宣告不是單一 OpCo
+   有權做的事），實際後果是 seed 必須走 owner 連線。⚠️ `int-global-setup.js` 因此被修改，
+   **它不在 plan §4 的檔案清單內** —— deviation 記於此。
+3. ⚠️ **`AD-GrepAssertion-1` 我在本 phase 犯了 3 次**（Day 2 一次、Day 3 兩次）：
+   `cmd 2>&1 | tail -N; echo $?` 抓到的是 **`tail` 的退出碼**。
+   其中一次讓我把「type-check 失敗（`npm error code 2`）」讀成 `type=0`。
+   **修法已內化為習慣**：`cmd >/tmp/f 2>&1; echo $?`，或 `${PIPESTATUS[0]}`。
+
+### Gate（逐項退出碼，全部不經 pipe）
+
+`lint 0 · type-check 0 · format 0 · test:cov 0` —— unit **67**（baseline 33 → **+34**）·
+coverage **92.82/88.88/91.48/93.41** · int **31**（baseline 20 → **+11**）· web 10 ·
+`build 0` · `lint:negative 0` · `run_all 0`
+
+### 🚧 3.1 Clean restart —— 未做，需使用者許可
+
+port 3210（api，起於 08-09 19:30）與 3200（web，起於 08-08 20:54）的進程
+**是使用者開的，不是本 session**。`local-runtime-ops.md:70` 規定撞到陌生進程要
+**先停下來問**，`:94` 規定「重啟本身也是破壞性動作，先回報不要自動重啟」。
+
+**因此本 phase 至今為 `gate-only verified`，且沒有任何 runtime 觀測** ——
+Day 0 已證明那兩個進程比 `dist` 舊 4h20m，所以對它們 curl 得到的任何結果都不可採信。

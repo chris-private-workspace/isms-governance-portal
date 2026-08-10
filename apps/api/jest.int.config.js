@@ -45,7 +45,13 @@ module.exports = {
   // default allows on a cold container.
   testTimeout: 30_000,
   // One worker: the suite asserts on rows in a shared database, and parallel
-  // files would interleave writes. Cheap here (two files) and it removes an
+  // files would interleave writes. Cheap here (three files) and it removes an
   // entire class of flake that would otherwise be blamed on RLS.
+  //
+  // ⚠️ W03 showed this is necessary but not sufficient. policy.int.spec.ts is
+  // the first suite that WRITES, and its first run failed a test in
+  // entity-scope.int.spec.ts by leaving a row behind. Serial execution decides
+  // the order; it does not undo the write. A writing suite must retire its own
+  // rows in afterAll.
   maxWorkers: 1,
 };
