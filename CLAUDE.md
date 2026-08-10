@@ -402,7 +402,7 @@ python scripts/lint/run_all.py
 | [`docs/01-planning/`](./docs/01-planning/README.md) | PROCESS · BACKLOG · ROADMAP · registers · calibration · `_templates/` · phase folder `W{NN}-*/` |
 | [`docs/03-implementation/`](./docs/03-implementation/README.md) | `changes/CH-NNN-*` · `bugs/BUG-NNN-*` |
 | [`docs/06-reference/`](./docs/06-reference/README.md) | ⭐ 設計交付物 `design_handoff_isms_grc_platform/` + mockup→production playbook |
-| [`docs/14-adr/`](./docs/14-adr/README.md) | ⭐ 架構決定記錄 —— **0001 / 0004 / 0005 / 0006 / 0007 / 0010 / 0011 已採納；0002 / 0003 待 spike，0008 / 0009 待 Wave 3** |
+| [`docs/14-adr/`](./docs/14-adr/README.md) | ⭐ 架構決定記錄 —— **0001 / 0004 / 0005 / 0007 / 0010 / 0011 已採納（0006 已被 0010 取代）；0002 / 0003 待 spike，0008 / 0009 待 Wave 3** |
 | [`docs/INFORMATION-FLOW.md`](./docs/INFORMATION-FLOW.md) | ⭐ 開發資訊流地圖 |
 | `MEMORY.md` + `memory/` | 跨 session 記憶（index + subfile）|
 
