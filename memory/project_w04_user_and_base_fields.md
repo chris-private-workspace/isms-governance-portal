@@ -2,7 +2,7 @@
 
 **Phase**: W04（`docs/01-planning/W04-m1-user-and-base-fields/`）
 **Period**: 2026-08-10（Day 0–4，單日）
-**Status**: closed
+**Status**: closed —— **MERGED** PR #34 (`5bb0c9f`)，六個 required check 全 SUCCESS
 **權威來源**: [retrospective.md](../docs/01-planning/W04-m1-user-and-base-fields/retrospective.md) ·
 [design note](../docs/02-architecture/design-notes/W04-user-and-base-fields.md) ·
 [CH-019](../docs/03-implementation/changes/CH-019-w04-user-and-base-fields.md)
