@@ -22,6 +22,7 @@
  * Last Modified: 2026-08-10
  *
  * Modification History (newest-first):
+ *   - 2026-08-10: Add the ref_code concurrency probe (W04) — 40 contending allocations
  *   - 2026-08-10: Pin RLS-before-FK ordering (W03) — what makes the write 404 safe
  *   - 2026-08-10: Initial creation (Phase W03)
  */
@@ -31,6 +32,7 @@ import { ExtensionValidationError } from '../../core-model/extension-validator';
 import { ScopeRefusedError } from '../../core-model/scope-refusal';
 import { EntityScopeResolver } from '../../entity-scope/entity-scope.resolver';
 import { ScopedPrismaFactory } from '../../entity-scope/scoped-prisma.provider';
+import { issueRefCode } from '../../core-model/ref-code';
 import { PolicyModule } from './policy.module';
 
 const SG1 = '00000000-0000-0000-0000-0000000000c0';
@@ -153,7 +155,14 @@ describe('policy module (integration)', () => {
 
     await expect(
       sg1.policy.create({
-        data: { orgEntityId: SG1, title: 'bypass', extensions: { notDeclared: 'x' } },
+        // 9xxxxx is the test-reserved band; the counter issues from 1 upward, so
+        // a hand-written code here cannot collide with a real allocation.
+        data: {
+          orgEntityId: SG1,
+          title: 'bypass',
+          refCode: 'POL-SG1-900011',
+          extensions: { notDeclared: 'x' },
+        },
       }),
     ).rejects.toThrow(/not declared/);
   });
@@ -163,7 +172,12 @@ describe('policy module (integration)', () => {
 
     await expect(
       sg1.policy.create({
-        data: { orgEntityId: SG1, title: 'wrong type', extensions: { cycleCount: 'three' } },
+        data: {
+          orgEntityId: SG1,
+          title: 'wrong type',
+          refCode: 'POL-SG1-900012',
+          extensions: { cycleCount: 'three' },
+        },
       }),
     ).rejects.toThrow(/expects number/);
   });
@@ -174,7 +188,12 @@ describe('policy module (integration)', () => {
     // hkRegRef is declared, but declared BY HK1. Being real is not enough.
     await expect(
       sg1.policy.create({
-        data: { orgEntityId: SG1, title: 'borrowed', extensions: { hkRegRef: 'HKMA-1' } },
+        data: {
+          orgEntityId: SG1,
+          title: 'borrowed',
+          refCode: 'POL-SG1-900013',
+          extensions: { hkRegRef: 'HKMA-1' },
+        },
       }),
     ).rejects.toThrow(/not declared/);
   });
@@ -205,6 +224,51 @@ describe('policy module (integration)', () => {
     const rows = await sg1.extensionField.findMany({ where: { entityType: 'policy' } });
 
     expect(rows.map((r) => r.key).sort()).toEqual(['cycleCount', 'reviewCycle', 'sgRegRef']);
+  });
+
+  // === W04 D3: the reference counter under contention ========================
+  //
+  // The claim being tested is that allocation is ATOMIC, and the only way to
+  // test that is to make allocations contend. Each scoped operation runs in its
+  // own transaction (scoped-prisma.provider.ts:83), so forty concurrent calls
+  // are forty transactions competing for one counter row — not forty turns on a
+  // single connection.
+  //
+  // ⚠️ This test is written to CATCH a duplicate, not to observe that nothing
+  // went wrong: a read-then-write implementation passes every single-threaded
+  // test and fails this one. Meta-verified in Day 3 by making it fail on purpose.
+
+  it('issues forty contending reference codes with no collision', async () => {
+    const sg1 = await clientFor(['SG1']);
+    const CONCURRENCY = 40;
+
+    const codes = await Promise.all(
+      Array.from({ length: CONCURRENCY }, () =>
+        issueRefCode(sg1, {
+          orgEntityId: SG1,
+          // A probe type of its own, so this does not advance the counter the
+          // policy tests depend on.
+          entityType: 'concurrency-probe',
+          prefix: 'PRB',
+        }),
+      ),
+    );
+
+    expect(new Set(codes)).toHaveProperty('size', CONCURRENCY);
+    // Contiguous as well as unique: a gap would mean an allocation was lost
+    // rather than merely duplicated, which UNIQUE alone would never reveal.
+    const seqs = codes.map((c) => Number(c.split('-')[2])).sort((a, b) => a - b);
+    expect(seqs).toEqual(Array.from({ length: CONCURRENCY }, (_, i) => i + 1));
+  });
+
+  it('refuses to issue a code for an entity outside the scope', async () => {
+    const sg1 = await clientFor(['SG1']);
+
+    // The counter is entity-scoped, so this is refused by the same policy that
+    // refuses writing HK1's rows — one mechanism, not a second check.
+    await expect(
+      issueRefCode(sg1, { orgEntityId: HK1, entityType: 'concurrency-probe', prefix: 'PRB' }),
+    ).rejects.toThrow(/row-level security/i);
   });
 
   // === AD-ScopeConcurrency-1 ================================================

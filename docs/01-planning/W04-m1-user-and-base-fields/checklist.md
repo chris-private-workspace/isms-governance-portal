@@ -91,9 +91,13 @@
 
 ### 2.1 `users` 表 + migration
 
-- [ ] **`schema.prisma` 加 `model User`；migration 含表 + RLS（形狀依 D1）**
+- [x] **`schema.prisma` 加 `model User`；migration 含表 + RLS（形狀依 D1）**
   - DoD: 若 entity-scoped → RLS policy + `FORCE`；若全域 → **docstring 明寫豁免理由**（比照 `OrgEntity:62-66`）
   - Verify: `npm run prisma:migrate -w apps/api`；`\d+ users` 確認 RLS 狀態符合 D1
+  - → 實測：`users` RLS **false/false**（ADR-0012）· `ref_code_counters` **true/true** ·
+    `users` GRANT **僅 SELECT**（M4 前無寫入路徑，結構性而非「還沒寫」）
+  - 🚩 **阻塞並已解除**：`migrate dev` 因 W02 第一個 migration 的 checksum 不符而拒絕生成。
+    診斷後（非 CRLF、非 git 改動、schema 實際正確）經**使用者明確授權**執行 `migrate reset`
 
 ### 2.2 `user.repository.ts`
 
@@ -108,26 +112,38 @@
 
 ### 2.3 `ref-code.ts` + 並發
 
-- [ ] **`<TYPE>-<ENTITY_CODE>-<seq>` 生成，並發下不重號**
+- [x] **`<TYPE>-<ENTITY_CODE>-<seq>` 生成，並發下不重號**
   - DoD: 保證在**資料庫層**（sequence / unique constraint），不是應用層檢查
   - Verify: 一個**會抓到重號**的測試（並發插入 → unique violation 或全部唯一）
+  - → `upsert` + `{ increment: 1 }` = 單一 `INSERT … ON CONFLICT DO UPDATE … RETURNING`。
+    40 個並發（各自獨立交易）→ 全部唯一**且連續**（gap 代表遺失分配，UNIQUE 抓不到）
+  - → ⭐ **元驗證已做**：發號中性化 → int **2 failed**（含 `:257` 的 size 斷言）→ 還原 → **34 passed**
 
 ### 2.4 `Policy` 補齊 base fields
 
-- [ ] **`ref_code` · `owner_user_id` · `created_by` · `updated_by` · `status`（依 D2/D4）**
+- [x] **`ref_code` · `owner_user_id` · `created_by` · `updated_by` · `status`（依 D2/D4）**
   - DoD: `schema.prisma:97-106` 的自陳清單逐項更新 —— **已建的移出、未建的保留並註明去向**
   - Verify: 比對 `02a:86-98`，缺口從 6 降到 ≤ 1
+  - → **缺口 6 → 1**（僅 `is_active`，D2 判定不存）。清單已逐項更新，含
+    「`status` 的**轉換**沒有被任何東西擋住，不要讀成 workflow」的明文警語
+  - → 順帶修掉 header 的 orphan claim：Purpose 仍寫著 "Deliberately carries **NO models yet**"（W01 的話）
 
 ### 2.5 範疇測試
 
-- [ ] **約束 8 四項對 `User` 成立，或有記錄的豁免（依 D1）**
+- [x] **約束 8 四項對 `User` 成立，或有記錄的豁免（依 D1）**
   - DoD: 跨實體讀拒絕 / 跨實體寫拒絕且資料未變 / RLS 層獨立成立 / 滾升只看授權子樹
   - Verify: `npm run test:int -w apps/api`；⚠️ 斷言**順序無關**（`AD-JestFileOrder-1`）
+  - → **`users` 走的是記錄的豁免**（ADR-0012 + `multi-tenant-data.md` 第三類 + PR 描述舉證）。
+    ⭐ 但**發號路徑仍有完整的範疇拒絕測試** —— `ref_code_counters` 是 entity-scoped，
+    跨實體發號被同一條 RLS policy 拒絕（新增 int 案例）
 
 ### 2.x Full gate
 
-- [ ] lint 0 · type-check 0 · format 0 · unit ≥78 · int ≥32 · web 10 · build 0 ·
+- [x] lint 0 · type-check 0 · format 0 · unit ≥78 · int ≥32 · web 10 · build 0 ·
       `run_all` 6/6 · `lint:negative` PASS —— **逐項記實際輸出，不寫「都過了」**
+  - → lint **0** · type **0** · format **0**（⚠️ 先紅後修：2 檔）· unit **86** · int **34** ·
+    web **10** · build **0** · `run_all` **6/6** · `lint:negative` **18 檔 0 bypass, 3 allowlisted** ·
+    coverage **94.11 / 90.42 / 92.45 / 94.76**（四項全升）
 
 ---
 

@@ -1,25 +1,30 @@
 // File: apps/api/prisma/schema.prisma
-// Purpose: Datasource + client generator. Deliberately carries NO models yet.
+// Purpose: The entity graph, five models in. Every table here is on 02a §0's index.
 // Category: core-model
-// Scope: Phase W01 (M0)
+// Scope: Phase W01 (M0) → W04 (M1 slice 1)
 // Owner: docs/02-architecture/02a-data-model-spec.md §0 (entity index)
 //
 // Description:
-//   M0 proves the stack can reach PostgreSQL; it does not create tables. The
-//   entity graph is M1's deliverable and its column shape depends on ADR-0005
-//   (governed extension storage), which is not adopted. Creating tables now
-//   would be choosing a technical direction on the owner's behalf, which
-//   CLAUDE.md §禁止反模式 forbids.
+//   M1 slice 1. The models here are not a sample of 02a — they are the SHAPE the
+//   remaining 30 Wave-1 entities copy: base fields, soft delete, entity scoping
+//   by RLS, governed extensions, and a server-issued ref_code.
 //
 //   ⚠️ Every business table added from M1 on MUST carry `entity_id NOT NULL`,
 //   including child tables (CLAUDE.md 約束 8). That redundancy is intentional:
 //   it lets an RLS policy attach directly to the child rather than trusting a
 //   join to be written correctly.
 //
+//   ⚠️ TWO tables are exempt, and each states its own reason in its docstring:
+//   `org_entities` (it DEFINES scope) and `users` (scope belongs to the role
+//   assignment, not the person — ADR-0012). Nothing else is exempt; adding a
+//   third requires justification in the PR description
+//   (rules-on-demand/multi-tenant-data.md).
+//
 // Created: 2026-08-08 (Phase W01)
 // Last Modified: 2026-08-10
 //
 // Modification History (newest-first):
+//   - 2026-08-10: Phase W04 — User (ADR-0012), ref_code counters, Policy base fields
 //   - 2026-08-10: Phase W03 — governed extensions (ADR-0005): JSONB + catalog
 //   - 2026-08-09: Phase W02 — first two tables, entity-scoped by RLS
 //   - 2026-08-08: Initial creation (Phase W01) — datasource + generator only
@@ -79,6 +84,7 @@ model OrgEntity {
   children        OrgEntity[]      @relation("OrgEntityHierarchy")
   policies        Policy[]
   extensionFields ExtensionField[]
+  refCodeCounters RefCodeCounter[]
 
   version   Int       @default(1)
   createdAt DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
@@ -90,22 +96,102 @@ model OrgEntity {
   @@map("org_entities")
 }
 
+/// Identity data — the third class, and the SECOND table with no org_entity_id.
+///
+/// The reason differs from OrgEntity's. OrgEntity is global because it *defines*
+/// scope. `users` is global because **scope is not a property of a person**:
+/// 03:31 states a user's scope is derived from their role assignment, and a
+/// regional ISO legitimately spans 13 OpCos. Settled in ADR-0012, which also
+/// records the cost — a global table of people is cross-entity readable by
+/// construction, so who may ENUMERATE users is an M4 application-layer decision
+/// that RLS cannot answer.
+///
+/// ⚠️ Deliberately absent, do not add without a consumer (02a §3.2):
+///   - a password column — authentication is delegated to OIDC (05 §Identity)
+///   - `home_org_entity_id` — an employer field sitting next to a deliberately
+///     absent org_entity_id would be read as the scope anchor, which is the one
+///     misreading ADR-0012 exists to prevent
+///   - `last_login`, any role/permission column — M4
+model User {
+  id String @id @default(uuid()) @db.Uuid
+
+  /// The IdP's subject claim: the join key to the identity provider, and the
+  /// only thing here that is not a display concern.
+  oidcSubject String @unique @map("oidc_subject")
+  email       String
+  displayName String @map("display_name")
+
+  version   Int       @default(1)
+  createdAt DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt DateTime  @updatedAt @map("updated_at") @db.Timestamptz(6)
+  retiredAt DateTime? @map("retired_at") @db.Timestamptz(6)
+
+  ownedPolicies   Policy[] @relation("PolicyOwner")
+  createdPolicies Policy[] @relation("PolicyCreatedBy")
+  updatedPolicies Policy[] @relation("PolicyUpdatedBy")
+
+  @@map("users")
+}
+
+/// One row per (entity, record type). The sequence behind `ref_code`.
+///
+/// ⚠️ Entity-scoped ON PURPOSE, and this is the interesting part: issuing a
+/// reference code for another entity is exactly the cross-entity write RLS
+/// exists to refuse. Because the counter carries org_entity_id, "may this
+/// principal issue a code for HK1?" is answered by the same policy that answers
+/// "may it write a HK1 policy?" — one mechanism, not two.
+///
+/// A counter table rather than a PostgreSQL sequence: a sequence would have to
+/// be created per (type, entity) — hundreds of them, by DDL, on the request
+/// path. This is one row, and the row lock only blocks the same pair (W04 D3).
+model RefCodeCounter {
+  orgEntityId String @map("org_entity_id") @db.Uuid
+  entityType  String @map("entity_type")
+
+  /// Last issued number. The next code is this + 1, allocated atomically by
+  /// UPDATE ... RETURNING (see ref-code.ts).
+  lastSeq Int @default(0) @map("last_seq")
+
+  orgEntity OrgEntity @relation(fields: [orgEntityId], references: [id])
+
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  @@id([orgEntityId, entityType])
+  @@map("ref_code_counters")
+}
+
 /// The one business table this spike needs. Policy was chosen over Risk because
 /// every one of its fields is scalar (02a:189) — Risk carries four FKs to tables
-/// this phase does not build (Asset, Threat, Vulnerability, User).
+/// this phase does not build (Asset, Threat, Vulnerability).
 ///
-/// ⚠️ DELIBERATELY INCOMPLETE, and the omissions are listed rather than left to
-/// be discovered:
-///   - `ref_code`      — needs the <TYPE>-<ENTITY_CODE>-<seq> scheme (02a:103)
-///   - `status`        — needs the state machine in 02a §4 (M5 workflow)
-///   - `owner_user_id` — needs a User table (M4)
-///   - `created_by` / `updated_by` — same
+/// ⚠️ STILL INCOMPLETE, and the omissions are listed rather than left to be
+/// discovered. W04 closed the base-field half; what remains is module work:
+///   - `ref_code`      — DELIVERED in W04, issued by ref_code_counters
+///   - `status`        — DELIVERED in W04 as a column. ⚠️ The TRANSITIONS are
+///                       NOT enforced by anything: any value may be written over
+///                       any other. The state machine in 02a §4 becomes real at
+///                       M5, and until then this column records intent, not a
+///                       guarantee. Do not read its presence as a workflow.
+///   - `owner_user_id` — DELIVERED in W04 (nullable: no assignment path yet)
+///   - `created_by` / `updated_by` — same; users arrive from an IdP at M4, so
+///                       nothing can populate these on the write path today
+///   - `is_active`     — NOT BUILT, deliberately. 02a:98 calls it a derived
+///                       convenience flag; storing it creates a second truth
+///                       that can disagree with retired_at (W04 D2)
 ///   - `extensions`    — DELIVERED in W03 (ADR-0005), see the field below
 ///   - `category`, `effective_date`, `review_due`, `body_ref`,
 ///     `requires_attestation` — the Policy module itself (M6)
-/// This is a scope-verification slice, not a Policy implementation.
 model Policy {
   id String @id @default(uuid()) @db.Uuid
+
+  /// `<TYPE>-<ENTITY_CODE>-<seq>` (02a:103), issued by ref_code_counters.
+  ///
+  /// ⚠️ NEVER caller-supplied. A caller who can choose this value can probe for
+  /// another entity's records: unique constraints are enforced beneath RLS, so a
+  /// collision would answer "does POL-HK1-000007 exist?" to someone who cannot
+  /// see HK1 at all. Issuing it server-side keeps that question unaskable.
+  refCode String @unique @map("ref_code")
 
   /// The whole point of this phase. NOT NULL, FK, and first in the composite
   /// index because scope filtering is the first predicate of every query
@@ -114,6 +200,17 @@ model Policy {
 
   title   String
   version Int    @default(1)
+
+  /// The six states of 02a:300-312. The enum is real; the TRANSITIONS are not
+  /// guarded by anything until M5 — see the block comment above.
+  status PolicyStatus @default(draft)
+
+  /// All three are nullable because M4 owns the only paths that could fill them.
+  /// A NOT NULL here today would mean inventing a user to satisfy a constraint,
+  /// which is worse than an honest absence.
+  ownerUserId String? @map("owner_user_id") @db.Uuid
+  createdBy   String? @map("created_by") @db.Uuid
+  updatedBy   String? @map("updated_by") @db.Uuid
 
   /// Governed local extensions (ADR-0005). Every key must be declared in
   /// `extension_fields`; a database trigger refuses undeclared keys, wrong types
@@ -125,15 +222,33 @@ model Policy {
   /// scope-filtered is a COLUMN, never an extension key.
   extensions Json @default("{}") @db.JsonB
 
-  orgEntity OrgEntity @relation(fields: [orgEntityId], references: [id])
+  orgEntity     OrgEntity @relation(fields: [orgEntityId], references: [id])
+  owner         User?     @relation("PolicyOwner", fields: [ownerUserId], references: [id])
+  createdByUser User?     @relation("PolicyCreatedBy", fields: [createdBy], references: [id])
+  updatedByUser User?     @relation("PolicyUpdatedBy", fields: [updatedBy], references: [id])
 
   createdAt DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
   updatedAt DateTime  @updatedAt @map("updated_at") @db.Timestamptz(6)
-  /// Soft delete (guardrail 3). Records are retired, never hard-deleted.
+  /// Soft delete (guardrail 3) — a RECORD-level marker, and not the same thing
+  /// as `status = retired`, which is a LIFECYCLE state a policy can legitimately
+  /// sit in while still being a live, visible record.
   retiredAt DateTime? @map("retired_at") @db.Timestamptz(6)
 
   @@index([orgEntityId, retiredAt])
   @@map("policies")
+}
+
+/// The lifecycle in 02a:300-312, verbatim. Snake_case labels so the database
+/// enum reads the way the design document writes it.
+enum PolicyStatus {
+  draft
+  in_review
+  approved
+  published
+  under_revision
+  retired
+
+  @@map("policy_status")
 }
 
 enum ExtensionDataType {

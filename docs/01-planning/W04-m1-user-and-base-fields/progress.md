@@ -113,9 +113,83 @@ branch base `65ce121` → closeout commit，`git log` 機械導出。Day 4 retro
 
 ---
 
-## Day 2 — YYYY-MM-DD — 建表與補欄位
+## Day 2 — 2026-08-10 — 建表與補欄位
 
-<待填>
+### 🚩 一個阻塞，以及它揭露的東西
+
+`prisma migrate dev` **拒絕生成 migration**：`20260809075152_entity_scope_spike` 的 checksum
+與資料庫記錄不符，它要求 `migrate reset`（**會 drop `isms_dev`**）。
+
+**沒有照它說的做，先診斷**：
+
+| 檢查 | 結果 |
+|---|---|
+| 是不是 CRLF/LF？ | ❌ **不是** —— raw 與去除 CR 後的 hash 相同，檔案本來就是 LF |
+| 三個 migration 誰不符？ | **只有第一個**（`a5eea1df…` vs DB 的 `ac8d1b35…`）|
+| 檔案被 git 改過嗎？ | ❌ 只有 **1 個 commit**（W02 原始），從未被修改 |
+| 那 `isms_dev` 的 schema 對嗎？ | ✅ **完全正確** —— RLS enabled+forced · 2 個 policy · 2 個函式 · GRANT 無 DELETE |
+
+→ **根因**：W02 當時先 `migrate dev`（記下只含 Prisma 生成 DDL 的 checksum），**再手動編輯**加入
+RLS/GRANT/trigger。後兩個 migration 的 checksum 相符，表示流程之後已經改成先寫完整內容再套用。
+
+⭐ **這暴露了 Day-0 `D-devdb` 的盲點**：我驗了「有沒有套用」（`applied=true`），
+**沒驗「套用的是不是同一份內容」**。`AD-DevDbDrift-1` 的檢查應該包含 checksum 比對。→ 新 AD
+
+**處置**：使用者授權後 `migrate reset` 重建。⚠️ Prisma 有 AI 專用安全閘，
+**明確拒絕接受先前的問答作為同意**，要求把使用者的確切同意文字傳給它 —— 照做了。
+重建後驗證 GRANT / RLS / checksum 三項全部正確。
+
+### 產出
+
+| 檔案 | 內容 |
+|---|---|
+| `schema.prisma` | `model User`（**無 `org_entity_id`**，ADR-0012）· `model RefCodeCounter`（**有** `org_entity_id`）· `enum PolicyStatus`（6 態）· `Policy` +5 欄 |
+| `migrations/20260810185500_user_and_base_fields/` | 表 + RLS + GRANT + **回填 + counter 同步** |
+| `core-model/ref-code.ts` + `.spec.ts` | 發號；`upsert` + `increment` = 單一 SQL 語句 |
+| `core-model/scoped-client.types.ts` | `ScopedRefCodeClient`；`ScopedPolicyClient` 繼承它 |
+| `core-model/policy.repository.ts` | create 路徑發號；**validate 在發號之前** |
+| `test/int-global-setup.js` | users seed + policy ref_code + **counter 由 policies 導出** |
+
+### Issues / Discoveries
+
+- ⭐ **`ref_code NOT NULL` 讓 type checker 指出四個直接繞過 repository 寫 policy 的地方**
+  （`policy.repository.spec.ts` 的 double · `entity-scope.int.spec.ts` ×2 · `policy.int.spec.ts` ×3）。
+  那些是**刻意**繞過應用層去驗 RLS/trigger 的測試，合法 —— 但現在必須明確提供 ref_code。
+  **一個 NOT NULL 欄位比任何 lint 規則都更能列出「誰在繞過 repository」。**
+  → 測試專用號段 **`9xxxxx`**（counter 從 1 遞增，短期不會撞）
+- ⭐ **migration 生成的 `ADD COLUMN ref_code TEXT NOT NULL` 是錯的** ——
+  它在任何**已有列**的表上直接失敗。今天恰好成功，因為 `isms_dev` 剛 reset、`isms_test` 每次重建，
+  **那正是讓錯誤形式看起來正確的條件**。改為 加欄位（nullable）→ 回填 → `SET NOT NULL`
+- ⭐ **回填之後必須同步 counter，否則下一次發號就撞號** —— counter 從 0 開始、
+  回填的第一筆是 000001 → 第一個 API 建立的 policy 拿到 000001 → unique violation，
+  而呼叫者什麼都沒做錯。migration 與 seed **都改成從 `policies` 導出** counter，不寫死
+- ✅ **Day-0 `D-detector-scope` 的擔憂沒有實現** —— `lint:negative` 掃 18 檔、
+  allowlist 仍是 **3**。`ref-code.ts` 走正常的範疇化 client 路徑，不需要 raw query 或 `.connection`。
+  （擔憂的前提是 `user.repository.ts`，而它 Day 1 就砍掉了）
+- ⚠️ **`format:check` 失敗，而 `tail` 顯示的是 web 的成功訊息** ——
+  **是退出碼揭露的**（`FORMAT=1`）。`AD-GrepAssertion-1` 的形狀，這次守住了，
+  因為用的是 `PIPESTATUS[0]` 而不是讀 tail 的輸出
+
+### 元驗證（提前做 —— 測試註解已經宣稱了它）
+
+| 弄壞什麼 | 結果 |
+|---|---|
+| `upsert` 的 `{ increment: 1 }` → 固定 `1`（所有並發拿同一號）| int **2 failed** —— 含並發測試的 `size` 斷言（`policy.int.spec.ts:257`）|
+| 還原 | int **34 passed** |
+
+→ **重號會被抓到，不是「跑起來沒事」**。⛔ 若不做這一步，那條測試註解就是一個未兌現的宣稱。
+
+### Gate
+
+lint **0** · type-check **0** · format **0** · unit **86**（baseline 78 → +8）·
+int **34**（baseline 32 → +2）· web **10** · build **0** · `run_all` **6/6** ·
+`lint:negative` PASS（**18 檔 0 bypass, 3 allowlisted**）·
+coverage **94.11 / 90.42 / 92.45 / 94.76**（baseline 93.69 / 90.21 / 92 / 94.32，**四項全升**）
+
+### Remaining for Next Day
+
+- Day 3：clean restart + API-level 驗證（真進程 + 真 PostgreSQL + 真 RLS）
+- ⛔ Day 3 必驗：**發號在真進程上的行為** —— 今天只在測試進程裡驗過
 
 ---
 
