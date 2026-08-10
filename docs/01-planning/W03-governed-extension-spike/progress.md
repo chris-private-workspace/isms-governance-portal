@@ -107,3 +107,102 @@ CASE-C / CASE-D 沒有這個問題，因為它們在 `BEGIN...COMMIT` 內，
 - probe 腳本留在 scratchpad，**未進版控**（一次性量測）。結論已完整轉錄至上表
 - **效能未量**：trigger 每次寫入要對每個 JSONB key 查一次 catalog。今天資料量是個位數，
   量不出東西 —— 與 `AD-ScopeFnCost-1` 同樣的狀況，寫成 ADR-0005 的可證偽條件
+
+---
+
+## Day 2 — 2026-08-10 — Scoped client DI + repository
+
+### ⭐ 三段拆法的實際形式，與 AD 預測的不同
+
+`AD-ScopedClientDI-1` 記的是「token 在 `api`、型別在 `core-model`、實例由 `entity-scope` 提供」。
+讀 `eslint.config.mjs` 的 MATRIX 之後，實際可行的形式更簡單：
+
+| 事實 | 出處 |
+|---|---|
+| `core-model: ['api', 'core-model']` —— 不能 import `entity-scope` | `eslint.config.mjs` MATRIX |
+| **generated Prisma client 被歸類為 `core-model`**（`apps/api/src/generated/**`）| 同上 ELEMENTS |
+| `api: ['api']` —— 契約層是葉節點，**不能**名 Prisma 型別 | 同上 |
+| `modules` 可同時 import `core-model` 與 `entity-scope` | 同上 |
+
+→ **core-model 宣告它需要的結構型別**（`ScopedPolicyClient`），實例由 `modules` 層傳入。
+沒有 token、沒有 provider、兩個方向都不跨界。同樣手法一個範疇之外已經用過：
+`scoped-prisma.provider.ts:60` 的 `ScopeCarrier` 就是結構宣告，好讓測試 double 能替身。
+
+**token 刻意不建**（checklist 2.1 標 🚧）：它需要 provider，provider 需要 per-request scope，
+per-request scope 需要憑證來源 —— 那是 M4。今天建 = 零消費者的 token = AP-5 + AP-3，
+而 `AD-ScopedClientDI-1` 自己就寫著這句話。
+
+### 元驗證：boundaries 真的在擋
+
+在 `policy.repository.ts` 暫時加 `import { ScopedPrismaFactory } from '../entity-scope/…'`：
+
+```
+error  There is no policy allowing dependencies from elements of type
+       "core-model" to elements of type "entity-scope"   boundaries/dependencies
+lint_exit=1
+```
+
+→ 還原後 lint=0。**錯誤訊息指名了兩個範疇**，符合 CLAUDE.md 的宣稱。
+
+### Migration：Prisma 拒絕產生，原因是一個既有 drift
+
+`prisma migrate dev --create-only` 失敗：
+
+```
+The migration `20260809075152_entity_scope_spike` was modified after it was applied.
+We need to reset the "public" schema
+```
+
+W02 把 RLS 手寫進那個 migration（CH-014 明記「同一個 migration」），套用後檔案又被改過，
+本機 `isms_dev` 的 checksum 因此不符。
+
+**未 reset，也不需要**：整合測試對全新的 `isms_test` 跑 `migrate deploy`
+（`int-global-setup.js:56-61` DROP/CREATE/migrate），而 `deploy` **不做 drift 檢測** ——
+migration 的正確性由它驗證。migration 目錄與 SQL 因此手寫。
+⚠️ **本機 dev DB 的 migration 歷史仍不一致**，Day 4 記入 BACKLOG。
+
+### Migration 驗證：測試通過只證明「沒壞」
+
+20/20 整合測試通過只說明既有行為未受影響。新物件是**直接查目錄**確認的：
+
+| 物件 | 實測 |
+|---|---|
+| `extension_fields` | `rls=true forced=true` |
+| catalog policy | `USING = (org_entity_id IS NULL OR = ANY(app_entity_scope()))` |
+| catalog policy | `WITH CHECK = (org_entity_id = ANY(app_entity_scope()))` —— **刻意窄於 USING** |
+| trigger | `policies_validate_extensions on policies args=policy` |
+| partial unique | `extension_fields_global_key` + `extension_fields_entity_key` |
+| 欄位 | `extensions jsonb NOT NULL default '{}'` |
+
+**USING 寬於 WITH CHECK 是設計而非疏漏**：讀得到全域宣告（否則沒人能用），
+但**不能替全體宣告全域欄位** —— 那不是單一 OpCo 有權做的事。
+
+### ⚠️ 我又犯了 `AD-GrepAssertion-1`（第 7 次）
+
+跑 gate 時寫了 `npm run lint:negative -w apps/api 2>&1 | tail -3; echo "negative=$?"` ——
+`$?` 抓到的是 **`tail` 的退出碼**，不是 npm 的。npm 其實報了
+「script 不存在」（`lint:negative` 在**根目錄** package.json，不在 `apps/api`），
+而我印出了 `negative=0`。
+
+同一個 phase 內第 3 次「證據不支持結論」（Day 0 `D-probe-setup`、Day 1 Q1 的
+transaction 外 SELECT、本次）。**共同結構：拿一個便宜的代理指標去回答需要看真實輸出的問題。**
+修法：`cmd >/dev/null 2>&1; echo $?`，不要 pipe 之後再取 `$?`。
+
+### Today's Accomplishments
+
+- 2.0 schema（`Policy.extensions` + `ExtensionField`）+ migration（DDL + 兩個 partial unique
+  + catalog RLS + trigger，**同一個 migration**）
+- 2.1 `core-model/scoped-client.types.ts` —— 結構型別（token 標 🚧）
+- 2.2 `policy.repository.ts` · `extension-validator.ts` + 兩個 spec
+
+### Gate
+
+lint 0 · type-check 0 · format 0 · **unit 48**（baseline 33 → **+15**）·
+coverage **96.99/88.23/91.17/97.29**（baseline 95.95/82.35/88/96.29，四項全升）·
+`extension-validator.ts` 與 `policy.repository.ts` 皆 **100%** ·
+int 20 · build 0 · `run_all` 6/6 · `lint:negative` PASS · `assert-no-scope-bypass` PASS（13 檔 0 旁路）
+
+### Remaining for Day 3
+
+- ⛔ **需先確認範圍**：`/policies` endpoint 的 scope 從哪來？今天沒有 identity（M4），
+  而約束 8 鐵律 3 規定 scope **只能**來自憑證／session。三個選項待使用者拍板，見下方

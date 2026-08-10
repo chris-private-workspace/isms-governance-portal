@@ -69,28 +69,46 @@
 
 ## Day 2 — Scoped client DI + repository (US-2)
 
+### 2.0 Schema + migration（**checklist 起草時遺漏，Day 2 補入**）
+
+> plan §4 第 1-2 項有 `schema.prisma` EDIT 與 migration NEW，但 checklist 起草時
+> **沒有對應任務**。repository 沒有 `extensions` 欄位就無事可做，故補在 2.1 之前。
+
+- [x] **`schema.prisma`：`Policy.extensions` + `model ExtensionField`**
+  - DoD: catalog 的 `orgEntityId` **nullable**（NULL = 全域，Day 1 實測的形狀）
+  - Verify: `npx prisma validate`
+- [x] **migration：JSONB 欄位 + catalog 表 + RLS + trigger 同一個 migration**
+  - DoD: ADR-0004 的規則 —— **沒有任何窗口讓列不受治理**
+  - Verify: `npm run prisma:migrate -w apps/api` 後查 `pg_policies` 與 `pg_trigger`
+
 ### 2.1 DI token 三段拆法
 
-- [ ] **`contracts/scoped-prisma.token.ts`**（token 在 `api`）
-  - DoD: 型別住 `core-model`、實例由 `entity-scope` 提供 —— 三個範疇各司其職
+- [ ] 🚧 **阻塞（刻意不做）：`contracts/scoped-prisma.token.ts`** ——
+      Day 2 量到今天建它就是 **零消費者的 DI token = AP-5 + AP-3**，
+      而 `AD-ScopedClientDI-1` 自己就寫著「⛔ 現在建 = 零消費者的 DI token」。
+      **解封條件：M4 有真的憑證來源之後**，request-scoped provider 才有東西可注入。
+      Day 2 實際交付的是下一項（結構型別 + 參數傳遞），它在 boundaries 下**可行且已驗證**
+- [x] **`core-model` 宣告它需要的結構型別，實例由 `modules` 層傳入**
+  - DoD: `core-model` 全程**不 import `entity-scope`**；型別用 generated Prisma
+        （matrix 已將 `apps/api/src/generated/**` 歸為 `core-model`，所以合法）
   - Verify: `npm run lint -w apps/api`（`eslint-plugin-boundaries` 對跨範疇 import 開火）
 
 ### 2.2 PolicyRepository
 
-- [ ] **`core-model/policy.repository.ts` 經 DI 取得範疇化 client**
+- [x] **`core-model/policy.repository.ts` 經 DI 取得範疇化 client**
   - DoD: **不持有裸 client**；所有 operation 經 `runScoped`
   - Verify: `node scripts/assert-no-scope-bypass.mjs`（三條規則 + self-test 皆綠）
-- [ ] **`core-model/extension-validator.ts` —— catalog 驅動的寫入驗證**
+- [x] **`core-model/extension-validator.ts` —— catalog 驅動的寫入驗證**
   - DoD: 不在 catalog 的 key、型別不符的值、缺 required 欄位 → 三種皆拒
   - Verify: `npm run test -w apps/api`
-- [ ] **單元測試含負面案例**
+- [x] **單元測試含負面案例**
   - DoD: `policy.repository.spec.ts` 斷言空 scope 時 operation **從未被呼叫**；
         `extension-validator.spec.ts` 三種拒絕各一
   - Verify: `npm run test:cov -w apps/api`（覆蓋率門檻）
 
 ### 2.x Full gate
 
-- [ ] lint 0 · type-check 0 · format 0 · unit test ≥ 33 · build clean · `run_all` 6/6 ·
+- [x] lint 0 · type-check 0 · format 0 · unit test ≥ 33 · build clean · `run_all` 6/6 ·
       `lint:negative` PASS
 
 ---
