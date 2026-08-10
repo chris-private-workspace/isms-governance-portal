@@ -19,12 +19,14 @@
  *
  * Key Components:
  *   - PERMISSIONS_POLICY: the one header helmet has no option for
+ *   - CACHE_CONTROL: the no-store policy and the reasoning that makes it global
  *   - applySecurity(app): the whole surface; main.ts and the spec both call it
  *
  * Created: 2026-08-09 (CH-012)
- * Last Modified: 2026-08-09
+ * Last Modified: 2026-08-10
  *
  * Modification History (newest-first):
+ *   - 2026-08-10: Add Cache-Control (Phase W03) — closes AD-CacheControl-1
  *   - 2026-08-09: Initial creation (CH-012) — extracted from main.ts, plus Permissions-Policy
  */
 import type { INestApplication } from '@nestjs/common';
@@ -46,6 +48,34 @@ type HeaderWritable = { setHeader(name: string, value: string): void };
  * need to differ, that is a decision to write down, not a drift to discover.
  */
 export const PERMISSIONS_POLICY = 'camera=(), microphone=(), geolocation=()';
+
+/**
+ * `16:22` — "sensitive pages and API responses use no-store, private".
+ *
+ * ⚠️ The header is the easy half. AD-CacheControl-1 was deferred in CH-012
+ * because the hard half is the RULE: what counts as sensitive here? Deciding
+ * that per endpoint means a list, a list means maintenance, and the direction
+ * a stale list fails in is disclosure.
+ *
+ * The rule this project adopts instead, decided 2026-08-10:
+ *
+ *   The question is not "is this endpoint sensitive?" but "is this response
+ *   entity-scoped?" — and CLAUDE.md 約束 8 requires EVERY business record to be
+ *   entity-scoped, so for any endpoint that returns records the answer is always
+ *   yes. Entity-scoped means "this belongs to one OpCo and not the others",
+ *   which is the definition of something a shared cache must not hold.
+ *
+ *   The only responses that are not entity-scoped are the ones carrying no
+ *   records at all — /health's liveness and the OpenAPI schema — and caching a
+ *   liveness probe has negative value anyway.
+ *
+ *   Therefore: GLOBAL no-store, private, with NO exception list. An exception
+ *   list would have to be maintained, and this way there is nothing to forget.
+ *
+ * If a genuinely public, cacheable endpoint ever appears, it must set its own
+ * header explicitly and say why in a change record — the default stays closed.
+ */
+export const CACHE_CONTROL = 'no-store, private';
 
 /**
  * Apply every transport-level security decision.
@@ -95,6 +125,10 @@ export function applySecurity(app: INestApplication): void {
   // survived W01 precisely because nothing enumerated `16` against the wire.
   app.use((_request: unknown, response: HeaderWritable, next: () => void) => {
     response.setHeader('Permissions-Policy', PERMISSIONS_POLICY);
+    // Set here rather than per-controller, deliberately: a per-endpoint decorator
+    // is a thing someone can forget on the one endpoint that mattered. See the
+    // CACHE_CONTROL comment for why there is no exception list.
+    response.setHeader('Cache-Control', CACHE_CONTROL);
     next();
   });
 

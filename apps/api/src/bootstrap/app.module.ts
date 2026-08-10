@@ -7,16 +7,17 @@
  * Description:
  *   The composition root is the one place allowed to reach across all scopes,
  *   because assembling them is its whole job (eslint.config.mjs encodes that).
- *   It imports two: health, and entity-scope — which W02 gave real code, so it
- *   stopped being one of the empty directories. The remaining six stay empty on
+ *   It imports three: health, entity-scope (W02) and policy (W03) — the two
+ *   scope directories that have real code. The remaining five stay empty on
  *   purpose: an empty NestJS module answers "nothing" to AP-3's question "what
  *   breaks if you switch it off", so each is created when its scope receives
  *   real code.
  *
  * Created: 2026-08-08 (Phase W01)
- * Last Modified: 2026-08-09
+ * Last Modified: 2026-08-10
  *
  * Modification History (newest-first):
+ *   - 2026-08-10: Import PolicyModule — the first business endpoint (W03)
  *   - 2026-08-09: Import EntityScopeModule now that the scope has code (W02)
  *   - 2026-08-08: Initial creation (Phase W01)
  */
@@ -25,6 +26,7 @@ import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { EntityScopeModule } from '../entity-scope/entity-scope.module';
 import { HealthModule } from '../health/health.module';
+import { PolicyModule } from '../modules/policy/policy.module';
 
 // One .env at the monorepo root. `npm run dev -w apps/api` sets cwd to
 // apps/api, so the root file has to be named explicitly — the default lookup
@@ -36,6 +38,7 @@ const ENV_FILES = [resolve(process.cwd(), '.env'), resolve(process.cwd(), '../..
     ConfigModule.forRoot({ isGlobal: true, envFilePath: ENV_FILES }),
     EntityScopeModule,
     HealthModule,
+    PolicyModule,
   ],
 })
 export class AppModule {}

@@ -120,36 +120,36 @@ _(本 phase 無 user-facing surface，故 drive-through **N/A**。收尾一律�
 
 ### 3.1 Clean restart
 
-- [ ] **殺掉陳舊 dev server / 孤兒 worker，確認新程序是 3210 的唯一擁有者**
+- [ ] 🚧 **阻塞（待使用者許可）：殺掉陳舊 dev server / 孤兒 worker，確認新程序是 3210 的唯一擁有者**
   - DoD: 列程序看 PID/PPID/StartTime，任何父程序已死或 StartTime 早於本次重啟者強制殺掉
   - Verify: 擷取證明 `PolicyModule` 已載入的 startup log 行（見 `local-runtime-ops.md`）
 
 ### 3.2 第一個業務端點
 
-- [ ] **`GET /policies` · `POST /policies`**
+- [x] **`GET /policies` · `POST /policies`**
   - DoD: 範疇**只能**來自 session/憑證（約束 8 鐵律 3）；查無資料回 **404** 不回 403
   - Verify: `npm run test:int -w apps/api`
-- [ ] **Cache-Control 政策**（關 `AD-CacheControl-1`）
+- [x] **Cache-Control 政策**（關 `AD-CacheControl-1`）
   - DoD: 業務 API 回應 `no-store, private`；⚠️ **「什麼算 sensitive」的判準已寫成文字**，
         不是只加一個 header
   - Verify: `security.spec.ts` 逐條斷言（模仿 `16:21` 四標頭的既有寫法）
 
 ### 3.3 約束 8 四個範疇測試
 
-- [ ] **跨實體讀拒 / 跨實體寫拒且資料未變 / RLS 層獨立成立 / 滾升角色只見授權子樹**
+- [x] **跨實體讀拒 / 跨實體寫拒且資料未變 / RLS 層獨立成立 / 滾升角色只見授權子樹**
   - DoD: 四項各一個測試；RLS 那項**完全不經應用層**（模仿 `rls-direct.int.spec.ts`）
   - Verify: `npm run test:int -w apps/api`
 
 ### 3.4 並行範疇汙染常駐測試（關 `AD-ScopeConcurrency-1`）
 
-- [ ] **兩個不同範疇的 client 交錯查詢 N 次，各自只見己列**
+- [x] **兩個不同範疇的 client 交錯查詢 N 次，各自只見己列**
   - DoD: 常駐整合測試（非 scratchpad）；**先斷言角色前提**再跑
   - Verify: `npm run test:int -w apps/api`
 
 ### 3.5 元驗證（spike 強制 —— 每個宣稱會擋東西的機制都弄壞一次）
 
-- [ ] **catalog 驗證中性化 → 非法擴充欄位應被放行 → 測試紅** → 還原 → 綠
-- [ ] **RLS policy → `USING (true)` → 範疇測試紅** → 還原 → 綠
+- [x] **catalog 驗證中性化 → 非法擴充欄位應被放行 → 測試紅** → 還原 → 綠
+- [x] **RLS policy → `USING (true)` → 範疇測試紅** → 還原 → 綠
   - DoD: 兩次「弄壞 → 紅 → 還原 → 綠」的實際輸出（含紅了幾個）記入 progress.md
   - Verify: 每次都跑 `npm run test:int -w apps/api` 並記退出碼
 

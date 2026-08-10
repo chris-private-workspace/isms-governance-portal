@@ -35,13 +35,62 @@ const SEED = {
   entities: [
     ['00000000-0000-0000-0000-0000000000a0', 'APAC', 'APAC', 'region', null, '/apac'],
     ['00000000-0000-0000-0000-0000000000b0', 'SG', 'Singapore', 'country', 'APAC', '/apac/sg'],
-    ['00000000-0000-0000-0000-0000000000c0', 'SG1', 'SG OpCo 1', 'legal_entity', 'SG', '/apac/sg/sg1'],
+    [
+      '00000000-0000-0000-0000-0000000000c0',
+      'SG1',
+      'SG OpCo 1',
+      'legal_entity',
+      'SG',
+      '/apac/sg/sg1',
+    ],
     ['00000000-0000-0000-0000-0000000000b1', 'HK', 'Hong Kong', 'country', 'APAC', '/apac/hk'],
-    ['00000000-0000-0000-0000-0000000000c1', 'HK1', 'HK OpCo 1', 'legal_entity', 'HK', '/apac/hk/hk1'],
+    [
+      '00000000-0000-0000-0000-0000000000c1',
+      'HK1',
+      'HK OpCo 1',
+      'legal_entity',
+      'HK',
+      '/apac/hk/hk1',
+    ],
   ],
   policies: [
-    ['00000000-0000-0000-0000-0000000000f0', '00000000-0000-0000-0000-0000000000c0', 'SG1 access control policy'],
-    ['00000000-0000-0000-0000-0000000000f1', '00000000-0000-0000-0000-0000000000c1', 'HK1 access control policy'],
+    [
+      '00000000-0000-0000-0000-0000000000f0',
+      '00000000-0000-0000-0000-0000000000c0',
+      'SG1 access control policy',
+    ],
+    [
+      '00000000-0000-0000-0000-0000000000f1',
+      '00000000-0000-0000-0000-0000000000c1',
+      'HK1 access control policy',
+    ],
+  ],
+  // W03 (ADR-0005). Seeded through the OWNER connection on purpose: a global
+  // declaration (org_entity_id NULL) cannot be written through a scoped client,
+  // because the catalog's WITH CHECK requires org_entity_id = ANY(scope). That
+  // is the design — declaring a field for the whole group is not something one
+  // OpCo may do on everyone's behalf — and it means group-wide rows arrive by
+  // migration or admin path, which here is this seed.
+  extensionFields: [
+    // [id, orgEntityId, entityType, key, dataType, required]
+    ['00000000-0000-0000-0000-0000000000e0', null, 'policy', 'reviewCycle', 'string', false],
+    ['00000000-0000-0000-0000-0000000000e1', null, 'policy', 'cycleCount', 'number', false],
+    [
+      '00000000-0000-0000-0000-0000000000e2',
+      '00000000-0000-0000-0000-0000000000c0',
+      'policy',
+      'sgRegRef',
+      'string',
+      false,
+    ],
+    [
+      '00000000-0000-0000-0000-0000000000e3',
+      '00000000-0000-0000-0000-0000000000c1',
+      'policy',
+      'hkRegRef',
+      'string',
+      false,
+    ],
   ],
 };
 
@@ -64,7 +113,9 @@ module.exports = async function globalSetup() {
     encoding: 'utf8',
   });
   if (migrate.status !== 0) {
-    throw new Error(`prisma migrate deploy failed on ${TEST_DB}:\n${migrate.stdout}${migrate.stderr}`);
+    throw new Error(
+      `prisma migrate deploy failed on ${TEST_DB}:\n${migrate.stdout}${migrate.stderr}`,
+    );
   }
 
   const seed = new Client({ connectionString: owner });
@@ -81,6 +132,13 @@ module.exports = async function globalSetup() {
     await seed.query(
       'INSERT INTO policies (id, org_entity_id, title, updated_at) VALUES ($1, $2, $3, now())',
       [id, orgEntityId, title],
+    );
+  }
+  for (const [id, orgEntityId, entityType, key, dataType, required] of SEED.extensionFields) {
+    await seed.query(
+      `INSERT INTO extension_fields (id, org_entity_id, entity_type, key, data_type, required, updated_at)
+       VALUES ($1, $2, $3, $4, $5::extension_data_type, $6, now())`,
+      [id, orgEntityId, entityType, key, dataType, required],
     );
   }
   await seed.end();
@@ -104,5 +162,7 @@ module.exports = async function globalSetup() {
     );
   }
 
-  console.log(`\n[int] ${TEST_DB} rebuilt, migrated and seeded; app role ${role.rolname} is least-privilege.`);
+  console.log(
+    `\n[int] ${TEST_DB} rebuilt, migrated and seeded; app role ${role.rolname} is least-privilege.`,
+  );
 };

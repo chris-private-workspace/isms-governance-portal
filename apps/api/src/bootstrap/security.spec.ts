@@ -28,7 +28,7 @@
  */
 import { Controller, Get, type INestApplication, Module } from '@nestjs/common';
 import { NestFactory } from '@nestjs/core';
-import { PERMISSIONS_POLICY, applySecurity } from './security';
+import { CACHE_CONTROL, PERMISSIONS_POLICY, applySecurity } from './security';
 
 @Controller('probe')
 class ProbeController {
@@ -97,6 +97,23 @@ describe('applySecurity', () => {
     ['referrer-policy', 'no-referrer'],
   ])('sets %s', (header, expected) => {
     expect(headers.get(header)).toBe(expected);
+  });
+
+  // `16:22` — no-store, private. Asserted separately from the four above because
+  // the rule behind it is different in kind: those are fixed header values, this
+  // one is a POLICY decision (AD-CacheControl-1) that every response is
+  // entity-scoped and therefore uncacheable. See security.ts §CACHE_CONTROL.
+  //
+  // The negative half matters more than the positive: `no-store` must be present
+  // and nothing may weaken it with a max-age.
+  it('forbids caching on every response, with no max-age escape hatch', () => {
+    const value = headers.get('cache-control');
+
+    expect(value).toBe(CACHE_CONTROL);
+    expect(value).toContain('no-store');
+    expect(value).toContain('private');
+    expect(value).not.toMatch(/max-age/);
+    expect(value).not.toContain('public');
   });
 
   describe('CORS', () => {
