@@ -273,6 +273,41 @@ describe('risk module (integration)', () => {
   });
 
   /**
+   * ⭐ ADDED BECAUSE META-VERIFICATION FOUND NOTHING RED.
+   *
+   * W05 Day 3 neutralised all three new RLS policies to USING(true)/WITH
+   * CHECK(true) and test 11 still passed — because repo.create() reaches
+   * ref_code_counters FIRST, and that table's policy is W04's, untouched. Test
+   * 11 therefore proves the counter refuses, not that `risks` does.
+   *
+   * This one writes through the client directly, with no reference code, so the
+   * only thing that can refuse it is the risks policy itself. Without it, the
+   * write-side half of 約束 8 on this table has no coverage at all — and the
+   * gate would have stayed green while it was removed.
+   */
+  it('11b. the risks policy refuses a cross-entity write on its own, without the counter', async () => {
+    const sg1 = await clientFor(['SG1']);
+
+    await expect(
+      sg1.risk.create({
+        data: {
+          orgEntityId: HK1,
+          refCode: 'RISK-HK1-PLANTED-1',
+          title: 'planted straight into the table',
+          assetId: HK1_ASSET,
+          threatId: THREAT,
+          vulnerabilityId: VULN,
+          ciaType: 'c',
+        },
+      }),
+    ).rejects.toThrow(/row-level security/i);
+
+    // And nothing landed, read back from the scope that would own it.
+    const hk1 = await repo.list(await clientFor(['HK1']));
+    expect(hk1.map((r) => r.refCode)).not.toContain('RISK-HK1-PLANTED-1');
+  });
+
+  /**
    * ⭐ The refusal point W05 discovered. Everything here is in scope EXCEPT the
    * asset, so RLS's WITH CHECK passes and the composite foreign key is what
    * refuses. Before this phase every refusal on the write path was 42501.

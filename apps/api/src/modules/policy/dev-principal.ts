@@ -36,9 +36,10 @@
  *   - DEV_PRINCIPAL_MARKER: what every response carries so nobody reads it as real
  *
  * Created: 2026-08-10 (Phase W03)
- * Last Modified: 2026-08-10
+ * Last Modified: 2026-08-11
  *
  * Modification History (newest-first):
+ *   - 2026-08-11: Stop naming one endpoint in the boot warning (W05) — /risks too
  *   - 2026-08-10: Initial creation (Phase W03) — removed by M4, not extended
  *
  * Related:
@@ -76,11 +77,20 @@ export function assertDevPrincipalAllowed(): void {
   }
 }
 
-/** Logged once at boot so a running server never silently looks authenticated. */
+/**
+ * Logged once at boot so a running server never silently looks authenticated.
+ *
+ * ⚠️ It does NOT name the endpoints it covers, and that is deliberate. The W03
+ * version said "/policies", which was true then and became a narrower claim than
+ * the truth the moment W05 added /risks — a warning that under-reports its own
+ * reach is worse than one that is vague, because a reader takes the omission as
+ * information. Every endpoint scoped by this stub is covered; listing them is a
+ * list that would go stale again with the next module.
+ */
 export function warnDevPrincipalActive(): void {
   assertDevPrincipalAllowed();
   logger.warn(
-    `DEV PRINCIPAL ACTIVE — /policies is scoped by a hard-coded assignment (${entityCodes().join(', ')}), not by any credential. This must not reach a deployed environment.`,
+    `DEV PRINCIPAL ACTIVE — EVERY entity-scoped endpoint is scoped by a hard-coded assignment (${entityCodes().join(', ')}), not by any credential. This must not reach a deployed environment.`,
   );
 }
 

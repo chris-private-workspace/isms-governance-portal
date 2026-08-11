@@ -214,31 +214,67 @@ _(⚪ **無 user-facing surface** → drive-through 不適用。一律標 **API-
 
 ### 3.1 Clean restart
 
-- [ ] **殺掉陳舊 dev server / 孤兒 worker，確認新程序是該 port 唯一擁有者**
+- [x] **殺掉陳舊 dev server / 孤兒 worker，確認新程序是該 port 唯一擁有者**
   - DoD: 驗「活著的服務程序」不是「port 擁有者 PID」（Risk Class C 加強版）
   - Verify: 擷取證明 wiring 生效的 startup log 行（`RiskModule` 載入 + 路由 mapped）
   - ⚠️ **殺之前確認那是不是我開的** —— W04 在 port 3200 遇到非本 session 的程序，正確地沒碰它
-- [ ] **`isms_dev` 套用本 phase 的 migration 並重新 seed 資產鏈**
+  - → 列出**所有** node 進程查 PID/PPID/StartTime，不只看 port 擁有者。
+    port 3200 那組**啟動於 2026-08-08，不是我開的 → 全程未碰**（與 W04 同一個判斷）。
+    3210 無人監聽，乾淨起。Startup log：`RiskModule dependencies initialized` +
+    `Mapped {/risks, GET}` + `Mapped {/risks, POST}`，PID 7364 為唯一擁有者
+  - → ⭐ **另外抓到一個握著 advisory lock 的孤兒**：我自己 10:50 的 `migrate dev`
+    卡在**互動式 drift 提示**上（migration 已套用、`dbgenerated` 鏡像未補的那個窗口）。
+    **Day-1 R1 預測的失效模式真的發生了一次** → 該窗口應用 `migrate deploy` 不用 `migrate dev`
+- [x] **`isms_dev` 套用本 phase 的 migration 並重新 seed 資產鏈**
   - DoD: ⭐ **在 reset 過的庫上驗**（`AD-DbBuildPathParity-1`：CI 的庫從 template1 繼承權限，
     所以 CI 綠**不涵蓋** GRANT 相關缺陷）
+  - → ⛔ **不 reset `isms_dev`**（破壞性操作需使用者當下明確文字）。改在 throwaway 庫上
+    **精確重現 reset 路徑**：`DROP SCHEMA public CASCADE` → ACL 變 `(null)`、
+    `isms_app` USAGE = **f**（W04 撞 500 的那個狀態）→ `migrate deploy` → USAGE **t** / CREATE **f**，
+    五張表權限逐張如設計。**同一份證據，零風險**
+  - → ⚠️ 我一度判讀「template1 沒給 `isms_app` 任何東西」，**讀 AD 全文才發現 `=U` 就是那條繼承**。
+    第三次「證據不支持結論」的自我攔截
+  - → ⭐ 順帶量到 **AD 提議的守衛放錯位置**：`isms_test` 走 `CREATE DATABASE`，
+    那條 `has_schema_privilege` 斷言會靠繼承權限輕鬆通過 → 回填 BACKLOG
 
 ### 3.2 API-level 驗證
 
-- [ ] **對真進程走完 `Risk` 主路徑**，逐案例記 observed-vs-intended
+- [x] **對真進程走完 `Risk` 主路徑**，逐案例記 observed-vs-intended
   - DoD: 至少涵蓋 —— 建立（分數由伺服器算）· 讀取 · 跨實體 404 · 不存在的 asset_id ·
     `score >= 16` 時 `in_it_risk_register` 為 true · 邊界值 15/16
   - Verify: 案例表寫進 progress.md Day 3
-- [ ] **oracle 探測**：不存在的實體 id 與不屬於你的實體 id **回同一個答案**
+  - → **13 個案例**（A1-A13）全部記入 progress §3.c，含 HTTP 碼與實際 body。
+    ⚪ 一律標 **API-level verified**，不暗示可用性
+  - → ⛔ **第一版腳本無效且印出來像通過的**：PowerShell hashtable `+` 遇重複鍵 throw，
+    四個案例根本沒執行而 `$r` 保留上一輪值。**它甚至印了 `A8 == A9 ? True`** ——
+    在比較同一個陳舊值的兩份拷貝。修法是結構性的（clone-and-overwrite + 每案 nonce），
+    不是「小心一點」
+- [x] **oracle 探測**：不存在的實體 id 與不屬於你的實體 id **回同一個答案**
   - DoD: 除 id 外逐字相同（比照 W03 案例 2b / W04 案例 #6）
   - ⚠️ **拒絕點這次可能又移動了**（發號 vs FK vs RLS）—— 記下它**這次落在哪**
+  - → **這次落在複合 FK（23503）**，不是發號也不是 RLS：row 自己的實體在範疇內，
+    RLS 的 `WITH CHECK` 通過。A8（別人的資產）· A9（不存在的資產）· A13（不存在的威脅）
+    **三者 body 逐字相同**，且不洩漏是三個參照裡的哪一個
+  - → A7（row 自己出範疇）仍走 RLS/42501，訊息與 A8 不同 —— **那不是 oracle**：
+    兩句都沒回答「它存不存在」
 
 ### 3.3 元驗證（US-5 —— `AD-NegativeGate-1` 第 8 個實例）
 
-- [ ] **把本 phase 每個「宣稱會擋東西」的機制各中性化一次**
+- [x] **把本 phase 每個「宣稱會擋東西」的機制各中性化一次**
   - DoD: 每次都記「弄壞什麼 → 幾個測試紅 → 還原 → 綠」。
     ⭐ **若某個機制弄壞後沒有東西紅，那就是缺口不是通過**
   - Verify: 表格記入 progress.md Day 3
   - 至少三組：**評分公式**（MAX→SUM）· **三張表的 RLS** · **derived 欄位的一致性機制**
+  - → **做了四組**：M1 公式 MAX→SUM **4 紅** · M2 三張表 RLS→`USING(true)` **3 紅** ·
+    M3 all-or-none CHECK→`CHECK(true)` **1 紅** · M4 複合 FK→單欄 FK **2 紅**
+  - → ⭐⭐ **M2 找到真缺口**：RLS 全中性化後**測試 11 竟然還是綠的** ——
+    寫入路徑先經 `issueRefCode`，拒絕它的是 W04 的 `ref_code_counters` policy，
+    **不是 `risks` 自己的**。`risks` 的 `WITH CHECK` 零覆蓋，拿掉它全部 gate 仍綠。
+    **W04「發號路徑成了別人保證的一部分」同形狀第 2 次**
+  - → **修而不只是記**：新增 int 11b（繞開 repository、不帶 ref_code、直接寫），
+    **在 M2 仍中性化的狀態下重跑 → 11b 轉紅**（M2 由 3 紅變 4 紅）= 缺口關上**且證明關上了**
+  - → **還原驗證**：`git checkout` 後與中性化前副本**逐位元組相同**，
+    `isms_dev` 的 `_prisma_migrations.checksum` 與檔案 SHA256 **仍相符**（`0ae3cd1e…`）
 
 ---
 
