@@ -20,9 +20,10 @@
  *   never once applied. Asserting the premise costs one query.
  *
  * Created: 2026-08-09 (Phase W02)
- * Last Modified: 2026-08-10
+ * Last Modified: 2026-08-11
  *
  * Modification History (newest-first):
+ *   - 2026-08-11: Phase W05 — the asset chain, two entities deep, plus libraries
  *   - 2026-08-10: Phase W04 — users, policy ref_code, counters derived from seed
  *   - 2026-08-10: Phase W03 — extension catalog seeded via the owner connection
  *   - 2026-08-09: Initial creation (Phase W02)
@@ -122,6 +123,63 @@ const SEED = {
       'string',
       false,
     ],
+    // W05. Declared for `risk` so the extension path has a second entity type to
+    // prove it is keyed by entity_type and not merely working for policies.
+    ['00000000-0000-0000-0000-0000000000e4', null, 'risk', 'riskAppetite', 'string', false],
+  ],
+  // W05. BOTH entities get a group and an asset. One-sided fixtures are how an
+  // isolation suite passes while proving nothing: with only SG1 data, "HK1
+  // cannot see SG1's asset" and "HK1 has no assets" are the same observation.
+  assetGroups: [
+    // [id, orgEntityId, refCode, name, assetCategory]
+    [
+      '00000000-0000-0000-0000-000000000a10',
+      '00000000-0000-0000-0000-0000000000c0',
+      'AGRP-SG1-000001',
+      'SG1 core platform',
+      'software',
+    ],
+    [
+      '00000000-0000-0000-0000-000000000a11',
+      '00000000-0000-0000-0000-0000000000c1',
+      'AGRP-HK1-000001',
+      'HK1 core platform',
+      'software',
+    ],
+  ],
+  assets: [
+    // [id, orgEntityId, refCode, name, assetGroupId, assetCategory, classification]
+    [
+      '00000000-0000-0000-0000-000000000a20',
+      '00000000-0000-0000-0000-0000000000c0',
+      'AST-SG1-000001',
+      'SG1 payments API',
+      '00000000-0000-0000-0000-000000000a10',
+      'software',
+      'confidential',
+    ],
+    [
+      '00000000-0000-0000-0000-000000000a21',
+      '00000000-0000-0000-0000-0000000000c1',
+      'AST-HK1-000001',
+      'HK1 payments API',
+      '00000000-0000-0000-0000-000000000a11',
+      'software',
+      'confidential',
+    ],
+  ],
+  // Global libraries (multi-tenant-data.md:63) — no org_entity_id, and that is
+  // the property the suite pins: BOTH entities must read the same rows.
+  threats: [
+    ['00000000-0000-0000-0000-000000000a30', 'Unauthorized Logical Access', 'access'],
+    ['00000000-0000-0000-0000-000000000a31', 'Espionage and Intellectual Theft', 'espionage'],
+  ],
+  vulnerabilities: [
+    [
+      '00000000-0000-0000-0000-000000000a40',
+      'Insufficient Visitor Control and Monitoring',
+      'physical',
+    ],
   ],
 };
 
@@ -173,12 +231,59 @@ module.exports = async function globalSetup() {
       [id, orgEntityId, title, refCode, ownerUserId],
     );
   }
+  for (const [id, orgEntityId, refCode, name, assetCategory] of SEED.assetGroups) {
+    await seed.query(
+      `INSERT INTO asset_groups (id, org_entity_id, ref_code, name, asset_category, updated_at)
+       VALUES ($1, $2, $3, $4, $5::asset_category, now())`,
+      [id, orgEntityId, refCode, name, assetCategory],
+    );
+  }
+  for (const [
+    id,
+    orgEntityId,
+    refCode,
+    name,
+    assetGroupId,
+    assetCategory,
+    classification,
+  ] of SEED.assets) {
+    await seed.query(
+      `INSERT INTO assets (id, org_entity_id, ref_code, name, asset_group_id,
+                           asset_category, classification, updated_at)
+       VALUES ($1, $2, $3, $4, $5, $6::asset_category, $7::asset_classification, now())`,
+      [id, orgEntityId, refCode, name, assetGroupId, assetCategory, classification],
+    );
+  }
+  for (const [id, name, category] of SEED.threats) {
+    await seed.query(
+      `INSERT INTO threats (id, name, category, updated_at) VALUES ($1, $2, $3, now())`,
+      [id, name, category],
+    );
+  }
+  for (const [id, name, category] of SEED.vulnerabilities) {
+    await seed.query(
+      `INSERT INTO vulnerabilities (id, name, category, updated_at) VALUES ($1, $2, $3, now())`,
+      [id, name, category],
+    );
+  }
   // Derived, not declared: the counter must reflect what was just seeded, and
   // the only way to guarantee that is to compute it from those rows. Identical
   // to the backfill in 20260810185500_user_and_base_fields for the same reason.
+  //
+  // ⚠️ W05 adds two more counted types. `risk` is deliberately NOT seeded — no
+  // risks exist yet, so its counter starts absent and issueRefCode's upsert
+  // creates it. That path (first-ever code for a type) had no coverage before.
   await seed.query(
     `INSERT INTO ref_code_counters (org_entity_id, entity_type, last_seq, updated_at)
      SELECT org_entity_id, 'policy', count(*), now() FROM policies GROUP BY org_entity_id`,
+  );
+  await seed.query(
+    `INSERT INTO ref_code_counters (org_entity_id, entity_type, last_seq, updated_at)
+     SELECT org_entity_id, 'asset_group', count(*), now() FROM asset_groups GROUP BY org_entity_id`,
+  );
+  await seed.query(
+    `INSERT INTO ref_code_counters (org_entity_id, entity_type, last_seq, updated_at)
+     SELECT org_entity_id, 'asset', count(*), now() FROM assets GROUP BY org_entity_id`,
   );
   for (const [id, orgEntityId, entityType, key, dataType, required] of SEED.extensionFields) {
     await seed.query(

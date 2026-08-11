@@ -238,4 +238,149 @@ plan §3.1 只列了 D1–D4。下面兩個是**實作 D1-A 時才浮現**的，
   → **`prisma migrate diff --exit-code` 必須回 0** 才算完。
   ⚠️ **絕不用 `prisma db pull` 取那段文字** —— 它會覆寫整個 schema 檔並吃掉 `//` header
 - `schema.prisma:164-166` 的 W04 docstring（"tables this phase does not build"）
-  建完五張表就是 orphan claim → **同一個 commit 內更新**（Day-0 `D-orphanclaim`）
+  建完五張表就是 orphan claim → **同一個 commit 內更新**（Day-0 `D-orphanclaim`）→ ✅ Day 2 已改
+
+---
+
+## Day 2 — 2026-08-11 — 五張表與端點 (US-1, US-4)
+
+### 2.a ⛔ 開工前先量的一件事：FK 檢查會不會繞過 RLS
+
+`risks` 有三個 FK，其中 `asset_id` 指向另一張 **entity-scoped** 表。
+如果 FK 檢查繞過 RLS，一個 SG1 的 principal 就能把風險掛到猜中的 HK1 資產上。
+**這是先量再設計，不是先設計再驗證。**
+
+| # | 探測 | 結果 |
+|---|------|------|
+| **U0** | sanity —— SG1 看得見幾列 parent | 1（**上一輪這格是 0**，見下方紅字）|
+| **U1** ⛔ | 單欄 FK 參照看不見的列 | **成功建立** —— FK 檢查確實繞過 RLS |
+| **U2a** ✅ | 複合 FK `(parent_id, org_entity_id)` 同樣嘗試 | **拒絕** |
+| **U2b** ✅ | 同實體的合法連結 | 照常成立（`INSERT 0 1`）|
+| **U3** ⭐ | 不存在的 id vs 看不見的 id | **一字不差的同一句錯誤** —— 複合 FK 同時是 oracle-safe |
+
+> ⛔ **第一次跑的 U0/U1/U2 全部無效，而它們看起來是通過的。**
+> 我在 fixture 裡用了 `...0000h0` 當 UUID —— `h` 不是合法 hex，HK1 那列**從來沒被插入**。
+> 於是 U1 回報「0 列跨實體連結」，長得跟「FK 拒絕了」一模一樣。
+> **是 U0 這個 sanity 格顯示 `0`（應為 1）才拆穿的。**
+> → 這是 `feedback_evidence_must_support_claim` 的教科書案例，
+> 而擋住它的不是仔細，是**那一格刻意寫了 expect 值的 sanity 檢查**。
+
+**⇒ 三張 entity-scoped 表之間的 FK 一律複合。** 這是 約束 8 要求的，不是加分項。
+`assets → asset_groups` 與 `risks → assets` 各帶 `org_entity_id`；
+`risks → threats/vulnerabilities` 維持單欄（全域庫沒有實體軸）。
+
+### 2.b 交付：五張表 + migration
+
+`20260811024841_asset_and_risk_chain/` —— Prisma 產出 195 行，**手寫再加 ~130 行**
+（generated columns · CHECK · GRANT · RLS · extension triggers）。
+
+**三個由 `02a` 機械導出、不是我選的結果**：
+
+| 結果 | 導出自 |
+|---|---|
+| `status` **只有 `risks` 有** | `02a` §1.1 定義 status 為「per the entity's state machine (§4)」，而 §4 只有 **Policy / Risk / Issue / ControlTest** 四條。替 Asset 發明一條就是參數 #9 |
+| `extensions` **只有三張 entity-scoped 表有** | `validate_extensions()` 在 `:112` `:116` `:140` 無條件引用 `NEW.org_entity_id`。掛到全域表是 runtime error —— **被迫，不是偏好** |
+| `threats`/`vulnerabilities` **無 `ref_code`** | 發號走 entity-scoped 的 counter，全域表沒有實體可發。與 W04 的 `users` 殊途同歸 |
+
+**兩個 02a 列名但未定義值域的欄位**（D8）：`Asset.value` / `Asset.criticality` **不建**，
+schema docstring 列出它們是刻意缺席並寫明為何不能借用 `02a:116` 的 5 點量表
+（那是 risk **impact** 的描述子，不是資產價值）→ `AD-AssetScales-1`。
+
+**一個 02a 重複命名的欄位**：`asset_owner_user_id`（`02a:208`）**不另建欄** ——
+§1.1 已有 `owner_user_id`「Accountable owner」，兩欄一義是模組自行發明共用定義（guardrail 3）。
+`custodian_user_id` **有**建，因為保管人是另一個人做另一件事。
+
+### 2.c ⭐ R5 那條硬性順序，實際跑過一次
+
+| 步驟 | 結果 |
+|---|---|
+| 1. 寫 migration SQL → `migrate dev` | 6 列 `_prisma_migrations` 全 applied，5 張表在 |
+| 2. `SELECT pg_get_expr(adbin, adrelid) WHERE attgenerated='s'` | `score_before` 正規化為 `(lkh_before * GREATEST(...))` —— **與 `scoreExpression('before')` 逐字相同** |
+| 3. ⚠️ `acceptance_status` 是**多行 CASE** | 含換行，不能靠猜怎麼塞進 `dbgenerated("...")` → **問 Prisma 自己**（`db pull --print` 到 scratch 檔）→ 它把換行逸出成 `\n` |
+| 4. 貼進 `schema.prisma`（**逐字複製，不重寫**）| 四個欄位 |
+| 5. ⭐ **`migrate diff --from-migrations --to-schema --exit-code`** | **exit 0 / "This is an empty migration."** —— R5 的逐字比對陷阱機械證明不成立 |
+
+⚠️ **`db pull` 只跑在 scratchpad 的副本上**，真的 `schema.prisma` 一次都沒被它碰過
+（R3 量過：它會吃掉 `//` header）。
+
+### 2.d 對真 DB 寫入並讀回（checklist 2.1 第二項）
+
+| 案例 | `score_before` | `score_after` | `acceptance_status` | `in_it_risk_register` |
+|---|---|---|---|---|
+| 未評分（Identified）| NULL | NULL | **NULL** | **NULL** |
+| 只有 inherent 4×MAX(2,5,1,3,1) | **20** | NULL | requires_treatment | NULL |
+| 治理後降到 9 | 20 | **9** | **acceptable** ← 自動翻轉 | f |
+| 殘餘恰好 16 | 25 | **16** | requires_treatment | **t** |
+| 殘餘恰好 15 | 25 | **15** | acceptable | **f** |
+
+**五個拒絕案例**，⭐ **其中兩個的錯誤訊息本身就是證據**：
+
+| # | 嘗試 | 拒絕者 | 訊息裡的證據 |
+|---|---|---|---|
+| W1 | 部分填寫 before 組 | `risks_before_all_or_none` | ⭐ `DETAIL` 顯示失敗列的 score 已算出 **8** —— `GREATEST` 忽略 NULL 算了 4×2。**CHECK 是唯一堵住 P2 的東西** |
+| W2 | `lkh_before = 7` | `risks_before_band` | ⭐ `DETAIL` 顯示已算出 **35** —— 超出 `02a:119` 的 1–25。**band CHECK 才是讓值域成真的東西，不是裝飾** |
+| W3 | 呼叫者自帶 `score_before` | PostgreSQL | `cannot insert a non-DEFAULT value into column "score_before"` |
+| W4 | HK1 的風險掛 SG1 的資產 | `risks_asset_id_org_entity_id_fkey` | 複合 FK |
+| W5 | `UPDATE` 清空半組 | `risks_before_all_or_none` | 更新路徑同樣受保護 |
+| W6 | `UPDATE lkh_after 3→5` | —— | derived **自動重算** 9 → 15 |
+
+探測列已清除（`ref_code` 未經 counter 發號，留著會撞號 —— W04 migration header 警告的那個 bug）。
+
+### 2.e ⭐ 拒絕點確實移動了（Day 3 checklist 3.2 預告的那件事）
+
+W03 量到 RLS 的 `WITH CHECK` 先於 FK 求值，所以 `org_entity_id` 的
+「不存在」與「不是你的」都塌縮成 42501。**但那是 row 自己的實體。**
+
+`asset_id` 不同：**風險自己的實體在範疇內，RLS 通過**，然後複合 FK 以 **23503** 拒絕。
+→ `scope-refusal.ts` 加了第二個偵測器。⚠️ **假設只有一個碼會讓這條路徑變成 500。**
+
+兩個偵測器**互不重疊**有專門的測試 —— 若任一個同時匹配兩個碼，
+catch block 的先後順序就會靜默決定呼叫者看到哪個錯誤。
+
+### 2.f 交付清單
+
+| 檔案 | 範疇 | 說明 |
+|---|---|---|
+| `prisma/schema.prisma` | core-model | +5 model +6 enum；`Policy` docstring 的 orphan claim 已改 |
+| `prisma/migrations/20260811024841_*/migration.sql` | core-model | 表 + 4 個 generated column + 4 個 CHECK + RLS + GRANT + 3 個 trigger |
+| `core-model/risk.repository.ts` + `.spec.ts` | core-model | **第二個範疇化 client 消費者**（W04 失去的那個證明機會）|
+| `core-model/scoped-client.types.ts` | core-model | `ScopedRiskClient`；⭐ **catalog 那半抽出來** —— 第二個消費者出現才抽，這正是 AP-5 的解法 |
+| `core-model/scope-refusal.ts` + `.spec.ts` | core-model | 23503 那一半 |
+| `modules/risk/{controller,module,int.spec,controller.spec}.ts` | modules | `POST /risks` · `GET /risks` |
+| `bootstrap/app.module.ts` | bootstrap | 掛 `RiskModule` |
+| `test/int-global-setup.js` | 測試基礎建設 | 資產鏈 seed，**兩個實體各一份** |
+
+⭐ **US-6 的第二、三個資料點**：`ScopedRiskClient` **不暴露** `asset` delegate ——
+能先讀 asset 表的 repository 就有能力分辨「不存在」與「不是你的」。
+**不給那個 delegate，是讓它寫不出來而不是被勸阻。**
+
+### 2.g Gate（Day 2 full —— 逐項實際輸出）
+
+| Gate | 結果 | baseline |
+|---|---|---|
+| `lint`（api+web）| ✅ **0** | 0 |
+| `type-check`（api+web）| ✅ **0** | 0 |
+| `format:check`（api+web）| ✅ **0** | 0 |
+| `test`（unit）| ✅ **15 suites / 138 tests** | 86 → **+52** |
+| `test:int` | ✅ **4 suites / 53 tests** | 34 → **+19** |
+| `test`（web）| ✅ **10** | 10 |
+| `build`（api+web）| ✅ **0** | 0 |
+| `run_all.py` | ✅ **6/6** | 6/6 |
+| `lint:negative` | ✅ PASS —— **22 檔 0 bypass 3 allowlisted** | 18 檔 3 allowlisted → **allowlist 未增加** ✅ |
+| coverage | ✅ **94.13 / 92.17 / 94.36 / 95.03** | 94.11 / 90.42 / 92.45 / 94.76 —— **四項全部高於 baseline** |
+
+⚠️ **coverage 第一次量是 91.06 / 87.15 / 91.54 / 91.61 —— 低於 baseline。**
+沒有當作「門檻過了就算」帶過。缺口在 `risk.repository.ts` 的 catch block 與
+`isUnknownReference`（整合測試有跑到，但 coverage run 不含它們）。
+補的三組測試**不是為了數字**：整合測試證明**資料庫產生那個 SQLSTATE**，
+單元測試證明**這一層把它對映到哪個 domain error** —— 兩個不同的主張。
+`risk.repository.ts` / `scope-refusal.ts` 現在 **100%**。
+`*.module.ts` 的 0% 是既有模式（`policy.module.ts` 同樣 0%），**不是本 phase 新增的洞**。
+
+### Remaining for Next Day
+
+- **Day 3**：clean restart（⚠️ 殺進程前確認是不是我開的）+ API-level 驗證 + 元驗證（US-5）
+- ⛔ **Day 3 的元驗證至少三組**：評分公式 MAX→SUM · 三張表的 RLS · derived 一致性機制。
+  **弄壞後沒有東西紅 = 缺口不是通過**
+- ⚠️ **Day 3 必須在 reset 過的 `isms_dev` 上驗 GRANT**（`AD-DbBuildPathParity-1`：
+  CI 的庫從 template1 繼承權限，CI 綠**不涵蓋** GRANT 缺陷）

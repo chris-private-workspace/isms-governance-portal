@@ -85,6 +85,9 @@ model OrgEntity {
   policies        Policy[]
   extensionFields ExtensionField[]
   refCodeCounters RefCodeCounter[]
+  assetGroups     AssetGroup[]
+  assets          Asset[]
+  risks           Risk[]
 
   version   Int       @default(1)
   createdAt DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
@@ -130,6 +133,11 @@ model User {
   createdPolicies Policy[] @relation("PolicyCreatedBy")
   updatedPolicies Policy[] @relation("PolicyUpdatedBy")
 
+  ownedAssetGroups AssetGroup[] @relation("AssetGroupOwner")
+  ownedAssets      Asset[]      @relation("AssetOwner")
+  custodiedAssets  Asset[]      @relation("AssetCustodian")
+  ownedRisks       Risk[]       @relation("RiskOwner")
+
   @@map("users")
 }
 
@@ -161,9 +169,9 @@ model RefCodeCounter {
   @@map("ref_code_counters")
 }
 
-/// The one business table this spike needs. Policy was chosen over Risk because
-/// every one of its fields is scalar (02a:189) — Risk carries four FKs to tables
-/// this phase does not build (Asset, Threat, Vulnerability).
+/// The one business table W04 needed. Policy was chosen over Risk because every
+/// one of its fields is scalar (02a:189), whereas Risk carries FKs to Asset,
+/// Threat and Vulnerability — which W05 has since built, below.
 ///
 /// ⚠️ STILL INCOMPLETE, and the omissions are listed rather than left to be
 /// discovered. W04 closed the base-field half; what remains is module work:
@@ -291,4 +299,372 @@ model ExtensionField {
 
   @@index([entityType, key])
   @@map("extension_fields")
+}
+
+// ===========================================================================
+// W05 — the asset-based risk chain (M1 slice 2)
+// ===========================================================================
+// 已確認參數 #8 makes the methodology asset-based: asset group -> asset ->
+// threat -> vulnerability -> CIA. A Risk is the INTERSECTION of those, which is
+// why its three FKs are NOT NULL — a risk that names no asset is not an
+// incomplete record under this methodology, it is a different methodology.
+//
+// ⚠️ EVERY FK BETWEEN TWO ENTITY-SCOPED TABLES HERE IS COMPOSITE, and that is a
+// security control rather than a modelling preference. W05 Day 2 measured that
+// PostgreSQL's referential-integrity check BYPASSES row-level security: a
+// principal scoped to SG1 successfully created a row pointing at an HK1 parent
+// it could not see. Carrying org_entity_id into the FK makes the cross-entity
+// link unrepresentable, and — measured in the same probe — an id outside the
+// scope and an id that does not exist produce the IDENTICAL error, so the
+// constraint cannot be used as an existence oracle either.
+//
+// The redundant org_entity_id on child tables (約束 8 iron law 1) is what makes
+// this possible. That redundancy was always deliberate; this is the first phase
+// where it pays for itself.
+
+/// The six categories at 02a:202, verbatim. `physical_and_virtual` is one
+/// category, not two — the source writes "physical & virtual".
+enum AssetCategory {
+  services
+  people
+  intangible
+  physical_and_virtual
+  software
+  information
+
+  @@map("asset_category")
+}
+
+/// 02a:208's three values. Not a security clearance and not the CIA triad —
+/// this is the sensitivity label carried by the asset itself.
+enum AssetClassification {
+  internal
+  restricted
+  confidential
+
+  @@map("asset_classification")
+}
+
+/// The seven non-empty combinations of C/I/A (02a:118, 02a:193).
+///
+/// An enum rather than three booleans because three booleans can express
+/// "affects none of C, I or A", which is not a risk. Nothing today queries by a
+/// single component; when something does, `cia_type LIKE '%i%'` still answers it
+/// (W05 D3).
+enum CiaType {
+  c
+  i
+  a
+  ci
+  ca
+  ia
+  cia
+
+  @@map("cia_type")
+}
+
+/// 02a:121.
+enum RiskTreatment {
+  accept
+  mitigate
+  transfer
+  avoid
+
+  @@map("risk_treatment")
+}
+
+/// 02a:120's acceptance criteria. NEVER written by a caller — this is a
+/// generated column (ADR-0013), so the type exists only to name the two values.
+enum RiskAcceptanceStatus {
+  acceptable
+  requires_treatment
+
+  @@map("risk_acceptance_status")
+}
+
+/// The lifecycle at 02a:343-353.
+///
+/// ⚠️ Same caveat as PolicyStatus: the enum is real, the TRANSITIONS are not
+/// enforced by anything until M5. Any value may be written over any other.
+///
+/// ⚠️ `it_risk_register` overlaps `Risk.inItRiskRegister`, which is derived from
+/// the residual score. They are NOT kept in agreement by anything — the status
+/// records what a human says the risk is doing, the boolean records what the
+/// numbers say. When they disagree that is information, not corruption; a rule
+/// that reconciles them belongs to M5's state machine.
+enum RiskStatus {
+  identified
+  assessed_before
+  treated
+  assessed_after
+  it_risk_register
+  monitored
+  closed
+
+  @@map("risk_status")
+}
+
+/// Groups assets for assessment (02a:202), per the Risk Management Report.
+///
+/// ⚠️ No `status` column. 02a §1.1 defines `status` as "per the entity's state
+/// machine (§4)", and §4 defines lifecycles for Policy, Risk, Issue and
+/// ControlTest only. Giving this table a status would mean inventing its states
+/// (已確認參數 #9).
+model AssetGroup {
+  id String @id @default(uuid()) @db.Uuid
+
+  /// `AGRP-<ENTITY_CODE>-<seq>`. Server-issued; see ref-code.ts for why the
+  /// caller never supplies one.
+  refCode String @unique @map("ref_code")
+
+  orgEntityId String @map("org_entity_id") @db.Uuid
+
+  name          String
+  assetCategory AssetCategory @map("asset_category")
+  description   String?
+
+  ownerUserId String? @map("owner_user_id") @db.Uuid
+  createdBy   String? @map("created_by") @db.Uuid
+  updatedBy   String? @map("updated_by") @db.Uuid
+
+  version    Int  @default(1)
+  extensions Json @default("{}") @db.JsonB
+
+  orgEntity OrgEntity @relation(fields: [orgEntityId], references: [id])
+  owner     User?     @relation("AssetGroupOwner", fields: [ownerUserId], references: [id])
+  assets    Asset[]
+
+  createdAt DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt DateTime  @updatedAt @map("updated_at") @db.Timestamptz(6)
+  retiredAt DateTime? @map("retired_at") @db.Timestamptz(6)
+
+  /// The anchor a composite FK needs. `id` alone is already unique; this pair
+  /// exists so a child can reference (id, org_entity_id) together — see the
+  /// block comment above.
+  @@unique([id, orgEntityId])
+  @@index([orgEntityId, retiredAt])
+  @@map("asset_groups")
+}
+
+/// The asset inventory (02a:208). Promoted to Wave 1 because an asset-based
+/// methodology cannot assess risk without it.
+///
+/// ⚠️ `asset_owner_user_id` (02a:208) is NOT a separate column. 02a §1.1 already
+/// gives every entity an `owner_user_id` described as the "Accountable owner",
+/// and §3 names the same role contextually per entity (`risk_owner_user_id`,
+/// `assessor_user_id`, …). Two columns for one concept is how a module invents a
+/// private definition of a shared one (guardrail 3). `custodian_user_id` IS a
+/// second column, because a custodian is a different person doing a different
+/// job — the one who operates the asset, not the one accountable for it.
+///
+/// ⚠️ Deliberately absent, do not add without a domain (W05 D8):
+///   - `value`       — 02a:208 names it; §2 never defines its scale. Monetary?
+///                     1–5? High/Medium/Low? Building it means choosing.
+///   - `criticality` — same. And the 5-point scale at 02a:116 is not available
+///                     to borrow: its descriptors describe risk IMPACT, not what
+///                     an asset is worth.
+///   Nothing in W05 reads either. Recorded as AD-AssetScales-1.
+model Asset {
+  id String @id @default(uuid()) @db.Uuid
+
+  /// `AST-<ENTITY_CODE>-<seq>`.
+  refCode String @unique @map("ref_code")
+
+  orgEntityId String @map("org_entity_id") @db.Uuid
+
+  name         String
+  assetGroupId String @map("asset_group_id") @db.Uuid
+
+  /// Repeated from the group on purpose — 02a:208 lists it on Asset as well, and
+  /// an asset may be categorised differently from the group it is assessed with.
+  assetCategory  AssetCategory       @map("asset_category")
+  classification AssetClassification
+
+  ownerUserId     String? @map("owner_user_id") @db.Uuid
+  custodianUserId String? @map("custodian_user_id") @db.Uuid
+  createdBy       String? @map("created_by") @db.Uuid
+  updatedBy       String? @map("updated_by") @db.Uuid
+
+  version    Int  @default(1)
+  extensions Json @default("{}") @db.JsonB
+
+  orgEntity OrgEntity @relation(fields: [orgEntityId], references: [id])
+  owner     User?     @relation("AssetOwner", fields: [ownerUserId], references: [id])
+  custodian User?     @relation("AssetCustodian", fields: [custodianUserId], references: [id])
+  risks     Risk[]
+
+  /// Composite: an asset cannot be filed under another entity's group.
+  assetGroup AssetGroup @relation(fields: [assetGroupId, orgEntityId], references: [id, orgEntityId])
+
+  createdAt DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt DateTime  @updatedAt @map("updated_at") @db.Timestamptz(6)
+  retiredAt DateTime? @map("retired_at") @db.Timestamptz(6)
+
+  @@unique([id, orgEntityId])
+  @@index([orgEntityId, retiredAt])
+  @@index([assetGroupId])
+  @@map("assets")
+}
+
+/// Reusable threat library (02a:198) — GLOBAL, no org_entity_id.
+///
+/// ⚠️ This table does not introduce an exemption; it CONSUMES one that already
+/// exists. `rules-on-demand/multi-tenant-data.md:63` lists the threat and
+/// vulnerability libraries among the five legitimate global reference tables,
+/// on the ground that 已確認參數 #8 makes them shared group-wide catalogues.
+/// W04 had to EXTEND that rule (identity was a class it never covered); this is
+/// the first table that simply matches a row already on the list.
+///
+/// Two consequences follow from being global, and neither is an oversight:
+///   - no `ref_code` — codes are issued per entity by ref_code_counters, and
+///     there is no entity here to issue against. `users` is global for a
+///     different reason and reaches the same place.
+///   - no `extensions` — validate_extensions() reads NEW.org_entity_id
+///     unconditionally (governed_extensions migration, lines 112/116/140), so
+///     attaching it to a table without that column is a runtime error, not a
+///     policy choice.
+model Threat {
+  id String @id @default(uuid()) @db.Uuid
+
+  name        String  @unique
+  description String?
+  category    String?
+
+  risks Risk[]
+
+  version   Int       @default(1)
+  createdAt DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt DateTime  @updatedAt @map("updated_at") @db.Timestamptz(6)
+  retiredAt DateTime? @map("retired_at") @db.Timestamptz(6)
+
+  @@map("threats")
+}
+
+/// Reusable vulnerability library (02a:200) — GLOBAL. Same reasoning as Threat.
+model Vulnerability {
+  id String @id @default(uuid()) @db.Uuid
+
+  name        String  @unique
+  description String?
+  category    String?
+
+  risks Risk[]
+
+  version   Int       @default(1)
+  createdAt DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt DateTime  @updatedAt @map("updated_at") @db.Timestamptz(6)
+  retiredAt DateTime? @map("retired_at") @db.Timestamptz(6)
+
+  @@map("vulnerabilities")
+}
+
+/// The methodology's centre (02a:193-196): a risk is one asset, one threat, one
+/// vulnerability and the CIA property they threaten, scored twice.
+///
+/// ⚠️ THE FOUR DERIVED COLUMNS ARE NOT IN THIS MODEL, and their absence is the
+/// decision. `score_before`, `score_after`, `acceptance_status` and
+/// `in_it_risk_register` are PostgreSQL generated columns (ADR-0013): the
+/// database computes them in the same write that sets the inputs, so they cannot
+/// drift and a caller cannot supply one. Prisma cannot express a generated
+/// column, so they are declared below as `@default(dbgenerated(...))` — a mirror
+/// of PostgreSQL's own normalised text, which the diff engine compares BYTE FOR
+/// BYTE. Never edit those strings by hand; read them back with
+/// `pg_get_expr(adbin, adrelid)` after changing the migration.
+///
+/// ⚠️ Each score set is ALL-OR-NONE, enforced by a CHECK in the migration. This
+/// is not tidiness: GREATEST ignores NULL, so a set with two of five impacts
+/// filled would produce a confident wrong number rather than an error (measured,
+/// W05 Day 0). 02a:343-353 guarantees rows with an empty set — a risk sits in
+/// Identified with no before-scores and in Treated with no after-scores — so the
+/// constraint has to permit empty and refuse partial, not simply demand full.
+model Risk {
+  id String @id @default(uuid()) @db.Uuid
+
+  /// `RISK-<ENTITY_CODE>-<seq>` — the one prefix 02a fixes itself (02a:89).
+  refCode String @unique @map("ref_code")
+
+  orgEntityId String @map("org_entity_id") @db.Uuid
+
+  title       String
+  category    String?
+  description String?
+
+  /// The chain. NOT NULL because 已確認參數 #8's methodology defines a risk AS
+  /// the intersection — see the block comment at the top of this section.
+  assetId         String  @map("asset_id") @db.Uuid
+  threatId        String  @map("threat_id") @db.Uuid
+  vulnerabilityId String  @map("vulnerability_id") @db.Uuid
+  ciaType         CiaType @map("cia_type")
+
+  /// Nullable: a treatment is chosen at the Treated transition, not at creation
+  /// (02a:346). Today it is a column, not a link to Control — that arrives with
+  /// slice 3, and 02a:393 puts the "a treated risk has ≥1 control" rule at the
+  /// transition rather than at creation anyway.
+  treatment RiskTreatment?
+  reviewDue DateTime?      @map("review_due") @db.Date
+
+  status RiskStatus @default(identified)
+
+  /// before_control (inherent) — 02a:194.
+  lkhBefore Int? @map("lkh_before")
+  finBefore Int? @map("fin_before")
+  bopBefore Int? @map("bop_before")
+  lryBefore Int? @map("lry_before")
+  repBefore Int? @map("rep_before")
+  sisBefore Int? @map("sis_before")
+
+  /// after_control (residual) — 02a:195.
+  lkhAfter Int? @map("lkh_after")
+  finAfter Int? @map("fin_after")
+  bopAfter Int? @map("bop_after")
+  lryAfter Int? @map("lry_after")
+  repAfter Int? @map("rep_after")
+  sisAfter Int? @map("sis_after")
+
+  // === The four generated columns (ADR-0013) ===
+  // Every string below was COPIED from PostgreSQL, not written. The source is
+  // `SELECT pg_get_expr(adbin, adrelid) ... WHERE attgenerated = 's'`, and
+  // Prisma's diff engine compares it to that output byte for byte — W05
+  // measured that dropping one pair of outer parentheses makes every later
+  // `migrate dev` emit an ALTER COLUMN that then fails to apply, permanently.
+  //
+  // ⚠️ `@default(dbgenerated(...))` is the closest Prisma can come to saying
+  // GENERATED ALWAYS AS ... STORED; it does not mean these have a default. The
+  // database refuses a supplied value outright, which is the property ADR-0013
+  // was chosen for. Do not expose them as writable fields in any DTO.
+  //
+  // All four are nullable because an unassessed risk has no score, and NULL is
+  // the honest answer — not `false`, and emphatically not `acceptable`.
+
+  scoreBefore Int? @default(dbgenerated("(lkh_before * GREATEST(fin_before, bop_before, lry_before, rep_before, sis_before))")) @map("score_before")
+  scoreAfter  Int? @default(dbgenerated("(lkh_after * GREATEST(fin_after, bop_after, lry_after, rep_after, sis_after))"))      @map("score_after")
+
+  acceptanceStatus RiskAcceptanceStatus? @default(dbgenerated("\nCASE\n    WHEN ((lkh_after IS NULL) AND (lkh_before IS NULL)) THEN NULL::risk_acceptance_status\n    WHEN (COALESCE((lkh_after * GREATEST(fin_after, bop_after, lry_after, rep_after, sis_after)), (lkh_before * GREATEST(fin_before, bop_before, lry_before, rep_before, sis_before))) >= 16) THEN 'requires_treatment'::risk_acceptance_status\n    ELSE 'acceptable'::risk_acceptance_status\nEND")) @map("acceptance_status")
+
+  inItRiskRegister Boolean? @default(dbgenerated("((lkh_after * GREATEST(fin_after, bop_after, lry_after, rep_after, sis_after)) >= 16)")) @map("in_it_risk_register")
+
+  ownerUserId String? @map("owner_user_id") @db.Uuid
+  createdBy   String? @map("created_by") @db.Uuid
+  updatedBy   String? @map("updated_by") @db.Uuid
+
+  version    Int  @default(1)
+  extensions Json @default("{}") @db.JsonB
+
+  orgEntity OrgEntity @relation(fields: [orgEntityId], references: [id])
+  owner     User?     @relation("RiskOwner", fields: [ownerUserId], references: [id])
+
+  /// Composite: a risk cannot be raised against another entity's asset.
+  asset Asset @relation(fields: [assetId, orgEntityId], references: [id, orgEntityId])
+
+  /// Plain FKs — the libraries are global, so there is no entity axis to carry.
+  threat        Threat        @relation(fields: [threatId], references: [id])
+  vulnerability Vulnerability @relation(fields: [vulnerabilityId], references: [id])
+
+  createdAt DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt DateTime  @updatedAt @map("updated_at") @db.Timestamptz(6)
+  retiredAt DateTime? @map("retired_at") @db.Timestamptz(6)
+
+  @@index([orgEntityId, retiredAt])
+  @@index([assetId])
+  @@map("risks")
 }

@@ -120,44 +120,90 @@
 
 ### 2.1 五張表 + migration
 
-- [ ] **`schema.prisma` 加 5 model + enum；migration 含表 + RLS + GRANT（形狀依 D1–D4）**
+- [x] **`schema.prisma` 加 5 model + enum；migration 含表 + RLS + GRANT（形狀依 D1–D4）**
   - DoD: `AssetGroup`/`Asset`/`Risk` 有 `org_entity_id NOT NULL` + RLS policy + `FORCE`；
     `Threat`/`Vulnerability` **docstring 明寫引用 `multi-tenant-data.md:63` 的既有清單**
     （⚠️ **不是新增例外** —— 若寫成新增，那就是 W04 那條規則沒被正確消費）
     （行號由 Day-0 `D-tablename` 更正：plan 與本檔原寫 `:61`）
   - Verify: `npm run prisma:migrate -w apps/api`；`\d+ <table>` 逐表確認 RLS 狀態符合 §3.2
-- [ ] **derived 欄位依 D1 落地**
+  - → `20260811024841_asset_and_risk_chain`。`pg_class` 逐列確認：三張表
+    `relrowsecurity=t` + `relforcerowsecurity=t` + 各一條 `FOR ALL` policy；
+    `threats`/`vulnerabilities` 兩欄皆 `f`。**docstring 寫的是 CONSUME 不是新增例外**
+  - → ⛔ **另外量到 plan 未預見的一件事**：FK 檢查**繞過 RLS**（U1 實測）→
+    三張 entity-scoped 表之間的 FK 全部改成**複合** `(fk, org_entity_id)`
+- [x] **derived 欄位依 D1 落地**
   - DoD: 若選 generated column → **實測寫入來源欄位後 derived 值自動正確**；
     若選應用層 → **有一個製造分歧再看它被抓到的測試**
   - Verify: 對真 DB 寫一列並讀回，記實際值進 progress.md
+  - → 5 個正面案例 + 6 個拒絕案例，實際值全部記入 progress §2.d。
+    `UPDATE lkh_after 3→5` 使 `score_after` 自動 9→15。
+    ⭐ **W1/W2 的 `DETAIL` 顯示 CHECK 攔下的失敗列裡 derived 已算出 8 / 35** ——
+    直接證明 all-or-none 與 band 兩個 CHECK 是承重的，不是裝飾
+  - → ⭐ **R5 的硬性順序實跑一次**：SQL → apply → `pg_get_expr` → 貼進 schema →
+    `migrate diff --exit-code` **回 0**。`db pull` 只碰 scratchpad 副本
 
 ### 2.2 `risk.repository.ts` + `scoped-client.types.ts`
 
-- [ ] **第二個範疇化 client 消費者**（W04 因 ADR-0012 失去了證明這件事的機會）
+- [x] **第二個範疇化 client 消費者**（W04 因 ADR-0012 失去了證明這件事的機會）
   - DoD: **不持有裸 client**；範疇化實例走方法參數（比照 `policy.repository.ts:69-100`）
   - Verify: `npm run lint -w apps/api`（boundaries 規則）+ `npm run lint:negative`（allowlist 不得增加）
-- [ ] **`ref_code` 發號沿用 W04 的 `issueRefCode`，prefix 自宣告**
+  - → lint **0**；`lint:negative` PASS **22 檔 0 bypass 3 allowlisted** —— 檔數 18→22，
+    **allowlist 未增加** ✅。⭐ 順帶把 `ScopedExtensionCatalogClient` 抽出來 ——
+    **第二個消費者出現才抽**，那正是 AP-5 的解法而不是它的症狀
+  - → ⭐ `ScopedRiskClient` **刻意不暴露 `asset` delegate**：能先讀 asset 表的 repository
+    就有能力分辨「不存在」與「不是你的」。不給 delegate = 寫不出來，而不是被勸阻
+- [x] **`ref_code` 發號沿用 W04 的 `issueRefCode`，prefix 自宣告**
   - DoD: **不建 prefix 登記表**（W04 的裁決：歧義刻意保持可見）
   - Verify: 單元測試斷言 repository 蓋的章，呼叫者無法提供
+  - → prefix `RISK`（`02a:89` 自己寫死的唯一一個）；`RiskRepository` 單元測試斷言
+    `refCode: 'RISK-SG1-000007'` 由 repository 蓋章，`CreateRiskInput` 無此參數；
+    int 測試 18 斷言 `/^RISK-SG1-\d{6}$/`。**`03:110` 的 `RSK` 歧義照 W04 裁決保持可見**
 
 ### 2.3 端點 `POST /risks` · `GET /risks`
 
-- [ ] **比照 policy 模組：範疇只來自憑證、404 不是 403、`Cache-Control` 全域生效**
+- [x] **比照 policy 模組：範疇只來自憑證、404 不是 403、`Cache-Control` 全域生效**
   - DoD: controller 的參數清單**沒有任何 request 來源的實體 id**（約束 8 鐵律 3）
   - Verify: `npm run test -w apps/api`；斷言 resolver **實際收到的參數**
+  - → 測試斷言 `resolve()` 收到的物件 key 恰為 `[assignedEntityCodes, rollUp, subjectId]`
+    且 `JSON.stringify` **不含 body 裡的 orgEntityId**
+  - → ⭐ **404 這次有兩個來源**：`ScopeRefusedError`（42501）與 `UnknownReferenceError`（23503），
+    `it.each` 釘住兩者**都**回 404。⚠️ 若其中一個回別的碼，這一對就變成 oracle
 
 ### 2.4 範疇測試（US-4）
 
-- [ ] **約束 8 四項對 `AssetGroup` / `Asset` / `Risk` 三張表成立**
+- [x] **約束 8 四項對 `AssetGroup` / `Asset` / `Risk` 三張表成立**
   - DoD: 跨實體讀拒 / 跨實體寫拒**且重讀確認資料未變** / RLS 層獨立成立 / 滾升只看授權子樹
   - Verify: `npm run test:int -w apps/api`；⚠️ 斷言**順序無關**（`AD-JestFileOrder-1`）
-- [ ] **全域庫的相對行為**：`Threat`/`Vulnerability` 對兩個範疇**都讀得到**
+  - → int 測試 10（讀）· 11（寫拒 + 重讀確認 HK1 列數未變且不含該筆）·
+    14（RLS 獨立：明確查 `where orgEntityId=HK1` 仍回 0 列）· 15（滾升 APAC 看得到兩者、
+    SG 子樹看不到 HK1）。**全部以集合／成員斷言，非位置**
+  - → ⭐ 另加 12/13：**複合 FK 這條新的拒絕路徑**，且不存在的 id 與別人的 id
+    **訊息逐字相同**（`toBe`，不是 `toBeInstanceOf`）
+  - ⚠️ **`AssetGroup` / `Asset` 的四項尚未逐條測** —— 本 phase 的端點只有 `/risks`，
+    兩張表的隔離目前由 migration 的 RLS + 12/13 的複合 FK 間接涵蓋。
+    🚧 **未完全達成，不勾為完成的部分見下一列**
+- [ ] 🚧 **`AssetGroup` / `Asset` 各自的四項範疇測試** —— 本 phase 未做
+  - 🚧 **理由**：兩張表**沒有端點**，四項裡的「跨實體寫拒」需要一個會寫它們的呼叫者。
+    今天唯一的寫入路徑是 seed（走 owner 連線，RLS 不適用）。
+    **硬寫一個測試專用寫入路徑就是主流量驗證原則禁止的東西**（約束 2）
+  - **解封條件**：slice 3 建 `POST /assets` / `POST /asset-groups` 時，同一個 PR 補齊四項
+  - **今天已成立的部分**：RLS policy + FORCE 已在 `pg_class` 逐列驗證；
+    複合 FK 使跨實體連結不可表達（int 12/13）
+- [x] **全域庫的相對行為**：`Threat`/`Vulnerability` 對兩個範疇**都讀得到**
   - DoD: 這是**刻意的**，測試要把它釘住，否則未來有人「順手」加 RLS 不會有東西紅
+  - → int 測試 16：兩個範疇讀回**同一組 id**（排序後 `toEqual`），且先斷言非空
+    （否則「兩邊都是空的」也會通過）。int 17 另釘住**應用角色對兩張庫唯讀**
 
 ### 2.x Full gate
 
-- [ ] lint 0 · type-check 0 · format 0 · unit ≥86 · int ≥34 · web 10 · build 0 ·
+- [x] lint 0 · type-check 0 · format 0 · unit ≥86 · int ≥34 · web 10 · build 0 ·
       `run_all` 6/6 · `lint:negative` PASS —— **逐項記實際輸出，不寫「都過了」**
+  - → lint **0**（api+web）· type **0**（api+web）· format **0**（api+web）·
+    unit **15 suites / 138 tests**（+52）· int **4 suites / 53 tests**（+19）· web **10** ·
+    build **0** · `run_all` **6/6** · `lint:negative` PASS（**22 檔 0 bypass 3 allowlisted**）
+  - → coverage **94.13 / 92.17 / 94.36 / 95.03**，**四項全部高於 baseline**。
+    ⚠️ 第一次量是 91.06/87.15/91.54/91.61 —— **低於 baseline，未當作「門檻過了」帶過**；
+    補的測試是「這一層把 SQLSTATE 對映到哪個 domain error」，與整合測試的主張不同，不是湊數
 
 ---
 

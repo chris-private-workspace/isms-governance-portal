@@ -29,12 +29,14 @@
  *
  * Key Components:
  *   - ScopedRefCodeClient: what issuing a reference code needs
- *   - ScopedPolicyClient: the above, plus the delegates a policy repository needs
+ *   - ScopedExtensionCatalogClient: what validating governed extensions needs
+ *   - ScopedPolicyClient / ScopedRiskClient: the above, plus one table each
  *
  * Created: 2026-08-10 (Phase W03)
- * Last Modified: 2026-08-10
+ * Last Modified: 2026-08-11
  *
  * Modification History (newest-first):
+ *   - 2026-08-11: Add ScopedRiskClient; extract the catalog half (W05) — second consumer
  *   - 2026-08-10: Add ScopedRefCodeClient (W04) — ScopedPolicyClient extends it
  *   - 2026-08-10: Initial creation (Phase W03) — structural shape, not a token
  *
@@ -48,6 +50,7 @@ import type {
   Policy,
   Prisma,
   RefCodeCounter,
+  Risk,
 } from '../generated/prisma';
 
 /**
@@ -57,11 +60,40 @@ import type {
  * any table; handed this, it can reach two, and adding a third is a visible
  * edit here rather than an unnoticed line in a method body.
  */
-export interface ScopedPolicyClient extends ScopedRefCodeClient {
+export interface ScopedPolicyClient extends ScopedRefCodeClient, ScopedExtensionCatalogClient {
   readonly policy: {
     findMany(args?: Prisma.PolicyFindManyArgs): Promise<Policy[]>;
     create(args: Prisma.PolicyCreateArgs): Promise<Policy>;
   };
+}
+
+/**
+ * The same narrowness, for the second business table (W05).
+ *
+ * ⚠️ Deliberately does NOT expose `asset`, `threat` or `vulnerability`. A risk
+ * names all three, but it names them by id and the DATABASE decides whether
+ * those ids are reachable — the composite foreign key refuses another entity's
+ * asset, and W05 measured that it gives the identical error for an id that does
+ * not exist. A repository that could read the asset table first would be able to
+ * tell those two apart, which is precisely the oracle 約束 8 forbids. Not
+ * granting the delegate is what makes that unwritable rather than merely
+ * discouraged.
+ */
+export interface ScopedRiskClient extends ScopedRefCodeClient, ScopedExtensionCatalogClient {
+  readonly risk: {
+    findMany(args?: Prisma.RiskFindManyArgs): Promise<Risk[]>;
+    create(args: Prisma.RiskCreateArgs): Promise<Risk>;
+  };
+}
+
+/**
+ * The catalog read that governed-extension validation needs (ADR-0005).
+ *
+ * Extracted in W05 rather than in W03, on purpose: with one consumer this would
+ * have been an abstraction with a single implementation (AP-5). The second
+ * consumer is what shows where the seam actually is.
+ */
+export interface ScopedExtensionCatalogClient {
   readonly extensionField: {
     findMany(args?: Prisma.ExtensionFieldFindManyArgs): Promise<ExtensionField[]>;
   };
