@@ -18,7 +18,12 @@
  * Created: 2026-08-10 (Phase W03)
  * Last Modified: 2026-08-10
  */
-import { ScopeRefusedError, isScopeRefusal } from './scope-refusal';
+import {
+  isScopeRefusal,
+  isUnknownReference,
+  ScopeRefusedError,
+  UnknownReferenceError,
+} from './scope-refusal';
 
 /** Transcribed from the live API log; nesting depth is the part that matters. */
 function realRefusal(): unknown {
@@ -94,5 +99,65 @@ describe('ScopeRefusedError', () => {
     // Nothing in the text may hint at a scope boundary; "forbidden", "scope" or
     // "permission" would each tell the caller the id was real.
     expect(error.message).not.toMatch(/scope|denied|forbidden|permission/i);
+  });
+});
+
+// === W05: the second refusal point ==========================================
+// ⚠️ That this detector matches the REAL driver error is proven in
+// risk.int.spec.ts (tests 12 and 13 could not pass otherwise — the error would
+// escape as a raw Prisma failure). What is proven here is the half real
+// PostgreSQL cannot show: that the two detectors do not overlap.
+
+/** Same nesting as the 42501 fixture above; only the SQLSTATE differs. */
+function fkViolation(): unknown {
+  return Object.assign(new Error('Invalid `client.risk.create()` invocation'), {
+    code: 'P2039',
+    meta: {
+      driverAdapterError: Object.assign(
+        new Error('insert or update on table "risks" violates foreign key constraint'),
+        {
+          cause: {
+            originalCode: '23503',
+            kind: 'postgres',
+            code: '23503',
+            severity: 'ERROR',
+          },
+        },
+      ),
+    },
+  });
+}
+
+describe('isUnknownReference', () => {
+  it('matches a foreign-key violation nested the way the driver nests it', () => {
+    expect(isUnknownReference(fkViolation())).toBe(true);
+  });
+
+  /**
+   * The important one. The repository's catch block asks isScopeRefusal first
+   * and isUnknownReference second; if either detector matched both SQLSTATEs
+   * that ordering would silently decide which error the caller sees, and a
+   * cross-entity ASSET reference would start reporting the wrong cause.
+   */
+  it('does not match an RLS refusal, and the RLS detector does not match this', () => {
+    expect(isUnknownReference(realRefusal())).toBe(false);
+    expect(isScopeRefusal(fkViolation())).toBe(false);
+  });
+
+  it('ignores unrelated failures', () => {
+    expect(isUnknownReference(new Error('connection reset'))).toBe(false);
+    expect(isUnknownReference(null)).toBe(false);
+    expect(isUnknownReference({ code: '23505' })).toBe(false);
+  });
+});
+
+describe('UnknownReferenceError', () => {
+  it('names the field and nothing about the record', () => {
+    const error = new UnknownReferenceError('asset, threat or vulnerability');
+
+    expect(error.message).toBe('asset, threat or vulnerability not found');
+    // It must not say WHICH of the three, and must not hint that the id was
+    // real. Both would answer a question the composite FK deliberately refuses.
+    expect(error.message).not.toMatch(/scope|denied|forbidden|permission|belongs/i);
   });
 });

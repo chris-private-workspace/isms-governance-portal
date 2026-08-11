@@ -31,22 +31,37 @@
  *   The code is matched structurally rather than by message text: the message is
  *   locale-dependent and version-dependent, the SQLSTATE is neither.
  *
+ *   ⚠️ W05 FOUND THE SECOND REFUSAL POINT, and it is a different SQLSTATE. The
+ *   measurement above is about the row's OWN org_entity_id. A risk also names an
+ *   asset, and when a principal writes a risk for its own entity that references
+ *   another entity's asset, the RLS WITH CHECK passes — the row is in scope —
+ *   and the refusal comes from the composite foreign key as 23503 instead.
+ *   Measured W05 Day 2: `risks_asset_id_org_entity_id_fkey`, and an asset id
+ *   that does not exist at all produces the byte-identical error. So the same
+ *   404 translation is safe here for the same reason, but it needs its own
+ *   detector — a single code check would have let this one through as 500.
+ *
  * Key Components:
  *   - ScopeRefusedError: domain error; carries only what the caller supplied
  *   - isScopeRefusal(): structural search for SQLSTATE 42501 in a driver error
+ *   - UnknownReferenceError / isUnknownReference(): the same, for 23503
  *
  * Created: 2026-08-10 (Phase W03)
- * Last Modified: 2026-08-10
+ * Last Modified: 2026-08-11
  *
  * Modification History (newest-first):
+ *   - 2026-08-11: Add the 23503 half (W05) — a composite FK moved the refusal point
  *   - 2026-08-10: Initial creation (Phase W03) — drive-through found 500 on refusal
  *
  * Related:
- *   - apps/api/src/core-model/policy.repository.ts — the only thrower today
+ *   - apps/api/src/core-model/policy.repository.ts · risk.repository.ts
  */
 
 /** postgres `insufficient_privilege` — what a failed RLS WITH CHECK raises. */
 const RLS_REFUSAL_SQLSTATE = '42501';
+
+/** postgres `foreign_key_violation` — what the composite FK raises (W05). */
+const FK_VIOLATION_SQLSTATE = '23503';
 
 /** Nested keys a driver error hides its cause behind. Extend only when measured. */
 const CAUSE_KEYS = ['cause', 'meta', 'driverAdapterError'] as const;
@@ -93,4 +108,26 @@ function collectCodes(value: unknown, depth: number): string[] {
 /** True when anywhere in the error chain the database reported SQLSTATE 42501. */
 export function isScopeRefusal(error: unknown): boolean {
   return collectCodes(error, 0).includes(RLS_REFUSAL_SQLSTATE);
+}
+
+/**
+ * Raised when a write named a record it cannot reach — either because no such
+ * record exists, or because it belongs to another entity.
+ *
+ * ⚠️ The two are NOT distinguished, and cannot be: the composite foreign key
+ * produces the identical error for both (measured, W05 Day 2). It carries only
+ * the field NAME, never the id — echoing the id back would be harmless, but
+ * echoing anything the database said about it would not, and keeping the class
+ * unable to hold that is cheaper than remembering not to add it.
+ */
+export class UnknownReferenceError extends Error {
+  constructor(readonly field: string) {
+    super(`${field} not found`);
+    this.name = 'UnknownReferenceError';
+  }
+}
+
+/** True when anywhere in the error chain the database reported SQLSTATE 23503. */
+export function isUnknownReference(error: unknown): boolean {
+  return collectCodes(error, 0).includes(FK_VIOLATION_SQLSTATE);
 }
