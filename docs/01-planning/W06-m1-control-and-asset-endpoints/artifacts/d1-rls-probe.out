@@ -1,0 +1,156 @@
+GRANT
+CREATE FUNCTION
+CREATE TABLE
+INSERT 0 2
+CREATE TYPE
+CREATE TABLE
+INSERT 0 3
+ALTER TABLE
+ALTER TABLE
+CREATE POLICY
+GRANT
+CREATE TABLE
+INSERT 0 3
+ALTER TABLE
+ALTER TABLE
+CREATE POLICY
+GRANT
+CREATE TABLE
+INSERT 0 3
+ALTER TABLE
+ALTER TABLE
+CREATE POLICY
+CREATE POLICY
+CREATE POLICY
+CREATE POLICY
+GRANT
+SET
+SET
+### role/scope ###
+ current_user  |                scope                 
+---------------+--------------------------------------
+ isms_app_user | 11111111-1111-1111-1111-111111111111
+(1 row)
+
+
+=== A1  SELECT under shape A — what does HK1 see? ===
+                  id                  |            org_entity_id             | applies_to_scope |           title            
+--------------------------------------+--------------------------------------+------------------+----------------------------
+ a0000000-0000-0000-0000-000000000002 | 22222222-2222-2222-2222-222222222222 | group            | GROUP shared, owned by SG1
+ a0000000-0000-0000-0000-000000000003 | 11111111-1111-1111-1111-111111111111 | entity           | HK local
+(2 rows)
+
+
+=== A2  UPDATE the group row owned by SG1 (title only) ===
+BEGIN
+ERROR:  42501: new row violates row-level security policy for table "probe_a"
+LOCATION:  ExecWithCheckOptions, execMain.c:2337
+ROLLBACK
+
+=== A3  DELETE the group row owned by SG1 (DELETE has no WITH CHECK) ===
+BEGIN
+DELETE 1
+ROLLBACK
+
+=== A4  INSERT a NEW group-shared row, owned by HK1 itself ===
+BEGIN
+INSERT 0 1
+ROLLBACK
+
+=== A5  PROMOTE HK1 own entity-local row to group-shared ===
+BEGIN
+UPDATE 1
+ROLLBACK
+
+=== A6  STEAL: reassign the SG1-owned group row to HK1 ===
+BEGIN
+UPDATE 1
+ROLLBACK
+
+=== A7  UPDATE an INVISIBLE row (SG local) — error or silent 0? ===
+BEGIN
+UPDATE 0
+ROLLBACK
+
+=== B1  SELECT under shape B (extension_fields verbatim) ===
+                  id                  |            org_entity_id             |             title             
+--------------------------------------+--------------------------------------+-------------------------------
+ b0000000-0000-0000-0000-000000000002 |                                      | GROUP shared, owned by nobody
+ b0000000-0000-0000-0000-000000000003 | 11111111-1111-1111-1111-111111111111 | HK local
+(2 rows)
+
+
+=== B2  UPDATE the NULL group row (title only) ===
+BEGIN
+ERROR:  42501: new row violates row-level security policy for table "probe_b"
+LOCATION:  ExecWithCheckOptions, execMain.c:2337
+ROLLBACK
+
+=== B3  DELETE the NULL group row ===
+BEGIN
+DELETE 1
+ROLLBACK
+
+=== B4  INSERT a NEW group-shared row (org_entity_id = NULL) ===
+BEGIN
+ERROR:  42501: new row violates row-level security policy for table "probe_b"
+LOCATION:  ExecWithCheckOptions, execMain.c:2337
+ROLLBACK
+
+=== B5  PROMOTE HK1 own row to group-shared (set org_entity_id = NULL) ===
+BEGIN
+ERROR:  42501: new row violates row-level security policy for table "probe_b"
+LOCATION:  ExecWithCheckOptions, execMain.c:2337
+ROLLBACK
+
+=== B6  STEAL: claim the NULL group row for HK1 ===
+BEGIN
+UPDATE 1
+ROLLBACK
+
+=== C1  A-prime: SELECT (per-command policies) ===
+                  id                  |            org_entity_id             | applies_to_scope |           title            
+--------------------------------------+--------------------------------------+------------------+----------------------------
+ c0000000-0000-0000-0000-000000000002 | 22222222-2222-2222-2222-222222222222 | group            | GROUP shared, owned by SG1
+ c0000000-0000-0000-0000-000000000003 | 11111111-1111-1111-1111-111111111111 | entity           | HK local
+(2 rows)
+
+
+=== C2  A-prime: UPDATE the group row owned by SG1 ===
+BEGIN
+UPDATE 0
+ROLLBACK
+
+=== C3  A-prime: DELETE the group row owned by SG1 ===
+BEGIN
+DELETE 0
+ROLLBACK
+
+=== C4  A-prime: INSERT a new group-shared row owned by HK1 ===
+BEGIN
+ERROR:  42501: new row violates row-level security policy for table "probe_a2"
+LOCATION:  ExecWithCheckOptions, execMain.c:2337
+ROLLBACK
+
+=== C5  A-prime: PROMOTE own row to group-shared ===
+BEGIN
+ERROR:  42501: new row violates row-level security policy for table "probe_a2"
+LOCATION:  ExecWithCheckOptions, execMain.c:2337
+ROLLBACK
+
+=== C6  A-prime: STEAL the SG1-owned group row ===
+BEGIN
+UPDATE 0
+ROLLBACK
+
+=== C7  A-prime: normal own-row UPDATE still works (negative control) ===
+BEGIN
+UPDATE 1
+ROLLBACK
+
+=== C8  A-prime: normal own-row INSERT still works (negative control) ===
+BEGIN
+INSERT 0 1
+ROLLBACK
+
+=== DONE ===
