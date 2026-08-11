@@ -370,25 +370,13 @@ python scripts/lint/run_all.py
 | `.claude/rules/tool-discipline.md` | 有專用工具就用專用工具 |
 
 **📋 On-demand（需要時主動 `Read docs/rules-on-demand/X.md`）**  <!-- path-check: ignore -->
-
-| Rule | Trigger |
-|------|---------|
-| `day0-plan-verify.md` | 每個 phase 的 Day 0（三-prong 完整程序）|
-| `scope-boundaries.md` | 新建檔案 / 跨範疇 import |
-| `multi-tenant-data.md` | ⭐ 任何碰資料存取的工作（entity scoping / RLS）|
-| `mockup-fidelity.md` | ⭐ 前端頁面 / 設計交付物 port / 改設計系統 |
-| `llm-agent-antipatterns.md` | Wave 3 AI agent / 任何 LLM 呼叫 |
-| `i18n-glossary.md` | ⭐ 任何使用者可見文字（zh-Hant / ja / ko / en + SEA）|
-| `git-workflow.md` | Commit message / branch naming / PR |
-| `code-quality.md` · `testing.md` | Lint / type check / 寫測試 / coverage |
-| `spike-design-note-gate.md` | spike phase 的收尾 |
-| `release-process.md` · `observability.md` | 發版 / 部署 / 監控 |
-| `collaboration.md` | Review / 交接 / 新人加入 |
-| `local-runtime-ops.md` | 重啟服務 / **殺進程之前** |
-| `lint-detector-authoring.md` · `restructure-repointing.md` | 寫自訂 detector / 大規模搬遷 |
+—— **16 個檔（14 常態 + 2 條件式附加包）**，逐條 trigger 表在
+[`.claude/rules/README.md`](./.claude/rules/README.md) —— **它也是 always-loaded，
+那張表已在 context 裡，抄第二次是純浪費**。最常觸發：`day0-plan-verify`（每個 Day 0）·
+`multi-tenant-data`（⭐ 碰資料存取）· `mockup-fidelity`（⭐ 寫第一頁前）·
+`i18n-glossary`（⭐ 使用者可見文字）。
 
 > ⚠️ **on-demand 規則絕不能放進 `.claude/`** —— Claude Code 遞迴掃描整棵 `.claude/` 樹並全部載入。
-> 完整 trigger 表見 [`.claude/rules/README.md`](./.claude/rules/README.md)。
 
 ---
 
@@ -409,26 +397,14 @@ python scripts/lint/run_all.py
 > **`docs/architecture.md`（模版主 spec）在本專案是薄轉址層** ——
 > 真正的架構真理在 `docs/02-architecture/01-architecture-overview.md` 與 `02-core-data-model.md`。
 
-### 三軌的產出物
+**三軌的產出物**（Phase → `plan`+`checklist` · Change → `spec` · Bug → `report`；
+單檔 1-page vs 資料夾三件套的判準）：
+[`PROCESS.md`](./docs/01-planning/PROCESS.md) §3.3 / §4.3 是唯一權威。
 
-| 軌 | 位置 | Pre-doc（**沒有它不准寫 code**）| 這份文件回答什麼 |
-|---|---|---|---|
-| **Phase** | `01-planning/W{NN}-{slug}/` | `plan.md` + `checklist.md` | 要交付什麼 + 怎麼證明交付了 |
-| **Change** | `03-implementation/changes/CH-NNN-*` | §Problem + scope（approved）| **為什麼這樣設計** |
-| **Bug** | `03-implementation/bugs/BUG-NNN-*` | §Problem + severity（triaged）| 什麼壞了 + **為什麼測試沒抓到** + **怎麼防止再發生** |
-
-> Change / Bug 有**兩種形式**：單檔 1-page 或資料夾三件套。判準見
-> [`docs/01-planning/PROCESS.md`](./docs/01-planning/PROCESS.md) §3.3 / §4.3。
-
-### 設計與決策的三種文件
-
-| 類型 | 位置 | 何時 | 必須有實作？ |
-|------|------|------|------------|
-| **Design doc** | `docs/02-architecture/NN-*.md` | 一個決定會約束多個 phase | ❌ |
-| **Design note** | `docs/02-architecture/design-notes/` | 每個 **spike** 的收尾 | ✅ **必須**（含 `file:line`）|
-| **ADR** | `docs/14-adr/NNNN-*.md` | 做了選 A 不選 B 的決定 | ❌（輕量 1 頁）|
-
-⚠️ **Design note 是 extract 不是 pre-write** —— 禁止因 gap analysis 結果就預寫一批規劃文件。
+**設計與決策的三種文件**（design doc / design note / ADR —— 何時寫、誰必須有實作、
+⚠️ **design note 是 extract 不是 pre-write**）：
+[`14-adr/README.md`](./docs/14-adr/README.md)（含 ADR 的 forcing-function 判準）
++ [`02-architecture/README.md`](./docs/02-architecture/README.md) §Design Notes。
 
 ---
 

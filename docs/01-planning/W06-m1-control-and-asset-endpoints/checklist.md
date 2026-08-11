@@ -77,13 +77,24 @@
 
 ### 1.1 ⛔ US-1 — `CLAUDE.md` 結構性瘦身（**開工前先做**）
 
-- [ ] **把非導航內容移出，留指標**
+- [x] **把非導航內容移出，留指標**
   - DoD: headroom **≥ 1,500 bytes**；⛔ **移出 ≠ 刪除** —— 每一段都有落點與指向它的一行
   - Verify: `wc -c CLAUDE.md` + `python scripts/lint/run_all.py`（rules-hygiene 綠）
   - ⚠️ `check_path_references.py` **驗路徑存在，不驗內容還在** —— 移出後要自己讀一次落點檔
-- [ ] **確認 9 條 guardrails 與 8 條核心約束的「原文」未被壓縮成摘要**
+  - → **28,473 bytes，headroom 196 → 1,527** ✅（中途量到 1,478 差 22 bytes，
+    **未四捨五入當作達成**）。`run_all` 6/6
+  - → 兩刀皆為**刪重複 + 留指標**：(a) on-demand 的 13 列 trigger 表 —— 落點
+    `.claude/rules/README.md` **本身也是 always-loaded**，等於同一張表被存兩份，移出**零行為成本**；
+    (b) 「三軌產出物」→ `PROCESS.md` §3.3/§4.3 ·「三種文件」→ `14-adr/README.md:16,57` +
+    `02-architecture/README.md:74-85`。**三個落點都逐一 grep 讀過確認內容真的在**
+  - → ⚠️ **14 層目錄表刻意保留** —— 它含「建表前先看 `02a` §0 實體索引」等導航指令，不是純索引
+- [x] **確認 9 條 guardrails 與 8 條核心約束的「原文」未被壓縮成摘要**
   - DoD: 這兩節是**不可協商**的，瘦身只能動它們的**細節說明**不能動判準本身
   - Verify: diff 逐段人工過目，並在 progress.md 記錄「移出了什麼 / 留下了什麼」
+  - → `git diff -U0` 的**四個 hunk 全部落在 373-431 行**；對兩節的標題與判準行 `grep -q` **零命中** ✅
+  - → ⛔ **第一版驗證指令沒有真的驗到**：`grep … | head -5 || echo "零命中"` ——
+    **pipeline 退出碼是 `head` 的**，`||` 永不觸發。`AD-GrepAssertion-1` 同一天同一 session 再現。
+    改為先寫檔再 `grep -q`，**退出碼不經 pipe**
 
 ### 1.2 ⛔ D1 — `applies_to_scope` 的範疇語義（**助手不得代選**）
 

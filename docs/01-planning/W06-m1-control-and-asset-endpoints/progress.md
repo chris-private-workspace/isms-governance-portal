@@ -75,3 +75,57 @@ W05 Day-0 犯過兩次「零命中但搜錯地方」。**本次的形狀更糟�
   而是「**`extension_fields` 的豁免理由能不能移轉到一張業務表**」——
   前者是 PostgreSQL 的問題，後者是 guardrail 的問題
 - ~~D2 `frequency` 值域~~ · ~~D3 `nature` 權威~~ —— **Day-0 已解決，照抄 `02a:123-124`**
+
+---
+
+## Day 1 — 2026-08-11 — CLAUDE.md 瘦身 + 拍板 `applies_to_scope` (US-1, US-2)
+
+### 1.a US-1 —— `CLAUDE.md` 瘦身：**196 → 1,527 bytes headroom**
+
+⭐ **先量每一節的實際 byte 數，不靠印象挑**（`LC_ALL=C awk` —— 預設 locale 數的是字元，
+CJK 一字 3 bytes，會低估 35%）：
+
+| 節 | bytes | 處置 |
+|---|---|---|
+| 核心約束（必守）| 4,423 | ⛔ **不動**（判準）|
+| 🛑 不可協商的 guardrails | 3,039 | ⛔ **不動**（原文）|
+| **Documentation Layout** | 2,952 | ✅ **移出兩張表** → 2,952 → ~750 |
+| 已確認參數 15 列 | 2,519 | ⛔ **不動**（防再議清單，表本身就是價值）|
+| **Code Standards** | 1,968 | ✅ **移出 on-demand trigger 表** |
+| 其餘 11 節 | — | 不動 |
+
+**兩刀都是「刪重複 + 留指標」，不是壓縮形容詞**（`AD-ClaudeMdBudget-1` 明文要求結構性瘦身）：
+
+| 移出什麼 | 落點（**逐一讀過才動手**）|
+|---|---|
+| on-demand 規則的 13 列 trigger 表 | ⭐ [`.claude/rules/README.md`](../../../.claude/rules/README.md) —— **它本身也是 always-loaded**，所以那張表**一直都在 context 裡**。在 CLAUDE.md 再抄一次是**兩份 always-loaded 檔案裡的同一張表** = 每個 session 付兩次錢、零行為差異 |
+| 「三軌的產出物」表 | `PROCESS.md` §3.3「產出 —— 兩種形式」/ §4.3 |
+| 「設計與決策的三種文件」表 | `14-adr/README.md:16,57`（含「Design note **必須有實作 + file:line**」）+ `02-architecture/README.md:74-85`（含「**extract 不是 pre-write**」）|
+| 14 層目錄表 | **保留** —— 它含 `02a` §0「建表前先看實體索引」等導航指令，不是純索引 |
+
+⭐ **這一刀的性質值得記**：**on-demand trigger 表的移出是零成本的** ——
+內容沒有離開 always-loaded 的範圍，只是不再被存兩份。
+另外兩張表的內容則有**其他權威來源**，而我**逐一 grep 讀過確認它們真的在**，
+不是假設「應該有」。**移出 ≠ 刪除**這條 DoD 是這樣滿足的。
+
+#### ⚠️ 兩個自我攔截
+
+1. **我抄了「14 條」這個數字而沒有數。** 取代文字第一版寫「on-demand 14 條」——
+   `Glob docs/rules-on-demand/*.md` 實測 **16 個檔**。
+   兩者都對但講的是不同的集合：`.claude/rules/README.md` 的「14 條」是**常態**那批，
+   另有 **2 條件式附加包**（`multi-tenant-data` · `llm-agent-antipatterns`）。
+   改為 **「16 個檔（14 常態 + 2 條件式）」** —— 可被 `Glob` 一行驗證。
+   ⚠️ 諷刺的是我在替代文字裡把 `multi-tenant-data`（條件式那批）列為「最常觸發」之一。
+2. ⛔ **驗「guardrail 沒被動到」的第一版指令沒有真的驗到** ——
+   `grep ... | head -5 || echo "零命中"`：**pipeline 的退出碼是 `head` 的**，
+   所以 `||` 永遠不會觸發，那句「零命中 ✅」印不出來也不代表什麼。
+   這正是 `AD-GrepAssertion-1` 的形狀，**在同一天的同一個 session 裡又一次**。
+   重驗方式：先寫檔再 `grep -q` 判斷，**退出碼不經 pipe**。
+
+#### DoD 驗證
+
+- `wc -c CLAUDE.md` = **28,473** → headroom **1,527 ≥ 1,500** ✅
+  （⚠️ 中途量到 **1,478**，差 22 bytes。**沒有四捨五入當作達成**，再收一句才過）
+- `git diff -U0` 的**四個 hunk 全部落在 373-431 行**（那兩個表所在的區段）；
+  對 guardrail 9 條與核心約束 8 條的標題與判準行做 `grep -q` → **零命中** ✅
+- `python scripts/lint/run_all.py` → **6/6**（含 rules-hygiene）✅
