@@ -592,10 +592,16 @@ plan §7 宣告 `actual` = branch base → closeout commit 牆鐘（W04 同定�
 | 量 | 值 |
 |---|---|
 | base `a2b1906`（**W04 的 closeout commit**）| 2026-08-10 **23:11:12** |
-| closeout commit | 2026-08-11 **~14:30** |
-| 字面 actual / ratio | **~15.3 hr** / **2.19**（OVER band 兩倍以上）|
+| closeout commit `f9195da` | 2026-08-11 **14:23:25**（`git log` 回讀，非估計）|
+| 字面 actual / ratio | **15.20 hr** / **2.17**（OVER band 兩倍以上）|
 | 跨夜間隙（base → 本 phase 第一個 commit `785be55` 09:31:41）| **10h20m** |
-| 扣除後 / ratio | **~5.0 hr** / **0.71**（IN band）|
+| 扣除後 / ratio | **4.86 hr** / **0.69**（**UNDER band**，差 0.006）|
+
+⚠️ **先寫下的估計是 `~14:30 → 0.71 (IN)`。** 真實時間戳給 **0.69 (UNDER)** ——
+差別小到看起來可以四捨五入掉，**但它跨過了一條判定線**。
+照 W04 `5bb0c9f`（"register the number git reports, not the one I estimated"）的先例，
+**單獨開一個 commit 修正，而不是留一個「大約對」的數字。**
+⚠️ UNDER **不觸發調降乘數** —— 單點依鐵律忽略，何況本點定義受污染。
 
 > **base 是前一個 phase 的 closeout commit，不是本 phase 的起工時刻。**
 > W04 恰好背靠背在同一個晚上，前提成立而沒人看見它。**不是量錯，是定義內含一個沒寫出來的前提。**

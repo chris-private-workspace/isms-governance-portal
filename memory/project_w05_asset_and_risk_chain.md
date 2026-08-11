@@ -93,8 +93,10 @@ all-or-none CHECK 是 D1 成立的**必要條件不是加分項**。
 ## Calibration ⛔ 定義在這裡破了
 
 - `pattern-reuse-feature` **第 1 個資料點，但標記為「定義受污染」**
-- bottom-up 14 hr → committed 7.0 hr (mult 0.50) → actual **~15.3 hr（字面）/ ~5.0 hr（修正）**
-- 字面 ratio **2.19**、修正 ratio **0.71**
+- bottom-up 14 hr → committed 7.0 hr (mult 0.50) → actual **15.20 hr（字面）/ 4.86 hr（修正）**
+- 字面 ratio **2.17（OVER ×2）**、修正 ratio **0.69（UNDER，差 0.006）**
+- ⚠️ 數字是 closeout commit `f9195da` 落地後從 `git log` 回讀的；先寫的估計給 0.71 (IN)，
+  **真實時間戳把 band 翻成 UNDER** → 照 W04 `5bb0c9f` 先例單獨開 commit 修正
 
 > `actual` = branch base → closeout 的定義裡，**base 是前一個 phase 的 closeout commit**，
 > 不是本 phase 的起工時刻。W04 恰好背靠背在同一個晚上，前提成立而沒人看見它；
