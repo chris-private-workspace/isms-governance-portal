@@ -384,3 +384,142 @@ catch block 的先後順序就會靜默決定呼叫者看到哪個錯誤。
   **弄壞後沒有東西紅 = 缺口不是通過**
 - ⚠️ **Day 3 必須在 reset 過的 `isms_dev` 上驗 GRANT**（`AD-DbBuildPathParity-1`：
   CI 的庫從 template1 繼承權限，CI 綠**不涵蓋** GRANT 缺陷）
+
+---
+
+## Day 3 — 2026-08-11 — API-level 驗證與元驗證 (US-5)
+
+⚪ **無 user-facing surface → drive-through 不適用。以下一律是 API-level verified，
+不暗示可用性。W01–W05 的零 UI drive-through 記錄不變。**
+
+### 3.a Clean restart —— 兩件事要分開
+
+| 進程 | 判斷 | 處置 |
+|---|---|---|
+| PID **36748 / 11688** —— `next dev -p 3200`，**啟動於 2026-08-08 20:54** | 追 PPID 鏈到 `npm run dev -w apps/web`，**不是我開的**（三天前）| ⛔ **不碰**（規則 §4；W04 遇到同一個也正確地沒碰）|
+| PID **42204 / 28336** —— `prisma migrate dev`，啟動於 **今天 10:50** | 追得到我自己的背景任務 `bjnvcgot3` | ✅ 清掉 |
+| Port **3210** | 無人監聽 | 乾淨起 |
+
+⭐ **那個 hang 住的 `migrate dev` 不是無害的殘留 —— 它握著 `isms_dev` 的 advisory lock**，
+而它最後一句 query 是 `SELECT COUNT(*) FROM "public"."risks" WHERE "score_before" I...`。
+
+> **它卡在互動式提示上。** 當時 migration 已套用，但 `schema.prisma` **還沒補上四個
+> `dbgenerated` 鏡像** —— Prisma 看到 drift、開始數列數準備問「要不要繼續」，而 stdin 是空的。
+> **這正是 Day-1 R1 預測的失效模式，在真 repo 裡真的發生了一次。**
+>
+> → **操作結論**：那個窗口（migration 已套用、鏡像未補）**不要用 `migrate dev`**。
+> `migrate deploy` 不互動、不做 drift 提示。Day 2 的順序表要加這一句。
+
+### 3.b `AD-DbBuildPathParity-1` —— 這次真的驗了那條路徑
+
+⚠️ **我差點得出相反結論。** 第一次量 `template1` 的 `public` schema ACL 看到
+`pg_database_owner=UC | =U/pg_database_owner`，一度判讀為「沒給 `isms_app` 任何東西」。
+**讀了 AD 全文才發現 `=U` 就是那條繼承來的 `GRANT USAGE TO PUBLIC`** —— AD 的前提**成立**。
+→ 這是「證據不支持結論」的第三次自我攔截：**先讀原文再下判斷，不要靠對機制的印象。**
+
+⛔ **不 reset `isms_dev`** —— 破壞性操作需要使用者當下的明確文字。
+改在 throwaway 庫上**精確重現 reset 路徑**（`DROP SCHEMA public CASCADE` + `CREATE SCHEMA public`），
+得到同一份證據而零風險。
+
+| 步驟 | 結果 |
+|---|---|
+| reset 前 | `public` ACL = `pg_database_owner=UC \| =U/pg_database_owner` |
+| reset 後 | ACL = **`(null)`**，`has_schema_privilege('isms_app','public','USAGE')` = **`f`** ← W04 Day 3 撞到 500 的那個狀態 |
+| `migrate deploy` 後 | USAGE **`t`** · CREATE **`f`**（只給 USAGE，符合設計）|
+| 五張新表的權限 | `asset_groups`/`assets`/`risks` = SELECT+INSERT+UPDATE **無 DELETE** · `threats`/`vulnerabilities` = **SELECT only** · `_prisma_migrations` = 無 |
+
+⭐ **本 phase 的 GRANT 在 reset 路徑上直接量過，不是從 CI 綠推論的。**
+
+⭐ **同時量到 AD 提議的守衛放錯位置**：它建議「int 套件加一個以 app role 斷言
+`has_schema_privilege` 的前提檢查」—— 但 `isms_test` 走的是 `CREATE DATABASE` 路徑，
+**那條斷言會靠繼承來的權限輕鬆通過**。那正是這條 AD 自己在講的病。→ 回填進 BACKLOG。
+
+### 3.c API-level 走查（真進程 + 真 PostgreSQL + 真 RLS）
+
+Startup log 證明接線生效：`RiskModule dependencies initialized` ·
+`Mapped {/risks, GET}` · `Mapped {/risks, POST}` · PID 7364 是 3210 的唯一擁有者。
+
+| # | 案例 | HTTP | observed | intended |
+|---|---|---|---|---|
+| A1 | 建立（inherent 4×MAX(2,5,1,3,1)）| 201 | `score_before=20` · `ref=RISK-SG1-000001` | 20 **不是 48**（SUM 會給 48）✅ |
+| A2 | 讀回 | 200 | `n=1` · `score=20` · `_devPrincipal=True` | ✅ |
+| A3 | 呼叫者自帶 `scoreBefore:1` | 201 | `score_before=20` | 送出的 1 到不了任何地方 ✅ |
+| A4 | 殘餘恰好 16 | 201 | `score_after=16` · `requires_treatment` · `reg=True` | ✅ |
+| A5 | 殘餘恰好 15 | 201 | `score_after=15` · `acceptable` · `reg=False` | ✅ |
+| A6 | 未評分 | 201 | **四個 derived 全 null** | 未評估的風險不是 acceptable ✅ |
+| A7 | 跨實體寫（row 自己出範疇）| **404** | `org entity ... not found` | RLS 拒絕，**不是 403** ✅ |
+| A8 | row 在範疇內、**資產**不在 | **404** | `asset, threat or vulnerability not found` | 複合 FK 拒絕 ✅ |
+| A9 | 資產**根本不存在** | **404** | 與 A8 **body 逐字相同** | 無 existence oracle ✅ |
+| A13 | **威脅**不存在 | **404** | 與 A8 **body 逐字相同** | 不洩漏是三個裡的哪一個 ✅ |
+| A10 | 部分填寫分數組 | **422** | `missing: bop_before, lry_before, rep_before, sis_before` | 不是 500 ✅ |
+| A11 | `lkh_before = 7` | **422** | `key: lkh_before` | ✅ |
+| A12 | `ciaType = 'x'` | **400** | 列出七個合法值 | ✅ |
+| — | 走查後的 `GET /risks` | 200 | `rows=5` · 只有 SG1 · **被拒案例 0 筆落地** | ✅ |
+
+> **A7 與 A8 的訊息不同，而那不是 oracle**：A7 說「你指名的實體找不到」，
+> A8 說「你指名的三個參照之一找不到」。**兩句都沒回答「它存不存在」**，
+> 而 A8/A9/A13 三者之間逐字相同才是關鍵那一條。
+
+#### ⛔ 第一版走查腳本無效，而且它印出來像通過的
+
+PowerShell 的 hashtable `+` 在鍵重複時 **throw**，於是 A7/A8/A9/A12 的 `Post` **根本沒執行**，
+`$r` 保留上一輪的值，腳本把**陳舊的回應**當成本案例的結果印出來 —— 三筆都是同一個
+`RISK-SG1-000005`。**更糟的是它印了 `A8 == A9 ? True`** ——
+那行讀起來正是 oracle 安全性檢查通過，實際上在比較同一個陳舊值的兩份拷貝。
+
+**修法是結構性的不是「小心一點」**：改成 clone-and-overwrite（重複鍵是正常路徑而非錯誤），
+並讓**每個案例的 title 帶自己的 nonce** —— 陳舊回應會直接顯示在輸出裡。
+
+### 3.d ⭐ 元驗證（US-5 —— `AD-NegativeGate-1` 第 8 個實例）
+
+每個「宣稱會擋住某件事」的機制各中性化一次，跑整合套件，記幾個轉紅，還原。
+
+| # | 中性化什麼 | 紅 | 哪些 |
+|---|---|---|---|
+| **M1** | 評分公式 `GREATEST` → `+`（MAX→SUM）| **4** | 1 公式 · 2 自帶分數 · 4 acceptance · 6 表達式文字釘樁 |
+| **M2** | 三張表的 RLS → `USING(true) WITH CHECK(true)` | **3 → 補測試後 4** | 10 跨實體讀 · 14 RLS 獨立 · 15 滾升子樹（**+ 新增的 11b**）|
+| **M3** | all-or-none CHECK → `CHECK (true)` | **1** | 8（**繞過應用層直接寫**的那個）|
+| **M4** | 複合 FK → 單欄 FK（量測前的形狀）| **2** | 12 跨實體資產 · 13 無 oracle |
+
+⭐⭐ **M2 找到一個真的缺口，這正是元驗證存在的理由。**
+
+RLS 全部中性化後，**測試 11「跨實體寫入被拒」竟然還是綠的**。
+原因：`repo.create()` **先**經過 `issueRefCode`，而 `ref_code_counters` 的 RLS 是 W04 的、我沒動。
+→ **測試 11 證明的是 counter 會拒絕，不是 `risks` 會拒絕。**
+`risks` 自己的 `WITH CHECK` **完全沒有覆蓋** —— 拿掉它，每一項 gate 仍然全綠。
+
+> 這是 W04 那個發現的復發：**「發號路徑成了別人保證的一部分」**。
+> 同一形狀第 2 次。
+
+**處置（不是記錄，是修）**：新增 int 測試 **11b** —— 繞開 repository、不帶 ref_code、
+直接 `client.risk.create()` 寫一筆 HK1 的列，唯一能拒絕它的只有 `risks` 自己的 policy。
+**在 M2 仍然中性化的狀態下重跑，11b 轉紅** → 缺口關上**且證明關上了**（M2 從 3 紅變 4 紅）。
+
+**還原驗證**：`git checkout` 後與中性化前的副本 **逐位元組相同**，
+且 `isms_dev` 的 `_prisma_migrations.checksum` 與檔案 SHA256 **仍相符**（`0ae3cd1e…`）。
+
+### 3.e 順帶修的一個 orphan claim
+
+Startup 警告寫的是「**/policies** is scoped by a hard-coded assignment」——
+`/risks` 也是，所以那句話因為我的改動變成**比事實窄的宣稱**。
+改為「EVERY entity-scoped endpoint」並在註解寫明**不列端點名單**的理由：
+會過期的清單比模糊的說法更糟，因為讀者會把遺漏當成資訊。
+
+### 3.f Gate（Day 3 —— 逐項實際輸出）
+
+| Gate | 結果 |
+|---|---|
+| `test:int` | ✅ **4 suites / 54 tests**（+1 = 11b）|
+| `test`（unit）| ✅ **15 suites / 138 tests** |
+| `lint` · `type-check` · `format:check` | ✅ **0 / 0 / 0** |
+| `run_all.py` | ✅ **6/6** |
+| migration checksum vs 檔案 SHA256 | ✅ **相符** —— 四次中性化未留下痕跡 |
+
+### Remaining for Next Day
+
+- **Day 4 closeout**：CH-020 · US-6 七個不變式裁決 · retrospective · calibration ·
+  `CALIBRATION-MATRIX` 一行 · 導航檔 · `AD-12b` 模板加一列 · anti-pattern 自檢
+- ⚠️ **RISK_REGISTER R4 必須更新** —— 本 phase 新增**三條無稽核的寫入路徑**
+- 📌 `isms_dev` 留下走查建立的 5 筆風險（`RISK-SG1-000001..000005`），
+  **ref_code 皆由 counter 正常發號**，無撞號風險，刻意保留作為 dev 資料
+- 📌 BACKLOG 待回填：`AD-DbBuildPathParity-1` 的兩個新事實（reset 路徑已驗 / 提議的守衛位置無效）
