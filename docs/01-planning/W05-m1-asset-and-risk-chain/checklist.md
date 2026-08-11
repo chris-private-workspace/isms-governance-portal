@@ -282,25 +282,47 @@ _(⚪ **無 user-facing surface** → drive-through 不適用。一律標 **API-
 
 ### 4.1 Change record
 
-- [ ] **`docs/03-implementation/changes/CH-020-w05-asset-and-risk-chain.md`**
+- [x] **`docs/03-implementation/changes/CH-020-w05-asset-and-risk-chain.md`**
       （Problem / Root Cause / Solution / Verification / Impact —— 含 **API-level verified** 標示）
-- [ ] ⭐ **US-6：W04 七個不變式逐條裁決「可複製 / 需調整 / 不適用」**
+  - → 六個決定逐條一句理由 · 四個 load-bearing 細節 · 三個「不是我選的、由 `02a` 機械導出」的結果 ·
+    否決 `IMMUTABLE` 函式的完整量測。**Drive-through 欄明寫「不是可用」**
+- [x] ⭐ **US-6：W04 七個不變式逐條裁決「可複製 / 需調整 / 不適用」**
   - DoD: 一張表，每條一行 + 一句理由。**這是本 phase 對 slice 3 最有價值的產出**
   - Verify: 寫進 retrospective；**若「需調整」≥3 條 → 本 phase 應改判為 spike 並補 design note**
+  - → **可複製 6 · 不適用 1 · 需調整 0** → **不改判**。判準寫死在 retro 裡以便被檢查：
+    2.1 / 2.2 各帶一條**必須新增的條款**（FK 要複合 · 每張新表要有繞開發號的寫入測試），
+    但本 phase **原樣抄了它們而且成立** → 缺的是清單上還沒有的東西，不是清單上寫錯的東西。
+    ⭐ **就算用最寬鬆的讀法把那兩條算成「需調整」，2 < 3，門檻在兩種讀法下都沒跨過**
+  - → §3 Cross-Scope Contracts 也被用掉：`ScopedRiskClient` 直接 `extends ScopedRefCodeClient`，
+    W04 拆出它時的預測（「發號器會被每一個業務 repository 使用」）**兌現了**
 
 ### 4.2 Closeout
 
-- [ ] `retrospective.md` Q1-Q7 + calibration（`pattern-reuse-feature` 0.50，**第 1 個資料點**；
+- [x] `retrospective.md` Q1-Q7 + calibration（`pattern-reuse-feature` 0.50，**第 1 個資料點**；
       `actual` = branch base → closeout commit 牆鐘，與 W04 同定義）
   - ⚠️ **若 Day 1 已改判為 spike** → class 改 `spike` 0.65 並在 Q2 說明改判理由
-- [ ] `CALIBRATION-MATRIX.md` 那一行 —— **≤ 1 行 ~250 字元**（lint 上限 400；完整敘述 → `CALIBRATION-LOG.md`）
-- [ ] Final gate sweep: lint 0 · type 0 · format 0 · unit ≥86 · int ≥34 · web 10 · build 0 ·
+  - → 未改判（US-6 判定可複製）。⛔ **但那個定義在本 phase 破了**：base `a2b1906` 是
+    **W04 的 closeout commit**，中間跨了一夜 —— 字面套用把 10h20m 睡眠算成工時
+    （ratio 2.22 vs 修正後 0.74）。**兩個數字都寫進 Q2，本點標記「定義受污染」**
+    → `AD-CalibrationMetric-2`。⚠️ 修正定義套回 W04 會讓 0.81 變 0.66，**沒有改它**
+- [x] `CALIBRATION-MATRIX.md` 那一行 —— **≤ 1 行 ~250 字元**（lint 上限 400；完整敘述 → `CALIBRATION-LOG.md`）
+- [x] Final gate sweep: lint 0 · type 0 · format 0 · unit ≥86 · int ≥34 · web 10 · build 0 ·
       `run_all` 6/6 · `lint:negative` PASS
-- [ ] 導航檔: `CLAUDE.md` Current-Phase + Last-Updated（**各 1 行**）· `MEMORY.md` pointer + subfile ·
+  - → 見 progress.md Day 4 §4.e，**逐項實際輸出**
+- [x] 導航檔: `CLAUDE.md` Current-Phase + Last-Updated（**各 1 行**）· `MEMORY.md` pointer + subfile ·
       `BACKLOG.md` §Shipped 加列 · `ROADMAP.md` 第 4 項進度（**兩處都要改**）
-- [ ] ⭐ **AD-12b（審計 #3）**：`retrospective.md.tpl` §Closeout Self-Check **加一列 RISK_REGISTER 複查**
+  - → ⚠️ **`CLAUDE.md` headroom 剩 215 bytes**（29,785 / 30,000）——
+    `AD-ClaudeMdBudget-1` 的觸發條件（< 500）**已成立**，已回填實測值。本次仍是最小改動
+- [x] ⭐ **AD-12b（審計 #3）**：`retrospective.md.tpl` §Closeout Self-Check **加一列 RISK_REGISTER 複查**
   - DoD: 併入本 phase，**不另開 CH**（節流閘配額；它只是模板加一列）
   - Verify: 本 phase 自己就是第一個執行它的 —— **R4 因新增三條無稽核寫入路徑而需更新**
-- [ ] Anti-pattern 自檢（retro Q5）：AP-1..AP-7 → 違規數
+  - → 模板加一列（含「沒有這一列就沒有東西會讓人回頭翻它」的理由）；
+    R4 已更新為 **W02 兩張表 → W04 四張 → W05 七張，無一有稽核**，複查日 2026-08-11
+- [x] Anti-pattern 自檢（retro Q5）：AP-1..AP-7 → 違規數
+  - → **總計 1**（AP-6，繼承自 W04 的建庫路徑不對等，本 phase 驗了但沒修根因）。
+    AP-7 **0 引入 · 3 發現全修**，三個都是**本 phase 自己造成的** orphan claim
+- [x] ⭐ **`git diff --name-status` 對照 plan §4**（本項不在原 checklist 上，Day 4 加）
+  - → **抓到兩個漏做的交付**：`multi-tenant-data.md:63` 表名更正（D4 拍板句寫了「同時」）
+    與 `02a` 的 D1/D2 裁決註記（plan §4 #14）。**兩者 Day 4 補上** → `AD-DecisionSideEffect-1`
 - [ ] **Commit** → ⏳ PR push + open → CI → merge: **PENDING USER CONFIRMATION**
       （push 是 outward-facing）→ merge 經 `gh` 驗證後翻 `status:` frontmatter

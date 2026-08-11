@@ -59,6 +59,8 @@
   Keywords: ADR-0005 · JSONB governed extension catalog · validate_extensions trigger · 42501 before 23503 · ScopeRefusedError · 404-not-500 · Cache-Control 判準非清單 · AD-CalibrationMetric-1 · AD-DevDbDrift-1
 - W04 [User and base fields](memory/project_w04_user_and_base_fields.md) — MERGED #34 (`5bb0c9f`) 2026-08-10; ADR-0012 拍板 `users` 全域無 `org_entity_id`（範疇是 role assignment 的屬性不是人的）；**元驗證產出新知識** —— counter 的 RLS 失效讓 W03 的 oracle 防護重新變得可區分.
   Keywords: ADR-0012 · identity 是第三類 · ref_code_counters entity-scoped · upsert increment 原子發號 · permission denied for schema public · template1 繼承 · AD-DbBuildPathParity-1 · AD-MigrationChecksum-1 · 拒絕點從 insert 移到 counter
+- W05 [Asset and risk chain](memory/project_w05_asset_and_risk_chain.md) — closeout done **PR pending** 2026-08-11; 評分成為 generated column（ADR-0013）所以呼叫者物理上寫不了；**元驗證發現新表的 RLS 被上游 counter 代勞而零覆蓋**（全 gate 綠），同一天補測試並在中性化狀態下證明它會紅。
+  Keywords: ADR-0013 · generated column · GREATEST 忽略 NULL · all-or-none CHECK · ELSE 'acceptable' 捏造治理主張 · CREATE OR REPLACE 一欄兩世代 · FK 檢查繞過 RLS · 複合 FK · 23503 · AD-BorrowedRefusal-1 · AD-CalibrationMetric-2 · 七不變式可複製 6/需調整 0
 
 ---
 

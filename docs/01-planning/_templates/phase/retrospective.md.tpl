@@ -117,5 +117,8 @@
 - [ ] Carryover 記在 `docs/01-planning/BACKLOG.md`（**不在** CLAUDE.md 表格格）
 - [ ] Calibration ratio 回填 matrix（**不在** CLAUDE.md / MEMORY.md 散文裡）
 - [ ] Matrix 那一行 ≤ 1 行 ~250 字元
+- [ ] ⭐ **`RISK_REGISTER.md` 已複查** —— 本 phase 有沒有讓某條活躍風險的敞口變大或變小？
+      有就更新該列 + 複查日期；沒有也要**看過**（🟢 mitigated / 🟡 partial / 🔴 active / ⚫ accepted）。
+      ⚠️ 它不像 BACKLOG 有每日觸發，**沒有這一列就沒有任何東西會讓人回頭翻它**
 - [ ] **`plan.md` frontmatter `status:` 已翻成 `closed` / `closed_partial`，內文標記一致（R9）**
 - [ ] `python scripts/lint/run_all.py` 全綠（含 rules hygiene + status markers）

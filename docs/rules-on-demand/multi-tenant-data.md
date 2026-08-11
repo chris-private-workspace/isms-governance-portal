@@ -60,7 +60,7 @@ CREATE INDEX idx_risk_assessments_entity_asset ON risk_assessments(entity_id, as
 |---|---|
 | `org_entities` | 組織階層本身。它**定義**範疇，不能被範疇過濾 |
 | `frameworks` / `framework_controls` | ISO 27001 Annex A、27017 條文 —— 集團共用 |
-| `threat_library` / `vulnerability_library` | 可重用庫（已確認參數 #8）|
+| `threats` / `vulnerabilities` | 可重用庫（已確認參數 #8）。**W05 已建**，名稱依 `02a` §0 —— 本檔原寫 `threat_library` / `vulnerability_library`，那是**下位文件的鏡誤**（CLAUDE.md 權威排序：設計文件 > 規則檔）|
 | `jurisdictions` / `regulations` | 管轄區與法規參考資料 |
 | `risk_scales` | 集團標準量表。**per-entity 校準走設定表，不是分叉這張表**（參數 #7）|
 

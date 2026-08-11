@@ -141,6 +141,17 @@ Risk = Likelihood (1–5)  ×  MAX(FIN, BOP, LRY, REP, SIS)   →  1–25
 - **Acceptance criteria:** score < 16 is acceptable (though cost-effective improvement should still be considered); **score ≥ 16 requires controls** to be established to reduce it. If the **residual** score is still ≥ 16 after all necessary controls, the residual risk is recorded in the **IT Risk Register**.
 - The financial thresholds and descriptors per impact type (e.g. FIN 5 = >25% of budget or >$5M) come from the procedure's impact table and are held as **configuration**, so the second line can maintain them without code changes.
 
+> **Where this lives, as built (W05, [ADR-0013](../14-adr/0013-risk-scoring-and-calibration.md)):**
+> the four derived values (`score_before`, `score_after`, `acceptance_status`, `in_it_risk_register`)
+> are **PostgreSQL generated columns** — computed in the same statement as their inputs, so a
+> supplied value is a hard error rather than a field that silently loses. The threshold 16 is a
+> **constant in the migration expression**, not a configuration row: `risk_scales` has never been
+> specified anywhere, so building it today would mean inventing its columns (已確認參數 #9).
+> ⚠️ Two consequences the next reader needs: each score set is **all-or-none** (`GREATEST` ignores
+> NULL, so a half-filled set would compute a plausible wrong number), and an **unassessed** risk
+> reads NULL on all four — not `acceptable`. Per-entity calibration remains a mechanism this
+> design owes; ADR-0013 records what must become true before it is built.
+
 ## 3. Entity field specifications (Wave 1)
 
 Only entity-specific fields are shown; every entity also carries the §1.1 base fields.

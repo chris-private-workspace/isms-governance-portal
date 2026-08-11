@@ -60,8 +60,9 @@ RLS 對它沒有意見，所以「一個實體的管理員能不能知道其他�
 
 ### 2.1 US-2 — `users` 全域，而**發號的 counter 不是** ⭐
 
-- **Implementation**: `apps/api/prisma/schema.prisma:99-134`（`User`，無 `org_entity_id`，
-  docstring 承載豁免理由）· `:136-162`（`RefCodeCounter`，**有** `org_entity_id`）·
+- **Implementation**: `apps/api/prisma/schema.prisma:102-142`（`User`，無 `org_entity_id`，
+  docstring 承載豁免理由）· `:144-170`（`RefCodeCounter`，**有** `org_entity_id`）·
+  ⚠️ 行號於 W05 重新校準（該 phase 在同檔加了 5 個 model），內容未變
   `prisma/migrations/20260810185500_user_and_base_fields/migration.sql:128-141`
 - **Behavior**: 兩張同一天建的表，一張刻意無 RLS、一張刻意有。判準不是「新表要不要 RLS」，
   而是「**這張表上的一次寫入，跨實體時是不是一件該被拒絕的事**」：
@@ -132,7 +133,7 @@ RLS 對它沒有意見，所以「一個實體的管理員能不能知道其他�
 ### 2.5 US-4 — `ref_code` 永不由呼叫者提供
 
 - **Implementation**: `apps/api/src/core-model/ref-code.ts:55-72`
-  （`IssueRefCodeInput` **沒有**任何接受成品 code 的參數）· `schema.prisma:188-194`
+  （`IssueRefCodeInput` **沒有**任何接受成品 code 的參數）· `schema.prisma:196-202`
 - **Behavior**: unique 索引在 RLS **底下**執行，所以一次碰撞會對一個完全看不見 HK1 的 principal
   回答「`POL-HK1-000007` 存在嗎」。伺服器端發號讓那個問題**問不出來**。
 - **Verification**: `npm run test -w apps/api`
@@ -178,10 +179,16 @@ RLS 對它沒有意見，所以「一個實體的管理員能不能知道其他�
 
 | Contract | Owner scope | 登記於 | Signature |
 |----------|------------|--------|-----------|
-| `ScopedRefCodeClient` | `core-model` | `apps/api/src/core-model/scoped-client.types.ts:78-84` | 結構型別；`refCodeCounter.upsert` + `orgEntity.findUnique` |
-| `ScopedPolicyClient` | `core-model` | `apps/api/src/core-model/scoped-client.types.ts:60` | **繼承** `ScopedRefCodeClient`（W03 的形狀未變，只是長出父介面）|
+| `ScopedRefCodeClient` | `core-model` | `apps/api/src/core-model/scoped-client.types.ts:110-117` | 結構型別；`refCodeCounter.upsert` + `orgEntity.findUnique` |
+| `ScopedPolicyClient` | `core-model` | `apps/api/src/core-model/scoped-client.types.ts:63` | **繼承** `ScopedRefCodeClient`（W03 的形狀未變，只是長出父介面）|
 
-⚠️ **拆成兩個介面而不是把 counter 併進 `ScopedPolicyClient`**（`:73-77` 記錄理由）：
+> ⭐ **W05 用掉了這個契約，而那是它被寫成這個形狀的目的**：`ScopedRiskClient`（`:82-87`）
+> 直接 `extends ScopedRefCodeClient`，沒有複製一份 policy 專用的形狀。
+> 同時 W05 才把 catalog 那半抽成 `ScopedExtensionCatalogClient`（`:96-100`）——
+> **第二個消費者出現才抽**，那正是 AP-5 的解法而不是它的症狀。
+> ⚠️ 本節行號於 W05 重新校準（該檔在 W05 長出兩個介面），內容未變。
+
+⚠️ **拆成兩個介面而不是把 counter 併進 `ScopedPolicyClient`**（`:102-109` 記錄理由）：
 發號器會被**每一個**業務 repository 使用，而它們各自需要的 delegate 不同。
 把發號需要的兩個 delegate 獨立宣告，讓 slice 2 的 repository 直接 `extends ScopedRefCodeClient`，
 而不是複製一份 policy 專用的形狀。
@@ -200,7 +207,7 @@ RLS 對它沒有意見，所以「一個實體的管理員能不能知道其他�
       （資料模型的權威），但**縮寫本身從未被規格化** → 目前由各 repository 自宣告
       （`policy.repository.ts` 的 `REF_CODE_PREFIX`），歧義**刻意保持可見**而非在此發明一份登記表。
 - [ ] **`status` 的轉換** — **沒有被任何東西擋住**。enum 是真的，狀態機（`02a:300-312`）
-      在 **M5** 才成為約束。`schema.prisma:171-175` 明寫這句話，因為「有 status 欄位」
+      在 **M5** 才成為約束。`schema.prisma:179-183` 明寫這句話，因為「有 status 欄位」
       很容易被讀成「workflow 已存在」（AP-3）。
 - [ ] **稽核軌跡** — ⚠️ **本 phase 新增的寫入路徑同樣沒有稽核**（M3 / `RISK_REGISTER` R4）。
       `created_by` / `updated_by` 欄位存在但**永遠是 NULL** —— 因為今天沒有憑證來源，
@@ -247,4 +254,5 @@ RLS 對它沒有意見，所以「一個實體的管理員能不能知道其他�
 
 ## Modification History
 
+- 2026-08-11: Re-anchor §2.1/§2.5/§3/§4 line numbers moved by W05 — content unchanged (AD-DesignNoteAnchor-1)
 - 2026-08-10: Initial extract from Phase W04 closeout (Day 4)

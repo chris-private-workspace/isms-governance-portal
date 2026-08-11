@@ -523,3 +523,127 @@ Startup 警告寫的是「**/policies** is scoped by a hard-coded assignment」�
 - 📌 `isms_dev` 留下走查建立的 5 筆風險（`RISK-SG1-000001..000005`），
   **ref_code 皆由 counter 正常發號**，無撞號風險，刻意保留作為 dev 資料
 - 📌 BACKLOG 待回填：`AD-DbBuildPathParity-1` 的兩個新事實（reset 路徑已驗 / 提議的守衛位置無效）
+  → ✅ Day 3 收尾時已回填（`BACKLOG.md` 該列 §W05 Day 3 兩件事）
+
+---
+
+## Day 4 — 2026-08-11 — Closeout
+
+### 4.a ⛔ 第一件事就抓到兩個漏做的交付
+
+closeout 的第一步不是寫 retro，是 **`git diff --name-status a2b1906..HEAD` 對照 plan §4**。
+**這一步不在原 checklist 上**，成本 < 1 min，而它立刻有產出：
+
+| plan §4 列的 | 狀態 |
+|---|---|
+| `docs/rules-on-demand/multi-tenant-data.md:63` 表名更正 | ⛔ **沒做** —— Day 1 的 D4 拍板句寫著「**同時**更正」|
+| `docs/02-architecture/02a-data-model-spec.md` 的 D1/D2 裁決註記 | ⛔ **沒做** —— plan §4 #14 明列 |
+
+> ⭐ **兩者的共同形狀**：它們都被寫在**決定的句子裡**（「D4 = X，**同時**更正 Y」），
+> 而不是 checklist 的一個 `- [ ]` 項。**決定句裡的附帶動作沒有勾選框，所以沒有東西會發現它沒做。**
+> 我 Day 1 寫下那句話時是真的打算做，Day 2 寫 migration 時它已經不在任何我會看的清單上。
+> → `AD-DecisionSideEffect-1`（含提議：拍板帶附帶動作時當場加 `- [ ]`；closeout 固定跑這個 diff）
+
+**兩者 Day 4 補上**：前者改為 `threats` / `vulnerabilities` 並註明那是**下位文件的鏡誤**；
+後者在 `02a` §2 評分模型後加一段「Where this lives, as built」指向 ADR-0013，
+含三件下一個讀者需要知道的事（generated column · all-or-none · 未評估讀 NULL 不是 acceptable）。
+
+### 4.b ⭐ 順帶量到：我的改動讓 W04 design note 的行錨全部偏了
+
+Day-0 的 `D-w04shape` 驗過「八個 `file:line` 錨點全部解析成功」。
+**我在 `schema.prisma` 加了 5 個 model 之後，其中四組各偏 3–8 行**：
+
+| W04 design note 寫的 | 實際 |
+|---|---|
+| `schema.prisma:99-134`（`User`）| `:102-142` |
+| `schema.prisma:136-162`（`RefCodeCounter`）| `:144-170` |
+| `schema.prisma:188-194`（`ref_code`）· `:171-175`（`status`）| `:196-202` · `:179-183` |
+| `scoped-client.types.ts:78-84` · `:60` · `:73-77` | `:110-117` · `:63` · `:102-109` |
+
+`check_path_references.py` **驗路徑存在，不驗那一行是不是宣稱的東西**，所以沒有東西會叫。
+
+**分流原則（本次建立，寫進 `AD-DesignNoteAnchor-1`）**：
+
+- **design note 是活參考**（`Status: Active`，明寫供 slice 2..N 複製）→ **造成偏移的 phase 負責重新校準**
+- **change record 是歷史快照** → **不追**。追了就是無界工作，而且它本來就是「當時的樣子」
+
+→ W04 design note 已校準（§2.1 / §2.5 / §3 / §4 + MHist 一行）。
+順帶在 §3 加了一句：`ScopedRiskClient` **用掉了**那個契約 —— W04 拆出 `ScopedRefCodeClient`
+時的預測（「發號器會被每一個業務 repository 使用」）**兌現了**。
+
+### 4.c US-6 —— 七個不變式的裁決（本 phase 對 slice 3 最有價值的產出）
+
+**可複製 6 · 不適用 1 · 需調整 0** → **不改判 spike，不補 design note**。逐條見
+[retrospective §US-6](./retrospective.md)。
+
+⚠️ **判準寫死在 retro 裡，因為這個計數必須能被檢查**：2.1 與 2.2 各帶一條**必須新增的條款**，
+我判它們「可複製」而非「需調整」，理由是**本 phase 原樣抄了它們而且它們成立** ——
+缺的是清單上**還沒有的東西**，不是清單上寫錯的東西。
+**就算用最寬鬆的讀法把那兩條算成「需調整」，也是 2 < 3，門檻在兩種讀法下都沒跨過。**
+
+**給 slice 3 的兩條新條款**：
+(1) entity-scoped 表之間的 FK **一律複合**；
+(2) 每張新的 entity-scoped 表必須有一個**繞開發號**的直接寫入測試。
+
+### 4.d ⛔ Calibration 的定義在本 phase 破了
+
+plan §7 宣告 `actual` = branch base → closeout commit 牆鐘（W04 同定義）。字面套用：
+
+| 量 | 值 |
+|---|---|
+| base `a2b1906`（**W04 的 closeout commit**）| 2026-08-10 **23:11:12** |
+| closeout commit | 2026-08-11 **~14:30** |
+| 字面 actual / ratio | **~15.3 hr** / **2.19**（OVER band 兩倍以上）|
+| 跨夜間隙（base → 本 phase 第一個 commit `785be55` 09:31:41）| **10h20m** |
+| 扣除後 / ratio | **~5.0 hr** / **0.71**（IN band）|
+
+> **base 是前一個 phase 的 closeout commit，不是本 phase 的起工時刻。**
+> W04 恰好背靠背在同一個晚上，前提成立而沒人看見它。**不是量錯，是定義內含一個沒寫出來的前提。**
+
+⚠️ 修正值是**下界**（plan 起草在第一個 commit 之前，時點不可機械導出，**不補估計**）。
+⚠️ 修正定義套回 W04 會讓 0.81 變 **0.66** —— **沒有改它**，重算已登記的點是決定不是整理。
+→ `AD-CalibrationMetric-2`；本資料點標記「**定義受污染**」，在拍板前不可與未來的點併窗口。
+
+### 4.e Gate（Day 4 final sweep —— 逐項取退出碼，不經 pipe）
+
+| Gate | 結果 | baseline（W04 closeout）|
+|---|---|---|
+| `lint`（api+web）| ✅ exit **0** | 0 |
+| `type-check`（api+web）| ✅ exit **0** | 0 |
+| `format:check`（api+web）| ✅ exit **0** | 0 |
+| `test`（unit, api）| ✅ **15 suites / 138 tests** | 86 → **+52** |
+| `test:int` | ✅ **4 suites / 54 tests** | 34 → **+20** |
+| `test`（web）| ✅ **1 file / 10 tests** | 10 |
+| `build`（api+web）| ✅ exit **0** | 0 |
+| `run_all.py` | ✅ **6/6 passed** | 6/6 |
+| `lint:negative` | ✅ PASS —— **22 檔掃描 0 bypass 3 allowlisted**（另跳過 19 test + 2 fixture）| 18 檔 3 allowlisted → **allowlist 未增加** ✅ |
+| `test:cov` | ✅ **94.13 / 92.17 / 94.36 / 95.03** | 94.11 / 90.42 / 92.45 / 94.76 —— **四項全高** |
+
+### 4.f 導航檔與 register
+
+| 檔案 | 動作 |
+|---|---|
+| `CLAUDE.md` | Current Phase **1 行**取代（不加 Prev Phase 列）· ADR 清單 +0013 兩處 · Last Updated |
+| `MEMORY.md` + `memory/project_w05_asset_and_risk_chain.md` | 1 條指標 + subfile |
+| `BACKLOG.md` | §Shipped 加 W05 一列 · **6 條新 AD** · `AD-NegativeGate-1` 記第 8 個形狀 · §Open 計數 58 → **64（P0 5 / P1 39 / P2 20，機械計數）** |
+| `ROADMAP.md` | 第 4 項 slice 1 → **slice 2**，7/35 實體；另記 `AD-RiskBand-1` 卡 M8 |
+| `RISK_REGISTER.md` | **R4 更新** —— 敞口 W02 兩張表 → W04 四張 → **W05 七張，無一有稽核**；並明記「緩解措施本身沒有進展」|
+| `_templates/phase/retrospective.md.tpl` | ⭐ **AD-12b**：§Closeout Self-Check 加一列 RISK_REGISTER 複查（含理由：**沒有這一列就沒有東西會讓人回頭翻它**）|
+| `CALIBRATION-MATRIX.md` / `-LOG.md` | `pattern-reuse-feature` 首列 + 完整敘述 |
+
+⚠️ **`CLAUDE.md` headroom 剩 215 bytes**（29,785 / 30,000）。
+`AD-ClaudeMdBudget-1` 的觸發條件（< 500）**已成立**，實測值已回填該 AD ——
+**下一個 phase 的 closeout 光是改 Current Phase 一行就可能撞牆**，而那是 CI 會 fail 的硬 gate。
+
+### 4.g 這個 phase 沒有關掉任何 AD
+
+`AD-RiskForm-1`（🔴 P0）從「無標的可對」變成**有標的可對**，但**那不是關閉** ——
+對照本身是 M7/M8 的工作。誠實記為未關。
+
+### Remaining
+
+- ⏳ **push + PR + CI + merge：PENDING USER CONFIRMATION**（push 是 outward-facing）
+- ⏳ merge 經 `gh` 驗證後才翻 `plan.md` 的 `status:` frontmatter（R9）——
+  **只 commit code 不算收尾**
+- 📌 closeout commit 落地後，用 `git log` 回讀真實時間戳校正 §4.d 的兩個數字
+  （W04 的 `5bb0c9f` 就是為這件事單獨開的一個 commit）
