@@ -3,7 +3,8 @@
 **Phase**: W05 — M1 slice 2: the asset-based risk chain
 **Period**: 2026-08-11 ~ 2026-08-11（Day 0–4，單日）
 **Plan**: [plan.md](./plan.md)  ← 四件套共置於同一個資料夾
-**PR**: ⏳ **PENDING** —— 五個 commit 在 `feature/W05-m1-asset-risk-chain`，**未 push、CI 未驗**
+**PR**: **MERGED** #36（rebase，main head `700f5d6`，2026-08-11 14:56 +0800）—— **六個 required check 全 SUCCESS**
+**Status**: `closed_partial`（AC-4 未完全達成 —— 見 plan.md frontmatter 下的理由）
 **Change record**: `docs/03-implementation/changes/CH-020-w05-asset-and-risk-chain.md`
 
 ---
@@ -61,7 +62,7 @@ plan §7 宣告 `actual` = **branch base → closeout commit 的牆鐘跨度**�
 | 量 | 值 |
 |---|---|
 | base `a2b1906` | 2026-08-10 **23:11:12** |
-| closeout commit `f9195da` | 2026-08-11 **14:23:25** |
+| closeout commit（branch 上 `f9195da`，**rebase 後為 `8f08f3f`**）| 2026-08-11 **14:23:25** |
 | **字面 actual** | **15.20 hr** → ratio **2.17**（OVER band 兩倍以上）|
 | 其中**跨夜間隙**（base → 本 phase 第一個 commit `785be55` 09:31:41）| **10h20m** |
 | **扣除間隙後** | **4.86 hr** → ratio **0.69**（**UNDER band**，差 0.006）|
@@ -70,6 +71,10 @@ plan §7 宣告 `actual` = **branch base → closeout commit 的牆鐘跨度**�
 > 我先寫了 `~14:30 / 5.0 hr / 0.71`，而真實時間戳是 `14:23:25` → **0.69，band 從 IN 翻成 UNDER**。
 > 差別小到看起來可以四捨五入掉，**但它跨過了一條判定線** —— 所以照 W04 `5bb0c9f` 的先例
 > 單獨開一個 commit 修正，而不是留著一個「大約對」的數字。
+>
+> ⚠️ **merge 用的是 rebase，SHA 因此改寫**（`f9195da` → `8f08f3f`）。
+> **算術未受影響** —— rebase 保留 author date（`git log --format=%ad` 仍是 `14:23:25`，
+> 只有 committer date 變成 merge 時刻 `14:56:00`）。**這裡量的一直是 author date。**
 
 > **`a2b1906` 是 W04 的 closeout commit，不是 W05 的起工時刻。**
 > 這個定義量的其實是「距離**上一個 phase 收尾**多久」——
@@ -281,5 +286,7 @@ CH-012 的結構性解法（每個 gate 帶常駐負面案例）對第 8 個**�
 - [x] Matrix 那一行 ≤ 1 行 ~250 字元
 - [x] ⭐ **`RISK_REGISTER.md` 已複查** —— R4「稽核軌跡尚不存在而資料已經在寫」本 phase
       **敞口擴大三條寫入路徑**，已更新該列與複查日期（`AD-12b`，本 phase 同時把這一列加進模板）
-- [ ] ⏳ **`plan.md` frontmatter `status:`** —— 仍是 `active`，**依 checklist 4.2 於 merge 經 `gh` 驗證後才翻**（R9）
+- [x] **`plan.md` frontmatter `status:` 已翻成 `closed_partial`，內文標記一致（R9）** ——
+      merge 經 `gh` 驗證（`state: MERGED`, `mergedAt: 2026-08-11T06:56:01Z`）後才翻，
+      **不是憑 `gh pr merge` 沒報錯就當作 merged**
 - [x] `python scripts/lint/run_all.py` 全綠（含 rules hygiene + status markers）

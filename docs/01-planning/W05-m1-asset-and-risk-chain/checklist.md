@@ -324,5 +324,13 @@ _(⚪ **無 user-facing surface** → drive-through 不適用。一律標 **API-
 - [x] ⭐ **`git diff --name-status` 對照 plan §4**（本項不在原 checklist 上，Day 4 加）
   - → **抓到兩個漏做的交付**：`multi-tenant-data.md:63` 表名更正（D4 拍板句寫了「同時」）
     與 `02a` 的 D1/D2 裁決註記（plan §4 #14）。**兩者 Day 4 補上** → `AD-DecisionSideEffect-1`
-- [ ] **Commit** → ⏳ PR push + open → CI → merge: **PENDING USER CONFIRMATION**
-      （push 是 outward-facing）→ merge 經 `gh` 驗證後翻 `status:` frontmatter
+- [x] **Commit** → PR push + open → CI → merge（使用者於 2026-08-11 逐步確認 push / merge）
+  - → **PR #36 MERGED**（rebase，main head `700f5d6`，14:56 +0800）。
+    六個 required check 全 **SUCCESS**；`mergeStateStatus` **BLOCKED → CLEAN** 兩個方向都觀測到
+  - → **merge 經 `gh pr view --json state,mergedAt` 驗證**（`MERGED` / `2026-08-11T06:56:01Z`）
+    **才翻 `status:`** —— 不是憑 `gh pr merge` 沒報錯就當作 merged
+  - → `status: active` → **`closed_partial`**（不是 `closed`）：
+    AC-4「約束 8 四項對 `AssetGroup`/`Asset`/`Risk` 成立」只對 `Risk` 完全成立。
+    ⚠️ 與 W04 砍 `user.repository.ts` 不同 —— 那是核可的範圍縮減，這是**驗收標準未達成**
+  - → ⚠️ **rebase 改寫了 SHA**（`f9195da` → `8f08f3f`），文件內的引用已同步；
+    **calibration 算術未受影響** —— rebase 保留 author date，而那正是被量的東西

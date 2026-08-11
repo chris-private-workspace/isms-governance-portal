@@ -1,5 +1,5 @@
 ---
-status: active  # draft | active | closed | closed_partial —— 機器可讀的唯一權威
+status: closed_partial  # draft | active | closed | closed_partial —— 機器可讀的唯一權威
 ---
 
 # Phase W05 Plan — M1 slice 2: the asset-based risk chain
@@ -11,12 +11,23 @@ status: active  # draft | active | closed | closed_partial —— 機器可讀�
 ⚪ **無 UI** → drive-through 不適用，一律標 **API-level verified**。
 ❌ **不需要 design note**（feature continuation，非 spike —— 見 §1）。
 
-**Status**: **Approved-to-execute**（使用者核可 2026-08-11。§3.1 的 **D1–D4 全部由使用者拍板同日**；
+**Status**: **closed_partial**（2026-08-11 收尾，MERGED PR #36）—— US-1/2/3/5/6 完成，
+**US-4 部分**：約束 8 四項只對 `Risk` 完全成立，`AssetGroup` / `Asset` 兩張表**無端點**故未逐條測
+（checklist 2.4 標 🚧 **未刪**，解封：slice 3 的 `POST /assets` 同一個 PR）。
+↓ **以下為原始核可紀錄，不覆寫** ↓
+**原 Status**: **Approved-to-execute**（使用者核可 2026-08-11。§3.1 的 **D1–D4 全部由使用者拍板同日**；
 D1/D2 判為架構級 → **ADR-0013** 於 Day 1 產出。⛔ **D1-A 有一個未解的前置** ——
 Prisma 對 generated column 的 drift 行為未測，Day 1 先答，答錯就退 D1-B）
 
-**Branch**: `feature/W05-m1-asset-risk-chain`
+**Branch**: `feature/W05-m1-asset-risk-chain` —— **MERGED** PR #36（rebase，head `700f5d6`，2026-08-11 14:56 +0800）
 **Base**: `main` HEAD `a2b1906`（W04 closeout + #34/#35 merged）
+
+> **`closed_partial` 而不是 `closed`，理由是 §5 的一條驗收標準未達成**：
+> AC-4「約束 8 四項對 `AssetGroup` / `Asset` / `Risk` 成立」只對 `Risk` 完全成立。
+> 兩張表**沒有端點**，四項裡的「跨實體寫拒」需要一個會寫它們的呼叫者，
+> 而硬造測試專用寫入路徑是約束 2 禁止的。**解封：slice 3 建 `POST /assets` 時同一個 PR 補齊。**
+> ⚠️ 這與 W04 砍掉 `user.repository.ts` 不同 —— 那是 Day 1 核可的範圍縮減（plan §4 標 DROPPED），
+> 這是**一條驗收標準沒被滿足**。前者用 `closed`，後者用 `closed_partial`。
 **Slice**: M1 slice **2 / N** —— 建 5 個實體（累計 7 / 35）；**不關 M1**（DoD 需全部核心實體）
 **Scope decisions**: (a) 五張表一次到位，因為 `Risk` 的三個 FK 缺一不可
 (b) **含一個真實端點** `POST/GET /risks` —— 評分邏輯沒有呼叫者就是 AP-3
