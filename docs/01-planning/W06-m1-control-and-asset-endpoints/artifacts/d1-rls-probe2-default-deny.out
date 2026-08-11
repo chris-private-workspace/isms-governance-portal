@@ -1,0 +1,47 @@
+GRANT
+CREATE FUNCTION
+CREATE TYPE
+CREATE TABLE
+INSERT 0 2
+ALTER TABLE
+ALTER TABLE
+CREATE POLICY
+CREATE POLICY
+CREATE POLICY
+GRANT
+SET
+SET
+
+=== N1  DELETE own row, DELETE granted, NO FOR DELETE policy ===
+BEGIN
+DELETE 0
+ROLLBACK
+
+=== N2  DELETE the group row, same conditions ===
+BEGIN
+DELETE 0
+ROLLBACK
+
+=== N3  control: SELECT still works (policies for other commands unaffected) ===
+ visible 
+---------
+       2
+(1 row)
+
+
+=== N4  control: own-row UPDATE still works ===
+BEGIN
+UPDATE 1
+ROLLBACK
+
+=== N5  what does pg_policies show for this table? ===
+RESET
+     policyname     |  cmd   
+--------------------+--------
+ probe_nodel_insert | INSERT
+ probe_nodel_read   | SELECT
+ probe_nodel_update | UPDATE
+(3 rows)
+
+
+=== DONE ===

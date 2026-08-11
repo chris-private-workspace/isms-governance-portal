@@ -82,6 +82,8 @@ CHANGE record  一次變更的紀錄。做了什麼、為什麼這樣做、怎�
 | [0012](./0012-user-scope-semantics.md) | `users` 是全域表；實體範疇住在 role assignment 而非人身上 | 2026-08-10 | **已採納** |
 | [0013](./0013-risk-scoring-and-calibration.md) | 風險分數由**資料庫** generated column 算；閾值 16 是集團常數，`risk_scales` **今天不建** | 2026-08-11 | **已採納** |
 
+| [0014](./0014-row-level-entity-scope-and-per-command-policies.md) | 逐列範疇的表用 **per-command policy**（`SELECT` 寬 / `INSERT`·`UPDATE` 窄 / **無 `FOR DELETE`**），不用單一不對稱 `FOR ALL`；`subtree` **不建** | 2026-08-11 | **已採納** |
+
 **Status 值**：提案中 / **已採納** / 已被 ADR-NNN 取代 / 已廢棄
 
 > **檔名慣例：`NNNN-<slug>.md`（4 位數，無 `ADR-` 前綴）** —— 以既有的

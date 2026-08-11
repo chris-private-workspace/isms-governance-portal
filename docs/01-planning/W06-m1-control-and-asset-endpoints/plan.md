@@ -13,7 +13,11 @@ status: active   # draft | active | closed | closed_partial —— 機器可讀�
 
 **Status**: **Approved-to-execute**（使用者核可 2026-08-11；範圍由使用者從四個選項中裁決 ——
 `Control` + 資產鏈端點，`SoA`/`ControlTest` 延到 slice 4；CLAUDE.md 瘦身併入本 phase）。
-⛔ **§3.1 的 D1 尚未拍板，助手不得自行選**。
+✅ **D1 已於 2026-08-11 Day 1 由使用者拍板：形狀 A′（四條 per-command policy）**，
+且 **`subtree` 不建**（enum 只有 `entity` + `group`）。**§3.1 的三個選項原文不覆寫** ——
+它們是當時的選項空間，實測結果與裁決在 [progress.md](./progress.md) §1.b。
+⭐ **後果（§1 / §7 早已寫明的條件被觸發）**：A′ 是本 repo **第一個非單一 `FOR ALL` 的 policy 形狀**
+→ **本 phase 改判 spike**（class `spike` **0.65**，Day 4 補 design note）+ **ADR-0014**。
 ⚠️ **Day-0 推翻了本 plan 的三項斷言** —— **D2 / D3 已消失**（`02a:123-124` 定義了值域），
 且不對稱 RLS **有 W03 的先例**（`extension_fields`）。§3.1 的選項原文**刻意不覆寫**；
 Day-0 的處置全部加在 §8。完整紀錄見 [progress.md](./progress.md) Day 0。
@@ -126,8 +130,9 @@ Day-0 重新驗證。
 `Control` 三張表成立（`Risk` 已於 W05 成立）；`CLAUDE.md` headroom **≥ 1,500 bytes**。
 證明方式：gates + **API-level 驗證**（真進程 + 真 PostgreSQL + 真 RLS）+ **元驗證**。
 ⚪ 無 UI → **不做 drive-through**，一律標 API-level verified。
-❓ **design note 視 D1 而定**：若 `applies_to_scope` 需要一個新的 RLS 形狀
-（本 repo 至今沒有任何一列的範疇是逐列決定的），那是新知識 → 改判 spike 並補 design note（見 §8）。
+✅ **條件已觸發（2026-08-11）**：D1 拍板為 A′ —— `applies_to_scope` 確實需要一個新的 RLS 形狀
+（四條 per-command policy，寫入側 `USING` 收窄），本 repo 至今每張表都是單一 `FOR ALL`。
+→ **改判 spike，Day 4 補 design note**（§7 的 class 已同步改為 0.65）。
 
 ## 2. User Stories
 
@@ -274,16 +279,17 @@ build **0** · `run_all` **6/6** · `lint:negative` PASS（**allowlist 不得增
 
 ## 7. Workload Calibration
 
-- Scope class **`pattern-reuse-feature` 0.50**（Read `docs/01-planning/CALIBRATION-MATRIX.md`
-  —— 該 class 有 **1 個資料點但標記「定義受污染」**，有效樣本數實為 0，故仍用起手值 0.50）。
-  ⚠️ **本 phase 的兩半不同質**：資產端點是純形狀複製，**`Control` 的 `applies_to_scope` 不是**。
-  若 D1 需要一個新的 RLS 形狀 → **改歸 `spike` 0.65 並記入 retro Q2**（**這本身就是 US-6 的一部分**）。
+- ~~Scope class **`pattern-reuse-feature` 0.50**~~ → ⭐ **改判為 `spike` 0.65**（2026-08-11 Day 1）。
+  觸發的是本欄原本就寫好的條件：「若 D1 需要一個新的 RLS 形狀 → 改歸 `spike` 0.65 並記入 retro Q2」。
+  D1 拍板為 **A′**，而 A′ 是本 repo **第一個非單一 `FOR ALL`** 的 policy 形狀 → 條件成立。
+  ⚠️ **本 phase 的兩半仍不同質**：資產端點是純形狀複製，`Control` 的 `applies_to_scope` 不是 ——
+  **改判取的是兩者中較高的那一個**，retro Q2 需說明這個混合對 ratio 的影響（**US-6 的一部分**）。
 - **Agent-delegated: no**（範疇語義是 guardrail 級判斷，委派的複驗成本大於節省）。
   `agent_factor` **1.0** → 三段式。
 - Bottom-up est **~13 hr**（Day-0 verify 0.5 · CLAUDE.md 瘦身 1.0 · D1–D3 論證 1.5 ·
   schema + migration 1.5 · control repository + 端點 1.5 · 資產端點 ×2 2.0 ·
   範疇測試 ×2 表 1.5 · 元驗證 1.0 · API 走查 1.0 · closeout 1.5）→
-  **class-calibrated commit ~6.5 hr (mult 0.50)**。Day-4 retro Q2 驗證。
+  ~~class-calibrated commit ~6.5 hr (mult 0.50)~~ → **~8.5 hr (mult 0.65)**。Day-4 retro Q2 驗證。
   ⚠️ **`actual` 的定義依 `AD-CalibrationMetric-2` 改為 branch 第一個 commit → closeout commit**，
   並明記 plan 起草不在窗口內（故為下界）。**這是那條 AD 的第一次實際套用。**
 
