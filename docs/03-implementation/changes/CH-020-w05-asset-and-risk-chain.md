@@ -4,7 +4,7 @@
 **Phase**: W05（M1 slice 2）
 **Scope**: `core-model` · `modules` · `entity-scope`（消費，未修改）
 **Components**: —
-**PR**: ⏳ **PENDING** —— 本 change record 隨 closeout commit 進版，push 與 PR 需使用者確認
+**PR**: **MERGED** #36（rebase，main head `700f5d6`，2026-08-11 14:56 +0800）—— 六個 required check 全 SUCCESS
 
 ---
 
@@ -204,6 +204,18 @@ PowerShell 的 hashtable `+` 在鍵重複時 **throw**，於是四個案例的 `
 
 ⭐ 同時量到 **那條 AD 提議的守衛放在它提議的位置會無效**：`isms_test` 走 `CREATE DATABASE`，
 `has_schema_privilege` 斷言會靠 template1 繼承的 `=U` 輕鬆通過 —— **正是這條 AD 自己在講的病**。
+
+### CI（PR #36，六個 required check 全 SUCCESS）
+
+`gates` 1m39s · 映像 build + 啟動探測 1m46s · trivy 28s · SAST 25s · gitleaks（全歷史）15s · SCA 6s。
+`mergeStateStatus` 從開 PR 時的 **BLOCKED** 轉為 **CLEAN** —— **擋與放兩個方向都在這個 PR 上觀測到**。
+
+> ⚠️ **CI 綠涵蓋的範圍比它看起來窄，而這是本 phase 自己量過的。**
+> `gates` 的整合測試跑在 `isms_test` 上，那個庫走 `CREATE DATABASE`（從 template1 複製），
+> **免費繼承** `public` schema 的 `USAGE` —— 所以**這次 CI 綠不涵蓋 GRANT 相關缺陷**。
+> 本 phase 的 GRANT 是 Day 3 在 throwaway 庫上另外驗的，**那份證據不在這次 CI run 裡**。
+> 同理，四個 `dbgenerated` 鏡像文字的逐字一致性**沒有任何一個 check 在看**
+> （`AD-SchemaMigrationDrift-1`）。
 
 **Drive-through**: ⚪ **無 user-facing surface** → 不適用。
 **Verdict**: ✅ **API-level verified against a clean process**。

@@ -646,10 +646,43 @@ plan §7 宣告 `actual` = branch base → closeout commit 牆鐘（W04 同定�
 `AD-RiskForm-1`（🔴 P0）從「無標的可對」變成**有標的可對**，但**那不是關閉** ——
 對照本身是 M7/M8 的工作。誠實記為未關。
 
+### 4.h Merge（2026-08-11，使用者逐步確認 push → merge）
+
+| 步驟 | 結果 |
+|---|---|
+| push + `gh pr create` | **PR #36** |
+| 開 PR 當下 | `mergeable: MERGEABLE` · `mergeStateStatus: **BLOCKED**`（六個 check pending）|
+| CI 完成 | 六個 required check **全 SUCCESS** —— `gates` 1m39s · 映像 build + 啟動探測 1m46s · trivy 28s · SAST 25s · gitleaks 15s · SCA 6s |
+| CI 完成後 | `mergeStateStatus: **CLEAN**` —— **擋與放兩個方向都在這個 PR 上觀測到** |
+| `gh pr merge 36 --rebase` | `state: **MERGED**` · `mergedAt: 2026-08-11T06:56:01Z` · main head `700f5d6` |
+
+⛔ **`gh pr merge` 沒有輸出任何東西就結束了。** 那不是 merge 成功的證據 ——
+另外跑 `gh pr view 36 --json state,mergedAt` 拿到 `MERGED` 才算
+（`feedback_verify_pr_merged_via_tool_not_claim`）。
+
+⚠️ **不刪 branch** —— `git ls-remote` 顯示 W02/W04 的 feature branch 都還在，照既有慣例。
+
+⚠️ **rebase 改寫了 SHA**：`f9195da` → `8f08f3f`、`d74d093` → `700f5d6`。
+文件內的引用已同步。**calibration 的算術未受影響** ——
+`git log --format='%h author=%ad committer=%cd' 8f08f3f` 顯示
+author **14:23:25** / committer **14:56:00**，而 §4.d 量的一直是 **author date**。
+
+⚠️ **CI 綠涵蓋的範圍比它看起來窄**：`gates` 的整合測試跑在 `isms_test`（`CREATE DATABASE` 從
+template1 複製，**免費繼承** `public` 的 USAGE）→ **這次 CI 綠不涵蓋 GRANT 缺陷**。
+本 phase 的 GRANT 是 Day 3 在 throwaway 庫上另外驗的，那份證據**不在這次 CI run 裡**。
+同理四個 `dbgenerated` 鏡像的逐字一致性**沒有任何 check 在看**（`AD-SchemaMigrationDrift-1`）。
+
+### 4.i `status:` 翻面 —— `closed_partial` 不是 `closed`
+
+AC-4「約束 8 四項對 `AssetGroup` / `Asset` / `Risk` 成立」**只對 `Risk` 完全成立**。
+
+> ⚠️ **與 W04 砍掉 `user.repository.ts` 不同**：那是 Day 1 核可的範圍縮減（plan §4 標 DROPPED），
+> 所以 W04 用 `closed`。這裡是**一條驗收標準沒被滿足** → `closed_partial`。
+> 兩者長得像，但「決定不做」與「沒做到」不是同一件事，而 `status:` 是機器可讀的唯一權威。
+
 ### Remaining
 
-- ⏳ **push + PR + CI + merge：PENDING USER CONFIRMATION**（push 是 outward-facing）
-- ⏳ merge 經 `gh` 驗證後才翻 `plan.md` 的 `status:` frontmatter（R9）——
-  **只 commit code 不算收尾**
-- 📌 closeout commit 落地後，用 `git log` 回讀真實時間戳校正 §4.d 的兩個數字
-  （W04 的 `5bb0c9f` 就是為這件事單獨開的一個 commit）
+- **W05 收尾完成。** 下一片是 **M1 slice 3**（`Control` / `SoA` / `ControlTest`），
+  且該 PR **必須同時補齊 `AssetGroup` / `Asset` 的四項範疇測試**（本 phase 的 🚧 解封條件）
+- ⛔ **`AD-ClaudeMdBudget-1` 觸發條件已成立** —— `CLAUDE.md` headroom 剩 ~200 bytes，
+  **下一個 phase 的 closeout 可能光改一行就撞 CI 硬 gate**

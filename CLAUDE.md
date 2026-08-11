@@ -76,7 +76,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 | Attribute | Value |
 |-----------|-------|
 | **Stage** | Wave 1 backbone — 建立共用骨幹，並用 Policy + Risk/Control 兩個最小模組端到端證明它 |
-| **Current Phase** | **W05 closeout, PR pending** — M1 slice 2；ADR-0013 拍板（評分是 generated column，呼叫者寫不了）、資產鏈 5 表 + `/risks`。**W04 七不變式裁決：可複製 6 / 需調整 0；其餘 28 張表是 slice 3..N** |
+| **Current Phase** | **W05 MERGED**（PR #36, `700f5d6`）`closed_partial` — M1 slice 2；ADR-0013 拍板（評分是 generated column，呼叫者寫不了）、資產鏈 5 表 + `/risks`。**W04 七不變式：可複製 6 / 需調整 0；其餘 28 張表是 slice 3..N** |
 | **History** | See [`MEMORY.md`](./MEMORY.md) + 各 phase 的 `retrospective.md` |  <!-- doc-links: ignore — MEMORY.md 由 bootstrap 複製到專案根 -->
 | **Pending / Next** | See [`docs/01-planning/BACKLOG.md`](./docs/01-planning/BACKLOG.md)（**有什麼**）· [`ROADMAP.md`](./docs/01-planning/ROADMAP.md)（**先做哪個**）|
 | **跨來源狀態** | See [`docs/01-planning/STATUS_AUDIT.md`](./docs/01-planning/STATUS_AUDIT.md) —— 問「現在全項目怎樣」時跑 `/status-audit`，**不要只讀 BACKLOG** |
