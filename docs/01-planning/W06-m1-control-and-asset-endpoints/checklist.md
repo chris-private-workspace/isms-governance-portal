@@ -115,25 +115,40 @@
     `entity-scope.resolver.ts:120-142` 的 scope 只向下展開，永不含祖先
   - → ⚠️ **更正 Day-0 的一條推論**：`02:26` 只是列出欄位，**不等於**要求 `NOT NULL`；
     B 真正衝突的是**約束 8 鐵律 1**，不是 `02:26`
-- [ ] **向使用者呈報 D1 並取得拍板**
+- [x] **向使用者呈報 D1 並取得拍板**
   - DoD: 使用者明確選定；⛔ **助手不得代選**（CLAUDE.md §禁止反模式）
   - Verify: 拍板記錄在 progress.md，含日期與理由
-- [ ] **若判為架構級 → 寫 ADR-0014 承載「範疇是表級還是列級」**
+  - → **A′（四條 per-command policy）** + **`subtree` 不建**（2026-08-11，progress.md §1.c）。
+    四個選項各附實測後果與 SQL 預覽呈報，**我未給推薦**
+  - → ⭐ **兩個 plan 早就寫好的條件被觸發**：改判 **spike 0.65**（commit ~6.5 → ~8.5 hr、
+    Day 4 補 design note）+ **ADR-0014**
+- [x] **若判為架構級 → 寫 ADR-0014 承載「範疇是表級還是列級」**
   - DoD: ADR 含**可證偽條件**；明寫它約束哪些**未來**實體（任何有共用列的表）
   - Verify: `Read` 該 ADR，確認 `**Status**: 已採納` 且理由不是「因為方便」
   - ⚠️ **若 D1 的答案需要一個新的 RLS 形狀 → 本 phase 改判 spike**，
     calibration class 改 `spike` 0.65 並補 design note（plan §1 / §7 已寫明後果）
+  - → **`docs/14-adr/0014-row-level-entity-scope-and-per-command-policies.md`**，
+    `**Status**: 已採納`，4 條可證偽條件（最可能觸發的是「有人要在 runtime 建 group control」，
+    **不早於 M4**）+ Rollback + README 索引已加列
+  - → **判準是逐條核對 `14-adr/README.md:14` 的表**（「選 A 不選 B 且會約束未來」），
+    不是「感覺很重要」。⚠️ `:33` 的 forcing-function 門檻只管**無實作先寫**的 ADR，本案實作在 Day 2
+  - → ✅ **改判 spike 已同步落到 plan §1 / §7**（class 0.65、commit ~6.5 → ~8.5 hr、Day 4 補 design note）
 
 ### 1.3 D2 / D3 拍板
 
-- [ ] **D2 `frequency` 值域** · **D3 `nature` 的權威來源**
+- [x] **D2 `frequency` 值域** · **D3 `nature` 的權威來源**
   - DoD: 各一句決定 + 一句理由；**預設立場是不建未定義值域的欄位**（`AD-AssetScales-1` 先例）
   - Verify: 兩個決定寫進 progress.md Day 1
+  - → **D2 照抄 `02a:124`**（7 值）· **D3 照抄 `02a:123`**（3 值），`09:54` 為重述非獨立權威。
+    ⚠️ `AD-AssetScales-1` 的先例**不適用** —— 它管的是「規格沒定義」，而這兩個規格都定義了
 
 ### 1.x partial gate
 
-- [ ] `python scripts/lint/run_all.py` → 6/6（**含 rules-hygiene，因為 1.1 動了 CLAUDE.md**）
+- [x] `python scripts/lint/run_all.py` → 6/6（**含 rules-hygiene，因為 1.1 動了 CLAUDE.md**）
   - ⚪ 其餘 gate 今日不跑 —— Day 2 full gate 才要求。**不寫「都過了」**
+  - → **6/6**：rules-hygiene OK（8 budgeted files）· doc-links OK · path-references OK ·
+    status-markers OK（11 pre-doc，E1-E4 clean）· mockup-fidelity **SKIP**（無 `.mockup-fidelity.json`）·
+    workflow-placeholders OK。⚪ lint / type / test / build **今日未跑**，不是 pass 是 **未跑**
 
 ---
 

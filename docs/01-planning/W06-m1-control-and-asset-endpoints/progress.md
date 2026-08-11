@@ -232,7 +232,76 @@ PostgreSQL **18**，以 `isms_app_user`（非 owner、非 superuser）連線，
   若使用者選 A′ → 依 plan §1 / §7 的預設條件，**本 phase 需改判 spike**（class `spike` 0.65）
   並補 design note。選 A（單一 `FOR ALL`）或 B 則維持 `pattern-reuse-feature` 0.50。
 
+### 1.c ✅ D1 拍板 —— **A′ 四條 per-command policy**（使用者，2026-08-11）
+
+| 決定 | 內容 |
+|---|---|
+| **D1 形狀** | **A′** —— `org_entity_id NOT NULL` + `applies_to_scope` 欄位；RLS 拆成 **四條 per-command policy**：`SELECT` 寬（含 group 分支），`INSERT` / `UPDATE` / `DELETE` 各自窄且**拒絕 `group` 值** |
+| **`subtree`** | ⛔ **不建** —— enum 只有 `entity` + `group` 兩個值 |
+
+**理由（使用者選項描述所載，非我事後補的）**：A′ 是四個形狀中唯一把**實測的四個洞全部關掉**
+且**負向對照仍然通過**的；`subtree` 選擇不建，是因為建了也沒有任何 policy 分支會理它 ——
+那正是 **AP-3 Potemkin** 的定義形狀（使用者設得下去、系統不反應、也不報錯）。
+
+#### ⭐ 兩個立刻生效的後果（**plan §1 / §7 早就寫好的條件被觸發，不是新增範圍**）
+
+1. **本 phase 改判 `spike`** —— A′ 是本 repo **第一個非單一 `FOR ALL`** 的 policy 形狀。
+   plan §1 的條件原文是「若 `applies_to_scope` 需要一個新的 RLS 形狀…→ 改判 spike 並補 design note」。
+   → calibration class `pattern-reuse-feature` 0.50 → **`spike` 0.65**；
+   commit **~6.5 hr → ~8.5 hr**；**Day 4 需補 design note**（8-point gate）。
+2. **寫 ADR-0014** —— 對照 `14-adr/README.md:14` 的判準表逐條核對，不是憑感覺：
+   「做了一個**選 A 不選 B** 的決定，且它會約束未來」→ ✅。
+   它約束的是**每一張未來有共用列的表**。⚠️ 同檔 `:33` 的 forcing-function 限制只管
+   「**無實作先寫**」的 ADR —— 本 ADR 的實作就在本 phase Day 2，因此那條門檻不是本案的約束
+   （附帶一提它也成立：這個決定正在阻斷 `Control` 建表）。
+
+#### ⚠️ `subtree` 不建 → 兩件 Day 2 必須跟著做的事
+
+- `02a:217` 明列三個值而我們只建兩個 → **這是一筆有記錄的規格偏離**，
+  要在 `02a` 該處註記（plan §4 第 12 項本來就是「D1 裁決註記」，範圍相符）
+- enum 名稱**保留** `applies_to_scope`（不改成 boolean）—— 日後補 `subtree` 是加 enum 值，
+  在 PostgreSQL 是相容變更；改欄位型別不是
+
+### 1.d D2 / D3 拍板（checklist 1.3）
+
+Day-0 已把這兩個問題**消滅**（不是解決）—— `02a` 早就定義了值域，是我 recon 時沒搜到：
+
+| # | 決定 | 理由 |
+|---|---|---|
+| **D2** `frequency` | **照抄 `02a:124`**：`continuous · daily · weekly · monthly · quarterly · annual · event-driven` | 值域已存在於權威文件 → `AD-AssetScales-1`「不建未定義值域的欄位」的先例**不適用**（那條管的是「規格沒定義」的情況） |
+| **D3** `nature` | **照抄 `02a:123`**：`manual · automated · hybrid`；`09:54` 視為**重述**不是獨立權威 | 兩者一致，沒有權威衝突需要裁決 |
+
+### 1.e ⭐ 拍板後的追加量測 —— **A′ 應該是三條 policy，不是四條**
+
+拍板的 A′ 預覽含一條 `FOR DELETE` policy。落地前我先問了一個它會引出的問題：
+**本 repo 不授予 `DELETE`**（`20260811024841_*:324-326` 三張表皆 `SELECT, INSERT, UPDATE`），
+那條 policy 因此永遠碰不到 —— 中性化它不會有任何測試轉紅，**那正是 AP-3 的定義**。
+而如果「沒有對應 policy = 預設拒絕」成立，**不寫**反而更嚴格。⛔ **不靠記憶引用文件** ——
+第二個 throwaway DB（`w06_d1_probe2`，同樣跑完即 `DROP`）：
+
+| # | 條件 | 結果 |
+|---|---|---|
+| N1 | 刪**自己的**列，`GRANT DELETE` **有給**，但**沒有 `FOR DELETE` policy** | **DELETE 0** |
+| N2 | 刪別人的 group 列，同上 | **DELETE 0** |
+| N3 | 對照：`SELECT` 不受影響 | **2 列** |
+| N4 | 對照：自己的列 `UPDATE` 不受影響 | **UPDATE 1** |
+| N5 | `pg_policies` 實際只有三條（INSERT / SELECT / UPDATE）| 逐列列出 |
+
+證據：[`artifacts/d1-rls-probe2-default-deny.{sql,out}`](./artifacts/d1-rls-probe2-default-deny.out)
+
+> ⭐ **少寫一條 policy 比寫一條窄的更嚴格。** 缺席 = 全拒（連自己的列都刪不掉），
+> 而窄 policy = 「窄範圍內允許」。⚠️ **並且它讓 `GRANT` 不再是 `DELETE` 的唯一防線** ——
+> `AD-GroupRowTheft-1` 記的正是「今天沒爆是因為 GRANT 不是因為 RLS」，
+> 三條 policy 的形狀把那個依賴拿掉了。
+
+**落地形狀因此微調為三條 policy + 不授予 `DELETE`**，並與 guardrail 3
+（「退役是欄位不是刪除」，`extension_fields:64-65` 已是此姿態）一致。
+⚠️ **這是在使用者選定的 A′ 之內收得更緊，不是換成別的選項** —— 若使用者要的是預覽的逐字四條，
+說一聲即可改回（但那條 `FOR DELETE` 會是 repo 裡第一條「中性化也不會有測試轉紅」的機制）。
+
 #### ⏳ 狀態
 
 - [x] 量測與論證完成（16 案例 + 證據檔）
-- [ ] ⛔ **待使用者拍板** —— 本節**刻意不含建議**
+- [x] ✅ **使用者拍板：A′ + `subtree` 不建**
+- [x] 追加量測：預設拒絕成立 → 落地為**三條 policy**
+- [ ] ADR-0014（下一步）
