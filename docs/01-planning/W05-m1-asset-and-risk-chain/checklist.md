@@ -10,30 +10,43 @@
 
 > 完整程序：`docs/rules-on-demand/day0-plan-verify.md`
 
-- [ ] **Prong 1 — path verify**：plan §4 的 NEW 檔皆不存在、EDIT 檔皆存在；
+- [x] **Prong 1 — path verify**：plan §4 的 NEW 檔皆不存在、EDIT 檔皆存在；
       `CH-020` 未被佔用（**grep 全 repo 的 `CH-\d+` 引用，不是 `ls` 目錄** —— `AD-ChNumber-1`）；
       下一個可用 ADR 編號以 `Glob docs/14-adr/*` 確認（**`0002/0003/0008/0009` 是有主題的預留，不可填**）
-- [ ] **Prong 2 — content verify**（drift → progress.md）：
-  - [ ] ⛔ **D-tablename** — `02a` 的 `Threat`/`Vulnerability` vs `multi-tenant-data.md:61` 的
+      → **10 個路徑，0 漂移**；`CH-020` 僅出現在 W05 自己的 pre-doc（未被佔用）；ADR **0013** 可用
+- [x] **Prong 2 — content verify**（drift → progress.md）：
+  - [x] ⛔ **D-tablename** — `02a` 的 `Threat`/`Vulnerability` vs `multi-tenant-data.md:61` 的
         `threat_library`/`vulnerability_library`。**兩處都是權威** → **Day 0 裁決，不可拖到 Day 2**
-  - [ ] **D-ratingname** — `02a:405` 的 `rating_inherent`/`rating_residual` vs `:194-195` 的
+  - [x] **D-ratingname** — `02a:405` 的 `rating_inherent`/`rating_residual` vs `:194-195` 的
         `score_before`/`score_after`。**Grep 全 `docs/`** 確認哪一套被別處引用（可能是 §7 儀表板 vs §3 實體）
-  - [ ] **D-riskscales** — `risk_scales` 在 `multi-tenant-data.md:62` 清單上但表不存在。
+        → ⭐⭐ **不是命名漂移，是兩個概念**：`score_*` 是 1–25 整數、`rating_*` 是分帶。
+        **儀表板數的是分帶**（`02a:414` · `03:90` · `08:25`）。⛔ 仍不建 `rating_*` —— `02a:405`/`:429`
+        自相矛盾且 `:429` 是開放決策 #5「Confirm before M7」→ 建了就是替未拍板的決定選邊。已入 plan §8
+  - [x] **D-riskscales** — `risk_scales` 在 `multi-tenant-data.md:62` 清單上但表不存在。
         確認它是「已規劃未建」還是「寫了但沒人打算建」→ **直接決定 D2 的可行選項**
-  - [ ] **D-w04shape** — W04 design note §2 七個不變式**逐條**確認仍成立（本 phase 要複製它們）
-  - [ ] **D-entityindex** — 確認五個實體**都已在 `02a` §0 索引表上**（若已在則 §0 不需改，
+        → ⭐ 全 repo **只有 `multi-tenant-data.md:65` 一處**，`02a` 從未提過 →
+        建它得**自行發明欄位**（違反參數 #9）。**D2-C 的理由因此升級**，不只是零消費者
+  - [x] **D-w04shape** — W04 design note §2 七個不變式**逐條**確認仍成立（本 phase 要複製它們）
+        → **八個 `file:line` 錨點全部解析成功**，藍本未漂移
+  - [x] **D-entityindex** — 確認五個實體**都已在 `02a` §0 索引表上**（若已在則 §0 不需改，
         plan §3.0 依賴這個判斷）
-- [ ] **Prong 2.5 — child component tree** — **N/A**（無前端工作）
-- [ ] **Prong 3 — schema verify**：
-  - [ ] `AssetGroup`/`Asset`/`Threat`/`Vulnerability`/`Risk` 在 `schema.prisma` 與
+        → **五個全在 `02a:29-31`**（成對格）→ §0 不需改。
+        ⚠️ 第一次 grep 回報 0 是我 pattern 錯（要求獨佔首格）—— **零命中先證明搜對地方**
+- [x] **Prong 2.5 — child component tree** — **N/A**（無前端工作）
+- [x] **Prong 3 — schema verify**：
+  - [x] `AssetGroup`/`Asset`/`Threat`/`Vulnerability`/`Risk` 在 `schema.prisma` 與
         `prisma/migrations/**` **零命中**（確認是新建不是重建）
-  - [ ] ⭐ **D-devdb** — `isms_dev` 的 `_prisma_migrations` **head 比對 + checksum 比對**
+        → 唯一命中是 `schema.prisma:164-166` 的 **W04 註解**（→ Day 2 必須更新，orphan claim）
+  - [x] ⭐ **D-devdb** — `isms_dev` 的 `_prisma_migrations` **head 比對 + checksum 比對**
         （`AD-MigrationChecksum-1`：W04 只驗 `applied=true`，Day 2 才撞到 checksum 不符）
-- [ ] **D-baselines** — 逐項跑並記實際輸出（**不經 pipe，看退出碼** —— `AD-GrepAssertion-1`）：
+        → **5 目錄 / 5 列 / 全 applied，且五個 sha256 逐一相符** —— 升級後的檢查生效，起點乾淨
+- [x] **D-baselines** — 逐項跑並記實際輸出（**不經 pipe，看退出碼** —— `AD-GrepAssertion-1`）：
       unit 86 · int 34 · web 10 · lint 0 · type 0 · format 0 · build 0 · `run_all` 6/6 ·
       `lint:negative` PASS（18 檔 0 bypass 3 allowlisted）· coverage 94.11/90.42/92.45/94.76
-- [ ] **Catalog drift** — progress.md Day-0 表格（`D-<name>` + Finding + Implication，交叉引用 plan §8）
-- [ ] **Go/no-go** — 範圍變動 ≤20% 繼續 / 20-50% 修訂並再確認 / >50% 中止重寫
+      → **全部相符**（逐項獨立取退出碼，不經 pipe）
+- [x] **Catalog drift** — progress.md Day-0 表格（`D-<name>` + Finding + Implication，交叉引用 plan §8）
+- [x] **Go/no-go** — 範圍變動 ≤20% 繼續 / 20-50% 修訂並再確認 / >50% 中止重寫
+      → **~5% → 繼續 Day 1**（兩個發現都不改交付內容，只強化裁決理由 + 加一條 §8 風險）
 
 ### 0.2 Branch
 
@@ -86,8 +99,9 @@
 
 - [ ] **`schema.prisma` 加 5 model + enum；migration 含表 + RLS + GRANT（形狀依 D1–D4）**
   - DoD: `AssetGroup`/`Asset`/`Risk` 有 `org_entity_id NOT NULL` + RLS policy + `FORCE`；
-    `Threat`/`Vulnerability` **docstring 明寫引用 `multi-tenant-data.md:61` 的既有清單**
+    `Threat`/`Vulnerability` **docstring 明寫引用 `multi-tenant-data.md:63` 的既有清單**
     （⚠️ **不是新增例外** —— 若寫成新增，那就是 W04 那條規則沒被正確消費）
+    （行號由 Day-0 `D-tablename` 更正：plan 與本檔原寫 `:61`）
   - Verify: `npm run prisma:migrate -w apps/api`；`\d+ <table>` 逐表確認 RLS 狀態符合 §3.2
 - [ ] **derived 欄位依 D1 落地**
   - DoD: 若選 generated column → **實測寫入來源欄位後 derived 值自動正確**；
