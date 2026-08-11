@@ -98,12 +98,23 @@
 
 ### 1.2 ⛔ D1 — `applies_to_scope` 的範疇語義（**助手不得代選**）
 
-- [ ] **量測與論證 D1 三個選項**（plan §3.1），產出可引用的證據而非偏好
+- [x] **量測與論證 D1 三個選項**（plan §3.1），產出可引用的證據而非偏好
   - DoD: 三個選項各有一段「它會讓什麼表達不出來」；
     ⭐ **實測** PostgreSQL RLS 的 `USING` 與 `WITH CHECK` 不對稱時的實際行為
     （讀得到但寫不得，錯誤碼是什麼？跟 42501 一樣嗎？）—— **不要靠記憶引用文件**
   - Verify: 論證寫進 progress.md Day 1，**含反方論據**
   - ⚠️ 探測在 **throwaway DB** 上跑，跑完 `DROP DATABASE`（W05 的作法，不汙染 `isms_dev`）
+  - → **16 案例 × 3 形狀**，PostgreSQL 18，`w06_d1_probe` 建了又 `DROP`（`isms_dev`/`isms_test` 事後逐列確認仍在）。
+    證據 `artifacts/d1-rls-probe.{sql,out}`（`cp` 原檔，未轉錄）
+  - → ⭐ **錯誤碼是 42501**（`new row violates row-level security policy`），與發號拒絕**同碼**；
+    但 A′ 的失敗形態是 **0 rows** 不是錯誤
+  - → ⭐⭐ **四個實測的洞**：`DELETE` 沒有 `WITH CHECK`（A/B 皆可跨實體刪 group 列，
+    **今天靠 GRANT 沒授 DELETE 才沒爆，不是靠 RLS**）· A 可**自建** group 列 · A 可**升格**自己的列 ·
+    **A 與 B 都擋不住「奪取」**（把 group 列改成自己持有並降格）
+  - → ⭐⭐⭐ **plan 沒看到的**：`applies_to_scope` 的第三個值 **`subtree` 目前無法表達** ——
+    `entity-scope.resolver.ts:120-142` 的 scope 只向下展開，永不含祖先
+  - → ⚠️ **更正 Day-0 的一條推論**：`02:26` 只是列出欄位，**不等於**要求 `NOT NULL`；
+    B 真正衝突的是**約束 8 鐵律 1**，不是 `02:26`
 - [ ] **向使用者呈報 D1 並取得拍板**
   - DoD: 使用者明確選定；⛔ **助手不得代選**（CLAUDE.md §禁止反模式）
   - Verify: 拍板記錄在 progress.md，含日期與理由
