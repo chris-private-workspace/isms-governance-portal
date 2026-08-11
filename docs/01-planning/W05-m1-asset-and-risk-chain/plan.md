@@ -329,6 +329,10 @@ build **0** · `run_all` **6/6** · `lint:negative` PASS · coverage 不低於 b
 | **`AD-DbBuildPathParity-1`** — CI 綠不涵蓋 reset 過的庫 | 本 phase 若動 GRANT，**必須在 reset 過的 `isms_dev` 上驗**，不能只看 CI |
 | **Risk Class A** — 測試間 fixture 汙染 | 新 seed 進 `int-global-setup.js`；斷言**順序無關**（`AD-JestFileOrder-1`）|
 | **範圍偏大（5 表 + 端點）** | 可縮減點已標明：端點是 (b)，砍掉它 phase 仍有意義，但評分就只有單元測試證明 |
+| ⭐ **【Day-1 D5 —— §3.3 的記錄型偏離】`risk-score.ts` 不含算術** | §3.3 字面規劃「純函式 `score(lkh,{...}) => lkh * max(...)`」。D1-A 拍板後算術的權威在 generated column，Day-1 實測**主流量沒有任何一處需要在 TS 算這個乘積**（寫入 DB 算、讀取 DB 回、排序篩選皆 SQL）→ TS 再算一次 = AP-6（兩份實作）+ AP-1（無主流量呼叫者）。**使用者 2026-08-11 拍板改為 D5-B**：該檔只放驗證 + 閾值常數 + 公式正規化文字。⚠️ **US-3 實質未縮減** —— 「會抓到公式錯誤的測試」轉由 Day 2 整合測試承擔，打在公式真正住的地方；checklist 1.3 該項標 🚧 + 解封條件，**未刪除** |
+| ⭐ **【Day-1 T3/T4】`IMMUTABLE` 函式版的 generated column 會靜默分裂資料** | plan 未列此選項；量測時發現它把公式從 8 處塌縮成 1 處而**看起來更好**。⛔ `CREATE OR REPLACE FUNCTION` 在有相依 generated column 時**成功且不重算**：同一組輸入舊列讀 20、新列讀 16。→ **採 inline expression**（改它要 `ALTER COLUMN ... SET EXPRESSION`，會重寫全表）。可讀性代價用機械手段補：整合測試對每欄 `pg_get_expr` 斷言 |
+| **【Day-1 R5】`dbgenerated` 鏡像文字逐字比對** | 少一對外層括號 → 其後**每次** `migrate dev` 產出一句必然失敗的 SQL。Day 2 的 migration 程序固定為：寫 SQL → apply → `pg_get_expr` 取文字 → 貼進 `schema.prisma` → `migrate diff --exit-code` 回 0。⛔ **不用 `prisma db pull`**（會覆寫整檔並吃掉 `//` header）。無 CI gate 看這件事 → `AD-SchemaMigrationDrift-1` |
+| ⛔ **【Day-1 §1.h】`acceptance_status` 算哪一組分數，`02a:196` 沒說** | 三種讀法各有後果（before → 治理完仍永遠 requires treatment；after → 與 `in_it_risk_register` 完全冗餘；`COALESCE(after, before)` → 兩欄各有意義且對應 `02a:141` 的兩句話）。第三種最說得通但**是推論不是 spec** → **Day 2 開場呈報，不自行選** |
 
 ## 9. Out of Scope（這個 phase 不做 → 另開 slice / AD）
 
