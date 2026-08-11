@@ -3,7 +3,7 @@
 **Purpose**: 所有 carryover AD、pending 決策、下個 phase 候選的**唯一權威清單**。
 
 **Created**: 2026-08-07
-**Last Modified**: 2026-08-10
+**Last Modified**: 2026-08-11
 **Status**: Active
 
 > ⚠️ **這是待辦事項的單一來源。**
@@ -16,7 +16,7 @@
 
 > **本檔回答「有什麼工作」，不回答「先做哪個」。**
 > 順序層 [`ROADMAP.md`](./ROADMAP.md) **已於 2026-08-10 啟用**（CH-016）——
-> 啟用當時本檔 §Open 達 48 條，超過「讀完仍不知道下一步」的門檻（**現為 56 條**，2026-08-10 W04 closeout）。
+> 啟用當時本檔 §Open 達 48 條，超過「讀完仍不知道下一步」的門檻（**現為 58 條**，2026-08-11 W05 Day 1）。
 > 它**只放順序 + 前置條件，細節一律 link 回這裡**。
 > ⚠️ **兩份都存在，收尾要同時改兩處** —— 只改一處就是下一次審計的漂移發現。
 
@@ -95,6 +95,8 @@
 | AD-Placeholder-1 | ⭐ **「模板佔位符未與本專案對齊」已發生 6 次**（`AD-RuleBoundary-1` / `AD-CssToken-1` / `AD-DocIndex-1` / ADR 檔名 / `CLAUDE.md` byte 預算 / `ci.yml`）| CH-006 | 🟡 P1 | **CH-007 只關掉第 6 類**（actionlint + 棘輪 detector）。⚠️ 原提案的「掃全 repo 佔位符」**已證實不可行** —— 512 命中約 500 個是合法慣例語彙（`W{NN}` / `NNN` / `<slug>`），會噴在自己的規則文件上。其餘四類需語義理解，`lint-detector-authoring.md:22` 明訂寫不出可靠 detector。**W01 關掉第 7 個實例**（`scope-boundaries.md` 的範疇表與 import 矩陣，Day-0 `D-boundaries-matrix` 發現）✅。**本條仍保持開啟** |
 | AD-ActionsNode-1 | `actions/checkout@v4` 用 Node 20，GitHub 已標 deprecated 並強制跑在 Node 24（4 個 security-scan job 皆有此 annotation） | CH-006 | 🟢 P2 | 現在只是警告；GitHub 移除 Node 20 支援時會直接壞掉 |
 | AD-StaleRecordRef-1 | **跨記錄的「編號引用」沒有任何 detector 在看** —— `ADR-0010:73` 指向 `CH-009`，而 CH-009 早已改派給 track-classification fix；同一份 ADR 的 §相關 在 2026-08-08 記了那次改派，73 行卻沒跟著改。`check_path_references.py` 驗的是**路徑**，`CH-NNN` / `ADR-NNNN` / `AD-Xxx-N` 這類引用不在射程內 | CH-010 → **再現 CH-016** | 🟡 **P1**（升級）| 與 `AD-ChNumber-1` 相鄰但不同：那條講**怎麼選號**，這條講**號被改派後舊引用不會有人叫**。⭐ **升級條件已成立** —— 審計 AD-6 原本被判為「detector 分不出未追蹤檔」，CH-016 量測後**推翻**：9 處 `CH-010` 引用中**只有 1 處是 markdown 連結**（`0010:187`，與檔案同時建立所以 `check_doc_links.py` 從沒機會開火），其餘 8 處是 inline code `` `CH-010` `` —— **那不是路徑，是編號**，兩個 detector 都不在射程內。⛔ **實作前必須先拍板一件事**：`AD-ChNumber-1` 明訂**前向引用預留編號是合法的**（CH-010 正是如此），所以 detector 不能單純要求「編號必須解析得到」—— 需要一個「預留 vs 失效」的判準（候選：前向引用要在 BACKLOG 或 ROADMAP 有對應列）|
+| AD-RatingBand-1 | ⭐ **旗艦滾升儀表板數的是「分帶」，而平台交付的是「分數」** —— `02a:414` · `03:90` · `08:25` 全部按 `rating_residual ∈ {High, Critical}` 聚合，但 `rating_*` 從未被建。⛔ 更麻煩的是 `02a` **自相矛盾**：`:405` 說它 derived from the configured matrix，`:429` 說 risk owner **enters** it（系統只是建議）| W05 Day 0 | 🟡 P1 | ⛔ **W05 刻意不建它** —— `02a` §3 的 Risk 欄位規格未列此欄，且 `:429` 本身就是**開放決策 #5「Confirm before M7」**；建了就是替未拍板的決定選邊。**Gate 是 M7 不是 M8**（依 `02a:429` 自己的期限）。ADR-0013 §可證偽條件已把它列為「若分帶不從分數導出，則本 ADR 反對 option B 的前提減弱」|
+| AD-SchemaMigrationDrift-1 | **沒有任何機械檢查在看「`schema.prisma` 與 `migrations/` 是否一致」** —— W05 量到 generated column 的 `@default(dbgenerated("..."))` 鏡像文字是**逐字比對**，寫錯會讓其後**每一次** `migrate dev` 產出一句必然執行失敗的 SQL，而今天沒有東西會在 CI 叫 | W05 Day 1 | 🟡 P1 | 現成解法：`prisma migrate diff --from-migrations --to-schema --exit-code`（0=一致 / 2=漂移），需先在 `prisma.config.ts` 補 `datasource.shadowDatabaseUrl`（**key 名實測過，不是 `migrations.shadowDatabaseUrl`**）。⛔ 屬 CI 變更 → 需使用者確認，且吃節流閘配額，故本 phase 不做 |
 
 **優先度判準**：
 

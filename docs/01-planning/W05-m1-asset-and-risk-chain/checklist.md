@@ -58,38 +58,61 @@
 
 ### 1.1 ⛔ D1 / D2 — derived 欄位與閾值
 
-- [ ] **量測與論證 D1 三個選項**（plan §3.1），產出可引用的證據而非偏好
+- [x] **量測與論證 D1 三個選項**（plan §3.1），產出可引用的證據而非偏好
   - DoD: 三個選項各有一段「它會讓什麼表達不出來」；**實測 PostgreSQL generated column
     能否引用同表其他欄位**（不要靠記憶引用文件）
   - Verify: 論證寫進 progress.md Day 1，**含反方論據**
-- [ ] **量測與論證 D2 三個選項**，並回答「per-entity 校準今天有沒有消費者」
+  - → **18 個探測**（Day-0 12 個 + Day-1 R1–R7 / S1–S6 / T1–T5），全在 throwaway DB 上跑。
+    ⭐ 量出**第四個選項 D（`IMMUTABLE` 函式）**並用 T3/T4 否決它 —— plan 沒列過這個選項
+- [x] **量測與論證 D2 三個選項**，並回答「per-entity 校準今天有沒有消費者」
   - DoD: 明確回答已確認參數 #7「只能改設定」與 AP-5 的衝突怎麼解
   - Verify: 論證寫進 progress.md Day 1
-- [ ] **向使用者呈報 D1 + D2 並取得拍板**
+  - → **參數 #7 約束的是機制不是時程**。且 Day-0 `D-riskscales` 證明 `risk_scales` 從未被規格化
+    → 建它得**自行發明欄位**（違反參數 #9）。零消費者只是第二個理由
+- [x] **向使用者呈報 D1 + D2 並取得拍板**
   - DoD: 使用者明確選定；⛔ **助手不得代選**（CLAUDE.md §禁止反模式）
   - Verify: 拍板記錄在 progress.md，含日期與理由
-- [ ] **若判為架構級 → 寫 ADR-0013 承載「評分與校準住在哪裡」**
+  - → D1–D4 於 plan 核可時拍板（2026-08-11）；**量測又逼出 D5 / D6 兩個 plan 未預見的決定**，
+    同樣呈報後由使用者拍板（progress §1.d），**未代選**
+- [x] **若判為架構級 → 寫 ADR-0013 承載「評分與校準住在哪裡」**
   - DoD: ADR 含**可證偽條件**；明寫它約束哪些**未來**實體（Assessment / ControlTest / posture_snapshot）
   - Verify: `Read` 該 ADR，確認 `**Status**: 已採納` 且理由不是「因為方便」
+  - → `docs/14-adr/0013-risk-scoring-and-calibration.md`，**已採納**；4 條可證偽條件，
+    每條都指名觸發者與最早觸發的里程碑。順帶修正 ADR 索引漏列 0005/0012（progress §1.f）
 
 ### 1.2 D3 / D4 拍板
 
-- [ ] **D3 `cia_type` 形狀** · **D4 `Threat`/`Vulnerability` 表名**
+- [x] **D3 `cia_type` 形狀** · **D4 `Threat`/`Vulnerability` 表名**
   - DoD: 各一句決定 + 一句理由；D4 必須說明**為何某一份文件的用詞勝出**（權威排序）
   - Verify: 兩個決定寫進 progress.md Day 1
+  - → **D3 = `enum(7)`**（全 false 這個無效狀態不可能表達；S3 另證 enum 也能當 generated column 型別）。
+    **D4 = `threats` / `vulnerabilities`** 依 `02a` —— CLAUDE.md 權威排序**設計文件 > 規則檔**，
+    `multi-tenant-data.md` 是下位不是第二個真相來源，Day 2 同時更正其 `:63`
 
 ### 1.3 `risk-score.ts`（US-3）
 
-- [ ] **`LKH × MAX(FIN,BOP,LRY,REP,SIS)`，值域 1–25，五個 impact 缺一不可**
+- [x] **`LKH × MAX(FIN,BOP,LRY,REP,SIS)`，值域 1–25，五個 impact 缺一不可**
   - DoD: 純函式；**不接受部分輸入**；`02a:136` 逐字對照
   - Verify: `npm run test -w apps/api`
-- [ ] ⭐ **測試必須會抓到公式錯誤**
+  - → ⚠️ **形式依 D5-B 改變，實質未縮減**：`risk-score.ts` 交付的是純函式
+    `validateScoreSet()`（1–5 值域 + all-or-none，錯誤帶欄位名），**刻意不含乘積** ——
+    D1-A 之下算術的權威在 generated column，TS 再算一次就是 AP-6 + AP-1（無主流量呼叫者）。
+    「不接受部分輸入」**已交付**且有 6 個逐欄案例。plan §3.3 的字面偏離已記入 §8
+- [ ] 🚧 ⭐ **測試必須會抓到公式錯誤** —— **移到 Day 2**（`risk.int.spec.ts`）
   - DoD: `MAX` 換成 `SUM` / 平均 / 只取 FIN 時**至少一個案例要紅**
   - Verify: ⚠️ fixture **刻意避開 SUM == MAX 的輸入**（否則 SUM 版本會通過而測試看起來有效）
+  - 🚧 **理由**：D5-B 之下公式住在 migration SQL，Day 1 沒有表可以打。
+    **在 TS 副本上測公式等於認證一個沒有呼叫者的函式** —— 那正是 AP-3 的形狀。
+  - **解封條件**：Day 2 的 `risks` 表建立後，對真庫斷言 `4×MAX(2,5,1,3,1)=20`（SUM 會得 48）、
+    `3×MAX(5,1,1,1,1)=15`、邊界 16，**且**斷言每欄 `pg_get_expr` 等於 `scoreExpression(phase)`
+  - ⚠️ **此項不得在 Day 2 被視為已完成而略過** —— 它是 US-3 的驗收核心
 
 ### 1.x partial gate
 
-- [ ] `npm run test -w apps/api`（新測試綠）+ `python scripts/lint/run_all.py` → 6/6
+- [x] `npm run test -w apps/api`（新測試綠）+ `python scripts/lint/run_all.py` → 6/6
+  - → **13 suites / 107 tests**（baseline 86 → +21）· `run_all` **6/6** ·
+    lint **0** · type **0** · format **0**（首次 fail，`prettier --write` 後綠）。
+    ⚪ int / web / build / `lint:negative` 本日未跑 —— Day 2 full gate 才要求
 
 ---
 
