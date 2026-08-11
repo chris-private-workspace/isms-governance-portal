@@ -592,9 +592,9 @@ plan §7 宣告 `actual` = branch base → closeout commit 牆鐘（W04 同定�
 | 量 | 值 |
 |---|---|
 | base `a2b1906`（**W04 的 closeout commit**）| 2026-08-10 **23:11:12** |
-| closeout commit `f9195da` | 2026-08-11 **14:23:25**（`git log` 回讀，非估計）|
+| closeout commit `8f08f3f` | 2026-08-11 **14:23:25**（author date，`git log` 回讀，非估計）|
 | 字面 actual / ratio | **15.20 hr** / **2.17**（OVER band 兩倍以上）|
-| 跨夜間隙（base → 本 phase 第一個 commit `785be55` 09:31:41）| **10h20m** |
+| 跨夜間隙（base → 本 phase 第一個 commit `c70e57a` 09:31:41）| **10h20m** |
 | 扣除後 / ratio | **4.86 hr** / **0.69**（**UNDER band**，差 0.006）|
 
 ⚠️ **先寫下的估計是 `~14:30 → 0.71 (IN)`。** 真實時間戳給 **0.69 (UNDER)** ——

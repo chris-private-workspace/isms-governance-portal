@@ -62,9 +62,9 @@ plan §7 宣告 `actual` = **branch base → closeout commit 的牆鐘跨度**�
 | 量 | 值 |
 |---|---|
 | base `a2b1906` | 2026-08-10 **23:11:12** |
-| closeout commit（branch 上 `f9195da`，**rebase 後為 `8f08f3f`**）| 2026-08-11 **14:23:25** |
+| closeout commit `8f08f3f`（branch 上是 `f9195da`；PR #36 用 rebase merge）| 2026-08-11 **14:23:25**（author date）|
 | **字面 actual** | **15.20 hr** → ratio **2.17**（OVER band 兩倍以上）|
-| 其中**跨夜間隙**（base → 本 phase 第一個 commit `785be55` 09:31:41）| **10h20m** |
+| 其中**跨夜間隙**（base → 本 phase 第一個 commit `c70e57a` 09:31:41）| **10h20m** |
 | **扣除間隙後** | **4.86 hr** → ratio **0.69**（**UNDER band**，差 0.006）|
 
 > ⚠️ **這張表的數字是 closeout commit 落地後從 `git log` 回讀的，不是估的。**

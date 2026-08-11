@@ -52,11 +52,13 @@ Log 是**歷史紀錄** —— 只有在要調整某個乘數、或要理解某�
 - **⛔ 預先宣告的定義在這裡失效，而失效方式是可預測的**：plan §7 宣告
   `actual` = branch base → closeout commit 的牆鐘跨度（W04 同定義）。但 base `a2b1906`
   是 **W04 的 closeout commit**，不是 W05 的起工時刻 —— 兩者之間隔了 **10h20m 的一夜**
-  （`a2b1906` 08-10 23:11 → 本 phase 第一個 commit `785be55` 08-11 09:31）。
+  （`a2b1906` 08-10 23:11 → 本 phase 第一個 commit `c70e57a` 08-11 09:31）。
   字面套用得到 15.20 hr / ratio **2.17**；扣除間隙是 4.86 hr / ratio **0.69**。
-  ⚠️ **這兩個數字是 closeout commit `f9195da`（14:23:25）落地後從 `git log` 回讀的。**
+  ⚠️ **這兩個數字是 closeout commit `8f08f3f`（author date 14:23:25）落地後從 `git log` 回讀的。**
   先寫下的估計是 `~14:30 → 0.71 (IN)`，真實時間戳給 **0.69 (UNDER)** ——
   差 0.006，**但它跨過一條判定線**，所以照 W04 `5bb0c9f` 的先例單獨開 commit 修正。
+  ⚠️ **本則的 SHA 一律是 rebase 後 main 上的**（PR #36 用 rebase merge，branch 側的
+  `785be55` / `f9195da` 已不在 main 上）。**author date 未被 rebase 改變，所以算術不受影響。**
   **它不是量錯，是這個定義從一開始就內含一個沒被寫出來的前提**：base 是本 phase 的起工時刻。
   W04 恰好背靠背在同一個晚上，所以前提成立而沒人看見它。
 - **⚠️ 修正值是下界**：plan 與 checklist 的起草發生在第一個 commit 之前，時點**不可機械導出**。
