@@ -51,6 +51,7 @@ Bottom-up ~X hr → class-calibrated ~Y hr (mult Z) → agent-adjusted ~Y' hr (a
 | Scope class | Mult | 3-phase mean | Status（1 行）|
 |-------------|------|---------------|--------------|
 | `greenfield-scaffold` | 0.60 | n/a (1 pt) | KEEP (W01 ratio ~0.35 UNDER band; 工時未逐項記錄，數字由 commit 時間戳回推故品質打折; if 2nd <0.70 → 0.40; → calibration-log) |
+| `pattern-reuse-feature` | 0.50 | n/a (1 pt, **定義受污染**) | KEEP (W05 ratio 0.71 IN band **僅在修正定義下**; 字面定義給 2.19 —— branch base 是前一 phase 的 closeout 而中間跨了一夜; 修好定義前本點不可與未來的點併入同一窗口 → `AD-CalibrationMetric-2`; → calibration-log) |
 | `spike` | 0.65 | n/a (3 pt, 僅 1 同單位) | KEEP (W04 ratio 0.81 IN band; ⭐ 第一個**先宣告定義再量**的點 —— W02/W03 單位不同，有效樣本仍是 1; 真正的 3-phase 窗口 W06 才成立; if W05+W06 皆 <0.70 → 0.45; → calibration-log) |
 
 ### 常見 scope class 起始建議值

@@ -4,10 +4,11 @@
 
 **Category**: Planning
 **Created**: 2026-08-07
-**Last Modified**: 2026-08-10
+**Last Modified**: 2026-08-11
 **Status**: Active
 
 > **Modification History**
+> - 2026-08-11: Advance item 4 to M1 slice 2 (Phase W05) — 7/35 entities, invariants adjudicated
 > - 2026-08-10: Drop the duplicated negative-gate count — single source is BACKLOG (audit AD-8)
 > - 2026-08-10: Phase 無 —— 首次填入排序項（CH-016）；啟用門檻已達成，見下方 §為什麼現在啟用
 > - 2026-08-07: Initial creation from claude-code-dev-template v2.6.1
@@ -66,7 +67,7 @@
 | 2b | `AD-SecDoDAutomation-1` —— **B 類三點**（#17 seed 資料無 checksum-valid 卡號 · #10 瀏覽器儲存禁令 · #25 危險 sink）| ⬜ | 第 2 項（已完成）| 同上 §建議的實作順序 |
 | 2c | **拍板：Entra ID 之後，`16` #11–15 的密碼／憑證責任邊界** | ⬜ | — | 同上 §需要拍板的 —— **可能值得一份 ADR** |
 | 3 | **OQ-6 spike → ADR-0005** —— 受治理擴充欄位的儲存機制 | ✅ | — | W03（2026-08-10）—— [`ADR-0005`](../14-adr/0005-governed-extension-storage.md)；兩層獨立性已元驗證 |
-| 4 | **M1 — Data foundation** | ▶ | **slice 1 / N 已交付**（W04，2026-08-10）—— 最小 `User`（ADR-0012）+ `Policy` base fields + 伺服器端發號，**形狀已可複製**；關 `AD-UserEntitySpec-1`。⚠️ **M1 的 DoD 仍未達成** —— 35 個實體裡建了 2 個，其餘 32 張表是 slice 2..N | [`07:32`](../02-architecture/07-wave1-build-plan.md) · [W04 design note](../02-architecture/design-notes/W04-user-and-base-fields.md) |
+| 4 | **M1 — Data foundation** | ▶ | **slice 2 / N 已交付**（W05，2026-08-11，PR pending）—— 資產鏈五張表 + `POST/GET /risks` + ADR-0013（評分是 generated column）。⭐ **W04 那七個不變式的可複製性已裁決：可複製 6 / 不適用 1 / 需調整 0** —— 形狀確認可抄，另加兩條新條款（entity-scoped 表之間 FK 一律複合 · 每張新表要有繞開發號的直接寫入測試）。⚠️ **M1 的 DoD 仍未達成** —— 35 個實體裡建了 **7** 個，其餘 28 張表是 slice 3..N；⛔ **`AD-RiskBand-1` 必須在 M8 之前拍板**（儀表板數的是分帶不是分數）| [`07:32`](../02-architecture/07-wave1-build-plan.md) · [W05 retro §US-6](./W05-m1-asset-and-risk-chain/retrospective.md) · [W04 design note](../02-architecture/design-notes/W04-user-and-base-fields.md) |
 | 5 | `AD-ScopedClientDI-1` —— 範疇化 client 如何抵達 `core-model` | ✅ | — | W03（2026-08-10）—— ⚠️ **結論與原提議不同**：token 不建（零消費者），型別是 `core-model` 自宣告的結構型別，實例走方法參數 |
 | 6 | `AD-ScopeConcurrency-1` —— 並行範疇汙染的常駐測試 | ✅ | — | W03（2026-08-10）—— 40 次**交錯**查詢，逐列斷言 |
 | 7 | `AD-SecDoDAutomation-1` **實作** | ⬜ | 第 2 項的分類結果 —— 跳過分類會建出對人工項目無效的假 gate | [`BACKLOG.md`](./BACKLOG.md) |
