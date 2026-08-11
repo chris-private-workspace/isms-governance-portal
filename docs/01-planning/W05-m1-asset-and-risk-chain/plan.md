@@ -54,8 +54,8 @@ W04 交付了「一張業務表長什麼樣」，但**平台的方法論主軸�
 | 已建實體 | **5 個 model**：`OrgEntity` · `User` · `RefCodeCounter` · `Policy` · `ExtensionField` | `schema.prisma:71,115,147,185,274` |
 | 資產鏈 | `AssetGroup` / `Asset` / `Threat` / `Vulnerability` / `Risk` **零命中** | `schema.prisma` 全檔 |
 | 評分公式 | 規格在散文與表格中，**無 code** | `02a:119,136,139-142` |
-| 全域表判準 | `threat_library` / `vulnerability_library` **已在合法清單上** | `multi-tenant-data.md:61` |
-| 校準機制 | `risk_scales` **也在清單上，但表不存在**；參數 #7 訂「per-entity 校準只能改設定」| `multi-tenant-data.md:62` |
+| 全域表判準 | `threat_library` / `vulnerability_library` **已在合法清單上** | `multi-tenant-data.md:63`（Day-0 更正，plan 原寫 `:61`）|
+| 校準機制 | `risk_scales` **在清單上但表不存在，且從未被任何設計文件規格化** | `multi-tenant-data.md:65`（Day-0 更正，plan 原寫 `:62`）|
 | 可複製的形狀 | 七個已驗證不變式（發號 · 拒絕點 · 排序 · RLS 判準 …） | `design-notes/W04-user-and-base-fields.md` §2 |
 | 端點藍本 | `POST/GET /policies` 三個端點 + 404-not-403 + 422 帶 key | `policy.controller.ts:70-137` |
 
@@ -322,6 +322,8 @@ build **0** · `run_all` **6/6** · `lint:negative` PASS · coverage 不低於 b
 | **derived 欄位與來源分歧**（AP-6 的資料版本） | D1 若選 B/C 必須有一個**製造分歧再看它被抓到**的測試；選 A 則由資料庫保證 |
 | **評分測試選到「SUM == MAX」的輸入** | fixture 明確避開；至少一個案例的 MAX 嚴格小於 SUM |
 | **`Risk` 的 `ref_code` prefix 未規格化**（W04 已記錄）| 比照 `policy.repository.ts` 自宣告，**不建登記表**（W04 的裁決） |
+| ⭐ **【Day-0 `D-ratingband`】旗艦儀表板數的是分帶，不是分數** | `02a:414` · `03:90` · `08:25` 全部按 `rating_residual ∈ {High, Critical}` 聚合，而本 phase 只交付 `score_*`（1–25 整數）。⛔ **仍不建 `rating_*`**：`02a` §3 的 Risk 欄位規格未列它，且 `02a:405`（derived）與 `:429`（owner enters）**互相矛盾**，後者本身是**開放決策 #5「Confirm before M7」**。建了就是替一個未拍板的決定選邊。→ **M8 之前必須有人拍板分帶怎麼來**，記入 BACKLOG |
+| **【Day-0 `D-riskscales`】`risk_scales` 從未被任何設計文件規格化** | 全 repo 僅 `multi-tenant-data.md:65` 一處提及。這讓 D2-C 的理由**從「零消費者」升級為「建它就得自行發明欄位」**（違反已確認參數 #9）|
 | **Risk Class C** — 陳舊 dev server 掩蓋 wiring | Day 3 clean restart；驗「活著的服務程序」不是「port 擁有者 PID」 |
 | **`AD-MigrationChecksum-1`** — `applied=true` ≠ 內容相同 | Day-0 `D-devdb` 除 head 比對外**加 checksum 比對**（W04 的直接教訓）|
 | **`AD-DbBuildPathParity-1`** — CI 綠不涵蓋 reset 過的庫 | 本 phase 若動 GRANT，**必須在 reset 過的 `isms_dev` 上驗**，不能只看 CI |
