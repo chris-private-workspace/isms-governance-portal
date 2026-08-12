@@ -214,8 +214,10 @@
   - Verify: ⛔ **必須在對應 RLS 中性化的狀態下重跑並看到它轉紅** ——
     否則它證明的可能又是 counter 在拒絕（`AD-BorrowedRefusal-1` 同形狀第 3 次）
   - → 三個都有：`control.int` **12b** · `asset.int` **3b** · `asset.int` **6b**
-  - → ⏳ **中性化重跑留在 Day 3.3 元驗證**（本項的 Verify 尚未執行完 —— 現在只證明它們是綠的，
-    **還沒證明它們會紅**）
+  - → ⛔ **Day 3.3 執行了 Verify，結果是這三個測試不合格** —— 中性化 `WITH CHECK` 後
+    **一個都沒紅**。根因：Prisma `create()` 的 `RETURNING` 讓 SELECT policy 先擋下來。
+    → 補 `control.int` **12c** · `asset.int` **6c**（×2 表，用 `createMany` 不發 `RETURNING`），
+    重跑確認**會紅**。詳見 progress.md §3.c
 - [x] **若 D1 = A：釘住 `USING` 與 `WITH CHECK` 的不對稱**
   - DoD: group-shared control **讀得到**但跨實體**寫不得**，兩個方向各一個案例
   - ⚠️ **只測一個方向會讓另一半靜默失效** —— 那正是 W05 M2 找到的缺口形狀
@@ -251,27 +253,44 @@ _(⚪ **無 user-facing surface** → drive-through 不適用。一律標 **API-
 
 ### 3.1 Clean restart
 
-- [ ] **殺掉陳舊 dev server / 孤兒 worker，確認新程序是該 port 唯一擁有者**
+- [x] **殺掉陳舊 dev server / 孤兒 worker，確認新程序是該 port 唯一擁有者**
   - DoD: 驗「活著的服務程序」不是「port 擁有者 PID」（Risk Class C 加強版）
   - Verify: 擷取證明 wiring 生效的 startup log 行（兩個新 module 載入 + 路由 mapped）
   - ⚠️ **殺之前確認那是不是我開的** —— port 3200 那組 W04/W05 兩次都正確地沒碰
   - ⚠️ **migration 已套用但 `schema.prisma` 未同步的窗口用 `migrate deploy` 不用 `migrate dev`**
     （W05 Day 3 實際被 `migrate dev` 的互動提示卡住並握著 advisory lock）
+  - → **3210 本來就沒有 listener** —— 沒有東西可殺，照實寫成「無陳舊程序」而不是「已殺乾淨」
+  - → **3200 = PID 36748，2026-08-08 由別人開的 web dev server → 沒碰**（第三次正確地沒碰）
+  - → ⭐ **加強版確有必要**：API server 是 PID **59452 / 父程序 3660**，而 `nest` CLI 是 **45476**
+    —— **server 不是 CLI 的子程序**，依 PID 樹殺會漏掉它。每次停止都印 **port 無 listener** ＋
+    **無存活 isms api 程序** 兩行才算
+  - → startup log：`Mapped {/controls, GET|POST}` · `{/asset-groups, GET|POST}` · `{/assets, GET|POST}`
+    ＋ `DEV PRINCIPAL ACTIVE … (SG1)` / 第二輪 `(HK1)` ＋ `Nest application successfully started`
+  - → ⚪ **未用到 `migrate deploy` 的那個窗口** —— schema 與 migration 在 Day 2 同時落地，無不同步
 
 ### 3.2 API-level 驗證
 
-- [ ] **對真進程走完三個資源的主路徑**，逐案例記 observed-vs-intended
+- [x] **對真進程走完三個資源的主路徑**，逐案例記 observed-vs-intended
   - DoD: 至少涵蓋 —— 建立三種資源 · 讀取 · 跨實體 404 · 不存在的 `asset_group_id` ·
     `effectiveness` 預設為 `not_tested` · **若 D1 = A：group-shared control 的讀寫不對稱**
   - Verify: 案例表寫進 progress.md Day 3
   - ⛔ **腳本要每案帶自己的 nonce** —— W05 的第一版走查印出了陳舊回應且**看起來是通過的**
-- [ ] **oracle 探測**：不存在的 id 與不屬於你的 id **回同一個答案**
+  - → **兩輪 15 個案例**，每案帶自己的 run tag 且斷言回應回的是那個 nonce（progress.md §3.b）
+  - → ⭐ **第一輪（SG1）不足以證明放寬** —— SG1 自己就是那筆 group control 的擁有者。
+    重啟為 `DEV_PRINCIPAL_ENTITIES=HK1` 才是證據：**B1 只看到 `CTRL-SG1-000001`（group，SG1 持有），
+    看不到 SG1 的兩筆 local**；同一個進程 **B5 的 `asset-groups` 只給 HK1 自己的**
+  - → ⛔ **`isms_dev` 原本沒有 group control 且應用程式建不出來** → 由 owner 連線種入並同步 counter
+  - → ⚠️ **A4：`appliesToScope` 是被靜默丟棄不是被拒絕**（送了沒有任何回饋）→ 記 BACKLOG，不當場改
+- [x] **oracle 探測**：不存在的 id 與不屬於你的 id **回同一個答案**
   - DoD: 除 id 外逐字相同（比照 W03 案例 2b / W04 #6 / W05 A8-A9-A13）
   - ⚠️ **拒絕點這次可能又移動了** —— 記下它**這次落在哪**（發號 / 複合 FK / RLS）
+  - → A8（別人存在的 group）與 A9（不存在的 group）**皆 404 `asset group not found`，逐字相同**
+  - → **拒絕點這次落在複合 FK（23503）** —— 因為 asset 自己的實體在範疇內，RLS 放行；
+    跨實體建 asset/control 則落在**發號的 counter（42501）**。**兩個點都量到了**
 
 ### 3.3 元驗證（US-5 —— `AD-NegativeGate-1` 第 9 個實例）
 
-- [ ] **把本 phase 每個「宣稱會擋東西」的機制各中性化一次**
+- [x] **把本 phase 每個「宣稱會擋東西」的機制各中性化一次**
   - DoD: 每次都記「弄壞什麼 → 幾個測試紅 → 還原 → 綠」。
     ⭐ **若某個機制弄壞後沒有東西紅，那就是缺口不是通過**
   - Verify: 表格記入 progress.md Day 3
@@ -279,6 +298,22 @@ _(⚪ **無 user-facing surface** → drive-through 不適用。一律標 **API-
     **`assets → asset_groups` 的複合 FK**
   - ⛔ **`WITH CHECK` 那一組必須看到「繞開發號」的測試轉紅** ——
     若紅的只有走 repository 的測試，那就是 `AD-BorrowedRefusal-1` 第 3 次
+  - → **六組**（N1-N6），每次只改一處、跑完 `git checkout` 還原：
+    N1 read 的 group 分支 → **3 紅** · N2 拒 `group` 值 → **2 紅** · N3 update 的 `USING` → **4 紅** ·
+    N6 複合 FK 退化 → **2 紅**
+  - → ⛔ **N4 第一次是空跑**（anchor 在 insert/update 逐字相同 → `AssertionError`，編輯沒套用）。
+    那個「78 passed」**沒有被當成發現**。⭐ 正因它暴露 driver 會靜默空跑，**N5 的零轉紅也不能照收** →
+    重跑加上「跑完直接查 `isms_test` 的 `pg_policies`」用 **DB 證據**確認編輯真的進去了
+  - → ⛔⛔ **真缺口**：N4 = **12b 沒紅**；N5 = **一個都沒紅**。根因**直接量到**：
+    `WITH CHECK (true)` 下同一句 INSERT —— 帶 `RETURNING` **被拒**，
+    **拿掉 `RETURNING` 就 `INSERT 0 1` 落地**。Prisma `create()` 一定發 `RETURNING`，
+    PostgreSQL 把 SELECT policy 套在回傳列上 → **三個 bypass 測試證明的是讀的 policy 藏住了列**
+  - → ⭐ **`AD-BorrowedRefusal-1` 第 3 次，而且 W05 條款 2 本身就是為了防它而追加的** ——
+    我 Day 2 照它做的三個測試，三個都沒做到它宣稱的事。**這條要在 US-6 裁決為「需再加」**
+  - → **修法 + 驗收**：`createMany` 不發 `RETURNING` → 新增 `control.int` **12c** · `asset.int` **6c**（×2 表）。
+    重跑：**N4 1 紅 → 2 紅** · **N5 0 紅 → 2 紅**。int **78 → 81**，policy 完好時全綠
+  - → 還原後：`git status apps/api/prisma/` **空** · `prisma migrate status` **7 migrations, up to date**
+    （checksum 未受損）· `isms_dev` 未被中性化碰到（只影響每次重建的 `isms_test`）
 
 ---
 

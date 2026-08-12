@@ -220,6 +220,65 @@ describe('asset module (integration)', () => {
     expect(hk1.map((a) => a.refCode)).not.toContain('AST-HK1-PLANTED-1');
   });
 
+  /**
+   * ⭐⭐ WHAT 3b AND 6b TURNED OUT NOT TO PROVE. Day-3 meta-verification set
+   * BOTH tables' WITH CHECK to `true` and the whole suite stayed green — 78/78.
+   *
+   * Measured immediately after, with WITH CHECK still `true`:
+   *   INSERT ... RETURNING          -> refused, "new row violates row-level security"
+   *   the same INSERT, no RETURNING -> INSERT 0 1, HK1's row written by SG1
+   *
+   * Prisma's `create()` always emits RETURNING and PostgreSQL applies the SELECT
+   * policy to the returned row, so 3b/6b were pinning the READ half twice.
+   * `createMany` emits no RETURNING.
+   *
+   * ⚠️ This is not a live exposure — the WITH CHECK is correct today. What was
+   * broken is the suite's ability to notice if it stopped being.
+   */
+  it.each([
+    [
+      'asset_groups',
+      (c: Awaited<ReturnType<typeof clientFor>>) =>
+        c.assetGroup.createMany({
+          data: [
+            {
+              orgEntityId: HK1,
+              refCode: 'AGRP-HK1-PLANTED-2',
+              name: 'planted with no RETURNING',
+              assetCategory: 'people' as const,
+            },
+          ],
+        }),
+    ],
+    [
+      'assets',
+      (c: Awaited<ReturnType<typeof clientFor>>) =>
+        c.asset.createMany({
+          data: [
+            {
+              orgEntityId: HK1,
+              refCode: 'AST-HK1-PLANTED-2',
+              name: 'planted with no RETURNING',
+              assetGroupId: HK1_GROUP,
+              assetCategory: 'software' as const,
+              classification: 'internal' as const,
+            },
+          ],
+        }),
+    ],
+  ])('6c. the %s WITH CHECK refuses with no RETURNING to hide behind', async (_t, write) => {
+    const sg1 = await clientFor(['SG1']);
+
+    await expect(write(sg1)).rejects.toThrow(/row-level security/i);
+
+    const hk1 = await clientFor(['HK1']);
+    const planted = [
+      ...(await hk1.assetGroup.findMany({ where: { refCode: 'AGRP-HK1-PLANTED-2' } })),
+      ...(await hk1.asset.findMany({ where: { refCode: 'AST-HK1-PLANTED-2' } })),
+    ];
+    expect(planted).toHaveLength(0);
+  });
+
   it('7. RLS holds at the client, independently of the repository', async () => {
     const sg1 = await clientFor(['SG1']);
 

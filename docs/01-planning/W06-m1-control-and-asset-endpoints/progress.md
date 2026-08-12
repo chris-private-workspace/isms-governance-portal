@@ -405,3 +405,130 @@ branch **數字一模一樣**（91.75），證明它不是計數假象。逐行�
 **98.96 / 99.10**。四個 `*.module.ts`（policy/risk 既有 + control/asset 新增）在 unit config 下
 一律 0% —— 它們只被 int suite 載入，而 `test:cov` 只跑 unit。新增兩個 0% 檔把平均拉低。
 ⛔ **不補「實例化 module」的測試** —— 那是在測 NestJS 的 decorator，AP-3 的形狀。
+
+---
+
+## Day 3 — 2026-08-12 — API-level 驗證 + 元驗證 (US-5)
+
+_(⚪ **無 user-facing surface** → drive-through 不適用。以下一律是 **API-level verified**，
+**不暗示可用性**。W01–W06 的零 UI drive-through 記錄不變。)_
+
+### 3.a Clean restart —— 沒有東西可殺，這也要照實寫
+
+| 檢查 | 結果 |
+|---|---|
+| port **3210** listener | **無** —— 不是「我殺乾淨了」，是本來就沒有陳舊 API 程序 |
+| port **3200** listener | PID 36748，**2026-08-08 由別人開的 web dev server** → ⛔ **不碰**（W06 無 UI 工作）|
+| 全部 node 程序逐一看 PID/PPID/StartTime | 另有 azurite / playwright / 別的專案的 next —— 皆非本 session |
+
+⚠️ **Risk Class C 加強版確實有意義**：啟動後 API 的 server 程序是 **59452，父程序 3660**，
+而 `nest` CLI 是 **45476** —— **server 不是 CLI 的子程序**。依 PID 樹去殺會漏掉它。
+每次停止都驗兩件事：**port 無 listener** ＋ **無存活的 isms api 程序**（兩者都印出來才算）。
+
+⛔ **`isms_dev` 沒有 group-shared control**，而**應用程式建不出來**（ADR-0014 的決定本身）。
+所以由 **owner 連線**種入一筆 `CTRL-SG1-000001`（`applies_to_scope=group`）並同步 counter ——
+與 `extension_fields` 的 global 列同一條路徑。
+
+### 3.b 走查（每案自帶 nonce）
+
+⛔ **每個案例的 payload 帶自己的 run tag，並斷言回應回的是 *那個* nonce**
+（W05 第一版走查印出陳舊回應且看起來是通過的）。
+
+**第一輪 —— `DEV_PRINCIPAL_ENTITIES` 預設 `SG1`**（PID 59452）：
+
+| # | 案例 | observed | intended |
+|---|---|---|---|
+| A0 | `/health` | `{"status":"up","db":"up"}` | ✅ |
+| A1 | `POST /asset-groups` | **201** `AGRP-SG1-000002` | ✅ 伺服器發號 |
+| A2 | `POST /assets`（用 A1 建的 group）| **201** `AST-SG1-000002` | ✅ |
+| A3 | `POST /controls` | **201** `CTRL-SG1-000002`，`appliesToScope=entity`、`effectiveness=not_tested` | ✅ **兩者都不是呼叫者給的** |
+| A4 | `POST /controls` 帶 `appliesToScope:"group"` + `effectiveness:"effective"` | **201**，回來仍是 `entity` / `not_tested` | ⚠️ **欄位被靜默丟棄，不是被拒絕** —— 見下方註記 |
+| A6 | 跨實體建 control（HK1）| **404** `org entity …c1 not found` | ✅ 不是 403 |
+| A7 | 跨實體建 asset group | **404** 同一句 | ✅ |
+| A8 | asset 掛在**別人存在的** group | **404** `asset group not found` | ✅ |
+| A9 | asset 掛在**不存在的** group | **404** `asset group not found` | ✅ **與 A8 逐字相同 → 無 oracle** |
+| A10 | `type:"mitigating"` | **400** `type must be one of: preventive, detective, corrective` | ✅ 不是 500 |
+
+⚠️ **A4 值得單獨記**：`appliesToScope` 是**被忽略**而不是**被拒絕**。
+`risk.controller.ts` 的檔頭早就寫過這個不對稱（「伺服器忽略了我的欄位」與「伺服器覆寫了我的欄位」
+從外面看一樣但意義不同）。本專案選的是忽略，理由是 DTO 裡根本沒有這個欄位；
+**但使用者送了它會沒有任何回饋**。記入 BACKLOG 由使用者排序，不當場改。
+
+**第二輪 —— `DEV_PRINCIPAL_ENTITIES=HK1`**（PID 49320，startup log 確認 `(HK1)`）。
+⭐ **這一輪才是 ADR-0014 的證據** —— 第一輪的 SG1 **自己就是**那筆 group control 的擁有者，
+它讀得到不證明任何放寬：
+
+| # | 案例 | observed |
+|---|---|---|
+| B1 | `GET /controls` | **只有 `CTRL-SG1-000001`（scope=group，owner=SG1）** —— 看得到別人的 group 列，**看不到** SG1 的兩筆 local（`000002`/`000003`）|
+| B2 | HK1 建自己的 control | **201** `CTRL-HK1-000001` |
+| B3 | HK1 建 SG1 的 control | **404** |
+| B4 | HK1 把 asset 掛在 SG1 的 group | **404** `asset group not found` |
+| B5 | `GET /asset-groups` | **只有 `AGRP-HK1-000001`** —— 同一時間，普通對稱 policy 的表只給自己的 |
+
+> B1 與 B5 並排是本 phase 最乾淨的一格證據：**兩種 policy 形狀，同一個進程，行為不同**。
+
+### 3.c ⛔⛔ 元驗證找到一個真缺口 —— 而且是我 Day 2 才剛做三次的那個形狀
+
+六次中性化，每次只改一處，跑完 `git checkout` 還原：
+
+| # | 中性化什麼 | 轉紅 |
+|---|---|---|
+| N1 | `controls_read` 拿掉 group 分支 | **3** —— 4 / 5 / 6 |
+| N2 | insert+update 不再拒 `applies_to_scope='group'` | **2** —— 7（自建）/ 8（升格）|
+| N3 | `controls_update` 的 `USING` 放寬成讀的範圍 | **4** —— 6 / 9（**奪取**）/ 10 / 13 |
+| N4 | `controls_insert` `WITH CHECK` → `true` | 見下 |
+| N5 | `assets`+`asset_groups` `WITH CHECK` → `true` | 見下 |
+| N6 | 複合 FK 退化成單欄 FK | **2** —— `asset.int` 4 / 5 |
+
+**N4 第一次是空跑，我沒把它當成發現。** anchor 字串在 insert 與 update 兩處**逐字相同**
+（`AssertionError: anchor count 2`），編輯根本沒套用 —— 那個「78 passed」什麼都不證明。
+⭐ **正因為 N4 暴露了 driver 會靜默空跑，N5 的「零轉紅」就不能照單全收。**
+重跑時加上「**跑完直接查 `isms_test` 的 `pg_policies`**」，用資料庫證據確認編輯真的進去了：
+
+| 重跑 | DB 實際狀態 | 轉紅 |
+|---|---|---|
+| N4 | `controls_insert \| INSERT \| true` ✅ | **1** —— 只有測試 7。**12b 沒紅** |
+| N5 | `assets \| ALL \| true`、`asset_groups \| ALL \| true` ✅ | ⛔ **0** |
+
+#### 根因 —— 直接量的，不是推論
+
+在 `WITH CHECK (true)` 之下，對 `assets` 發同一句 INSERT：
+
+| 形式 | 結果 |
+|---|---|
+| `INSERT … RETURNING ref_code` | **`ERROR: new row violates row-level security policy`** |
+| **同一句，拿掉 `RETURNING`** | **`INSERT 0 1`** —— 列真的落地，`org_entity_id` 是 HK1，由 SG1 範疇的連線寫入 |
+
+> **Prisma 的 `create()` 一定會發 `RETURNING`，而 PostgreSQL 會把 SELECT policy 套用在要回傳的那一列上。**
+> 所以 `control.int` 12b · `asset.int` 3b/6b —— 以及它們複製的 **W05 int 11b** ——
+> 證明的是**讀的 policy 藏住了那一列**，從來不是**寫的 policy 拒絕了它**。
+> 把 `WITH CHECK` 拿掉，跨實體的列會靜默寫進去，而**整個 suite 全綠**。
+
+⚠️ **這不是現存的資料外洩** —— 今天的 `WITH CHECK` 是對的。壞掉的是**測試察覺它壞掉的能力**。
+
+⭐ **`AD-BorrowedRefusal-1` 第 3 次**，而且這次特別難堪：**W05 條款 2 就是為了防這件事而追加的**，
+我 Day 2 照它做了三個測試，**三個都沒有做到它宣稱的事**。
+checklist 2.4 預警過「若紅的只有走 repository 的測試就是第 3 次」—— 實測**比預警更糟：一個都沒紅**。
+
+#### 修法與驗收
+
+`createMany` 不發 `RETURNING`。新增 **`control.int` 12c** 與 **`asset.int` 6c**（`asset_groups`/`assets` 各一）。
+⛔ **不是加完就算** —— 重跑同樣兩個中性化：
+
+| 重跑 | 修法前 | 修法後 |
+|---|---|---|
+| N4 | 1 紅（測試 7）| **2 紅** —— 7 + **12c** |
+| N5 | **0 紅** | **2 紅** —— 6c × 2 張表 |
+
+int **78 → 81**（3 個新測試），policy 完好時全綠。
+
+### 3.d 收尾檢查
+
+| 檢查 | 結果 |
+|---|---|
+| `git status apps/api/prisma/` | **空** —— 6 次暫時編輯全部逐 byte 還原 |
+| `prisma migrate status`（`isms_dev`）| **7 migrations · up to date** —— checksum 未受損（`AD-MigrationChecksum-1`）|
+| `isms_dev` 是否被中性化污染 | **否** —— 中性化只影響 `isms_test`（每次 int run 都 drop/create）|
+| lint / type / format | **0 / 0 / 0** |
+| unit / coverage | **192 / 19 suites** · 93.35 / 92.47 / 95.74 / 94.56（與 Day 2 相同）|
