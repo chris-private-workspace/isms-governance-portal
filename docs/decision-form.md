@@ -42,7 +42,7 @@
 | OQ-2 | 後端語言與框架 | **NestJS 10 + Prisma 7**，與 Next.js 前端同一 monorepo | 2026-08-07 | [`0001`](./14-adr/0001-backend-framework.md) |
 | OQ-5 | Identity provider | **Microsoft Entra ID**（OIDC），取代交付物指定的 Okta / SAML | 2026-08-07 | [`0007`](./14-adr/0007-identity-provider.md) |
 | OQ-6 | 受治理擴充欄位儲存 | **選項 A：JSONB 欄位 + 中央 field catalog**，驗證採**應用層 + DB trigger 雙層**。W03 spike 實測翻轉了 Day-0 的推論：`CHECK` constraint **不能**查 catalog（`cannot use subquery in check constraint`），但 **trigger 可以** —— 擴充治理因此取得與 entity scoping 相同的兩層形狀。catalog 用 nullable `org_entity_id`（NULL = 全域），實測「全域 key 通過 / 自己的 key 通過 / **別人的 key 被擋**」。B（EAV）依形狀否決、C（每實體側表）因 canonical core 會失效而否決 | 2026-08-10 | [`0005`](./14-adr/0005-governed-extension-storage.md) · design note `02-architecture/design-notes/W03-governed-extensions.md`（W03 Day 4 交付）|
-| OQ-3 | Entity-scoping 強制方式 | **選項 A：PostgreSQL RLS + Prisma client extension**（每個 operation 包進設 `app.entity_scope` 的 transaction）。W02 spike 實測後拍板 —— 選項 B 保留為**已記錄的降級路徑**（引入 pooler 時），選項 C **延後至 M3**（稽核/證據表出現時才有標的）| 2026-08-09 | [`0004`](./14-adr/0004-entity-scoping-enforcement.md) · design note `02-architecture/design-notes/W02-entity-scope-rls.md` |
+| OQ-3 | Entity-scoping 強制方式 | **選項 A：PostgreSQL RLS + Prisma client extension**（每個 operation 包進設 `app.entity_scope` 的 transaction）。W02 spike 實測後拍板 —— 選項 B 保留為**已記錄的降級路徑**（引入 pooler 時），選項 C ~~延後至 M3（稽核/證據表出現時才有標的）~~ → ✅ **解封 2026-08-12**：使用者裁決條件是「**證據表出現**」而非 M3 里程碑，而 W07 建了 `evidence` → `BACKLOG.md` `AD-DualLayerHighRisk-1`（`STATUS_AUDIT.md` §2.7 AD-14）| 2026-08-09 | [`0004`](./14-adr/0004-entity-scoping-enforcement.md) · design note `02-architecture/design-notes/W02-entity-scope-rls.md` |
 
 ---
 
