@@ -245,9 +245,9 @@ Day 4 起手取 `date` 得到 **15:41**，而上表宣稱 Day 3 在 **16:05** �
 
 | 錨點 | 時刻 | 導出 |
 |---|---|---|
-| `b1dfaef` Day 0+1 commit | **12:39:45** | Day 1 起點 12:27（`date` 實測）|
-| `9f9e45a` Day 2 commit | **14:46:05** | **Day 2 = 2 hr 06 min** ✅ 原值正確 |
-| `5aa768e` Day 3 commit | **15:17:06** | **Day 3 = 31 min** ⛔ 原值 1h22m **超估 51 min** |
+| `a90e55f` Day 0+1 commit | **12:39:45** | Day 1 起點 12:27（`date` 實測）|
+| `b9f7611` Day 2 commit | **14:46:05** | **Day 2 = 2 hr 06 min** ✅ 原值正確 |
+| `889993d` Day 3 commit | **15:17:06** | **Day 3 = 31 min** ⛔ 原值 1h22m **超估 51 min** |
 
 **根因**：15:14 之後沒有再取過任何一次 `date`，剩下四段全是**先寫下預期耗時、再把它當成量測**。
 每一段單看都「合理」，但它們累積起來把 31 分鐘寫成了 82 分鐘。
@@ -393,7 +393,7 @@ Day 3 收尾跑 gate 時發現 **`format:check` 與 `type-check` 在 Day 2 其�
 ### 逐任務實際工時
 
 > ⭐ 依 `AD-EstimateAsMeasurement-1`（本日新增）：每個區段**兩端都要有可觀察錨點**。
-> 本表起點是 commit `5aa768e` 15:17:06，中段錨點取自 `date`（15:41 · 15:45 · 16:07），
+> 本表起點是 commit `889993d` 15:17:06，中段錨點取自 `date`（15:41 · 15:45 · 16:07），
 > 終點是 closeout commit。**沒有任何一段是向前推估的。**
 
 | 任務 | 起 | 訖 | 實際 |
@@ -404,7 +404,24 @@ Day 3 收尾跑 gate 時發現 **`format:check` 與 `type-check` 在 Day 2 其�
 | design note（8-point gate）+ 錨點驗證腳本（含修掉腳本自己的解析 bug）| 15:41 | ~15:52 | **~11 min** |
 | CH-022 + retrospective | ~15:52 | ~16:00 | **~8 min** |
 | calibration ×2 · BACKLOG · ROADMAP · RISK_REGISTER · 導航檔 · memory subfile | ~16:00 | 16:07 | **~7 min** |
-| Final gate sweep + commit | 16:07 | closeout | 收尾時補 |
+| Final gate sweep + commit | 16:07 | **16:19:04**（`19bc4f7` author date）| **~12 min** |
+| **Day 4 小計** | 15:17:06 | 16:19:04 | **1 hr 02 min** |
+| **W07 合計** | 12:27:00 | 16:19:04 | **3 hr 52 min** |
+
+> ⭐ **終點錨點在 merge 之後才存在** —— closeout commit 的 author date 就是它。
+> 這正是 `AD-EstimateAsMeasurement-1` 要的形狀：**不在錨點出現之前先填數字**。
+> merge 前本檔寫的是「收尾時補」而不是一個估計值。
+
+### Post-merge（PR #44 merged 08:34 UTC，main head `19bc4f7`）
+
+- ⚠️ **又是 rebase merge，五個 SHA 全部被改寫** —— `git merge-base --is-ancestor` 逐一驗證
+  branch 側的 `b1dfaef` / `9f9e45a` / `5aa768e` / `f8c904e` / `6bd5b6a` **全部不在 `main` 上**。
+  依 `AD-DesignNoteAnchor-1` 的判準（文件引用一律用 merge 後 main 上的 SHA），
+  四個檔案共 **14 處**已改指 `a90e55f` / `b9f7611` / `889993d` / `2d18b9b` / `19bc4f7`。
+- ⭐ **author date 未被 rebase 改變** —— 12:39:45 / 14:46:05 / 15:17:06 三個值逐一比對皆相同，
+  **所以 Day 2 / Day 3 的工時推導不受影響**。這是量的不是假設的。
+- 收尾分支**從 `origin/main` 開**，不從已合併的 feature branch 延續
+  （`AD-DesignNoteAnchor-1` 第三形態；驗證方式是 `HEAD == origin/main`，**不是** `git diff`）。
 
 ### Day 4 的三個發現
 

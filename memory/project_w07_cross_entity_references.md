@@ -1,6 +1,6 @@
 # W07 — M1 slice 4: the guard a foreign key could not be
 
-**Phase**: W07 · **Period**: 2026-08-12（Day 0–4，**同日**）· **Status**: ⏳ **PR 未推送**（closeout commit 已備妥）
+**Phase**: W07 · **Period**: 2026-08-12（Day 0–4，**同日**）· **Status**: **`closed`** —— MERGED PR #44（rebase，main head `19bc4f7`）
 **Authority**: `docs/01-planning/W07-m1-control-test-and-evidence/retrospective.md`（完整 retro）
 **Change record**: `docs/03-implementation/changes/CH-022-w07-control-test-and-evidence.md`
 **Design note**: `docs/02-architecture/design-notes/W07-cross-entity-references.md`
@@ -84,9 +84,9 @@ W07 = BEFORE trigger。**所以規則不能列舉代勞者** ——
 `spike` 第 5 個資料點（同單位第 2 個有效點）。同日無跨夜，
 `AD-CalibrationMetric-2` 的定義**首次沒有被污染**。
 
-bottom-up **19.75 hr** → committed **12.8 hr** (0.65) → actual **~3.4 hr** → ratio **0.27 UNDER**。
+bottom-up **19.75 hr** → committed **12.8 hr** (0.65) → actual **3.87 hr** → ratio **0.30 UNDER**。
 
-⛔ 但 `actual / bottom-up` = **0.17**，遠低於 CALIBRATION-MATRIX 明訂的 **0.4 下限**，
+⛔ 但 `actual / bottom-up` = **0.20**，遠低於 CALIBRATION-MATRIX 明訂的 **0.4 下限**，
 而該表自己寫著「低於 0.4 代表 bottom-up 估算方式有系統性問題，**該修的是估算不是乘數**」。
 歸因：bottom-up 假設**從零建**，實際**藍本複用率極高**（repository / controller / module /
 int spec 的形狀由 W03-W06 定死，寫的是差異不是全部；量測床 W06 已備好，

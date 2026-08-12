@@ -4,7 +4,7 @@
 **Phase**: W07（M1 slice 4）
 **Scope**: `core-model` · `modules` · `entity-scope`（消費，未修改）
 **Components**: `control_tests` · `evidence` · `/control-tests` · `/evidence` · `extension_fields`（policy 修補）
-**PR**: ⏳ **未推送** —— push 是 outward-facing，等使用者確認
+**PR**: **MERGED** #44（rebase，main head `19bc4f7`，2026-08-12 08:34 UTC）—— 六個 required check 全 SUCCESS
 
 ---
 
