@@ -1,6 +1,6 @@
 # W06 — M1 slice 3: the control library, and the test that measured the wrong half
 
-**Phase**: W06 · **Period**: 2026-08-11 ~ 2026-08-12（Day 0–4）· **Status**: ⏳ **PR-pending**
+**Phase**: W06 · **Period**: 2026-08-11 ~ 2026-08-12（Day 0–4）· **Status**: **`closed`** —— MERGED PR #41（rebase，main head `3a3606b`）
 **Authority**: `docs/01-planning/W06-m1-control-and-asset-endpoints/retrospective.md`（完整 retro）
 **Change record**: `docs/03-implementation/changes/CH-021-w06-control-and-asset-endpoints.md`
 **ADR**: `docs/14-adr/0014-row-level-entity-scope-and-per-command-policies.md`（已採納，4 條可證偽條件）
@@ -17,7 +17,7 @@
   `SELECT` 寬（含 group 分支）· `INSERT`/`UPDATE` 窄且**拒 `group` 值** · **無 `FOR DELETE`**
 - **三個寫入端點**：`/controls` · `/assets` · `/asset-groups`
   —— 後兩者是 **W05 checklist 2.4 🚧 的解封事件**
-- `CLAUDE.md` 結構性瘦身：headroom **196 → 1,548**（關 `AD-ClaudeMdBudget-1`）
+- `CLAUDE.md` 結構性瘦身：headroom **196 → 1,521**（關 `AD-ClaudeMdBudget-1`）
 
 ---
 

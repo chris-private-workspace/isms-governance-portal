@@ -3,7 +3,7 @@
 **Phase**: W06 — M1 slice 3：控制庫與資產寫入路徑
 **Period**: 2026-08-11 ~ 2026-08-12
 **Plan**: [plan.md](./plan.md)
-**PR**: ⏳ PR-pending
+**PR**: **MERGED** #41（rebase，main head `3a3606b`，2026-08-12 02:57 UTC）—— 六個 required check 全 SUCCESS
 **Change record**: `docs/03-implementation/changes/CH-021-w06-control-and-asset-endpoints.md`
 
 ---
@@ -12,7 +12,7 @@
 
 | US | Deliverable | 狀態 |
 |----|------------|------|
-| US-1 | `CLAUDE.md` 結構性瘦身 —— headroom **196 → 1,527** | ✅ 完成 |
+| US-1 | `CLAUDE.md` 結構性瘦身 —— headroom **196 → 1,521** | ✅ 完成 |
 | US-2 | **D1 拍板 + ADR-0014**（含 4 條可證偽條件）· D2/D3 拍板 | ✅ 完成 |
 | US-3 | `Control` 表 + `/controls`，`type`/`nature`/`frequency`/`effectiveness` 逐字對照 `02a` | ✅ 完成 |
 | US-4 | `/assets` · `/asset-groups` + 約束 8 四項對三張表成立 | ✅ 完成 |
@@ -20,6 +20,17 @@
 | US-6 | W05 兩條條款逐條裁決 + W04 七不變式第二次負載 | ✅ 完成（見下）|
 
 **未完成項目**：無。
+
+⚠️ **AC-5 的措辭要據實說明**（plan §5 第 5 條寫「三種拒絕（RLS / 複合 FK / 不存在）body **逐字相同**」）：
+
+- **成立的**：同一個欄位的「存在但不是你的」與「根本不存在」→ **逐字相同**
+  （`asset group not found`，走查 A8/A9 與 int 5 各驗一次）。這是 oracle 防護真正要的東西。
+- **不成立、而且不應該成立的**：RLS 拒絕給的是 `org entity <id> not found`，
+  與 FK 拒絕的 `asset group not found` **不同**。⭐ 但那是**不同欄位**的錯誤 ——
+  呼叫者本來就知道自己送了哪個欄位，分辨它們**不洩漏任何存在性資訊**，
+  而合併成同一句反而讓 400 級的使用者錯誤更難修。W03/W04/W05 都是這個形狀。
+- **裁決**：AC-5 依「同欄位配對逐字相同」的讀法**達成**；**plan 的字面措辭不精確**，
+  下個 phase 起寫成「**每一組『存在但不是你的』／『不存在』配對逐字相同**」。
 **超出 plan 的**：`artifacts/` 四個證據檔（量測要求隱含）· BACKLOG 三條新 AD ·
 **本 phase 由 `pattern-reuse-feature` 改判 `spike`** → 多產出一份 design note。
 
@@ -76,7 +87,7 @@
 `AD-CalibrationMetric-2` 把 `actual` 的定義改成 **branch 第一個 commit → closeout commit**，
 用來修掉 W05 「base 是前一個 phase 的 closeout」的污染。**本 phase 是它的第一次套用。**
 
-逐字套用得到：`c025df0` 2026-08-11 16:55 → closeout commit 2026-08-12 ≈ **17.8 hr**，
+逐字套用得到：`cc74455` 2026-08-11 16:55 → closeout commit 2026-08-12 ≈ **17.8 hr**，
 對承諾的 8.5 hr → ratio **≈ 2.09**。
 
 **這個數字沒有意義，而且是同一種污染**：中間跨了一夜（17:27 → 09:47，約 16.3 小時無活動）。
@@ -86,7 +97,7 @@ commit 時間戳能看到的**只有 session 內相鄰 commit 的間隔**：
 Day 0-1 段 **31.7 min**（16:55:16 → 17:26:55）· Day 2-3 段 **24 min**（09:47:28 → 10:11:26）。
 兩者都嚴重低估，因為**每個 session 第一個 commit 之前的工作全部看不見** ——
 Day 2 的 schema + migration + 兩個 repository + 兩個 controller + 6 個測試檔
-全部落在 `3fd3e67` 與 `08cd000` 之間那段「無 commit」的區間裡。
+全部落在 `c60d0ee` 與 `8eb8897` 之間那段「無 commit」的區間裡。
 
 ⭐ **真正的根因不是量尺壞了，是我沒用量尺。**
 `task-workflow.md` §Step 5 明文要求 progress.md 每日記錄逐任務實際工時
@@ -174,7 +185,7 @@ Day 2 的 schema + migration + 兩個 repository + 兩個 controller + 6 個測�
 
 **這個 phase 關掉的**：
 
-- `AD-ClaudeMdBudget-1` ✅ **CLOSED** —— headroom 196 → **1,527**（結構性瘦身，非壓縮形容詞）
+- `AD-ClaudeMdBudget-1` ✅ **CLOSED** —— headroom 196 → **1,521**（結構性瘦身，非壓縮形容詞）
 - **W05 checklist 2.4 的 🚧** ✅ **解封** —— 四項範疇測試對三張表成立
 - `D1` / `D2` / `D3` ✅ 全部拍板
 
