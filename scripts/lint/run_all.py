@@ -24,9 +24,10 @@ Usage:
     python scripts/lint/run_all.py [--root <repo_root>] [--verbose]
 
 Created: 2026-08-07
-Last Modified: 2026-08-07
+Last Modified: 2026-08-12
 
 Modification History (newest-first):
+    - 2026-08-12: Register entity-index detector (Phase W08) — 6 -> 7
     - 2026-08-07: Register workflow-placeholders detector (CH-007)
     - 2026-08-07: Initial creation from claude-code-dev-template v2.6.1
 
@@ -59,6 +60,9 @@ DETECTORS: list[tuple[str, str, list[str]]] = [
     # actionlint catches placeholders that are shell syntax errors, this catches
     # the ones that are valid shell but mean "not finished yet" (CH-007).
     ("workflow-placeholders", "check_workflow_placeholders.py", []),
+    # Derives the Wave-1 entity count from schema.prisma ∩ 02a §0 instead of
+    # letting each document carry its own hand-written figure (W08).
+    ("entity-index", "check_entity_index.py", []),
     # ("your-detector", "check_your_pattern.py", ["--root", "src"]),
 ]
 
