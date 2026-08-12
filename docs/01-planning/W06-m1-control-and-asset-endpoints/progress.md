@@ -304,4 +304,104 @@ Day-0 已把這兩個問題**消滅**（不是解決）—— `02a` 早就定義
 - [x] 量測與論證完成（16 案例 + 證據檔）
 - [x] ✅ **使用者拍板：A′ + `subtree` 不建**
 - [x] 追加量測：預設拒絕成立 → 落地為**三條 policy**
-- [ ] ADR-0014（下一步）
+- [x] **ADR-0014 已寫**（`已採納`；4 條可證偽條件 + Rollback；README 索引已加列）
+
+---
+
+## Day 2 — 2026-08-12 — `Control` 表 + 三個端點 (US-3, US-4)
+
+### 2.a `Control` 表 + migration
+
+`20260811093148_control_library`。Prisma 產 DDL，RLS / GRANT / trigger 手寫在同一份
+（W02-W05 同一條規則：表存在而 policy 不存在的窗口 = 無範疇的表）。
+
+**落地後對真資料庫逐項回讀**（不是看 migration 檔案就宣稱）：
+
+| 查什麼 | 實際輸出 |
+|---|---|
+| `pg_policies` | **3 條** —— `controls_read`(SELECT) · `controls_insert`(INSERT) · `controls_update`(UPDATE)。**無 DELETE 列** |
+| `relrowsecurity` / `relforcerowsecurity` | `t` / `t` |
+| `role_table_grants` | `isms_app` = **INSERT, SELECT, UPDATE**（無 DELETE）；`isms_dev`（owner）保有全部 |
+| `prisma migrate status` | `7 migrations found` · **Database schema is up to date** |
+
+⚠️ **順序上的細節**：migration 檔在 `--create-only` 之後、`migrate dev` 套用**之前**手寫完成。
+反過來做會動到已記錄的 checksum（`AD-MigrationChecksum-1`）。
+
+### 2.b ⭐ 一個測試失敗改了我對自己設計的描述
+
+`控制 int` 的第一版把「刪不掉」寫成 `expect(count).toBe(0)`（= RLS 預設拒絕的形態）。
+**它失敗了**，錯誤是 `permission denied for table controls`：
+
+> **權限檢查在 RLS 之前。** `isms_app` 沒有 `DELETE` 授權，所以語句**根本到不了 policy 層**。
+
+兩層都是真的，但**這個 suite 只看得到外層**：
+
+| | 這裡看得到嗎 | 證據 |
+|---|---|---|
+| GRANT 拒絕 | ✅ | `control.int.spec.ts` 10/11 —— `permission denied` |
+| RLS 也會拒絕 | ⛔ **看不到** | Day 1 `d1-rls-probe2-default-deny.out` N1/N2（**故意授予 DELETE** 後量的，0 rows，連自己的列都刪不掉）|
+
+⛔ **沒有把「policy 拒絕了」寫在一份說「grant 拒絕了」的證據上。** 那正是
+`AD-BorrowedRefusal-1` 的形狀 —— 這次是在寫下去之前被自己的測試攔下來，不是事後審計發現。
+測試改為斷言 `permission denied` 並在註解裡指名是哪一層。
+
+### 2.c repository + 端點
+
+| 檔案 | 範疇 | 要點 |
+|---|---|---|
+| `control.repository.ts` | core-model | 第 3 個範疇化 client 消費者。⭐ **`CreateControlInput` 沒有 `appliesToScope` 也沒有 `effectiveness`** —— 前者 DB 只接受一個合法值（= 欄位預設），後者要等 M7 的 `ControlTest`。**只有一個合法值的欄位不是欄位**（`risk.repository.ts` 對分數的同一條理由，從反方向到達）|
+| `asset.repository.ts` | core-model | 第 4 個。⭐ **兩個方法收不同形狀的 client**：`createGroup` 拿得到 `assetGroup` delegate，`create` **拿不到** —— runtime 是同一個物件，差別在型別。能先讀父表就能分辨「不存在」與「不是你的」= oracle |
+| `control.controller.ts` · `asset.controller.ts` | modules | 比照 `risk.controller.ts`。⚠️ `AssetController` 一個 controller 帶兩個資源（`@Controller()` 無前綴，路由各自宣告）|
+
+`scoped-client.types.ts` 加三個介面（`ScopedControlClient` / `ScopedAssetGroupClient` / `ScopedAssetClient`）。
+⛔ **後兩者刻意不合併** —— 合併就是那個 bug 本身。
+
+### 2.d 測試（新增 6 個檔）
+
+**int 的重點是「W05 交不出來的四項」與「Day 1 量到的四個洞」各有一個測試**：
+
+| 測試 | 釘住什麼 |
+|---|---|
+| `control.int` 4 · 5 | HK1 **讀得到** SG1 的 group control，且**讀不到** SG1 的 local —— 兩個斷言一起才證明 policy 在分辨 |
+| `control.int` 7 · 8 | **自建** group / 把自己的列**升格** → 皆 `row-level security` 拒絕 |
+| `control.int` 9 | ⭐ **奪取** → `count 0`（A/B 兩案在 Day 1 都成功） |
+| `control.int` 10 · 11 | 刪不掉 —— **明寫是 GRANT 層拒絕的**（見 §2.b）|
+| `control.int` 12b · `asset.int` 3b/6b | ⭐ **繞開發號的直接寫入**（W05 條款 2）—— 沒有這個，12/3/6 可能只證明 counter 在拒絕 |
+| `asset.int` 4 · 5 | ⭐ **複合 FK 真的會拒絕**，且對「不存在的 group」給**逐字相同**的錯誤 —— W05 建了它但無法讓它開火 |
+
+⚠️ `asset.int` 的 `afterAll` **先退休子表再退休父表** —— 反過來會讓 fixture 停在領域不允許的狀態。
+
+### 2.e Full gate（逐項實際輸出）
+
+| Gate | baseline | 本次 |
+|---|---|---|
+| lint（api+web）| 0 | **0** |
+| type-check（api+web）| 0 | **0** |
+| format:check（api+web）| 0 | **0** |
+| unit | 138 / 15 suites | **192 / 19 suites** |
+| int | 54 / 4 suites | **78 / 6 suites** |
+| web | 10 | **10** |
+| build（api+web）| 0 | **0** |
+| `run_all.py` | 6/6 | **6/6** |
+| `lint:negative` | PASS 22 檔 0 bypass **3 allowlisted** | **PASS 28 檔 0 bypass 3 allowlisted**（⭐ **allowlist 未增加** —— 2.2 的 DoD）|
+
+**Coverage —— ⚠️ 不是單純「過了」**：
+
+| | baseline | 第一次量 | 補測試後 |
+|---|---|---|---|
+| Stmts | 94.13 | 91.65 | **93.35** |
+| Branch | 92.17 | 88.88 | **92.47** ✅ |
+| Funcs | 94.36 | 92.55 | **95.74** ✅ |
+| Lines | 95.03 | 92.88 | **94.56** |
+
+⭐ **branch 的退步是真的，而且與 module 檔無關** —— 我先量了「排除 `*.module.ts`」的版本，
+branch **數字一模一樣**（91.75），證明它不是計數假象。逐行看未覆蓋分支後補了 4 個
+**帶主張**的測試（不是為了衝數字）：非物件的 `extensions` 回 400 不是深層 500 ·
+**無法辨識的錯誤原樣拋出**（全部映成 404 會讓範疇 404 失去意義）·
+`frameworkRefs` 陣列內含非字串要拒 · **`createGroup` 也要驗 `assetCategory`**（同一個 enum
+兩個端點，只驗一邊就是規則只執行一半）。→ branch **92.47 > 92.17**，退步已關閉。
+
+⚠️ **stmts / lines 仍低於 baseline，原因已量測不是推測**：排除 `*.module.ts` 後為
+**98.96 / 99.10**。四個 `*.module.ts`（policy/risk 既有 + control/asset 新增）在 unit config 下
+一律 0% —— 它們只被 int suite 載入，而 `test:cov` 只跑 unit。新增兩個 0% 檔把平均拉低。
+⛔ **不補「實例化 module」的測試** —— 那是在測 NestJS 的 decorator，AP-3 的形狀。

@@ -88,6 +88,7 @@ model OrgEntity {
   assetGroups     AssetGroup[]
   assets          Asset[]
   risks           Risk[]
+  controls        Control[]
 
   version   Int       @default(1)
   createdAt DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
@@ -137,6 +138,7 @@ model User {
   ownedAssets      Asset[]      @relation("AssetOwner")
   custodiedAssets  Asset[]      @relation("AssetCustodian")
   ownedRisks       Risk[]       @relation("RiskOwner")
+  ownedControls    Control[]    @relation("ControlOwner")
 
   @@map("users")
 }
@@ -404,6 +406,75 @@ enum RiskStatus {
   @@map("risk_status")
 }
 
+/// 02a:122, verbatim.
+enum ControlType {
+  preventive
+  detective
+  corrective
+
+  @@map("control_type")
+}
+
+/// 02a:123, verbatim. `09:54` repeats these three; it is a screen brief
+/// restating the data model, not a second authority (W06 D3).
+enum ControlNature {
+  manual
+  automated
+  hybrid
+
+  @@map("control_nature")
+}
+
+/// 02a:124, verbatim.
+///
+/// Required rather than optional on `Control`, because `event_driven` already
+/// IS the "no fixed schedule" answer — a control with no cadence has a value
+/// here, not a NULL. Making it nullable would add a second way to say the same
+/// thing and no way to tell them apart.
+enum ControlFrequency {
+  continuous
+  daily
+  weekly
+  monthly
+  quarterly
+  annual
+  event_driven
+
+  @@map("control_frequency")
+}
+
+/// 02a:125, verbatim.
+///
+/// ⚠️ `not_tested` IS NOT A PLACEHOLDER. `ControlTest` does not exist until M7,
+/// so every control in Wave 1 sits here — and that is the specified, honest
+/// answer to "how effective is this control", not a stub awaiting a real value.
+/// A control nobody has tested is not `effective`; saying so would be the
+/// platform asserting a governance claim it was never given.
+enum ControlEffectiveness {
+  not_tested
+  effective
+  partially_effective
+  ineffective
+
+  @@map("control_effectiveness")
+}
+
+/// Which entities a control governs (02a:217, ADR-0014).
+///
+/// ⚠️ TWO VALUES, NOT THREE. 02a:217 also lists `subtree`, and it is deliberately
+/// absent: scope resolution expands DOWNWARD only (entity-scope.resolver.ts:120-142
+/// — assignment roots plus descendants, never ancestors), so a reader's scope can
+/// never contain the parent that owns a subtree control. Shipping the value would
+/// give users a setting that changes nothing and reports nothing — AP-3 exactly.
+/// Adding it later is an enum value plus a policy branch; ADR-0014 §可證偽條件
+/// carries the condition.
+enum ControlAppliesToScope {
+  entity
+  group
+
+  @@map("control_applies_to_scope")
+}
+
 /// Groups assets for assessment (02a:202), per the Risk Management Report.
 ///
 /// ⚠️ No `status` column. 02a §1.1 defines `status` as "per the entity's state
@@ -667,4 +738,78 @@ model Risk {
   @@index([orgEntityId, retiredAt])
   @@index([assetId])
   @@map("risks")
+}
+
+/// The control library (02a:217) — the FIRST table where scope is a property of
+/// the ROW rather than of the table (ADR-0014).
+///
+/// Every other business table here answers "may this principal touch this row?"
+/// with one rule for the whole table. A control does not: `applies_to_scope =
+/// group` makes a row readable group-wide while it stays writable only by its
+/// owner. That is why this table's RLS is THREE per-command policies instead of
+/// one FOR ALL — a single policy cannot hold a read scope and a write scope that
+/// differ, because UPDATE and DELETE select their rows through the same USING
+/// that reading widened. Measured, W06 Day 1; see the migration header.
+///
+/// ⚠️ NO `@@unique([id, org_entity_id])`, unlike AssetGroup and Asset. That pair
+/// exists to let a child carry a composite FK, and the M7 `Risk ↔ Control` link
+/// CANNOT use one: 02a:413 says a group-shared control may link to ANY entity's
+/// risks, so the two org_entity_ids are expected to differ. Adding the anchor
+/// now would encode an invariant this table's whole point is to break.
+///
+/// ⚠️ No `status` column — same reason as AssetGroup: 02a §4 defines lifecycles
+/// for Policy, Risk, Issue and ControlTest only, and `effectiveness` is not a
+/// lifecycle. Inventing states would breach 已確認參數 #9.
+model Control {
+  id String @id @default(uuid()) @db.Uuid
+
+  /// `CTRL-<ENTITY_CODE>-<seq>`. Self-declared: 02a:91 fixes only the RULE
+  /// (prefix by type and entity) and names no prefix for Control, so this is a
+  /// choice being recorded — and, per W04's D3 ruling, recorded HERE rather than
+  /// in a prefix registry nobody asked for.
+  refCode String @unique @map("ref_code")
+
+  /// NOT NULL even for a group-shared control (約束 8 iron law 1). A group row
+  /// still has an owner — the entity accountable for it — which is precisely what
+  /// the nullable alternative could not express (ADR-0014 §否決 B).
+  orgEntityId String @map("org_entity_id") @db.Uuid
+
+  title       String
+  description String?
+
+  type      ControlType
+  nature    ControlNature
+  frequency ControlFrequency
+
+  /// Free-text clause references, e.g. `ISO 27001 A.5.9` (02a:217).
+  ///
+  /// ⚠️ An ARRAY OF STRINGS, not a foreign key. `Framework` and
+  /// `FrameworkControl` do not exist (slice 4), and a FK to a missing table is
+  /// not available to be right. When they arrive this column becomes the
+  /// migration's input, not a second source of truth kept beside it.
+  frameworkRefs String[] @default([]) @map("framework_refs")
+
+  appliesToScope ControlAppliesToScope @default(entity) @map("applies_to_scope")
+
+  /// Defaults to `not_tested` and stays there for all of Wave 1 — see the enum.
+  effectiveness ControlEffectiveness @default(not_tested)
+
+  ownerUserId String? @map("owner_user_id") @db.Uuid
+  createdBy   String? @map("created_by") @db.Uuid
+  updatedBy   String? @map("updated_by") @db.Uuid
+
+  version    Int  @default(1)
+  extensions Json @default("{}") @db.JsonB
+
+  orgEntity OrgEntity @relation(fields: [orgEntityId], references: [id])
+  owner     User?     @relation("ControlOwner", fields: [ownerUserId], references: [id])
+
+  createdAt DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt DateTime  @updatedAt @map("updated_at") @db.Timestamptz(6)
+  retiredAt DateTime? @map("retired_at") @db.Timestamptz(6)
+
+  /// `applies_to_scope` leads: the group half of the read policy scans on it.
+  @@index([appliesToScope, retiredAt])
+  @@index([orgEntityId, retiredAt])
+  @@map("controls")
 }

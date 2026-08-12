@@ -20,9 +20,10 @@
  *   never once applied. Asserting the premise costs one query.
  *
  * Created: 2026-08-09 (Phase W02)
- * Last Modified: 2026-08-11
+ * Last Modified: 2026-08-12
  *
  * Modification History (newest-first):
+ *   - 2026-08-12: Phase W06 — controls, incl. the group row the app cannot write
  *   - 2026-08-11: Phase W05 — the asset chain, two entities deep, plus libraries
  *   - 2026-08-10: Phase W04 — users, policy ref_code, counters derived from seed
  *   - 2026-08-10: Phase W03 — extension catalog seeded via the owner connection
@@ -168,6 +169,48 @@ const SEED = {
       'confidential',
     ],
   ],
+  // W06. Three controls, and the THIRD one is the point: `applies_to_scope =
+  // group` is seeded through the OWNER connection because the application
+  // cannot write it — the insert policy carries `AND applies_to_scope <>
+  // 'group'` (ADR-0014). Exactly the same arrangement extension_fields already
+  // has for its global rows, and for the same reason: publishing to the whole
+  // group is not something one OpCo does on the others' behalf.
+  //
+  // ⚠️ The group row is OWNED BY SG1. That is what makes "HK1 can read it"
+  // a real cross-entity read rather than a row nobody owns.
+  controls: [
+    // [id, orgEntityId, refCode, title, type, nature, frequency, appliesToScope]
+    [
+      '00000000-0000-0000-0000-000000000a50',
+      '00000000-0000-0000-0000-0000000000c0',
+      'CTRL-SG1-000001',
+      'SG1 quarterly access review',
+      'detective',
+      'manual',
+      'quarterly',
+      'entity',
+    ],
+    [
+      '00000000-0000-0000-0000-000000000a51',
+      '00000000-0000-0000-0000-0000000000c0',
+      'CTRL-SG1-000002',
+      'Group password standard',
+      'preventive',
+      'automated',
+      'continuous',
+      'group',
+    ],
+    [
+      '00000000-0000-0000-0000-000000000a52',
+      '00000000-0000-0000-0000-0000000000c1',
+      'CTRL-HK1-000001',
+      'HK1 quarterly access review',
+      'detective',
+      'manual',
+      'quarterly',
+      'entity',
+    ],
+  ],
   // Global libraries (multi-tenant-data.md:63) — no org_entity_id, and that is
   // the property the suite pins: BOTH entities must read the same rows.
   threats: [
@@ -254,6 +297,24 @@ module.exports = async function globalSetup() {
       [id, orgEntityId, refCode, name, assetGroupId, assetCategory, classification],
     );
   }
+  for (const [
+    id,
+    orgEntityId,
+    refCode,
+    title,
+    type,
+    nature,
+    frequency,
+    appliesToScope,
+  ] of SEED.controls) {
+    await seed.query(
+      `INSERT INTO controls (id, org_entity_id, ref_code, title, type, nature,
+                             frequency, applies_to_scope, updated_at)
+       VALUES ($1, $2, $3, $4, $5::control_type, $6::control_nature,
+               $7::control_frequency, $8::control_applies_to_scope, now())`,
+      [id, orgEntityId, refCode, title, type, nature, frequency, appliesToScope],
+    );
+  }
   for (const [id, name, category] of SEED.threats) {
     await seed.query(
       `INSERT INTO threats (id, name, category, updated_at) VALUES ($1, $2, $3, now())`,
@@ -284,6 +345,12 @@ module.exports = async function globalSetup() {
   await seed.query(
     `INSERT INTO ref_code_counters (org_entity_id, entity_type, last_seq, updated_at)
      SELECT org_entity_id, 'asset', count(*), now() FROM assets GROUP BY org_entity_id`,
+  );
+  // W06. Counts the group-shared row too — it carries an SG1 ref_code, so
+  // skipping it would hand the next SG1 control a number already taken.
+  await seed.query(
+    `INSERT INTO ref_code_counters (org_entity_id, entity_type, last_seq, updated_at)
+     SELECT org_entity_id, 'control', count(*), now() FROM controls GROUP BY org_entity_id`,
   );
   for (const [id, orgEntityId, entityType, key, dataType, required] of SEED.extensionFields) {
     await seed.query(

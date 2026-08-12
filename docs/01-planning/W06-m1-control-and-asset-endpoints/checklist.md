@@ -156,51 +156,91 @@
 
 ### 2.1 `Control` 表 + migration
 
-- [ ] **`schema.prisma` 加 1 model + 3 enum；migration 含表 + RLS + GRANT（形狀依 D1）**
+- [x] **`schema.prisma` 加 1 model + 3 enum；migration 含表 + RLS + GRANT（形狀依 D1）**
   - DoD: `type` / `effectiveness` 的 enum 值**逐字等於** `02a:122` / `02a:125`；
     ⭐ `effectiveness` 的 docstring **明寫 `not_tested` 不是佔位值**而是規格化的誠實答案
     （否則它是 AP-3）
   - Verify: `npm run prisma:migrate -w apps/api`；`\d+ controls` 確認 RLS 狀態符合 D1
   - ⚠️ **若 D1 = A**：`USING` 與 `WITH CHECK` 首次不對稱 → migration 註解要寫明**為何**不對稱
-- [ ] **`ref_code` prefix 依 Day-0 `D-refprefix` 的發現處理**
+  - → `20260811093148_control_library`。**5 個 enum 不是 3 個**（plan 說 3：type/nature/
+    applies_to_scope；實際還要 `frequency` 與 `effectiveness`，兩者都是 `02a` 已定義的值域）
+  - → 對真 DB 回讀：`pg_policies` **3 列**（read/insert/update，**無 DELETE**）·
+    `relrowsecurity`/`relforcerowsecurity` = `t`/`t` · `isms_app` grants = **INSERT, SELECT, UPDATE** ·
+    `migrate status` = up to date
+  - → ⚠️ 手寫段落在 `--create-only` 之後、套用**之前**完成（反過來會動到 checksum）
+- [x] **`ref_code` prefix 依 Day-0 `D-refprefix` 的發現處理**
   - DoD: `02a` 有定就用它；沒定就自宣告，**不建 prefix 登記表**（W04 裁決）
+  - → `CTRL` 自宣告於 `control.repository.ts`，**未建登記表**；int 測試 1 釘住 `^CTRL-SG1-\d{6}$`
 
 ### 2.2 `control.repository.ts` + `asset.repository.ts`
 
-- [ ] **第三、四個範疇化 client 消費者**
+- [x] **第三、四個範疇化 client 消費者**
   - DoD: **不持有裸 client**；範疇化實例走方法參數；沿用 W05 的順序
     （validate → catalog → `issueRefCode` → insert → translate）
   - Verify: `npm run lint -w apps/api`（boundaries）+ `npm run lint:negative`（**allowlist 不得增加**）
   - ⚠️ **`ScopedAssetClient` 要不要暴露 `assetGroup` delegate？** 比照 W05 對 `asset` 的裁決
     （能先讀父表的 repository 就有能力分辨「不存在」與「不是你的」）—— 想清楚再給
+  - → **裁決：不暴露。** ⭐ 但不是靠「兩個 repository」達成 —— **同一個檔案的兩個方法收不同形狀的
+    client**（`createGroup` 拿得到 `assetGroup`，`create` 拿不到）。runtime 同一物件，差別在型別
+  - → lint **0** · `lint:negative` **PASS 28 檔 0 bypass 3 allowlisted**（**allowlist 未增加** ✅）
+  - → 單元測試釘住順序：`catalog:<type>` → `issueRefCode` → `insert`（兩個 repository 各一）
 
 ### 2.3 端點 `/controls` · `/assets` · `/asset-groups`
 
-- [ ] **比照 risk 模組：範疇只來自憑證、404 不是 403、`Cache-Control` 全域生效**
+- [x] **比照 risk 模組：範疇只來自憑證、404 不是 403、`Cache-Control` 全域生效**
   - DoD: controller 的參數清單**沒有任何 request 來源的實體 id**（約束 8 鐵律 3）
   - Verify: `npm run test -w apps/api`；斷言 resolver **實際收到的參數**
   - ⚠️ **拒絕點這次會落在哪？** `assets → asset_groups` 是複合 FK（23503），
     而發號在前（42501）—— **兩個都要有測試，且訊息逐字相同**
+  - → 三個資源各有「resolver 收到的是 principal 不是 body」的斷言（`JSON.stringify(seen)`
+    不含實體 id）。⚪ `Cache-Control` 是 W03 的全域 interceptor，本 phase **未改也未重測**
+  - → **兩個拒絕點都有測試**：`asset.int` 4（複合 FK 拒別人的 group）+ 5（不存在的 group
+    **逐字相同的訊息**）+ 6（自己實體外 → 42501）。unit 側斷言兩者**同一個 404 分支**
+  - → ⭐ 補了一個 plan 沒要求的：**無法辨識的錯誤原樣拋出**（全部映成 404 會讓範疇 404 失去意義）
 
 ### 2.4 ⭐ 範疇測試（US-4）—— **W05 checklist 2.4 的 🚧 在這裡關閉**
 
-- [ ] **約束 8 四項對 `AssetGroup` / `Asset` / `Control` 三張表成立**
+- [x] **約束 8 四項對 `AssetGroup` / `Asset` / `Control` 三張表成立**
   - DoD: 跨實體讀拒 / 跨實體寫拒**且重讀確認資料未變** / RLS 層獨立成立 / 滾升只看授權子樹
   - Verify: `npm run test:int -w apps/api`；⚠️ 斷言**順序無關**（`AD-JestFileOrder-1`）
-- [ ] ⭐ **【W05 條款 2】每張表各有一個「繞開發號」的直接寫入測試**
+  - → **int 78 / 6 suites 全綠**（baseline 54 / 4）。四項各自對位：
+    讀 `asset.int` 2 · `control.int` 4-5 ｜ 寫 `asset.int` 3/6 · `control.int` 12（皆重讀確認未變）
+    ｜ RLS 獨立 `asset.int` 7 · `control.int` 5 ｜ 滾升 `asset.int` 8 · `control.int` 13
+  - → 斷言用 `toContain` / `Set.has`，**不依賴順序**
+  - → ⚠️ **`Control` 的「讀」故意不是隔離** —— group 列跨實體可讀。所以測試同時斷言
+    「看得到 group」**且**「看不到對方的 local」；只寫前者等於沒測到 policy 在分辨
+- [x] ⭐ **【W05 條款 2】每張表各有一個「繞開發號」的直接寫入測試**
   - DoD: 繞開 repository、不帶 `ref_code`、直接 `client.<table>.create()` 寫一筆別人的列
   - Verify: ⛔ **必須在對應 RLS 中性化的狀態下重跑並看到它轉紅** ——
     否則它證明的可能又是 counter 在拒絕（`AD-BorrowedRefusal-1` 同形狀第 3 次）
-- [ ] **若 D1 = A：釘住 `USING` 與 `WITH CHECK` 的不對稱**
+  - → 三個都有：`control.int` **12b** · `asset.int` **3b** · `asset.int` **6b**
+  - → ⏳ **中性化重跑留在 Day 3.3 元驗證**（本項的 Verify 尚未執行完 —— 現在只證明它們是綠的，
+    **還沒證明它們會紅**）
+- [x] **若 D1 = A：釘住 `USING` 與 `WITH CHECK` 的不對稱**
   - DoD: group-shared control **讀得到**但跨實體**寫不得**，兩個方向各一個案例
   - ⚠️ **只測一個方向會讓另一半靜默失效** —— 那正是 W05 M2 找到的缺口形狀
+  - → D1 拍板為 **A′**，所以要釘的不只兩個方向而是 **Day 1 量到的四個洞各一個**：
+    `control.int` 7（自建）· 8（升格）· 9（**奪取**）· 10-11（刪除）
+  - → ⛔ **10/11 只證明 GRANT 層拒絕，不是 RLS** —— 第一版斷言 `count 0` 失敗於
+    `permission denied`（權限檢查在 RLS 之前）。**未把「policy 拒絕」寫在說「grant 拒絕」的證據上**；
+    RLS 半邊由 Day 1 `d1-rls-probe2-default-deny.out` N1/N2 承載。詳見 progress.md §2.b
 
 ### 2.x Full gate
 
-- [ ] lint 0 · type-check 0 · format 0 · unit ≥138 · int ≥54 · web 10 · build 0 ·
+- [x] lint 0 · type-check 0 · format 0 · unit ≥138 · int ≥54 · web 10 · build 0 ·
       `run_all` 6/6 · `lint:negative` PASS —— **逐項記實際輸出，不寫「都過了」**
-- [ ] coverage 不低於 baseline（94.13 / 92.17 / 94.36 / 95.03）
+  - → lint（api+web）**0** · type-check（api+web）**0** · format:check（api+web）**0** ·
+    unit **192 / 19 suites** · int **78 / 6 suites** · web **10 / 1 file** · build（api+web）**0** ·
+    `run_all` **6/6** · `lint:negative` **PASS 28 檔 0 bypass 3 allowlisted**
+- [x] coverage 不低於 baseline（94.13 / 92.17 / 94.36 / 95.03）
   - ⚠️ **低於就不要當作「門檻過了」帶過**（W05 的教訓：第一次量低於 baseline，補的測試要有主張）
+  - → 第一次量 **91.65 / 88.88 / 92.55 / 92.88 —— 四項全低於 baseline**，未當作過關
+  - → 補 6 個**帶主張**的測試後 **93.35 / 92.47 / 95.74 / 94.56**：
+    **branch 92.47 > 92.17 ✅ · funcs 95.74 > 94.36 ✅ · stmts 與 lines 仍低**
+  - → ⭐ branch 的退步先被證明**不是計數假象**（排除 `*.module.ts` 後數字一模一樣），才去補
+  - → ⚠️ stmts/lines 的差額**已量測歸因**：排除 `*.module.ts` 為 **98.96 / 99.10**。
+    四個 module 檔在 unit config 下皆 0%（只被 int 載入），新增兩個把平均拉低。
+    ⛔ **不補「實例化 module」的測試** —— 那是測 NestJS 的 decorator
 
 ---
 

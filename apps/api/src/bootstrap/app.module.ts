@@ -7,15 +7,17 @@
  * Description:
  *   The composition root is the one place allowed to reach across all scopes,
  *   because assembling them is its whole job (eslint.config.mjs encodes that).
- *   It imports four: health, entity-scope (W02), policy (W03) and risk (W05).
- *   The remaining scope directories stay empty on purpose: an empty NestJS
- *   module answers "nothing" to AP-3's question "what breaks if you switch it
- *   off", so each is created when its scope receives real code.
+ *   It imports six: health, entity-scope (W02), policy (W03), risk (W05), and
+ *   control + asset (W06). The remaining scope directories stay empty on
+ *   purpose: an empty NestJS module answers "nothing" to AP-3's question "what
+ *   breaks if you switch it off", so each is created when its scope receives
+ *   real code.
  *
  * Created: 2026-08-08 (Phase W01)
- * Last Modified: 2026-08-11
+ * Last Modified: 2026-08-12
  *
  * Modification History (newest-first):
+ *   - 2026-08-12: Import ControlModule + AssetModule (W06) — slice 3's endpoints
  *   - 2026-08-11: Import RiskModule — the asset-based risk chain (W05)
  *   - 2026-08-10: Import PolicyModule — the first business endpoint (W03)
  *   - 2026-08-09: Import EntityScopeModule now that the scope has code (W02)
@@ -26,6 +28,8 @@ import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { EntityScopeModule } from '../entity-scope/entity-scope.module';
 import { HealthModule } from '../health/health.module';
+import { AssetModule } from '../modules/asset/asset.module';
+import { ControlModule } from '../modules/control/control.module';
 import { PolicyModule } from '../modules/policy/policy.module';
 import { RiskModule } from '../modules/risk/risk.module';
 
@@ -41,6 +45,8 @@ const ENV_FILES = [resolve(process.cwd(), '.env'), resolve(process.cwd(), '../..
     HealthModule,
     PolicyModule,
     RiskModule,
+    ControlModule,
+    AssetModule,
   ],
 })
 export class AppModule {}

@@ -216,6 +216,8 @@ cannot be remediated after the fact.
 
 **Control** — `title`, `description`, `type`, `nature`, `frequency`, `framework_refs` (array, e.g. ISO 27001 A.x), `applies_to_scope` (this entity only / subtree / group-shared), `effectiveness` (from latest test).
 
+> ⚠️ **Implemented in W06 with TWO of the three `applies_to_scope` values** (`entity`, `group`); **`subtree` is deliberately absent** — **ADR-0014**. Nothing can honour it today: scope resolution expands downward only (`entity-scope.resolver.ts:120-142` — assignment roots plus descendants, never ancestors), so a child's scope never contains the parent that would own a subtree control. Shipping the value would be a setting that changes nothing and reports nothing (AP-3). Restoring it needs an ancestor lookup **inside the policy**, which is what §146's materialised `path` exists to avoid — see ADR-0014 §可證偽條件. **This is a recorded deviation from this line, not an oversight.**
+
 **Asset** — `name`, `asset_group_id` (FK → AssetGroup), `asset_category`, `classification` (Internal / Restricted / Confidential), `value`, `criticality`, `asset_owner_user_id`, `custodian_user_id`. **Promoted to Wave 1** — the RCI risk methodology is asset-based, so the Asset Inventory is a prerequisite for risk assessment, not a later module.
 
 **Assessment (RCSA)** — `subject_type` + `subject_id` (polymorphic: risk/control/process/entity), `period`, `assessor_user_id`, `submitted_at`, `reviewer_user_id`, `reviewed_at`, `result`. Lightweight first-line self-assessment.
