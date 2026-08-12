@@ -366,12 +366,12 @@ _(⚪ **無 user-facing surface** → drive-through 不適用。一律標 **API-
 - [x] 導航檔: `CLAUDE.md` Current-Phase + Last-Updated（**各 1 行**）· `MEMORY.md` pointer + subfile ·
       `BACKLOG.md` §Shipped 加列 · `ROADMAP.md` 第 4 項進度（**兩處都要改**）
   - → `CLAUDE.md`：Current Phase 1 行 + Last Updated 1 行 + Tech Stack 的 ADR 清單改 `0010–0014`。
-    **28,452 bytes，headroom 1,548**（US-1 的成果在 closeout 之後仍 ≥1,500）
+    **28,479 bytes（LF），headroom 1,521**（US-1 的成果在 closeout 之後仍 ≥1,500）
   - → `MEMORY.md` 1 條指標 + `memory/project_w06_row_level_scope.md`
   - → `BACKLOG.md` §Shipped 加 W06 列 · `ROADMAP.md` **第 4 項 + Modification History 兩處都改**
 - [x] ⭐ **關掉的 AD**：`AD-ClaudeMdBudget-1`（US-1 達成）
   - ⚠️ **W05 checklist 2.4 的 🚧 也在本 phase 關閉** —— 回頭把那一列標成已解封並指向本 phase
-  - → `AD-ClaudeMdBudget-1` 已從 §Open 移除（headroom 196 → 1,548）；§Open **67 條**
+  - → `AD-ClaudeMdBudget-1` 已從 §Open 移除（headroom 196 → 1,521）；§Open **67 條**
     （新增 4 關閉 1，**逐列重數**：P0 5 / P1 41 / P2 21）
   - → W05 checklist 該列已標 `🚧→✅`，寫明解封事件與承載測試，**未刪除原本的 🚧 理由**
 - [x] `RISK_REGISTER.md` 複查（**模板新增的那一列**）—— R4 因本 phase 再增三條無稽核寫入路徑而需更新
@@ -383,7 +383,17 @@ _(⚪ **無 user-facing surface** → drive-through 不適用。一律標 **API-
   - → **總計 0**。⭐ AP-3 有一個**被攔下**：A′ 的第四條 `FOR DELETE` policy 在寫下去之前
     被判定為「中性化不會有任何測試轉紅」→ 改為不寫。AP-5 有一個刻意不建
     （`controls` 沒有 `@@unique([id, org_entity_id])` —— M7 的連結表不能用複合 FK）
-- [ ] **Commit** → ⏳ PR push + open → CI → merge: **PENDING USER CONFIRMATION**
+- [x] **Commit** → ⏳ PR push + open → CI → merge: **PENDING USER CONFIRMATION**
       （push 是 outward-facing）→ merge 經 `gh` 驗證後翻 `status:` frontmatter
   - ⚠️ **文件引用 commit 一律用 merge 後 `main` 上的 SHA**（`AD-DesignNoteAnchor-1`）——
     本 repo 用 rebase merge，branch 側的 SHA 不會在 main 上
+  - → **MERGED PR #41**（rebase，main head `3a3606b`，02:57 UTC），**經 `gh pr view` 驗證**
+    （`state: MERGED`），非憑口頭認定。六個 required check 逐項 SUCCESS，
+    CI 的 `gates` job 內含 **integration 81/6 on real PostgreSQL** 與 coverage，**與本機逐位數相同**
+  - → 八個 commit 全部換了 SHA（rebase）→ retro 內的三處 commit 引用已改為 main 側
+    （`cc74455` / `c60d0ee` / `8eb8897`）
+  - → `status:` frontmatter 翻 `closed`，**內文 `Status:` 標記同步**
+    —— ⚠️ 只翻 frontmatter 會被 `check_status_markers` E2 抓到（實際發生了一次）
+  - → ⛔ **closeout 期間發現並修正一個量測污染**：Python `write_text` 把 9 個 markdown
+    轉成 CRLF（`.gitattributes` 要求 LF），`CLAUDE.md` 虛增 522 bytes ——
+    headroom 被誤量成 1,026，實際 **1,521**。已全部正規化回 LF → `AD-WriteTextCRLF-1`

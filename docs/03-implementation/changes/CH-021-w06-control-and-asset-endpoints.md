@@ -4,7 +4,7 @@
 **Phase**: W06（M1 slice 3）
 **Scope**: `core-model` · `modules` · `entity-scope`（消費，未修改）
 **Components**: `controls` · `/controls` · `/assets` · `/asset-groups`
-**PR**: ⏳ PR-pending
+**PR**: **MERGED** #41（rebase，main head `3a3606b`，2026-08-12 02:57 UTC）—— 六個 required check 全 SUCCESS
 
 ---
 

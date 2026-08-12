@@ -1,5 +1,5 @@
 ---
-status: active   # draft | active | closed | closed_partial —— 機器可讀的唯一權威
+status: closed   # draft | active | closed | closed_partial —— 機器可讀的唯一權威
 ---
 
 # Phase W06 Plan — M1 slice 3: the control library and the asset write path
@@ -11,8 +11,9 @@ status: active   # draft | active | closed | closed_partial —— 機器可讀�
 ⚪ **無 UI** → drive-through 不適用，一律標 **API-level verified**。
 ❓ **design note 視 D1 的裁決而定** —— 若 `applies_to_scope` 需要新的 RLS 形狀，那是新知識（見 §1）。
 
-**Status**: **Approved-to-execute**（使用者核可 2026-08-11；範圍由使用者從四個選項中裁決 ——
-`Control` + 資產鏈端點，`SoA`/`ControlTest` 延到 slice 4；CLAUDE.md 瘦身併入本 phase）。
+**Status**: **CLOSED**（**MERGED** PR #41，rebase，main head `3a3606b`，2026-08-12 02:57 UTC ——
+六個 required check 全 SUCCESS）。核可歷史：使用者於 2026-08-11 核可執行，範圍由使用者從四個選項中裁決
+—— `Control` + 資產鏈端點，`SoA`/`ControlTest` 延到 slice 4；CLAUDE.md 瘦身併入本 phase。
 ✅ **D1 已於 2026-08-11 Day 1 由使用者拍板：形狀 A′（四條 per-command policy）**，
 且 **`subtree` 不建**（enum 只有 `entity` + `group`）。**§3.1 的三個選項原文不覆寫** ——
 它們是當時的選項空間，實測結果與裁決在 [progress.md](./progress.md) §1.b。
