@@ -1,7 +1,7 @@
 ---
 artifact: status-audit-living
 status: active
-last_audit: 2026-08-10
+last_audit: 2026-08-12
 ---
 
 # 全項目狀態審計（Status Audit）
@@ -10,10 +10,11 @@ last_audit: 2026-08-10
 
 **Category**: Planning / Living document
 **Created**: 2026-08-07
-**Last Modified**: 2026-08-10
+**Last Modified**: 2026-08-12
 **Status**: Active
 
 > **Modification History**
+> - 2026-08-12: Audit #3 (post-W07) — AD-12–16; the entity counter was wrong in every source
 > - 2026-08-10: Add audit #2 + AD-7–11 disposition — five drifts closed same day
 > - 2026-08-07: Initial creation from claude-code-dev-template v2.6.1
 
@@ -64,174 +65,144 @@ code 內的 `TODO(` / `FIXME` / `HACK(` · 各 track 自己的 `TRACKER.md` ·
 
 ---
 
-## 2. 最新快照 — 2026-08-10（#2，W03 收尾後）
+## 2. 最新快照 — 2026-08-12（#3，W07 收尾後）
 
-**基準**：branch `main` · `bf3133e` · 工作樹 **clean**
-**當前 active phase / change / bug = 0** —— W01 `closed_partial`、W02 `closed`、W03 `closed`，無 active
-**本次 PR**：#31（`b20f3f1`）· #32（`bf3133e`）**皆經 `gh pr view` 驗證為 MERGED**，非採信回報
+**基準**：branch `main` · `d7733b5` · 工作樹 **clean** · **開著的 PR = 0**
+**當前 active phase / change / bug = 0** —— `check_status_markers.py` 掃 **12 個 pre-doc**，
+`E1/E2/E3/E4 clean`
+**本次 PR**：#44（`19bc4f7`）· #45（`d7733b5`）**皆經 `gh pr view` 驗證為 MERGED**，非採信回報
 
 ### 涵蓋聲明
 
-**掃了**（§1 全部 8 個來源）：`BACKLOG.md`（逐行解析 §Open，非命中數）· `ROADMAP.md` ·
-`DEFERRED_REGISTER.md` · `RISK_REGISTER.md` · `docs/14-adr/` 全部 `**Status**:` + `Glob` 核對檔案存在 ·
-三軌 pre-doc（跑 `check_status_markers.py`）· `docs/` 全部非終態 `status:` · `decision-form.md`。
-補充：`git log`（W01/W02/W03 全部 commit 時間戳）· `git status` · `apps/**` 的
-`TODO(`/`FIXME`/`HACK(`（**0 命中**）· `security-scan.yml` job 清單 · `apps/web/src/i18n/` 存在性。
+**掃了**（§1 全部 8 個來源）：`BACKLOG.md`（逐列解析 §Open，非命中數）· `ROADMAP.md` ·
+`DEFERRED_REGISTER.md` · `RISK_REGISTER.md` · `docs/14-adr/` 全部 `**Status**:` + `ls` 核對檔案存在 ·
+三軌 pre-doc（跑腳本）· `docs/` 全部非終態 `status:` · `decision-form.md`。
+補充：`git ls-files` / `git ls-tree`（i18n 與 bugs 目錄）· `git log --diff-filter=D` ·
+`schema.prisma` 全部 `^model`（**13**）· `02a` §0 三張表逐列展開（**23 / 9 / 13**）·
+`security-scan.yml` job 清單 · `apps/**` 與 `scripts/**` 的 `TODO(`/`FIXME`/`HACK(`（**0 命中**）·
+`gh pr list --state open`（**0**）。
 
 **沒掃到 / 不在範圍**：`docs/02-architecture/` 19 份設計文件的內文一致性（非追蹤來源）·
 `reference/` 與 `docs/reference/`（刻意不在版控）· **M0 DoD 第 5 項的 TLS/憑證與管理埠
-本次同樣未取得實據**（與上次審計相同，見 §2.10）· branch protection API（本次未重查，
-上次審計後由 `CH-015` 設定且 PR #31/#32 實測擋與放皆正常）。
-
-⚠️ **一個計數方法的自我修正**：第一次用 `-match 'CLOSED'` 統計得到 5 條，逐處讀後發現
-**2 條是假陽性**（PowerShell `-match` 大小寫不敏感，撞到別處的 `status: closed`）。
-改用大小寫敏感比對後為 3 條。**這是 `AD-GrepAssertion-1` 在本次審計自身的再現** ——
-記在這裡是因為審計報告若用錯的計數方法，讀的人沒有辦法發現。
+連續三次審計未取得實據** · branch protection API（本次未重查；PR #44/#45 實測擋與放皆正常）。
 
 | 層級 | 數量 | 一句話 |
 |---|---|---|
-| 🔴 上線硬關卡 | **5** | **4 條**與設計交付物移植有關（阻斷 M8 旗艦儀表板）+ `AD-NegativeGate-1`（P0 候選，**刻意保持開啟**的持續紀律，不是待辦）|
-| 🟠 已規劃、未執行 | **31** | P1（+2）；⚠️ **M1 的三條前置已於 W03 全數關閉**，見 §2.9 |
-| 🟡 已設計、主動暫緩 | **2** | `AD-TrivyFullImage-1` · `AD-EslintSettingsClaim-1`（`AD-CacheControl-1` 已由 W03 關閉）|
-| ⚫ 卡使用者 / 卡外部 | **2** | `AD-DAST-1`（需 VNet 內 runner）· `AD-IaCEvidence-1`（義務已移交 infra team）—— **兩者本次重驗仍成立** |
-| 🟢 持續技術債 | **17** | P2（+3）|
-| ⚪ 已實證 defer | **5** | `DEFERRED_REGISTER.md` D001–D005，上次審計後由 `CH-016` 首次填入 |
-| ⚠️ 漂移發現 | **5** | AD-7 ~ AD-11，見 §2.7。**五條全部由 W03 自己的 closeout 造成**。✅ **同日全數修正**（使用者要求）|
+| 🔴 上線硬關卡 | **5** | 4 條與設計交付物移植有關（阻斷 M8）+ `AD-NegativeGate-1`（**刻意保持開啟**的持續紀律）。**本次無變動** |
+| 🟠 已規劃、未執行 | **43** | P1（+12，自審計 #2 的 31）—— W04–W07 四個 phase 的產物 |
+| 🟢 持續技術債 | **21** | P2（+4）|
+| ⚫ 卡使用者 / 卡外部 | **2** | `AD-DAST-1` · `AD-IaCEvidence-1` —— **本次重驗仍成立**（`security-scan.yml` 仍是四個 job，無 DAST）|
+| ⚪ 已實證 defer | **5** | D001–D005；⚠️ **其中一條的恢復條件本次判定為「字面已成立」** → AD-14 |
+| ⚠️ 漂移發現 | **5** | AD-12 ~ AD-16，見 §2.7。**其中 AD-12 是我在 W07 closeout 親手傳播的** |
 
-> 上表數字來自 `BACKLOG.md` §Open Carryover ADs：審計當下 **56 列**，其中 **3 列已標 ✅ CLOSED
-> 但未移出**（見 AD-7）→ **實際未關閉 53 條**（P0 5 / P1 31 / P2 17）。
-> **AD-7 處置後 §Open 為 53 列，列數與實際數首次相符。**
+> 上表數字為 `BACKLOG.md` §Open **逐列重數**所得：**69 列**（P0 5 / P1 43 / P2 21），
+> 列數與實際數相符（審計 #2 的 AD-7 處置後維持至今）。
 > **逐項細節一律回該檔看** —— 本檔不複製（§5）。
 
-### 2.1 🔴 上線硬關卡
+### 2.1 資料模型：**12 / 35**，而每一份文件都寫錯
 
-**4 條**（`AD-Mockup-2` · `AD-Mockup-3` · `AD-RiskForm-1` · `AD-Incident-1`）共同點：
-**都不是程式問題，是設計交付物與已確認參數的落差**（13 OpCo 結構、風險表單方法論、
-事件表單 restricted block）。它們阻斷 M8，**不阻斷 M1**。排序已進
-[`ROADMAP.md`](./ROADMAP.md) §押後。**本次無變動。**
+`schema.prisma` 有 **13 個 model**。對照 `02a` §0 索引：
 
-**第 5 條是 `AD-NegativeGate-1`**（🔴 P0 候選）—— 不是一件會被做完的事，
-而是每個 phase 都在消費的紀律，**刻意保持開啟**。
-⚠️ **W03 交付了第 6 個實例**（production 拒絕啟動的負面 gate），三處計數未同步 → **AD-8**
-（✅ 已處置：計數集中到 `BACKLOG.md` 一處，另兩處改為 link）。
+| 分區 | 規劃 | 已建 |
+|---|---|---|
+| `02a` §0 共用核心 | 23 | **11** |
+| `02a` §0 基礎服務（`05`）| 8 | **1**（`User`）|
+| `13` ISMS profile 模組（Wave 1）| 4 | 0 |
+| **Wave 1 小計** | **35** | **12** |
 
-### 2.2 🟠 已規劃、未執行
+分母 **35** 有據且未變（`09-analysis/architecture-completion-distance-20260810.md:49` 的三段拆解）。
+**分子沒有任何一份文件是對的** —— 見 AD-12。
+第 13 個 model（`RefCodeCounter`）**不在索引上** —— 見 AD-13。
 
-31 條 P1（+2：`AD-CalibrationMetric-1` · `AD-JestFileOrder-1`）。
-⭐ **上次審計列的「M1 動工前必關 3 條」已由 W03 全數關閉** —— 見 §2.9。
+### 2.2 ADR
 
-### 2.3 🟡 已設計 / 已批准，主動暫緩
+**9 份已採納**（0001 · 0004 · 0005 · 0007 · 0010 · 0011 · 0012 · 0013 · 0014）·
+**1 份已被取代**（0006 → 0010）· **無 `提案中` 未拍板**。
+編號空缺 **0002 / 0003 / 0008 / 0009** —— `CLAUDE.md` 與 `14-adr/README.md` 皆記為
+「待 spike / 待 Wave 3」，**是有解釋的空缺，不是漂移**。
 
-2 條（`AD-CacheControl-1` 已由 W03 關閉並移出本類）。兩者的解封條件目前**尚未成立**。
+⚠️ **W07 明確判定不需要 ADR** 並把理由寫進 design note §6（機制是量測**排除**其他選項後
+剩下的唯一可行解，不是取捨）—— 這是本專案第一次把「為什麼不寫 ADR」記下來。
 
-### 2.4 ⚫ 卡使用者 / 卡外部
+### 2.3 開放決策
 
-`AD-DAST-1`（GitHub 託管 runner 接不到私有 VNet 內的 staging）·
-`AD-IaCEvidence-1`（本專案沒有 IaC 可掃，義務在 infra team）。
-**本次重驗兩者仍成立**：`security-scan.yml` 四個 job 為 `secret-scan` / `dependency-scan` /
-`static-analysis` / `container-scan`，**無 DAST job**。
-**兩者都影響 M0 DoD，且都不是本專案單方面能關掉的**。
+`decision-form.md` **開放 3 項**（OQ-4 稽核 hash-chain → ADR-0003 · OQ-7 workflow → ADR-0002 ·
+OQ-8 AI agent → ADR-0008/0009）· **已拍板 5 項**。與 `BACKLOG.md` §Pending Decisions
+的「其餘 3 項」**一致**（審計 #2 的 AD-10 處置後未再漂移）。
 
-### 2.5 🟢 持續技術債
+⚠️ 三項的「誰能決定」欄**仍全是 ⚠️ 未指定**，自 2026-08-07 起五個 phase 未變。
 
-17 條 P2（+3：`AD-DevDbDrift-1` · `AD-ExtensionQueryCost-1` · `AD-ChecklistTickDrift-1` ·
-`AD-RebaseMergeBranchCheck-1`，另有一條由 P1 改列）。
+### 2.4 ⏰ 死線
 
-### 2.6 ⚪ 已實證 defer / 範疇邊界外
+`AD-TrivyExempt-1` **2026-09-07 —— 剩 26 天**。`容器映像 — trivy` 是 required check，
+到期時**所有 PR 停止可 merge**。本次無其他寫死日期的觸發條件。
 
-**5 條**（D001–D005），上次審計的 AD-3 處置後由 `CH-016` 首次填入。
-`DEFERRED_REGISTER.md` `Last Reviewed: 2026-08-10` —— **本次未發現解封條件已成立者**。
-⚠️ 但 **D002（ADR-0004 選項 C 雙層強制）的判準值得複查**：它寫「今天只有一張業務表，
-第二層無法被證明」，而 W03 已經**證明了另一個領域的兩層獨立性**（catalog validator + trigger，
-元驗證量到 validator 死掉時 trigger 仍在擋）。這不推翻 D002（隔離軸與擴充治理是兩件事），
-但那個「無法被證明」的論據現在有了一個反例形狀可以參照。
+### 2.5 真空白（未規劃亦未設計）
 
-### 2.7 ⚠️ 漂移發現（AD-N）
+| 缺口 | 狀態變化 |
+|---|---|
+| **`16` 28 點的自動化 —— 實作** | **未變**。`scripts/` + `.github/` 對三個關鍵字仍 **0 命中**（本次重驗）。B 類三點已指出但仍是 0 |
+| **`16` #11–15 的責任邊界拍板** | **未變** —— ROADMAP 第 2c 項仍 ⬜ |
+| **Bug 軌從未被使用** | **未變**。`docs/03-implementation/bugs/` 仍只有 `.gitkeep`。**22 個 CH 與 7 個 phase 之後仍為 0** —— 判準至今未被實測 |
+| **UI drive-through** | **未變，零次**。W01–W07 全部無 user-facing surface。⚠️ 這**不是違規**（Wave 1 至今沒有 UI），但它是 M8 之前最大的未知數，且**已連續七個 phase** |
 
-> **上次審計的 AD-1 ~ AD-6 全部已處置**（2026-08-10 同日，使用者拍板）——
-> 處置去向見 `CH-015` · `CH-016` · `AD-SecDoDAutomation-1` · `AD-StaleRecordRef-1`。
-> 其中 **AD-6 的原判斷被 CH-016 的量測推翻**，完整證據保存在
-> [`BACKLOG.md`](./BACKLOG.md) 的 `AD-StaleRecordRef-1` 一列與
-> [`CH-016`](../03-implementation/changes/CH-016-activate-tracking-registers.md)。
+### 2.6 M0 DoD 六項（`07:31`）—— **連續五個 phase 未變動**
 
-⭐ **本次五條漂移的共同來源：W03 自己的 closeout。** 不是舊文件腐爛，是**剛做完的收尾
-沒有把所有狀態面推到底** —— 這比停更兩個月的登記冊更難察覺，因為每一份文件看起來都「剛更新過」。
+**3 關閉 / 2 部分 / 1 無標的**。本次逐項重驗，兩項有新實據：
 
-> ### ✅ 處置 — 2026-08-10 同日（使用者要求）
->
-> **下表的「發現」欄刻意保留原文**（audit trail：發現了什麼 vs 現在是什麼是兩件事，見 §4 硬紀律二）。
->
-> | AD | 處置 | 落在哪 |
-> |---|---|---|
-> | AD-7 | 三列 CLOSED 移出 §Open + 補 W03 的 §Shipped 列 | `BACKLOG.md` §Open（**56 → 53 列**，與實際數首次相符）· §Shipped（`CH-018` 從 0 次引用變成有列）|
-> | AD-8 | **改結構而非改數字** —— 計數集中到 `AD-NegativeGate-1` 一處，其餘兩處改為 link 並註明為何不複製 | `BACKLOG.md`（加 W03 第 6 個 + 唯一權威聲明）· `RISK_REGISTER.md` R5 · `ROADMAP.md` §押後 |
-> | AD-9 | R3 剩餘缺口改為只剩 `AD-PoolerScope-1`；緩解欄補上 W03 的並行常駐測試 | `RISK_REGISTER.md` R3 |
-> | AD-10 | 「其餘 5 項」→ 3 項，並就地標明 OQ-3 / OQ-6 各自的拍板日與 ADR | `BACKLOG.md` §Pending Decisions |
-> | AD-11 | Documentation Layout 格移除 0006，改標「已被 0010 取代」 | `CLAUDE.md`（淨減 byte，headroom 原僅 303）|
->
-> ⭐ **AD-8 的處置刻意不只是「把 5 改成 6」** —— 那會讓同一個手動計數器繼續存在於三處，
-> 下一個 phase 交付第 7 個時必然再漂一次。**同一個數字寫在三個地方，本身就是缺陷。**
-> 這與 AD-10 是同一個病（`decision-form.md` 與 `BACKLOG.md` 各寫一次「五項」），
-> 而 AD-10 已經是它的**第二次**再現（上次審計的 AD-1 只修了其中一處）。
+- **#2**：`security-scan.yml` 仍是 `secret-scan` / `dependency-scan` / `static-analysis` /
+  `container-scan` 四個 job，**無 DAST**；`16` 自動化 0 命中 → **維持 🟠 部分**
+- **#6**：i18n scaffolding ✅，但 ⚠️ **檔案數是 5 不是審計 #2 寫的 7** → AD-15
+
+> ⚠️ 判讀不變：**M0 永遠不會靠本專案自己關掉**（#3 無標的、#2 的 DAST 需 infra team）。
+> 本專案能單方面推進的只有 #2 的 `16` 自動化與 #5 的 TLS/憑證與管理埠。
+
+### 2.7 ⚠️ 漂移發現（AD-12 ~ AD-16）
+
+> **審計 #2 的 AD-7 ~ AD-11 全部已處置**（2026-08-10 同日）。本次逐一複驗**未再漂移**：
+> §Open 列數與實際數相符 · 負面 gate 計數仍集中在 `BACKLOG.md` 一處 ·
+> R3 剩餘缺口仍只列 `AD-PoolerScope-1` · Pending Decisions 仍是 3 項 ·
+> `CLAUDE.md` 已無 0006 誤列。**AD-8 的「改結構而非改數字」處置經四個 phase 驗證有效。**
+
+⭐ **本次五條的共同形狀與上次不同。** 審計 #2 的五條全部是「剛做完的收尾沒推到底」；
+本次有 **三條是「計數器沒有機械推導」**（AD-12 · AD-13 · AD-15），
+而且其中兩條**橫跨多個 phase 沒有人察覺**。
 
 | AD | 漂移 | 實據 | 建議 |
 |---|---|---|---|
-| **AD-7** | **3 條已標 ✅ CLOSED 的 AD 仍留在 `BACKLOG.md` §Open**，而該檔自己的使用規則要求「關閉 → 從 §Open **移除** + 在 §Shipped Pointer Index 加 1 行」。同時 **§Shipped 完全沒有 W03 的列** | `BACKLOG.md:26`（規則）vs `:64`（`AD-CacheControl-1`）· `:67`（`AD-ScopeConcurrency-1`）· `:68`（`AD-ScopedClientDI-1`）三列皆 `✅ **CLOSED**` 仍在 §Open。`CH-018` 在全部表格列中出現 **0 次**，而 W01/W02 各有一列引用 `CH-011`/`CH-014` | 移出三列 + 補 W03 的 §Shipped 列。⚠️ **這使 §Open 的計數對外多報 3 條** —— 任何讀「還剩幾條」的人都會拿到錯的數字 |
-| **AD-8** | **`AD-NegativeGate-1` 的實例計數 5/5 停在 W02，而 W03 交付了第 6 個**（production 拒絕啟動的負面 gate）。**三處都沒同步** | `RISK_REGISTER.md:24`「目前 5/5 個實例已交付」· `ROADMAP.md:114`「目前 5/5」· `STATUS_AUDIT.md:105`（本檔上一版）。實據：`image-smoke.yml` 的 `拒絕在 production 啟動（負面案例）` step 已 merge 於 `b20f3f1`，run `31371191341` 輸出 `✅ production 啟動被拒絕（exit 1）` | 三處同步為 6。⭐ **這條 AD 是本專案最重要的持續紀律，而它的計數器是手動的** —— 值得考慮把「實例清單」集中到一處，其餘只 link |
-| **AD-9** | **`RISK_REGISTER.md` R3 的「剩餘缺口」仍引用一條已關閉的 AD** —— 並行汙染常駐測試已於 W03 交付 | `RISK_REGISTER.md:22` 寫「剩餘缺口見 `AD-ScopeConcurrency-1`（並行汙染無常駐測試）與 `AD-PoolerScope-1`」；實際 `apps/api/src/modules/policy/policy.int.spec.ts:184-201` 已有 40 次交錯查詢的常駐測試 | R3 的剩餘缺口改為只剩 `AD-PoolerScope-1`。⚠️ **這條的方向特別危險**：風險登記冊把一個**已緩解**的缺口寫成仍然開放，會讓下一次風險複查誤判 R3 的殘餘風險 |
-| **AD-10** | **`BACKLOG.md` §Pending Decisions 說「其餘 5 項開放決策（OQ-3/4/6/7/8）」，實際只剩 3 項** —— OQ-3 於 2026-08-09 拍板、OQ-6 於 2026-08-10 拍板 | `BACKLOG.md` §Pending Decisions 第 3 列 vs `decision-form.md:19-21`（開放中僅 OQ-4/7/8）與 `:44-45`（OQ-6/OQ-3 已在 §已拍板）| 改為 3 項並移除 OQ-3/6。⚠️ **這是上次審計 AD-1 的同型再現** —— 當時修的是 `decision-form.md` 自己的「五項」，**沒有人回頭看引用它的 BACKLOG**。同一個數字寫在兩個地方，只修一處 |
-| **AD-11** | **`CLAUDE.md` 自己前後矛盾**：Tech Stack 格寫「0010 取代 0006」，但 Documentation Layout 格把 **0006 列為已採納** | `CLAUDE.md:84`（`ADR-0001 / 0004 / 0005 / 0007 / 0010 / 0011 已採納（**0010 取代 0006**）`）vs `:405`（`0001 / 0004 / 0005 / 0006 / 0007 / 0010 / 0011 已採納`）vs `docs/14-adr/0006-*.md:4`（`**已被 ADR-0010 取代**`）| `:405` 移除 0006。**先前存在，非 W03 造成** —— 但 W03 closeout 動過該行（加入 0005）而沒發現，這正是「改一行時不會重讀整格」的成本 |
+| **AD-12** | ⭐⭐ **Wave 1 實體計數在每一份文件都是錯的，而且各處互相矛盾**。機械真值 **12 / 35**（11 共用核心 + 1 基礎服務）。⛔ **我在 W07 closeout 親手把錯的數字寫進了 `CH-022` 與 `CLAUDE.md`** | `schema.prisma` `^model` = **13**；扣掉不在索引上的 `RefCodeCounter` = 12 落在索引內。vs `CH-022:190`「8 → **10** / 35」· `CLAUDE.md` Current Phase「**10**/35」。⚠️ **W06 當時兩份文件就已互相矛盾**：`git show 3a3606b:CLAUDE.md` = 「**8**/35 實體；其餘 27 張表」而同一個 commit 的 `CH-021:189` = 「累計 8 → **9** / 35」 | ⭐ **不要只改數字** —— 那正是審計 #2 的 AD-8 已經證明無效的做法（同一個手動計數器寫在多處必然再漂）。應改為**由 `schema.prisma` ∩ `02a` §0 機械導出**，或**只在一處維護**其餘 link。⚠️ 這個數字出現在 CLAUDE.md 的 always-loaded 格子裡，錯的版本每個 session 都在被讀 |
+| **AD-13** | **`RefCodeCounter` 存在於 schema 但不在 `02a` §0 索引上**，而該索引開宗明義寫「**Every entity in the platform** … Nothing is buildable that is not on this list; **adding an entity means adding a row here in the same change**」 | `schema.prisma` 有 `model RefCodeCounter`（建於 W04，`7251670`）；`02a` 全文對 `RefCode` 只命中 `:91` / `:105` / `:287` / `:313` 四處**欄位說明**，§0 三張索引表**零命中** | 補一列，或明確記錄它是「基礎設施表非領域實體、刻意不入索引」。⚠️ **兩者都可以，但必須擇一寫下** —— 現狀是索引宣稱自己完整而事實上不完整，這讓 AD-12 的分子永遠算不準 |
+| **AD-14** | **`DEFERRED_REGISTER.md` 停更四個 phase，而其中一條的恢復條件已字面成立**。D002（ADR-0004 選項 C 雙層強制）寫恢復條件為「**稽核 / 證據 / 事件表出現時**（M3）」—— **W07 建了 `evidence`** | `DEFERRED_REGISTER.md:6` `Last Reviewed: 2026-08-10`，其後 W04/W05/W06/W07 四個 phase 收尾皆未複查（對比 `RISK_REGISTER.md` 本次已更新為 2026-08-12）。`schema.prisma` `model Evidence` 存在。同一條件亦寫在 `decision-form.md:45`（OQ-3 選項 C「延後至 M3（稽核/證據表出現時才有標的）」）| ⚠️ **判定需要人**：字面條件成立（證據表存在），但括號的「（M3）」指向的是里程碑而非單一張表，而 M3 未到。**這正是 §0 列的「Deferred 解封條件過期」失效模式** —— 兩份文件寫同一個條件、四個 phase 沒人回頭翻。⛔ 審計不代為判定 |
+| **AD-15** | **審計 #2 自己的報告帶了一個錯的計數** —— §2.10 第 6 項寫 i18n「**7 檔**」，而它自己的基準 `bf3133e` 當下就是 **5 檔** | `git ls-tree -r --name-only bf3133e -- apps/web/src/i18n/` = **5**；`git log --diff-filter=D -- apps/web/src/i18n/` = **零刪除紀錄**，故「曾有 7 檔後來刪了 2 個」被排除 | ⚠️ **本檔 §4 硬紀律三要求「輸出必須帶實據」，而這一格沒有** —— 一份審計報告若自己的計數是錯的，讀的人沒有辦法發現。本次已改為 `git ls-files` 導出。**這是 `AD-GrepAssertion-1` 在審計自身的第二次再現**（審計 #2 也記過一次，見該節 ⚠️ 自我修正） |
+| **AD-16** | **`DEFERRED_REGISTER.md` D002 的錨點指向錯的內容** —— 它引用 `multi-tenant-data.md:197` 說該行「已指名這三類是它的目標」，實際那一行講的是滾升風險 | `:197` = 「具體風險：滾升現在只是一個少了 `WHERE entity_id` 的查詢」；三類的實際位置是 **`:212`**（「高風險表（稽核軌跡 / 證據 / 事件）\| **兩者都用**」），偏 **15 行** | 錨點修正。⭐ **這是 `AD-DesignNoteAnchor-1` 的第 N 次實例，而且落在一份追蹤文件上** —— 它同時是 ROADMAP 第 9 列那個 detector 的**現成驗收命中**（連同 `02a:413` 與 W01 的兩個失效 SHA）|
 
-### 2.8 真空白（未規劃亦未設計）
+### 2.8 優先序建議
 
-| 缺口 | 為什麼算真空白 |
-|---|---|
-| **`16` 28 點的自動化 —— 實作** | 分類已於 2026-08-10 完成（A 4+2 / B 3+2 / C 7 / D 5 / N 5），**B 類三點的實作仍是 0**。M0 DoD 明文要求 |
-| **`16` #11–15 的責任邊界** | N 類五點需要一次拍板（Entra ID 之後密碼／憑證由誰負責）—— 沒有拍板就無法判斷它們是「本專案的義務」還是「已換手」|
-| **Bug 軌從未被使用** | `docs/03-implementation/bugs/` **仍為空**。18 個 CH 與 3 個 phase 之後仍為 0。⚠️ **W03 的兩個 CI 失敗是真實缺陷**（跨實體寫入回 500 · 測試順序相依），走的是 Phase 軌而非 Bug 軌 —— 那是**正確的**（同一 phase 內、自己交付物的缺陷），但這意味著判準至今仍未被實測過 |
-| **UI drive-through** | W01/W02/W03 **零次**。`apps/web` 有 10 個測試與 i18n parity gate，但沒有人開過瀏覽器走完一條主路徑。約束 3 對 user-facing 功能強制，而 Wave 1 至今沒有 user-facing 功能 —— **這是事實陳述，不是違規**，但它是 M8 之前最大的未知數 |
+⭐ **`ROADMAP.md` 主線第一個未完成項是 2b**（`16` 的 B 類三點），但**下一步的候選其實仍是兩個**，
+與審計 #2 相同，且**論據強度已經改變**：
 
-### 2.9 優先序建議
-
-⭐ **上次審計列的「M1 動工前必關 3 條」已全數關閉**（W03，PR #31）——
-`AD-CacheControl-1` · `AD-ScopedClientDI-1` · `AD-ScopeConcurrency-1`。
-**`ROADMAP.md` 主線第 4 項 M1 的前置欄位現為空。** 這是本次審計最重要的結論：
-**下一步沒有路障了。**
-
-### 下一步只有兩個候選，其餘都是次要
-
-| 候選 | 論據 | 反論據 |
+| 候選 | 本次新增的論據 | 反論據 |
 |---|---|---|
-| **A. M1 — Data foundation**（`ROADMAP` 第 4 項）| 前置已清空；W03 已證明 core entity 的兩個承重機制（entity scoping + governed extension）；`02a` §0 的實體索引是現成的施工圖。**這是唯一會讓「產品程式碼」這一欄長大的選項** | 範圍大，需要先切薄片；`02a` §0 有一批「未規格化，不得建置」的實體要先排除 |
-| **B. `16` 28 點的 B 類三點 + N 類拍板**（`ROADMAP` 第 2b/2c 項）| 直接動 M0 DoD 的分子（目前 6 項有 2 部分 1 無標的）；分類報告已經把「今天可做」的三點指出來 | ⚠️ **這是治理／工具工作** —— `CH-017` 的節流閘每 phase 只給 1 個配額，而它會消耗掉。且 M0 DoD 另外兩項（DAST · IaC）**不是本專案能單方面關的**，所以做完 B 類 M0 仍然關不掉 |
+| **A. M1 slice 5**（`ROADMAP` 第 4 項，▶ 進行中）| **12 / 35 已建**，且 W07 證明了最後一個沒有藍本的機制（父表拒絕錨點時的引用防護）。**其餘 23 個實體目前沒有已知的未解機制問題** —— slice 5..N 是複製不是探索。⚠️ 但 `AD-BottomUpBlueprint-1` 正是說「複製」比估算便宜得多 | `02a` §0 有一批「未規格化，不得建置」要先排除；`Issue` 的 `Failed → raises Issue` 邊仍無目標表 |
+| **B. `16` B 類三點 + N 類拍板**（第 2b/2c 項）| 直接動 M0 DoD 的分子 | ⚠️ **治理／工具工作，吃掉 `CH-017` 每 phase 僅 1 個的配額**；且 M0 另外兩項不是本專案能關的，做完 M0 仍關不掉 |
 
-**建議 A。** 理由不是 B 不重要，而是**專案至今的產出比例** —— `CH-017` 記錄的第 4 天實據是
-產品 911 行 / 工具 3,287 行 / 文件 20,909 行，18 個 CH 裡 0 個產品功能。W03 是第一個
-產出業務端點的 phase，**連續做第二個產品 phase 才會改變那個比例**。
+**建議 A，但這次附一個條件**：本次審計新增的 **AD-12 / AD-13 是「數不清楚自己建了什麼」**，
+而 slice 5 會讓這個問題變大。⭐ **在 slice 5 的 Day 0 順手做掉 AD-13 的一列登記
+＋ 把 AD-12 的計數改成機械導出**，成本 < 30 分鐘，而它讓後續每一片的「N/35」都不必再靠人記。
+**不建議為此單開一個治理 CH** —— 那正好撞上節流閘。
 
-**不建議現在動**：5 條 P0 —— 它們阻斷 M8，而 M1 是資料模型。提前處理會在沒有 runtime 的情況下
-討論 UI 落差，違反「文檔成長跟隨已驗證的 runtime」。
+**⏰ 唯一有死線的**：`AD-TrivyExempt-1` **2026-09-07（剩 26 天）**。
 
-**⏰ 唯一有死線的**：`AD-TrivyExempt-1` **2026-09-07**（28 天後）—— `容器映像 — trivy` 是
-required check，到期時**所有 PR 停止可 merge**。不需要有人記得，但需要有人在那之前處理。
+### 2.9 一個值得單獨說的觀察
 
-### 2.10 硬 gate 狀態 — M0 DoD 六項（`07:31`）
+**W07 的 retrospective 記了四次 `feedback_evidence_must_support_claim`，而本次審計又找到三條
+「計數器沒有機械推導」的漂移**（AD-12 · AD-13 · AD-15）。兩者是同一個形狀在不同層級：
 
-| # | 要求 | 狀態 | 實據 |
-|---|---|---|---|
-| 1 | ADR-0001 settled | ✅ | `14-adr/0001-backend-framework.md:4` **已採納** |
-| 2 | CI 含 SCA/SAST/DAST/secret-scan **+ `16` 自動化檢查** | 🟠 **部分** | **本次重驗**：`security-scan.yml` 四個 job = `secret-scan` / `dependency-scan` / `static-analysis` / `container-scan`，**無 DAST**（`AD-DAST-1`）；`16` 自動化仍 0 實作（分類已完成，B 類三點未做）|
-| 3 | IaC skeleton scanned | ⚫ **無標的** | `AD-IaCEvidence-1` —— ⛔ **不得逕行打勾或標 N/A** |
-| 4 | 部署拓撲（0010）+ 計算平台（0011） | ✅ | 兩份 `**Status**: **已採納**` |
-| 5 | TLS/憑證 · 安全標頭 · 管理埠明確設定 | 🟠 **部分** | 安全標頭 ✅ 且 **W03 擴充**（`bootstrap/security.ts:53-78,126-131` 全域 `Cache-Control`，PR #31 API 級驗證 11 個回應皆帶）；**TLS/憑證部署期未做**；**管理埠連續兩次審計未取得實據** |
-| 6 | i18n scaffolding | ✅ | `apps/web/src/i18n/`（7 檔，含 `i18n.test.ts` 雙向 parity gate）|
+> **拿一個便宜的代理指標（命中數 / 檔名 / 手寫計數）去回答一個需要讀內容才能回答的問題。**
 
-**M0 = 3 關閉 / 2 部分 / 1 無標的** —— **連續三個 phase 未變動**（W01 判定 → W02 → W03）。
-
-> ⚠️ **這個數字停滯不是怠惰，是結構**：剩下的 3 項裡，**第 3 項（IaC）沒有標的、
-> 第 2 項的 DAST 需要 infra team 提供 VNet 內 runner** —— 兩者都不是本專案單方面能關的。
-> 本專案能單方面推進的只有：第 2 項的 `16` 自動化、第 5 項的 TLS/憑證與管理埠。
-> **「M0 未關閉」不應被讀成「M0 停滯」** —— 但它確實意味著 **M0 永遠不會靠本專案自己關掉**。
+⚠️ 值得注意的是 **AD-15 的對象是審計報告自己**，而 **AD-12 的對象是我在同一天寫下的 closeout 文件**。
+`AD-NegativeGate-1` 講的是「機制在但無效」；這一族是「**數字在但沒有來源**」。
+兩者都不會有任何 gate 叫。
 
 ---
 
@@ -241,6 +212,7 @@ required check，到期時**所有 PR 停止可 merge**。不需要有人記得�
 
 | 日期 | 基準 sha | 當時 active | 漂移數 | 一句話 |
 |---|---|---|---|---|
+| 2026-08-12 (#3) | `d7733b5` | 0 | 5 | W07 收尾後。69 條 open AD；⭐ **三條漂移是「計數器沒有機械推導」**（實體數在每份文件都錯且互相矛盾、`RefCodeCounter` 不在自稱完整的索引上、審計 #2 自己的 i18n 計數是錯的）；`DEFERRED_REGISTER` 停更四個 phase 且 D002 的恢復條件字面已成立；M0 仍 3/2/1 未動（連續五個 phase）|
 | 2026-08-10 (#2) | `bf3133e` | 0 | 5 | W03 收尾後。53 條 open AD；**五條漂移全部由 W03 自己的 closeout 造成**（關閉的 AD 未移出 §Open、負面 gate 計數 5→6 未同步、R3 引用已關閉的 AD）；M0 仍 3/2/1 未動 |
 | 2026-08-10 | `568589d` | 0 | 6 | 首次審計。48 條 open AD；三份追蹤文件（ROADMAP / RISK / DEFERRED）**從未被使用**；M0 停在 3/2/1 未動 |
 
