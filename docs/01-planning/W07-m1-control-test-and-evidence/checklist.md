@@ -197,23 +197,42 @@ _(⚪ **無 UI**。本 phase 不做 drive-through，報告一律寫「**API-leve
 
 ### 4.1 Change record + design note
 
-- [ ] **`docs/03-implementation/changes/CH-022-w07-control-test-and-evidence.md`**
+- [x] **`docs/03-implementation/changes/CH-022-w07-control-test-and-evidence.md`**
       （Problem / Root Cause / Solution / Verification / Impact —— 含 **API-level verified** 措辭
       + 關掉的 AD）
-- [ ] **design note**（spike class）—— 依 `docs/rules-on-demand/spike-design-note-gate.md` 的 8-point gate；
+- [x] **design note**（spike class）—— 依 `docs/rules-on-demand/spike-design-note-gate.md` 的 8-point gate；
       主題是「父表拒絕複合錨點時，子表的跨實體引用由哪一層擋」
-- [ ] `02a` 的兩處更正：`:225` 的 `result` 判定註記 · **D-index** 的「Built」措辭
+      - ✅ `design-notes/W07-cross-entity-references.md`；8 點自查全過，
+        **verified ratio 29/29**（22 路徑式 + 7 個 `02a:`，逐行印出比對，非宣稱）
+- [x] `02a` 的兩處更正：`:225` 的 `result` 判定註記 · **D-index** 的「Built」措辭
+      - ⭐ **實際改了三處** —— `:227`（Evidence 的 `linked_type` 只建一個值）同樣是有記錄的偏離
+        （W06 對 `02a:217` 的處置先例），plan §4 #21 漏列
+      - ⭐ **寫法被迫改變**：多行註記會讓 **~30 個 `02a:NNN` 錨點**偏 +13
+        → 改成**同一行追加**，驗證 495 = 495 行、第 413 行逐字相同 → `AD-MdAnchorLineShift-1`
+- [x] ⛔ **計畫外（closeout 自檢發現）**：`20260812164500_correct_parent_guard_comment`
+      —— `COMMENT ON FUNCTION` 說「both raise 42501」而函式 raise `23503`，
+      且該錯誤宣稱**活在資料庫裡**（`pg_description` 實查）。以**新** migration 更正
+      （編輯已套用的檔會撞 `AD-MigrationChecksum-1`），修完再查一次確認
 
 ### 4.2 Closeout
 
-- [ ] `retrospective.md` Q1-Q7 + calibration（`spike` 0.65，第 5 個資料點；
+- [x] `retrospective.md` Q1-Q7 + calibration（`spike` 0.65，第 5 個資料點；
       ⭐ **必須有有效 actual** —— 逐任務分鐘數已逐日記錄）
-- [ ] `calibration-matrix.md` 那一行 —— **≤ 1 行 ~250 字元**（lint 上限 400；完整敘述 → `calibration-log.md`）
-- [ ] Final gate sweep: lint `<N>` · type clean · test `<N>` · build clean · `run_all` 6/6
-- [ ] 導航檔: `CLAUDE.md` Current-Phase + Last-Updated · `MEMORY.md` pointer + subfile ·
+      - ⛔ **有效 actual 拿到了，但過程揭露一個更根本的問題**：Day 3 的工時表把**向前推估**
+        寫成量測（82 min 實為 **31 min**，由 commit 時間戳推翻）。ratio **0.27 UNDER**，
+        而 `actual/bottom-up` **0.17** 低於 0.4 下限 → **該修估算不是乘數**
+- [x] `calibration-matrix.md` 那一行 —— **≤ 1 行 ~250 字元**（lint 上限 400；完整敘述 → `calibration-log.md`）
+- [x] Final gate sweep: lint `<N>` · type clean · test `<N>` · build clean · `run_all` 6/6
+      —— 逐 workspace 可見，**不用 `tail -N`**（`AD-GrepAssertion-1` 的 W07 形狀）
+- [x] 導航檔: `CLAUDE.md` Current-Phase + Last-Updated · `MEMORY.md` pointer + subfile ·
       `BACKLOG.md`（CLOSE 掉本 phase 關掉的項）
-- [ ] **`ROADMAP.md` 主線加一列 ⬜ 給 `AD-DesignNoteAnchor-1` 的 detector**，
+      - ✅ 關 3 條 · 新增 3 條 · 升級 2 條；**逐列重數** 68（P0 5 / P1 42 / P2 21）
+      - ✅ `RISK_REGISTER.md` R4 更新（無稽核寫入路徑 8 → **10 張表**）
+- [x] **`ROADMAP.md` 主線加一列 ⬜ 給 `AD-DesignNoteAnchor-1` 的 detector**，
       BACKLOG 那句改成指向它（plan §9 —— 再延要落在會被讀的清單上，不是備註欄）
-- [ ] Anti-pattern 自檢（retro Q5）：AP-1..AP-7 → 違規數
-- [ ] **Commit** → ⏳ PR push + open → CI → merge: **PENDING USER CONFIRMATION**
+      - ✅ ROADMAP 主線第 **9** 列；BACKLOG 該欄改成指向它
+- [x] Anti-pattern 自檢（retro Q5）：AP-1..AP-7 → 違規數
+      - **1（AP-7，已修）** —— `COMMENT ON FUNCTION` 的 42501 orphan claim
+- [x] **Commit** → ⏳ PR push + open → CI → merge: **PENDING USER CONFIRMATION**
       （push 是 outward-facing）→ merge 經 `gh` 驗證後翻 `status:` 標籤
+      - ✅ closeout commit 已建；⏳ **push 未執行，等使用者確認**

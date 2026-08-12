@@ -52,7 +52,7 @@ Bottom-up ~X hr → class-calibrated ~Y hr (mult Z) → agent-adjusted ~Y' hr (a
 |-------------|------|---------------|--------------|
 | `greenfield-scaffold` | 0.60 | n/a (1 pt) | KEEP (W01 ratio ~0.35 UNDER band; 工時未逐項記錄，數字由 commit 時間戳回推故品質打折; if 2nd <0.70 → 0.40; → calibration-log) |
 | `pattern-reuse-feature` | 0.50 | n/a (1 pt, **定義受污染**) | KEEP (W05 ratio **0.69 UNDER band 僅在修正定義下**，差 0.006; 字面定義給 2.17 —— branch base 是前一 phase 的 closeout 而中間跨了一夜; 單點不調乘數; 修好定義前本點不可與未來的點併窗口 → `AD-CalibrationMetric-2`; → calibration-log) |
-| `spike` | 0.65 | n/a (4 pt, 仍僅 1 同單位) | KEEP (W06 **無有效 actual** —— `AD-CalibrationMetric-2` 首次套用即被跨夜污染，且 progress.md 未記逐任務工時; 不編數字、不併窗口; W04 ratio 0.81 IN band 仍是唯一同單位點; 先修執行再檢討定義 → `AD-CalibrationNoActual-1`; → calibration-log) |
+| `spike` | 0.65 | n/a (5 pt, 2 同單位且**方向相反**) | KEEP (W07 ratio **0.27 UNDER**; 同日無跨夜故定義首次乾淨適用; W04 0.81 IN —— 兩點反向不構成 3-phase 證據; ⛔ actual/bottom-up **0.17** 遠低於本表 0.4 下限 → **該修估算不是乘數** `AD-BottomUpBlueprint-1`; ⚠️ Day 3 工時原記 82 min 實為 31 min（估算被當量測）→ `AD-EstimateAsMeasurement-1`; → calibration-log) |
 
 ### 常見 scope class 起始建議值
 

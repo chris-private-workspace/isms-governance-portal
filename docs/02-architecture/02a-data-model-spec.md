@@ -23,7 +23,7 @@ not on this list; adding an entity means adding a row here in the same change.
 | Entity | Wave | Note |
 |---|---|---|
 | `OrgEntity` | 1 | The scoping and roll-up spine |
-| `Jurisdiction` | 1 | ⚠️ Built **without** the `cross_border_*` / `deployment_region` columns — no consumer since `CH-008` |
+| `Jurisdiction` | 1 | ⚠️ **Specified** without the `cross_border_*` / `deployment_region` columns — no consumer since `CH-008`. The table itself is built in M2 (§3) |
 | `Regulation` · `Obligation` | 1 | Foundation-ready; surfaced as a module in Wave 2 |
 | `Policy` | 1 | ⚠️ See §0.1 — known field gaps |
 | `Risk` | 1 | Five impact types, before/after control |
@@ -39,7 +39,7 @@ not on this list; adding an entity means adding a row here in the same change.
 | `Attestation` | 1 | |
 | `RiskManagementReport` · `RMReportVersion` | 1 | §3.1 — versioned snapshot over the live register |
 | `extension_field_catalog` | 1 | §1.3 |
-| `posture_snapshot` | 1 | §7 — dashboard data source. ⚠️ Built **without** the replication columns (`CH-008`) |
+| `posture_snapshot` | 1 | §7 — dashboard data source. ⚠️ **Specified** without the replication columns (`CH-008`); the table is not built yet |
 
 ### Foundation services — specified in this document (§3.2), described in `05`
 
@@ -222,9 +222,9 @@ cannot be remediated after the fact.
 
 **Assessment (RCSA)** — `subject_type` + `subject_id` (polymorphic: risk/control/process/entity), `period`, `assessor_user_id`, `submitted_at`, `reviewer_user_id`, `reviewed_at`, `result`. Lightweight first-line self-assessment.
 
-**ControlTest** — `control_id` (FK), `scheduled_for`, `performed_at`, `tester_user_id`, `reviewer_user_id`, `result`, `conclusion`.
+**ControlTest** — `control_id` (FK), `scheduled_for`, `performed_at`, `tester_user_id`, `reviewer_user_id`, `result`, `conclusion`. ⚠️ **Recorded deviation (W07)**: `result` is **not built** — §4's five-state lifecycle already carries it in its three terminal states (Passed / Partial / Failed), and two columns saying the same thing have no reconciliation rule; `status` carries it. `control_id` has **no composite FK** (`Control` refuses the `(id, org_entity_id)` anchor for the M7 link table), so cross-entity references are refused by a `BEFORE INSERT OR UPDATE` trigger — see `design-notes/W07-cross-entity-references.md`.
 
-**Evidence** — `kind`, `uri_or_blob_ref`, `hash` (integrity), `collected_at`, `linked_type` + `linked_id` (polymorphic to test/attestation/assessment).
+**Evidence** — `kind`, `uri_or_blob_ref`, `hash` (integrity), `collected_at`, `linked_type` + `linked_id` (polymorphic to test/attestation/assessment). ⚠️ **Recorded deviation (W07)**: `linked_type` is built with **one** value, `control_test` — `Attestation` and `Assessment` do not exist, and an enum value naming an absent table is a setting nobody can exercise (the judgement that removed `applies_to_scope = subtree` in ADR-0014). `linked_id` has **no foreign key at all** while it stays polymorphic; the same trigger supplies both the integrity check and the scope guard.
 
 **Issue** — `title`, `source` (enum: assessment/test/audit/incident/manual), `severity`, `description`, `due_date`.
 
