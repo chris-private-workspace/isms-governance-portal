@@ -226,6 +226,46 @@ describe('policy module (integration)', () => {
     expect(rows.map((r) => r.key).sort()).toEqual(['cycleCount', 'reviewCycle', 'sgRegRef']);
   });
 
+  /**
+   * ⭐ AD-GroupRowTheft-1, closed in W07.
+   *
+   * The catalog shipped with a single `FOR ALL` policy whose USING was wider than
+   * its WITH CHECK — deliberately, so that a group-wide declaration
+   * (org_entity_id IS NULL) is readable by every entity while only its owner may
+   * write it. The gap is that UPDATE is checked by BOTH clauses against DIFFERENT
+   * rows: USING sees the OLD row, which passes because it is group-wide, and
+   * WITH CHECK sees the NEW one, which passes because the caller made itself the
+   * owner. So one OpCo could take a group declaration out of the group.
+   *
+   * ⚠️ This test was written and watched FAIL before the per-command policies
+   * existed (W07 Day 2). A guard nobody saw refuse is a guard nobody has tested —
+   * that is AD-NegativeGate-1, and this project keeps finding it.
+   *
+   * ⛔ DELETE needs no test here and gets none: `isms_app` was never granted it,
+   * and the privilege check runs before RLS (W06 test 10). The AD's delete half
+   * was already closed by the missing GRANT.
+   */
+  it('no entity can pull a group-wide extension field into itself', async () => {
+    const sg1 = await clientFor(['SG1']);
+    const GLOBAL_KEY = '00000000-0000-0000-0000-0000000000e0';
+
+    const result = await sg1.extensionField.updateMany({
+      where: { id: GLOBAL_KEY },
+      data: { orgEntityId: SG1 },
+    });
+    // 0 rows, not an error: the update policy's USING no longer selects a
+    // group-wide row at all, so there is nothing to re-own.
+    expect(result.count).toBe(0);
+
+    // And it is still global — visible to the OTHER entity, which is the property
+    // that would have been destroyed. Asserting only `count === 0` would pass
+    // against a policy that refused for the wrong reason.
+    const hk1 = await clientFor(['HK1']);
+    const stillGlobal = await hk1.extensionField.findMany({ where: { id: GLOBAL_KEY } });
+    expect(stillGlobal).toHaveLength(1);
+    expect(stillGlobal[0]?.orgEntityId).toBeNull();
+  });
+
   // === W04 D3: the reference counter under contention ========================
   //
   // The claim being tested is that allocation is ATOMIC, and the only way to
