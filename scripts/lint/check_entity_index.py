@@ -63,7 +63,7 @@ FIXTURE_REL = "scripts/lint/__fixtures__/entity-index-drift/schema-with-orphan.p
 # === EXCLUDED: deliberately off the index ===================================
 # Why a list and not a rule: the decision to exclude is a judgement about what
 # kind of thing a table is, and no column tells you that. RefCodeCounter carries
-# org_entity_id and is entity-scoped ON PURPOSE (schema.prisma:163) -- so "has no
+# org_entity_id and is entity-scoped ON PURPOSE (schema.prisma:174) -- so "has no
 # org_entity_id" would have been the wrong test, and it is the test this file's
 # plan originally proposed before Day 0 measured it.
 #

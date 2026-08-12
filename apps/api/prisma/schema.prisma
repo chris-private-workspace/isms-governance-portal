@@ -98,6 +98,8 @@ model OrgEntity {
   controls        Control[]
   controlTests    ControlTest[]
   evidence        Evidence[]
+  issues          Issue[]
+  actions         Action[]
 
   version   Int       @default(1)
   createdAt DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
@@ -154,6 +156,15 @@ model User {
   /// not exist yet — these columns are what it will read, not a check in disguise.
   testedControlTests   ControlTest[] @relation("ControlTestTester")
   reviewedControlTests ControlTest[] @relation("ControlTestReviewer")
+
+  ownedIssues     Issue[]  @relation("IssueOwner")
+  assignedActions Action[] @relation("ActionAssignee")
+
+  /// The other half of a CAPA's separation: whoever completes an action is not
+  /// normally whoever verifies it. 02a does not state that rule for Action the way
+  /// 02a:416 does for ControlTest, so nothing enforces it — this is the column a
+  /// future rule would read, kept separate from `assignee` so it can be.
+  verifiedActions Action[] @relation("ActionVerifier")
 
   @@map("users")
 }
@@ -527,6 +538,79 @@ enum EvidenceLinkedType {
   control_test
 
   @@map("evidence_linked_type")
+}
+
+/// Where a finding came from (02a:229).
+///
+/// ⚠️ TWO VALUES, NOT FIVE, on the judgement that removed `subtree` from
+/// ControlAppliesToScope (ADR-0014) and kept EvidenceLinkedType to one value.
+/// 02a:229 also names assessment, audit and incident: `Assessment` is not built,
+/// `AuditIssue` is Wave 2 (02a:61), and the incident record is the Wave 2
+/// extension of `Event` (02a:38), which is not built either. `manual` needs no
+/// table and `test` has one.
+///
+/// ⛔ AND NOTE WHAT IS MISSING FROM THE SPEC ITSELF: this is a BARE enum. 02a:229
+/// gives Issue no companion id column, so a row saying `test` cannot say WHICH
+/// control test — the `Failed -> raises Issue` edge at 02a:392 is not traversable
+/// backwards in the data model. Evidence solves the same problem with
+/// linked_type + linked_id; Issue was specified without the second half.
+/// Inventing `source_id` here would be inventing a field (已確認參數 #9), so it
+/// is recorded rather than fixed.
+enum IssueSource {
+  test
+  manual
+
+  @@map("issue_source")
+}
+
+/// 02a:127 verbatim.
+enum IssueSeverity {
+  low
+  medium
+  high
+  critical
+
+  @@map("issue_severity")
+}
+
+/// The Issue lifecycle, 02a §4 (02a:372-383) verbatim.
+///
+/// `risk_accepted` is reached from `open` by formal acceptance and leads to
+/// `closed` — a finding somebody decided to carry rather than fix.
+///
+/// ⛔ Same gap as IssueSource, and worth stating separately because it looks like
+/// a state rather than a reference: nothing records WHICH risk accepted it. §4
+/// draws the transition, §3 gives Issue no risk column, and `risks` has existed
+/// since W05. Not invented here for the same reason (已確認參數 #9).
+///
+/// ⚠️ The TRANSITIONS are not enforced by anything, exactly as Policy's docstring
+/// records: any value may be written over any other until M5. This column states
+/// intent, not a guarantee.
+enum IssueStatus {
+  open
+  in_progress
+  remediated
+  verified
+  closed
+  risk_accepted
+
+  @@map("issue_status")
+}
+
+/// The Action lifecycle, 02a:398 (Open -> InProgress -> Completed -> Verified).
+///
+/// ⚠️ This one is specified in PROSE, not in a mermaid diagram like the four at
+/// 02a:372-396 — which is why AssetGroup's docstring says §4 "defines lifecycles
+/// for Policy, Risk, Issue and ControlTest only". That sentence is about the
+/// diagrams. 02a:398 names Action's four states explicitly, so this is a
+/// specified lifecycle in a different format, not an invented one.
+enum ActionStatus {
+  open
+  in_progress
+  completed
+  verified
+
+  @@map("action_status")
 }
 
 /// Groups assets for assessment (02a:202), per the Risk Management Report.
@@ -1003,4 +1087,132 @@ model Evidence {
   @@index([orgEntityId, retiredAt])
   @@index([linkedType, linkedId])
   @@map("evidence")
+}
+
+/// A finding (02a:229). 02a §0 places it in the shared core rather than in a
+/// module, because assessment, control testing, audit and incident all raise the
+/// same thing and a per-module version of it is how guardrail 3 gets violated.
+///
+/// ⭐ THE FIRST PARENT SINCE W05 THAT CAN OFFER A COMPOSITE ANCHOR, and the
+/// difference from `controls` is structural rather than a matter of taste.
+/// `controls` refuses `@@unique([id, org_entity_id])` because M7's Risk <-> Control
+/// link table has to let a group control reach any entity's risk, so the pair is
+/// the wrong key for it. An issue has exactly one child kind — its actions — and
+/// they are always its own entity's. Nothing downstream wants to join an issue to
+/// another entity's row, so the anchor costs nothing and the child gets the
+/// cheaper guard (W07 design note D1: option B, not option D).
+///
+/// ⚠️ No `is_active` column: 02a:98 calls it derived, and storing it creates a
+/// second truth that can disagree with retired_at (W04 D2).
+model Issue {
+  id String @id @default(uuid()) @db.Uuid
+
+  /// `ISSU-<ENTITY_CODE>-<seq>`. Server-issued; see ref-code.ts.
+  refCode String @unique @map("ref_code")
+
+  orgEntityId String @map("org_entity_id") @db.Uuid
+
+  title String
+
+  /// ⛔ Bare enum — see IssueSource. Which test/assessment raised this is NOT
+  /// recorded, because 02a:229 specifies no column for it.
+  source IssueSource
+
+  severity    IssueSeverity
+  description String?
+
+  /// Timestamptz rather than date, matching ControlTest.scheduledFor. 02a:229
+  /// says "due_date" and names no type; introducing a second temporal convention
+  /// for one column would be the invention, not the alignment.
+  dueDate DateTime? @map("due_date") @db.Timestamptz(6)
+
+  status IssueStatus @default(open)
+
+  /// §1.1's accountable owner. Unlike ControlTest — which 02a:225 gives a
+  /// contextual owner (`tester_user_id`) — 02a:229 names none for Issue, so the
+  /// base field is the owner rather than a duplicate of one.
+  ownerUserId String? @map("owner_user_id") @db.Uuid
+
+  createdBy String? @map("created_by") @db.Uuid
+  updatedBy String? @map("updated_by") @db.Uuid
+
+  version    Int  @default(1)
+  extensions Json @default("{}") @db.JsonB
+
+  orgEntity OrgEntity @relation(fields: [orgEntityId], references: [id])
+  owner     User?     @relation("IssueOwner", fields: [ownerUserId], references: [id])
+  actions   Action[]
+
+  createdAt DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt DateTime  @updatedAt @map("updated_at") @db.Timestamptz(6)
+  retiredAt DateTime? @map("retired_at") @db.Timestamptz(6)
+
+  /// The anchor `actions` references. Same shape and same reason as
+  /// asset_groups:653 — `id` alone is already unique; the pair exists so a child
+  /// can name (id, org_entity_id) together and be refused when they disagree.
+  @@unique([id, orgEntityId])
+  @@index([orgEntityId, retiredAt])
+  @@map("issues")
+}
+
+/// A corrective or preventive action under an issue (02a:231, CAPA).
+///
+/// The cross-entity reference is closed by the COMPOSITE foreign key on
+/// (issue_id, org_entity_id), not by the trigger W07 built. That trigger exists
+/// for parents that cannot be anchored; using it here would add a per-row dynamic
+/// query (W07 design note §4 records that its cost is unmeasured) in exchange for
+/// nothing the key does not already give. The key collapses "another entity's
+/// issue" and "no such issue" into one 23503, which is the same guarantee.
+///
+/// ⚠️ No `owner_user_id`. 02a:231 gives this entity `assignee_user_id`, and the
+/// assignee IS the accountable person for an action — adding the base field
+/// alongside it is the "two columns for one concept" that Asset's docstring
+/// refuses. `verified_by` is a different person doing a different job.
+model Action {
+  id String @id @default(uuid()) @db.Uuid
+
+  /// `ACTN-<ENTITY_CODE>-<seq>`. Server-issued; see ref-code.ts.
+  refCode String @unique @map("ref_code")
+
+  orgEntityId String @map("org_entity_id") @db.Uuid
+
+  /// N:1 and required (02a:409). Guarded by the composite key below.
+  issueId String @map("issue_id") @db.Uuid
+
+  /// Required: 02a:231 lists it first and an action with no description is not
+  /// an action. Contrast Issue.description, which supplements a title.
+  description String
+
+  assigneeUserId String?   @map("assignee_user_id") @db.Uuid
+  dueDate        DateTime? @map("due_date") @db.Timestamptz(6)
+  completedAt    DateTime? @map("completed_at") @db.Timestamptz(6)
+
+  /// ⚠️ Named `verified_by`, not `verified_by_user_id` — 02a:231's spelling is
+  /// kept (已確認參數 #9). It DOES get a foreign key, unlike created_by and
+  /// updated_by which share the suffix: §1.1 marks those two "Audit" (metadata
+  /// about the row), while §3 lists this one among Action's own fields. A domain
+  /// reference to a person gets referential integrity; audit metadata is ADR-0003's
+  /// problem and arrives with M3.
+  verifiedBy String? @map("verified_by") @db.Uuid
+
+  status ActionStatus @default(open)
+
+  createdBy String? @map("created_by") @db.Uuid
+  updatedBy String? @map("updated_by") @db.Uuid
+
+  version    Int  @default(1)
+  extensions Json @default("{}") @db.JsonB
+
+  orgEntity OrgEntity @relation(fields: [orgEntityId], references: [id])
+  issue     Issue     @relation(fields: [issueId, orgEntityId], references: [id, orgEntityId])
+  assignee  User?     @relation("ActionAssignee", fields: [assigneeUserId], references: [id])
+  verifier  User?     @relation("ActionVerifier", fields: [verifiedBy], references: [id])
+
+  createdAt DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt DateTime  @updatedAt @map("updated_at") @db.Timestamptz(6)
+  retiredAt DateTime? @map("retired_at") @db.Timestamptz(6)
+
+  @@index([orgEntityId, retiredAt])
+  @@index([issueId, retiredAt])
+  @@map("actions")
 }

@@ -122,3 +122,64 @@ plan §7 把它標為【半藍本】，而實際上 `scripts/lint/` 的 6 個既
 ### Remaining for Next Day
 
 - Day 0 §0.3 detector（本日續做）→ 然後 Day 1 的 `Issue` / `Action` model + migration
+
+---
+
+## Day 1 — 2026-08-12
+
+### Today's Accomplishments
+
+- **1.1 / 1.2** `Issue` + `Action` 兩個 model、**4 個 enum**、一個 migration
+  （`20260812211801_issue_and_action`）：複合錨點 · 複合 FK · 六條 per-command policy ·
+  兩個 `validate_extensions` trigger · GRANT 無 DELETE · FORCE RLS
+- **1.3** 兩個 repository + spec（各 100% 覆蓋）+ `scoped-client.types.ts` 兩個介面
+- **計畫外**：錨點重新校準 5 處活參考（見 checklist 1.3 末項）
+
+### ⭐ D1 分流：第一次導出「選項 B」
+
+W07 design note D1 把 trigger 定位成「**父表結構上給不起錨點時**才用的東西」，不是更好的機制。
+`issues` 沒有 `controls` 那個約束（無 M:N 連結表要求兩側 entity 不同），所以它給得起
+`@@unique([id, org_entity_id])`，`actions` 因此走**複合 FK**。
+
+**三次的機制不同，而不變的是那條不變式**：
+
+| phase | 子表 → 父表 | 機制 |
+|---|---|---|
+| W05 | `assets` → `asset_groups` | 複合 FK |
+| W07 | `control_tests` → `controls` | BEFORE trigger（父表拒絕錨點）|
+| **W08** | `actions` → `issues` | **複合 FK**（父表給得起）|
+
+三者要保護的是同一件事：**「別人的 issue」與「不存在的 issue」必須產生同一個錯誤**。
+repository 一旦能先查父表就能分辨兩者 —— 那正是 約束 8 禁止的 oracle。
+所以 `ScopedActionClient` 依然**不含** `issue` delegate。
+
+⛔ **這只是結構上成立，還不是量出來的。** Day 3 的 N1 會移掉複合 FK 重跑跨實體測試 ——
+若它仍然紅，擋住的就不是那把鑰匙，`AD-BorrowedRefusal-1` 就是第 4 次。
+
+### Drift / Issue（Day 1）
+
+| ID | Finding | 處置 |
+|---|---|---|
+| **D-migts** ⭐ | **Prisma 用 UTC 生成 migration 目錄名，而 W07 手建的用本地時間** —— 新 migration `20260812131655`（UTC）排在**已套用**的 `20260812164500`（本地）**之前** | 重命名為 `20260812211801`（本地當下，晚於它）。目錄名的唯一功能是排序，正確順序就是它現在表示的。⚠️ 今日限定（明天 UTC 戳自然勝出），但**手建 migration 的時區慣例未定** → 記 AD |
+| **D-enumcount** | plan §3.0/§4 寫「+3 enum」，實際 **4 個**（`IssueSource`/`IssueSeverity`/`IssueStatus`/`ActionStatus`）；checklist 1.1 標題寫「+2」卻列了 3 個名字 | 起草筆誤，不影響範圍。checklist 已註明 |
+| **D-specgap** ⭐ | `Issue` 的**兩條入邊都只有 enum 沒有 FK**：`source='test'` 說不出哪一次 test（`02a:229` 無 companion id）；`risk_accepted` 說不出哪個 risk（`02a:372-383` 只畫轉換，§3 無欄位）。而 `Evidence` 對同一個問題有 `linked_type` + `linked_id` | 照規格建 + 寫進 schema docstring。⛔ **不發明 `source_id`**（已確認參數 #9）→ Day 4 記一條 AD（兩者**合併成一條**，因為是同一個形狀）|
+| **D-globfalse** | 我用 Glob 查生成的 migration 得「No files found」，據此差點判定「Prisma 靜默失效」。實際檔案存在（3494 bytes） | ⚠️ 同一個形狀又一次：**工具回報「找不到」不等於「不存在」**。改用直接列目錄後確認。與 Day 0 那個「exit 1 = 指令不存在，不是 gate 紅」是同族 |
+
+### 工時
+
+| 區段 | 起 | 迄 | 實際 | 錨點 |
+|---|---|---|---|---|
+| Day 1（1.1 → 1.x gate + 錨點校準）| 21:11:56 | 21:28:30 | **16 min 34 s** | ✅ 兩端閉合 |
+
+⭐⭐ **bottom-up 對應項估 3.25 hr（195 min），實際 16.5 min —— 高估 11.8 倍。**
+
+plan §7 已經按 `AD-BottomUpBlueprint-1` 的建議改用「寫差異」估法（9.5 hr vs W07 的 19.75），
+**而仍然高估一個數量級**。W07 的 `actual/bottom-up` 是 0.17；本日這一段是 **0.085**。
+
+→ 初步結論（Day 4 retro 定案）：**問題不在估法的粒度，在於「有藍本時要多久」的直覺本身是錯的**。
+把 bottom-up 拆得更細不會收斂，因為每一項都用同一個錯誤的單位成本。
+⚠️ 這條要等 Day 2-4 的資料才能下定論 —— 單日單段不足以推翻一個估算方法。
+
+### Remaining for Next Day
+
+- Day 2：controller + module × 2、int spec × 2（各四個範疇測試）、繞開發號的直接寫入測試、full gate

@@ -36,7 +36,7 @@ status: active   # draft | active | closed | closed_partial —— 機器可讀�
     而端點是 create-only，沒有 transition（同 W07 對 SoD 的處理）
 (e) **`ControlTest` 終態自動建 `Issue` 不做** —— 那是 workflow（M5），不是資料模型
 (f) **`RefCodeCounter` 明記為刻意排除**（使用者 2026-08-12 裁決）—— ⚠️ **理由於 Day 0 更正**：
-    起草時寫的「它沒有 `org_entity_id`」是**錯的**（`schema.prisma:173` 有，docstring `:163`
+    起草時寫的「它沒有 `org_entity_id`」是**錯的**（`schema.prisma:184` 有，docstring `:174`
     明寫 Entity-scoped ON PURPOSE，見 progress.md `D-refcounter`）。正確判準是它**沒有 §1.1
     base fields**（無 `id`／`ref_code`／`status`／`owner_user_id`／`version`／`extensions`／
     `retired_at`；主鍵是 `@@id([orgEntityId, entityType])`），且它是**發** `ref_code` 的機制
@@ -58,7 +58,7 @@ status: active   # draft | active | closed | closed_partial —— 機器可讀�
 - **實體計數是手寫的**，所以每份文件都不一樣（`AD-EntityCountDerivation-1`）。2026-08-12
   已把兩個活面改成 12/35，但那**仍然是人算的，只是算對了** —— 沒有任何東西在守。
 - **索引宣稱自己完整而事實上不完整**（`AD-EntityIndexIncomplete-1`）：`RefCodeCounter` 在
-  `schema.prisma:172` 但不在 `02a` §0 上，而該索引第一句寫「Nothing is buildable that is not
+  `schema.prisma:183` 但不在 `02a` §0 上，而該索引第一句寫「Nothing is buildable that is not
   on this list; adding an entity means adding a row here **in the same change**」。
 
 ### Why it matters（缺失的能力）
@@ -80,11 +80,11 @@ shared core 而非模組本地，正是因為每個模組都要用它）。
 | 懸邊無目標表 | ControlTest lifecycle 兩條終態邊寫 `raises Issue`，`Issue` 不存在 | `docs/02-architecture/02a-data-model-spec.md:392-393` |
 | `Issue` 規格 | `title` · `source`(enum) · `severity` · `description` · `due_date` —— **無 source_id** | `02a:229` |
 | `Action` 規格 | `issue_id`(FK) · `description` · `assignee_user_id` · `due_date` · `completed_at` · `verified_by` | `02a:231` |
-| 父表可否給錨點 | `controls` 明文拒絕（M7 連結表）；`asset_groups` / `assets` **給了** | `schema.prisma:808-812` vs `:569` `:628` |
+| 父表可否給錨點 | `controls` 明文拒絕（M7 連結表）；`asset_groups` / `assets` **給了** | `schema.prisma:892-896` vs `:653` `:712`（Day-1 校準後）|
 | 既有的複合 FK 藍本 | `assets.(asset_group_id, org_entity_id)` → `asset_groups` | `migrations/20260811024841_asset_and_risk_chain/migration.sql` |
 | 既有的 trigger 形狀 | `assert_parent_in_scope()`，`BEFORE INSERT OR UPDATE` + `SECURITY INVOKER` | W07 migration · `design-notes/W07-cross-entity-references.md` §1 D1 |
 | 計數無機械來源 | 6 個 detector，無一比對 `schema.prisma` 與 `02a` §0 | `scripts/lint/*.py`（`check_doc_links` / `check_path_references` / `check_rules_hygiene` / `check_status_markers` / `check_mockup_fidelity` / `check_workflow_placeholders`）|
-| 索引不完整 | `RefCodeCounter` 在 schema 不在索引 | `schema.prisma:172` vs `02a:21-61` |
+| 索引不完整 | `RefCodeCounter` 在 schema 不在索引 | `schema.prisma:183` vs `02a:21-61` |
 
 → `Issue`/`Action` 的表結構本身**完全有藍本**（W05 的複合 FK + ADR-0014 的 per-command policy），
 所以本 phase 的風險不在「做不出來」，而在**做出來之後宣稱的東西沒有被證明**：
@@ -128,7 +128,7 @@ Day 3  真進程 + 真 PostgreSQL 走兩組端點（API-level）
 - `docs/02-architecture/02a-data-model-spec.md:409` — `Issue → Action` 1:N，Remediated 前需 ≥1
 - `docs/02-architecture/02a-data-model-spec.md:127` — Issue severity: low · medium · high · critical
 - `docs/02-architecture/02a-data-model-spec.md:126` — Test result fail/partial → raises an Issue
-- `apps/api/prisma/schema.prisma:538-650` — AssetGroup / Asset：複合錨點 + 複合 FK 的藍本
+- `apps/api/prisma/schema.prisma:622` · `:653` — AssetGroup 與它的複合錨點（Day-1 校準後）
 - `apps/api/src/core-model/control-test.repository.ts` — 兩個 repository 的藍本
 - `apps/api/src/modules/control-test/` — 兩個 module 的藍本
 - `scripts/lint/check_status_markers.py` — detector 的藍本（含 self-test 不在旗標後面的形狀）
