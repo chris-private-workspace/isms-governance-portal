@@ -3,7 +3,7 @@
 **Phase**: W07 — M1 slice 4：`ControlTest` + `Evidence`，與父表拒絕複合錨點時的範疇防護
 **Period**: 2026-08-12（Day 0-4 同日）
 **Plan**: [plan.md](./plan.md)
-**PR**: ⏳ **未推送** —— push 是 outward-facing，等使用者確認
+**PR**: **MERGED** #44（rebase，main head `19bc4f7`，2026-08-12 08:34 UTC）—— 六個 required check 全 SUCCESS
 **Change record**: `docs/03-implementation/changes/CH-022-w07-control-test-and-evidence.md`
 **Design note**: `docs/02-architecture/design-notes/W07-cross-entity-references.md`
 
@@ -43,8 +43,8 @@
 - **Agent-delegated**: `no`（plan 時宣告，實際亦無委派）→ 三段式
 - **Bottom-up est**: **19.75 hr**
 - **Committed (calibrated)**: **12.8 hr** (mult 0.65)
-- **Actual**: **~3.4 hr**（12:27 起算至 closeout，**同日無跨夜**）
-- **Ratio**: 3.4 / 12.8 = **0.27**
+- **Actual**: **3.87 hr**（12:27:00 → `19bc4f7` author date 16:19:04，**同日無跨夜**）
+- **Ratio**: 3.87 / 12.8 = **0.30**
 - **Band 判定**: ⛔ **UNDER**（< 0.7），而且是**大幅** UNDER
 
 ### 資料來源（這次是量的，不是估的）
@@ -52,12 +52,18 @@
 | 段 | 錨點 | 值 |
 |---|---|---|
 | Day 1 | 12:27（`date`）→ 12:37（`date`）| **10 min** |
-| Day 2 | `b1dfaef` 12:39:45 → `9f9e45a` 14:46:05 | **2 hr 06 min** |
-| Day 3 | `9f9e45a` → `5aa768e` 15:17:06 | **31 min** |
-| Day 4 | `5aa768e` → closeout commit | closeout 時填 |
+| Day 2 | `a90e55f` 12:39:45 → `b9f7611` 14:46:05 | **2 hr 06 min** |
+| Day 3 | `b9f7611` → `889993d` 15:17:06 | **31 min** |
+| Day 4 | `889993d` 15:17:06 → `19bc4f7` 16:19:04 | **1 hr 02 min** |
+| **合計** | 12:27:00 → 16:19:04 | **3 hr 52 min** |
 
 `AD-CalibrationMetric-2` 的定義（branch 第一個 commit → closeout）本次**乾淨適用** ——
 沒有跨夜、沒有閒置區間。Day 0 的起草在窗口之外，故本值是**下界**。
+
+⚠️ **本表的 SHA 一律是 rebase 後 `main` 上的**（PR #44 用 rebase merge，branch 側的
+`b1dfaef` / `9f9e45a` / `5aa768e` 已不在 main 上）。⭐ **author date 未被 rebase 改變** ——
+逐一比對過 12:39:45 / 14:46:05 / 15:17:06 三個值皆與 branch 側相同，**所以算術不受影響**。
+（W05 那則已記過同一件事；本次是它第二次成立，這次用 `git merge-base --is-ancestor` 驗證。）
 
 ### ⛔ 但真正的發現不是 ratio，是我差點把估算當成量測交出去
 
@@ -74,7 +80,7 @@ commit 時間戳給出真值：Day 3 = **31 min**，原值**超估 2.6 倍**。
 
 ### 行動：**該修的是估算，不是乘數**
 
-`actual / bottom-up` = 3.4 / 19.75 = **0.17**，遠低於 CALIBRATION-MATRIX §乘數表明訂的
+`actual / bottom-up` = 3.87 / 19.75 = **0.20**，遠低於 CALIBRATION-MATRIX §乘數表明訂的
 **0.4 下限** —— 而該表對這個情況已經寫好了判準：
 「**低於 0.4 代表你的 bottom-up 估算方式有系統性問題，該修的是估算不是乘數**」。
 
@@ -83,14 +89,14 @@ commit 時間戳給出真值：Day 3 = **31 min**，原值**超估 2.6 倍**。
 的形狀已由 W03-W06 定死，寫的是**差異**不是全部。量測床（`int-global-setup.js` + 三筆 fixture control）
 W06 也已經備好，「量測 2.0 hr」實際 10 min。
 
-- **乘數 KEEP 0.65** —— `spike` 現有 W04 **0.81 (IN)** 與 W07 **0.27 (UNDER)**，
+- **乘數 KEEP 0.65** —— `spike` 現有 W04 **0.81 (IN)** 與 W07 **0.30 (UNDER)**，
   兩點且**方向相反**，不構成 3-phase 證據。單點不調（matrix §何時調整）。
 - **改估算方式**：下個 phase 的 bottom-up 必須對每一項標註
   **「有藍本 / 無藍本」**，有藍本的按「寫差異」估而不是按「寫全部」估。→ `AD-BottomUpBlueprint-1`。
 
 - [x] 已回填 `CALIBRATION-MATRIX.md`（≤ 1 行）
 - [x] 完整敘述已寫入 `CALIBRATION-LOG.md`
-- [x] |R − 1.0| = 73% > 30% → AD 已記入 `BACKLOG.md`
+- [x] |R − 1.0| = 70% > 30% → AD 已記入 `BACKLOG.md`
 
 ---
 

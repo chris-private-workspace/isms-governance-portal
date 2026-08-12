@@ -103,19 +103,24 @@ Log 是**歷史紀錄** —— 只有在要調整某個乘數、或要理解某�
 
 ### `spike`
 
-**現行乘數**: 0.65 | **資料點**: 5（**2 個同單位可用** —— W04 0.81 / W07 0.27，方向相反）
+**現行乘數**: 0.65 | **資料點**: 5（**2 個同單位可用** —— W04 0.81 / W07 0.30，方向相反）
 
-#### Phase W07 — ratio 0.27（UNDER band）⭐ 定義第一次乾淨適用，而它指向估算不是乘數
+#### Phase W07 — ratio 0.30（UNDER band）⭐ 定義第一次乾淨適用，而它指向估算不是乘數
 
-- Bottom-up **19.75 hr** → committed **12.8 hr** (mult 0.65) → actual **~3.4 hr**
+- Bottom-up **19.75 hr** → committed **12.8 hr** (mult 0.65) → actual **3.87 hr**
+  （12:27:00 → closeout `19bc4f7` author date **16:19:04** = 3 hr 52 min）
+- ⚠️ **本則的 SHA 一律是 rebase 後 main 上的**（PR #44 rebase merge；branch 側的
+  `b1dfaef` / `9f9e45a` / `5aa768e` 已不在 main 上，用 `git merge-base --is-ancestor` 驗過）。
+  ⭐ **author date 未被 rebase 改變** —— 三個時間戳逐一比對皆相同，**算術不受影響**。
+  這是 W05 那則同一結論的第二次成立。
 - **量測基礎**：`AD-CalibrationMetric-2` 的定義（branch 第一個 commit → closeout commit），
   **本次是它第一次沒有被污染** —— Day 0-4 全部同日，無跨夜、無閒置區間。
-  起點取 Day 1 的 `date` 實測 12:27（早於第一個 commit `b1dfaef` 12:39:45），
+  起點取 Day 1 的 `date` 實測 12:27（早於第一個 commit `a90e55f` 12:39:45），
   故本值含 Day 1 起的全部工作；**Day 0 起草在窗口之外，所以是下界**。
 - ⛔ **本則最重要的不是 ratio，是 Day 3 的工時數字差點是編的。**
   progress.md 原記 Day 3 = **1 hr 22 min**，宣稱結束於 **16:05**；
   Day 4 起手取 `date` 得到 **15:41** —— **一個還沒發生的時刻**。
-  commit 時間戳給出真值：`9f9e45a` 14:46:05 → `5aa768e` 15:17:06 = **31 min**，**超估 2.6 倍**。
+  commit 時間戳給出真值：`b9f7611` 14:46:05 → `889993d` 15:17:06 = **31 min**，**超估 2.6 倍**。
   根因：15:14 之後沒有再取過任何 `date`，剩下四段全是**先寫下預期耗時再當成量測**，
   每段單看都合理、累積起來把 31 分鐘寫成 82 分鐘。
   ⚠️ **`AD-CalibrationNoActual-1` 要求「逐日記錄逐任務分鐘數」，我照做了** ——
@@ -123,14 +128,14 @@ Log 是**歷史紀錄** —— 只有在要調整某個乘數、或要理解某�
   → `AD-EstimateAsMeasurement-1`：每個區段**兩端都要有可觀察錨點**，
   沒有閉合錨點的區段標 `~est` 且**不得進 calibration**。
 - **是雜訊還是訊號**：**是訊號，但訊號指向的不是乘數。**
-  `actual / bottom-up` = 3.4 / 19.75 = **0.17**，而本 matrix §乘數表明訂
+  `actual / bottom-up` = 3.87 / 19.75 = **0.20**，而本 matrix §乘數表明訂
   「低於 0.4 代表 bottom-up 估算方式有系統性問題，**該修的是估算不是乘數**」。
   歸因（Day 1 / Day 2 progress 各獨立記過一次，方向一致）：
   bottom-up 假設**從零建**，實際**藍本複用率極高** —— 兩個 repository / controller / module /
   int spec 的形狀由 W03-W06 定死，寫的是**差異**不是全部；
   量測床（`int-global-setup.js` + 三筆 fixture control）W06 已備好，
   「量測 2.0 hr」實際 **10 min**。
-- **行動**：**KEEP 0.65**。W04 (0.81 IN) 與 W07 (0.27 UNDER) **方向相反**，
+- **行動**：**KEEP 0.65**。W04 (0.81 IN) 與 W07 (0.30 UNDER) **方向相反**，
   兩點且不同向，離 matrix 要求的「連續 3 個同方向」還很遠 —— 單點不調、反向兩點更不調。
   真正該動的是估算方式 → `AD-BottomUpBlueprint-1`（bottom-up 逐項標「有藍本 / 無藍本」）。
 - ⚠️ **W04 那則預告的「第一次真正的 3-phase 窗口判定會在 W06 成立」延到最快 W08** ——

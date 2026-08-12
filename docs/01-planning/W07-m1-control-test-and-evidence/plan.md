@@ -1,5 +1,5 @@
 ---
-status: active   # draft | active | closed | closed_partial —— 機器可讀的唯一權威
+status: closed   # draft | active | closed | closed_partial —— 機器可讀的唯一權威
 ---
 
 # Phase W07 Plan — ControlTest + Evidence，與父表拒絕複合錨點時的範疇防護
@@ -12,11 +12,12 @@ W05/W06 用 `(asset_group_id, org_entity_id)` 複合 FK 關掉跨實體引用，
 以及父表拒絕錨點時什麼機制能補上。⚪ **無 UI → API-level verified**，不做 drive-through、
 不暗示可用性。**spike class → 產出 design note**（8-point gate）。
 
-**Status**: Approved-to-execute（使用者 2026-08-12 —— 選定 scope = `ControlTest` + `Evidence`；
+**Status**: **Closed**（2026-08-12 —— MERGED PR #44，六個 required check 全 SUCCESS）
+起手為 Approved-to-execute（使用者 2026-08-12 —— 選定 scope = `ControlTest` + `Evidence`；
 裁決 Scope decision (b) `result` 不建、(e) US-4 留在本 phase；detector 明確再延）
 
-**Branch**: `feature/W07-control-test-and-evidence`
-**Base**: `main` HEAD `<TBD —— PR #43 的 merge commit；於 Day 0 §0.2 記錄實際 sha>`
+**Branch**: `feature/W07-control-test-and-evidence` —— **MERGED** PR #44（rebase，main head `19bc4f7`）
+**Base**: `main` HEAD `5189cf3`（PR #43 的 merge commit，Day 0 §0.2 實測確認）
 **Slice**: M1 slice 4 / N（前一片 W06 = slice 3）。關掉 `AD-ReturningMasksCheck-1`（carryover）、
 `AD-GroupRowTheft-1`、`AD-CalibrationNoActual-1` 的執行面
 **Scope decisions**:
