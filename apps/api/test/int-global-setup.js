@@ -23,6 +23,7 @@
  * Last Modified: 2026-08-12
  *
  * Modification History (newest-first):
+ *   - 2026-08-12: Phase W07 — control tests and evidence, one per entity
  *   - 2026-08-12: Phase W06 — controls, incl. the group row the app cannot write
  *   - 2026-08-11: Phase W05 — the asset chain, two entities deep, plus libraries
  *   - 2026-08-10: Phase W04 — users, policy ref_code, counters derived from seed
@@ -211,6 +212,44 @@ const SEED = {
       'entity',
     ],
   ],
+  // W07. One test per entity, each against that entity's OWN control. Both sides
+  // for the reason the asset fixtures give: with only SG1 rows, "HK1 cannot see
+  // SG1's test" and "HK1 has no tests" are the same observation.
+  //
+  // ⚠️ Seeded through the OWNER connection, which is also the only way this can
+  // work: control_tests carries a BEFORE INSERT trigger whose lookup runs under
+  // the caller's policies, and this connection never sets app.entity_scope.
+  controlTests: [
+    // [id, orgEntityId, refCode, controlId]
+    [
+      '00000000-0000-0000-0000-000000000a60',
+      '00000000-0000-0000-0000-0000000000c0',
+      'CTST-SG1-000001',
+      '00000000-0000-0000-0000-000000000a50',
+    ],
+    [
+      '00000000-0000-0000-0000-000000000a61',
+      '00000000-0000-0000-0000-0000000000c1',
+      'CTST-HK1-000001',
+      '00000000-0000-0000-0000-000000000a52',
+    ],
+  ],
+  // W07. One per entity, each linked to that entity's own test above.
+  evidence: [
+    // [id, orgEntityId, refCode, linkedId]
+    [
+      '00000000-0000-0000-0000-000000000a70',
+      '00000000-0000-0000-0000-0000000000c0',
+      'EVID-SG1-000001',
+      '00000000-0000-0000-0000-000000000a60',
+    ],
+    [
+      '00000000-0000-0000-0000-000000000a71',
+      '00000000-0000-0000-0000-0000000000c1',
+      'EVID-HK1-000001',
+      '00000000-0000-0000-0000-000000000a61',
+    ],
+  ],
   // Global libraries (multi-tenant-data.md:63) — no org_entity_id, and that is
   // the property the suite pins: BOTH entities must read the same rows.
   threats: [
@@ -315,6 +354,23 @@ module.exports = async function globalSetup() {
       [id, orgEntityId, refCode, title, type, nature, frequency, appliesToScope],
     );
   }
+  for (const [id, orgEntityId, refCode, controlId] of SEED.controlTests) {
+    await seed.query(
+      `INSERT INTO control_tests (id, org_entity_id, ref_code, control_id, updated_at)
+       VALUES ($1, $2, $3, $4, now())`,
+      [id, orgEntityId, refCode, controlId],
+    );
+  }
+  for (const [id, orgEntityId, refCode, linkedId] of SEED.evidence) {
+    await seed.query(
+      `INSERT INTO evidence (id, org_entity_id, ref_code, kind, uri_or_blob_ref, hash,
+                             collected_at, linked_type, linked_id, updated_at)
+       VALUES ($1, $2, $3, 'screenshot', 'file://seed/evidence.png',
+               'sha256:0000000000000000000000000000000000000000000000000000000000000000',
+               now(), 'control_test'::evidence_linked_type, $4, now())`,
+      [id, orgEntityId, refCode, linkedId],
+    );
+  }
   for (const [id, name, category] of SEED.threats) {
     await seed.query(
       `INSERT INTO threats (id, name, category, updated_at) VALUES ($1, $2, $3, now())`,
@@ -351,6 +407,16 @@ module.exports = async function globalSetup() {
   await seed.query(
     `INSERT INTO ref_code_counters (org_entity_id, entity_type, last_seq, updated_at)
      SELECT org_entity_id, 'control', count(*), now() FROM controls GROUP BY org_entity_id`,
+  );
+  // W07. Same derivation, same reason: hard-coding these would hand the first
+  // test created through the API a number the seed already used.
+  await seed.query(
+    `INSERT INTO ref_code_counters (org_entity_id, entity_type, last_seq, updated_at)
+     SELECT org_entity_id, 'control_test', count(*), now() FROM control_tests GROUP BY org_entity_id`,
+  );
+  await seed.query(
+    `INSERT INTO ref_code_counters (org_entity_id, entity_type, last_seq, updated_at)
+     SELECT org_entity_id, 'evidence', count(*), now() FROM evidence GROUP BY org_entity_id`,
   );
   for (const [id, orgEntityId, entityType, key, dataType, required] of SEED.extensionFields) {
     await seed.query(

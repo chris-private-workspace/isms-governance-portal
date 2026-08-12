@@ -97,47 +97,58 @@
 
 ### 2.1 `ControlTest`
 
-- [ ] **`schema.prisma` + migration**（model · `ControlTestStatus` 五態 · per-command policies ·
+- [x] **`schema.prisma` + migration**（model · `ControlTestStatus` 五態 · per-command policies ·
       依 Day 1 結果的引用防護）
   - DoD: `prisma migrate` 乾淨套用；`pg_policies` 查得到三條、**查不到 `FOR DELETE`**
   - Verify: `npm run prisma:migrate -w apps/api` + `SELECT * FROM pg_policies WHERE tablename='control_tests'`
-- [ ] **`control-test.repository.ts` + `.spec.ts`**
+  - ✅ `20260812055744_control_test_and_evidence`；trigger `assert_parent_in_scope()` raise **23503**
+    （改判理由見 progress.md Day 2 發現一）
+- [x] **`control-test.repository.ts` + `.spec.ts`**
   - DoD: `ref_code` 為 `CTST-<ENTITY_CODE>-<seq>`；server-owned 欄位不接受呼叫者輸入
-  - Verify: `npm run test -w apps/api`
-- [ ] **`/control-tests` controller + module + `.controller.spec.ts`**，掛進 `app.module.ts`
+  - Verify: `npm run test -w apps/api` → 通過；`status`/`performedAt`/`reviewerUserId`/`conclusion`
+    皆不在 insert 內（測試逐項斷言）
+- [x] **`/control-tests` controller + module + `.controller.spec.ts`**，掛進 `app.module.ts`
   - DoD: 由主流量進入（約束 2）；`app.module.ts` 可見
-  - Verify: `npm run build -w apps/api`
+  - Verify: `npm run build -w apps/api` clean；`bootstrap/app.module.ts:50` 可見 ⚠️ 檔案實際位置見 D1
 
 ### 2.2 `Evidence`
 
-- [ ] **`schema.prisma` + migration**（model · `linked_type` **只有 `control_test`** ·
+- [x] **`schema.prisma` + migration**（model · `linked_type` **只有 `control_test`** ·
       per-command policies · 多型連結的範疇防護）
   - DoD: enum 只有一個值且 docstring 記錄理由（ADR-0014 同判準）
-  - Verify: 同上
-- [ ] **`evidence.repository.ts` + `.spec.ts` + controller + module**
+  - Verify: 同上 ✅ `linked_id` **無 FK**（Prisma 產出確認），trigger 同時扮演缺席的 FK
+- [x] **`evidence.repository.ts` + `.spec.ts` + controller + module**
   - DoD: `hash` 欄位存在且必填（證據等級主張的完整性錨點）
-  - Verify: `npm run test -w apps/api`
+  - Verify: `npm run test -w apps/api` → 通過；空字串 `hash` 亦被拒（不只「缺少」）
 
 ### 2.3 `extension_fields` per-command 拆分（US-4）
 
-- [ ] **先寫紅測試** —— 「把 group 列的 `org_entity_id` 改成自己」在修補前**必須紅**
+- [x] **先寫紅測試** —— 「把 group 列的 `org_entity_id` 改成自己」在修補前**必須紅**
   - DoD: 看到它紅（不是推測它會紅）
   - Verify: `npm run test -w apps/api`，貼出失敗輸出
-- [ ] **migration：`FOR ALL` → `FOR SELECT` + `FOR INSERT` + `FOR UPDATE`**（後兩者排除 `IS NULL`）
+  - ✅ **實際看到**：`Expected: 0 / Received: 1` —— SG1 成功奪取 group 宣告
+- [x] **migration：`FOR ALL` → `FOR SELECT` + `FOR INSERT` + `FOR UPDATE`**（後兩者排除 `IS NULL`）
   - DoD: 同一個測試轉綠；`DELETE` 維持靠缺少 GRANT 擋住（**不補 policy**）
-  - Verify: 重跑 + `pg_policies`
+  - Verify: 重跑 → `1 passed` ✅；`20260812063000_extension_fields_per_command`
 
 ### 2.4 carryover
 
 - [ ] **`risks` int 11b 改為不產生 `RETURNING`**（`AD-ReturningMasksCheck-1`）
   - DoD: 中性化 `risks` 的 `WITH CHECK` 後它**會紅**
   - Verify: 中性化 → 跑 → 看到紅 → 還原
+  - 🚧 **移到 Day 3**：驗收條件本身就是中性化，與 §3.3 元驗證同一批操作；
+    在 Day 2 做等於把資料庫改兩次卻只驗一次
 
 ### 2.x Full gate
 
-- [ ] lint `<N>` · type-check clean · test `<N>` · build clean · `run_all` 6/6
-- [ ] coverage 不低於 Day-0 baseline（低於先歸因再補，不直接補測試湊數）
-- [ ] progress.md Day 2 逐任務分鐘數
+- [x] lint **0** · format:check pass · type-check clean · test **235** · int **105** ·
+      build clean · `run_all` **6/6**
+- [x] coverage 不低於 Day-0 baseline（低於先歸因再補，不直接補測試湊數）
+  - ⚠️ **仍低於 baseline**：stmt 92.58（−0.78）· br 92.32（−0.15）。已歸因：
+    branches 的降幅逐處查出四個未走到分支並補**帶主張**的測試（90.41 → 92.32）；
+    剩餘差距**全部**是兩個新 `.module.ts` 的 0%，與既有四個一致。
+    W07 新增的每個非 module 檔案皆 **100% statements**
+- [x] progress.md Day 2 逐任務分鐘數（12:37 → 14:43，**~2 hr 6 min**）
 
 ---
 

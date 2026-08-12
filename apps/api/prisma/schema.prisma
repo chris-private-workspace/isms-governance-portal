@@ -1,13 +1,19 @@
 // File: apps/api/prisma/schema.prisma
-// Purpose: The entity graph, five models in. Every table here is on 02a §0's index.
+// Purpose: The entity graph, 13 models in. Every table here is on 02a §0's index.
 // Category: core-model
-// Scope: Phase W01 (M0) → W04 (M1 slice 1)
+// Scope: Phase W01 (M0) → W07 (M1 slice 4)
 // Owner: docs/02-architecture/02a-data-model-spec.md §0 (entity index)
 //
 // Description:
-//   M1 slice 1. The models here are not a sample of 02a — they are the SHAPE the
-//   remaining 30 Wave-1 entities copy: base fields, soft delete, entity scoping
-//   by RLS, governed extensions, and a server-issued ref_code.
+//   The models here are not a sample of 02a — they are the SHAPE the remaining
+//   Wave-1 entities copy: base fields, soft delete, entity scoping by RLS,
+//   governed extensions, and a server-issued ref_code.
+//
+//   ⚠️ Slice 4 added a SECOND shape, because the first one ran out. Cross-entity
+//   references were closed by a composite foreign key until a parent (Control)
+//   refused the anchor and a child (Evidence) had no foreign key at all. Those two
+//   are guarded by a SECURITY INVOKER trigger instead — see ControlTest's header
+//   for what W07 Day 1 measured, and why a plain foreign key is not enough.
 //
 //   ⚠️ Every business table added from M1 on MUST carry `entity_id NOT NULL`,
 //   including child tables (CLAUDE.md 約束 8). That redundancy is intentional:
@@ -21,9 +27,10 @@
 //   (rules-on-demand/multi-tenant-data.md).
 //
 // Created: 2026-08-08 (Phase W01)
-// Last Modified: 2026-08-10
+// Last Modified: 2026-08-12
 //
 // Modification History (newest-first):
+//   - 2026-08-12: Phase W07 — ControlTest + Evidence; trigger-guarded references
 //   - 2026-08-10: Phase W04 — User (ADR-0012), ref_code counters, Policy base fields
 //   - 2026-08-10: Phase W03 — governed extensions (ADR-0005): JSONB + catalog
 //   - 2026-08-09: Phase W02 — first two tables, entity-scoped by RLS
@@ -89,6 +96,8 @@ model OrgEntity {
   assets          Asset[]
   risks           Risk[]
   controls        Control[]
+  controlTests    ControlTest[]
+  evidence        Evidence[]
 
   version   Int       @default(1)
   createdAt DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
@@ -139,6 +148,12 @@ model User {
   custodiedAssets  Asset[]      @relation("AssetCustodian")
   ownedRisks       Risk[]       @relation("RiskOwner")
   ownedControls    Control[]    @relation("ControlOwner")
+
+  /// Both sides of 02a:416's segregation-of-duties rule, as separate relations.
+  /// The rule (reviewer ≠ tester) is enforced at the review transition, which does
+  /// not exist yet — these columns are what it will read, not a check in disguise.
+  testedControlTests   ControlTest[] @relation("ControlTestTester")
+  reviewedControlTests ControlTest[] @relation("ControlTestReviewer")
 
   @@map("users")
 }
@@ -445,11 +460,15 @@ enum ControlFrequency {
 
 /// 02a:125, verbatim.
 ///
-/// ⚠️ `not_tested` IS NOT A PLACEHOLDER. `ControlTest` does not exist until M7,
-/// so every control in Wave 1 sits here — and that is the specified, honest
-/// answer to "how effective is this control", not a stub awaiting a real value.
-/// A control nobody has tested is not `effective`; saying so would be the
-/// platform asserting a governance claim it was never given.
+/// ⚠️ `not_tested` IS NOT A PLACEHOLDER, and it stays the only reachable value
+/// even now that `ControlTest` exists (W07). 02a:418 derives this column from the
+/// latest COMPLETED test, and W07 ships a create-only test registry: nothing moves
+/// a test to a terminal state, so nothing has a completed test to derive from.
+/// A control nobody has finished testing is not `effective`; saying so would be
+/// the platform asserting a governance claim it was never given.
+///
+/// The derivation arrives with the review transition, which is also where 02a:416
+/// puts the segregation-of-duties check. Both wait for the same slice.
 enum ControlEffectiveness {
   not_tested
   effective
@@ -473,6 +492,41 @@ enum ControlAppliesToScope {
   group
 
   @@map("control_applies_to_scope")
+}
+
+/// The ControlTest lifecycle, 02a §4 verbatim (Scheduled -> InProgress ->
+/// Passed | Partial | Failed).
+///
+/// ⚠️ THESE FIVE ARE ALSO THE `result` COLUMN 02a:225 ASKS FOR, which is why that
+/// column is not built. Passed / Partial / Failed are not a status that happens to
+/// accompany a result — they ARE the result, and §4 already names them as states.
+/// Two columns would be two ways to say one thing with no way to tell them apart
+/// when they disagree; ControlFrequency records the same reasoning for NULL.
+///
+/// Omitting a field the spec lists is a deviation under 已確認參數 #9 just as
+/// inventing one is, so it is written down in both places — here and at 02a:225.
+enum ControlTestStatus {
+  scheduled
+  in_progress
+  passed
+  partial
+  failed
+
+  @@map("control_test_status")
+}
+
+/// What a piece of evidence is attached to (02a:227).
+///
+/// ⚠️ ONE VALUE, NOT THREE. 02a:227 also names attestation and assessment; neither
+/// table exists. An enum value whose target table is absent is a setting that can
+/// be chosen and then does nothing — the same AP-3 that kept `subtree` out of
+/// ControlAppliesToScope (ADR-0014). Adding a value later is one line here, one
+/// branch in the trigger, and a test; that is the cost of waiting, and it is
+/// smaller than the cost of shipping a link that resolves to nothing.
+enum EvidenceLinkedType {
+  control_test
+
+  @@map("evidence_linked_type")
 }
 
 /// Groups assets for assessment (02a:202), per the Risk Management Report.
@@ -708,7 +762,7 @@ model Risk {
   // the honest answer — not `false`, and emphatically not `acceptable`.
 
   scoreBefore Int? @default(dbgenerated("(lkh_before * GREATEST(fin_before, bop_before, lry_before, rep_before, sis_before))")) @map("score_before")
-  scoreAfter  Int? @default(dbgenerated("(lkh_after * GREATEST(fin_after, bop_after, lry_after, rep_after, sis_after))"))      @map("score_after")
+  scoreAfter  Int? @default(dbgenerated("(lkh_after * GREATEST(fin_after, bop_after, lry_after, rep_after, sis_after))")) @map("score_after")
 
   acceptanceStatus RiskAcceptanceStatus? @default(dbgenerated("\nCASE\n    WHEN ((lkh_after IS NULL) AND (lkh_before IS NULL)) THEN NULL::risk_acceptance_status\n    WHEN (COALESCE((lkh_after * GREATEST(fin_after, bop_after, lry_after, rep_after, sis_after)), (lkh_before * GREATEST(fin_before, bop_before, lry_before, rep_before, sis_before))) >= 16) THEN 'requires_treatment'::risk_acceptance_status\n    ELSE 'acceptable'::risk_acceptance_status\nEND")) @map("acceptance_status")
 
@@ -801,8 +855,9 @@ model Control {
   version    Int  @default(1)
   extensions Json @default("{}") @db.JsonB
 
-  orgEntity OrgEntity @relation(fields: [orgEntityId], references: [id])
-  owner     User?     @relation("ControlOwner", fields: [ownerUserId], references: [id])
+  orgEntity OrgEntity     @relation(fields: [orgEntityId], references: [id])
+  owner     User?         @relation("ControlOwner", fields: [ownerUserId], references: [id])
+  tests     ControlTest[]
 
   createdAt DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
   updatedAt DateTime  @updatedAt @map("updated_at") @db.Timestamptz(6)
@@ -812,4 +867,140 @@ model Control {
   @@index([appliesToScope, retiredAt])
   @@index([orgEntityId, retiredAt])
   @@map("controls")
+}
+
+/// One execution of a control test (02a:225) — the source 02a:418 specifies
+/// `Control.effectiveness` derives from.
+///
+/// ⚠️ NO `result` COLUMN, though 02a:225 lists one. See ControlTestStatus: §4's
+/// three terminal states already ARE the result.
+///
+/// ⭐ THE INTERESTING PART IS `control_id`, and it is the first reference in this
+/// schema that a foreign key cannot secure on its own. Every earlier child closed
+/// cross-entity references with a COMPOSITE key — assets.(asset_group_id,
+/// org_entity_id) — and Control deliberately refuses the anchor that needs (see
+/// Control's header: the M7 link table exists to join rows whose entities differ).
+///
+/// W07 Day 1 measured what a plain foreign key leaves open, against real
+/// PostgreSQL: the referential-integrity check is NOT subject to row-level
+/// security, so a principal scoped to HK1 successfully inserted a row naming an
+/// SG1 control it cannot SELECT at all. Worse, an id that exists nowhere is
+/// refused 23503 — so success versus 23503 told the caller "exists, not yours"
+/// versus "absent", which is the 403-vs-404 oracle 約束 8 forbids, one layer below
+/// anywhere HTTP code could fix it.
+///
+/// What closes it is a BEFORE INSERT OR UPDATE trigger running SECURITY INVOKER,
+/// so its lookup is filtered by the same policies the caller reads under. Because
+/// a BEFORE trigger runs AHEAD of the constraint, the absent id never reaches the
+/// foreign key: both cases raise 42501 and are indistinguishable (measured, W07
+/// Day 1 M5). Disabling the trigger turns the refusal back into a success, which
+/// is how we know the trigger is what does the work (M8). See the migration.
+model ControlTest {
+  id String @id @default(uuid()) @db.Uuid
+
+  /// `CTST-<ENTITY_CODE>-<seq>`. Self-declared, as Control's is: 02a:91 fixes the
+  /// rule (prefix by type and entity) and names no prefix for this type.
+  refCode String @unique @map("ref_code")
+
+  orgEntityId String @map("org_entity_id") @db.Uuid
+
+  /// N:1 and required (02a:410). Guarded by trigger, not by a composite key.
+  controlId String @map("control_id") @db.Uuid
+
+  status ControlTestStatus @default(scheduled)
+
+  /// Both nullable: a test can be scheduled before it is performed, and recorded
+  /// after the fact without ever having been scheduled. Neither is the normal
+  /// case dressed as an exception.
+  scheduledFor DateTime? @map("scheduled_for") @db.Timestamptz(6)
+  performedAt  DateTime? @map("performed_at") @db.Timestamptz(6)
+
+  testerUserId   String? @map("tester_user_id") @db.Uuid
+  reviewerUserId String? @map("reviewer_user_id") @db.Uuid
+
+  conclusion String?
+
+  createdBy String? @map("created_by") @db.Uuid
+  updatedBy String? @map("updated_by") @db.Uuid
+
+  version    Int  @default(1)
+  extensions Json @default("{}") @db.JsonB
+
+  orgEntity OrgEntity @relation(fields: [orgEntityId], references: [id])
+  control   Control   @relation(fields: [controlId], references: [id])
+  tester    User?     @relation("ControlTestTester", fields: [testerUserId], references: [id])
+  reviewer  User?     @relation("ControlTestReviewer", fields: [reviewerUserId], references: [id])
+  // No `evidence Evidence[]` back-relation: Evidence names this table by a bare
+  // polymorphic uuid, so there is no relation for Prisma to walk back along.
+
+  createdAt DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt DateTime  @updatedAt @map("updated_at") @db.Timestamptz(6)
+  retiredAt DateTime? @map("retired_at") @db.Timestamptz(6)
+
+  @@index([orgEntityId, retiredAt])
+  @@index([controlId, retiredAt])
+  @@map("control_tests")
+}
+
+/// Evidence attached to a record (02a:227). Polymorphic by specification.
+///
+/// ⚠️ `linked_id` HAS NO FOREIGN KEY, and that is the specification rather than an
+/// omission: 02a:227 links to test, attestation or assessment, and a column cannot
+/// reference three tables. Prisma therefore models `controlTest` as a relation on
+/// the ONE type that exists (EvidenceLinkedType), while the database column stays
+/// a bare uuid — see the migration, which creates no constraint for it.
+///
+/// ⭐ W07 Day 1 measured what "no foreign key" costs when nothing else is watching:
+/// a row pointing at another entity's record was accepted, and so was a row
+/// pointing at an id that exists nowhere at all (M3, M3b). So the same trigger
+/// ControlTest needs for a different reason does double duty here — it is both the
+/// scope guard AND the absent referential integrity, and it fails closed for a
+/// linked_type it does not know how to check.
+model Evidence {
+  id String @id @default(uuid()) @db.Uuid
+
+  /// `EVID-<ENTITY_CODE>-<seq>`. Self-declared, same rule as the others.
+  refCode String @unique @map("ref_code")
+
+  orgEntityId String @map("org_entity_id") @db.Uuid
+
+  /// Free text (02a:227 names no enumeration): "screenshot", "export", "log".
+  /// Inventing a closed list here would be inventing a field (已確認參數 #9).
+  kind String
+
+  /// Where the artefact actually lives. A pointer, never the bytes: 04's
+  /// classification and retention rules apply to the store, not to this row.
+  uriOrBlobRef String @map("uri_or_blob_ref")
+
+  /// Integrity anchor (02a:227). REQUIRED, not nullable — evidence whose contents
+  /// cannot be shown to be unchanged is not evidence-grade (guardrail 5), and a
+  /// nullable column would let the platform hold both kinds while claiming one.
+  hash String
+
+  collectedAt DateTime @map("collected_at") @db.Timestamptz(6)
+
+  linkedType EvidenceLinkedType @map("linked_type")
+  linkedId   String             @map("linked_id") @db.Uuid
+
+  createdBy String? @map("created_by") @db.Uuid
+  updatedBy String? @map("updated_by") @db.Uuid
+
+  version    Int  @default(1)
+  extensions Json @default("{}") @db.JsonB
+
+  orgEntity OrgEntity @relation(fields: [orgEntityId], references: [id])
+
+  /// ⛔ NO Prisma relation for `linked_id`, deliberately. Declaring one would make
+  /// Prisma emit a real foreign key to control_tests — which reads as tidier and
+  /// would structurally break the thing this column is for: the day
+  /// EvidenceLinkedType gains `attestation`, that key would reject every
+  /// attestation id. A relation that must be deleted to add the second case was
+  /// never modelling the first one correctly.
+  createdAt DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt DateTime  @updatedAt @map("updated_at") @db.Timestamptz(6)
+  retiredAt DateTime? @map("retired_at") @db.Timestamptz(6)
+
+  @@index([orgEntityId, retiredAt])
+  @@index([linkedType, linkedId])
+  @@map("evidence")
 }

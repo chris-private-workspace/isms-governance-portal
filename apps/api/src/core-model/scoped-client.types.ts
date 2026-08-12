@@ -32,11 +32,13 @@
  *   - ScopedExtensionCatalogClient: what validating governed extensions needs
  *   - ScopedPolicyClient / ScopedRiskClient / ScopedControlClient: the above, plus one table each
  *   - ScopedAssetGroupClient / ScopedAssetClient: split so the asset path cannot read groups
+ *   - ScopedControlTestClient / ScopedEvidenceClient: same guard, kept by a trigger instead
  *
  * Created: 2026-08-10 (Phase W03)
  * Last Modified: 2026-08-12
  *
  * Modification History (newest-first):
+ *   - 2026-08-12: Add ControlTest + Evidence (W07) — parent guard is a trigger here
  *   - 2026-08-12: Add Control + the split asset pair (W06) — the split is an oracle guard
  *   - 2026-08-11: Add ScopedRiskClient; extract the catalog half (W05) — second consumer
  *   - 2026-08-10: Add ScopedRefCodeClient (W04) — ScopedPolicyClient extends it
@@ -50,6 +52,8 @@ import type {
   Asset,
   AssetGroup,
   Control,
+  ControlTest,
+  Evidence,
   ExtensionField,
   OrgEntity,
   Policy,
@@ -135,6 +139,46 @@ export interface ScopedAssetClient extends ScopedRefCodeClient, ScopedExtensionC
   readonly asset: {
     findMany(args?: Prisma.AssetFindManyArgs): Promise<Asset[]>;
     create(args: Prisma.AssetCreateArgs): Promise<Asset>;
+  };
+}
+
+/**
+ * One execution of a control test (W07).
+ *
+ * ⚠️ Deliberately does NOT expose `control`, for the reason ScopedAssetClient
+ * records about `assetGroup` — but arrived at by a different route, and that
+ * difference is worth reading before this interface is ever widened. There the
+ * oracle was unwritable because a COMPOSITE foreign key gave one error for both
+ * "absent" and "not yours". `controls` has no such key and cannot have one, so
+ * here the collapsing is done by a BEFORE trigger that runs ahead of the
+ * constraint (measured, W07 Day 1 M5). Same guarantee, different mechanism, same
+ * conclusion: a repository able to read the control table first could tell the
+ * two apart, so it is not given the delegate.
+ */
+export interface ScopedControlTestClient
+  extends ScopedRefCodeClient,
+    ScopedExtensionCatalogClient {
+  readonly controlTest: {
+    findMany(args?: Prisma.ControlTestFindManyArgs): Promise<ControlTest[]>;
+    create(args: Prisma.ControlTestCreateArgs): Promise<ControlTest>;
+  };
+}
+
+/**
+ * Evidence attached to a record (W07).
+ *
+ * ⚠️ Deliberately does NOT expose `controlTest`, and the omission carries more
+ * weight here than anywhere else in this file: `linked_id` has NO foreign key at
+ * all (02a:227 is polymorphic), so without the trigger a row could name any id
+ * including one that exists nowhere — measured, W07 Day 1 M3b. Everything
+ * standing between this repository and that is in the database. Granting the
+ * delegate would put a second, weaker copy of the check up here and invite the
+ * two to disagree.
+ */
+export interface ScopedEvidenceClient extends ScopedRefCodeClient, ScopedExtensionCatalogClient {
+  readonly evidence: {
+    findMany(args?: Prisma.EvidenceFindManyArgs): Promise<Evidence[]>;
+    create(args: Prisma.EvidenceCreateArgs): Promise<Evidence>;
   };
 }
 

@@ -17,6 +17,7 @@
  * Last Modified: 2026-08-12
  *
  * Modification History (newest-first):
+ *   - 2026-08-12: Import ControlTestModule + EvidenceModule (W07) — slice 4's endpoints
  *   - 2026-08-12: Import ControlModule + AssetModule (W06) — slice 3's endpoints
  *   - 2026-08-11: Import RiskModule — the asset-based risk chain (W05)
  *   - 2026-08-10: Import PolicyModule — the first business endpoint (W03)
@@ -30,6 +31,8 @@ import { EntityScopeModule } from '../entity-scope/entity-scope.module';
 import { HealthModule } from '../health/health.module';
 import { AssetModule } from '../modules/asset/asset.module';
 import { ControlModule } from '../modules/control/control.module';
+import { ControlTestModule } from '../modules/control-test/control-test.module';
+import { EvidenceModule } from '../modules/evidence/evidence.module';
 import { PolicyModule } from '../modules/policy/policy.module';
 import { RiskModule } from '../modules/risk/risk.module';
 
@@ -47,6 +50,8 @@ const ENV_FILES = [resolve(process.cwd(), '.env'), resolve(process.cwd(), '../..
     RiskModule,
     ControlModule,
     AssetModule,
+    ControlTestModule,
+    EvidenceModule,
   ],
 })
 export class AppModule {}

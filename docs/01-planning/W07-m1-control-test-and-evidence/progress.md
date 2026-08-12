@@ -118,3 +118,96 @@
 - 量測腳本**不進 repo**（plan §3.1）—— 進 repo 的是它導出的 policy / trigger 與測試。
   兩個腳本留在 scratchpad：`w07-m1-measure.js`（M1-M4）· `w07-m5-oracle.js`（M5-M8）。
 - `isms_test` 被兩次 `globalSetup()` 重建；那是它每次跑測試都會發生的事，非額外副作用。
+
+---
+
+## Day 2 — 2026-08-12（兩張表 + 兩組端點 + 隔離修補）
+
+### 逐任務實際工時
+
+| 任務 | 起 | 訖 | 實際 |
+|---|---|---|---|
+| schema（2 enum + 2 model + header/orphan-claim 更正）| 12:37 | ~13:05 | **~28 min** |
+| migration：Prisma 產生 + 手寫 GRANT / RLS / policies / trigger | ~13:05 | ~13:30 | **~25 min** |
+| ⚠️ SQLSTATE 改判（42501 → 23503）+ surgical 回滾 + 重新量測 | ~13:30 | ~13:45 | **~15 min** |
+| scoped-client 型別 + 2 repository + 2 controller + 2 module + wiring | ~13:45 | ~14:10 | **~25 min** |
+| int seed + 2 個 int spec + 修 3 個失敗 | ~14:10 | ~14:28 | **~18 min** |
+| 4 個 unit spec + coverage 歸因 + 補 4 個分支測試 | ~14:28 | ~14:38 | **~10 min** |
+| US-4 `extension_fields`（紅測試 → migration → 綠）| ~14:38 | ~14:43 | **~5 min** |
+| **Day 2 小計** | 12:37 | 14:43 | **~2 hr 6 min** |
+
+> bottom-up 對 Day 2 涵蓋的任務估 **~10.5 hr**（表 2.5+2.0 · 表 2.0+2.0 · int 2.5 ·
+> extension_fields 1.0，扣掉 Day 3 的部分）。實際 ~2.1 hr。與 Day 1 同一個方向、同一個原因：
+> **既有藍本的複用率遠高於 bottom-up 的假設** —— 五個 repository / controller / int spec 的形狀
+> 已由 W03-W06 定死，寫的是差異不是全部。留給 Day 4 retro Q2，**不當場調乘數**。
+
+### 交付
+
+| 項目 | 狀態 |
+|---|---|
+| `control_tests` · `evidence` 兩張表 + migration | ✅ |
+| `assert_parent_in_scope()` trigger（2 個 table 各一個 trigger）| ✅ |
+| `/control-tests` · `/evidence` 端點（掛進 `app.module.ts:50-51`）| ✅ |
+| `extension_fields` per-command 拆分 | ✅ **紅 → 綠**（見下） |
+| `risks` int 11b carryover | ⏳ **Day 3**（與元驗證一起做才驗得出「會轉紅」）|
+
+### ⭐ Day 2 的三個發現
+
+**一、SQLSTATE 選錯了，而 `scope-refusal.ts` 早就寫好了正確答案。**
+trigger 原本 raise `42501`，那會讓 repository 只能丟 `ScopeRefusedError` ——
+訊息是「org entity X not found」，但真正錯的是 `control_id`：**歸因錯誤的 404**。
+改成 `23503`：`UnknownReferenceError` 的 docstring 寫的正是這個情境
+（「either because no such record exists, or because it belongs to another entity」），
+且它**只帶欄位名不帶 id**。改完**重新量一次**（不因為「只是改個常數」就假設 M5 的結論還成立）——
+oracle 仍關閉（兩者同為 `23503`），且現在兩個訊號各說各的：
+父列不可達 `23503`（欄位名）· 列自身越界 `42501`（org entity）。
+
+**二、⭐ `AD-BorrowedRefusal-1` 第三次，新形狀：trigger 跑在該列自身的 `WITH CHECK` 之前。**
+兩個「釘 INSERT policy」的測試第一版都是**綠的**，但綠的原因是 trigger 先擋 ——
+那張表自己的 `WITH CHECK` **從未被評估**。前兩次是 ref-code counter（W05）與 `RETURNING`（W06），
+這次是 trigger。修法：讓 trigger 通過（父列取當前範疇讀得到的），`WITH CHECK` 才是唯一還能拒絕的。
+⛔ **依 `.claude/rules/README.md` 強度階梯，第 3 次應改結構性解法** —— 見 Day 4 的 AD。
+
+**三、Prisma 會改寫 `23503` 的訊息，不改寫 `42501`。**
+`23503` → "Foreign key constraint violated"（trigger 自己的文字被丟掉）；
+`42501` 它沒有對應，所以原樣透出。所以斷言 PostgreSQL 原始訊息只對 RLS 有效。
+`scope-refusal.ts` 讀 SQLSTATE 而非文字，正是為了這件事 —— 兩個碼都完整到達 repository。
+
+### US-4：先看到紅
+
+```
+修補前：expect(result.count).toBe(0)  →  Received: 1
+        SG1 成功把 org_entity_id IS NULL 的 group 宣告改成自己名下
+修補後：104 skipped, 1 passed
+```
+
+根因寫進 migration：`UPDATE` 的兩個子句作用在**不同的列** —— `USING` 看舊列（group，通過）、
+`WITH CHECK` 看新列（已改成自己，通過）。拆成 per-command 後兩側同一條件，兩步走不出去。
+⛔ DELETE 半段**不補 policy** —— 缺少 GRANT 已經擋住，且 privilege 檢查在 RLS 之前（W06 test 10）。
+
+### Gate（實際輸出，非「都過了」）
+
+| Gate | 結果 | vs Day-0 baseline |
+|---|---|---|
+| lint（api + web）| **0** | = |
+| format:check | all files pass | = |
+| type-check（api + web）| clean | = |
+| unit test | **23 suites / 235 tests passed**（+43）| 192 → 235 |
+| coverage | stmt **92.58** · br **92.32** · fn **96.26** · lines **94** | stmt −0.78 · br −0.15 |
+| int test | **8 suites / 105 tests passed**（+1）| 104 → 105 |
+| build（api + web）| clean | = |
+| `run_all` | **6/6** | = |
+
+**coverage 退步的歸因**（W06 的做法：先歸因再補，不塞測試湊數）：
+第一次跑是 stmt 91.83 / br 90.41。branches 的降幅是**真的**（module 檔無分支，不可能是它們造成的），
+所以逐處查出四個未走到的分支並各補一個**帶主張**的測試（非字串 `testerUserId`、epoch number
+`scheduledFor`、evidence 的非物件 `extensions`、未知資料庫錯誤原樣拋出）→ br 90.41 → **92.32**。
+**剩下的差距全部是兩個新 `.module.ts` 的 0%**，與既有四個 module 檔完全一致；
+W07 新增的**每一個非 module 檔案都是 100% statements**。
+
+### Notes
+
+- `isms_dev` 曾為了改 SQLSTATE 做過一次 surgical 回滾（只 drop 這個 migration 幾分鐘前建的
+  兩張表 / 兩個 type / 一個 function / 兩個 trigger + 刪 `_prisma_migrations` 一列），未動其他物件。
+- `git checkout -b X origin/main` 會把 upstream 設成 `origin/main` —— 裸 `git push` 會推 main。
+  已 `--unset-upstream`；push 時用 `-u origin <branch>`。
