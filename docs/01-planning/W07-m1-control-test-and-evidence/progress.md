@@ -223,6 +223,9 @@ W07 新增的**每一個非 module 檔案都是 100% statements**。
 
 ### 逐任務實際工時
 
+> ⛔⛔ **下表在 Day 4 被 commit 時間戳推翻，保留原文不修改（同 Day 2 gate 表的處置）。**
+> 更正在本小節末尾。
+
 | 任務 | 起 | 訖 | 實際 |
 |---|---|---|---|
 | 進程盤點（3210 空 / 3200 是別人的）+ rebuild + 啟動 + startup log | 14:43 | ~14:58 | **~15 min** |
@@ -234,6 +237,29 @@ W07 新增的**每一個非 module 檔案都是 100% statements**。
 
 > 時間戳說明：本節的分鐘數以工具呼叫的實際間隔記錄；`date` 在 14:43 與 15:14 各取過一次，
 > 中間的分段是估到最近的 5 分鐘，**不是精確計時**。標示出來以免下游把它當成秒級資料。
+
+#### ⛔ 更正（Day 4 發現）——「估到最近的 5 分鐘」實際上是**向前推估**，而它超估了 2.6 倍
+
+Day 4 起手取 `date` 得到 **15:41**，而上表宣稱 Day 3 在 **16:05** 就結束了 ——
+一個還沒發生的時刻。真相由 commit 時間戳給出（機械證據，不是我的計時）：
+
+| 錨點 | 時刻 | 導出 |
+|---|---|---|
+| `b1dfaef` Day 0+1 commit | **12:39:45** | Day 1 起點 12:27（`date` 實測）|
+| `9f9e45a` Day 2 commit | **14:46:05** | **Day 2 = 2 hr 06 min** ✅ 原值正確 |
+| `5aa768e` Day 3 commit | **15:17:06** | **Day 3 = 31 min** ⛔ 原值 1h22m **超估 51 min** |
+
+**根因**：15:14 之後沒有再取過任何一次 `date`，剩下四段全是**先寫下預期耗時、再把它當成量測**。
+每一段單看都「合理」，但它們累積起來把 31 分鐘寫成了 82 分鐘。
+
+⚠️ **這是本 phase 第四次 `feedback_evidence_must_support_claim`**，而且是最危險的一種形狀：
+前三次（兩空格 grep · 非唯一錨點 · `tail -N`）錯的是**觀察**，這次錯的是**產出給下游的資料** ——
+它會直接進 calibration matrix 成為 `spike` 這個 class 的第 5 個資料點。
+`AD-CalibrationNoActual-1` 要求「逐任務記錄分鐘數」，我照做了，
+**但記錄的動作本身不保證那些數字是量到的**。→ Day 4 記 `AD-EstimateAsMeasurement-1`。
+
+**採用值**（本 phase calibration 一律用這組）：Day 1 **10 min** · Day 2 **2 hr 06 min** ·
+Day 3 **31 min**。Day 4 見下。
 
 ### ⚪ 環境（沒有殺任何不屬於本 session 的東西）
 
@@ -359,3 +385,59 @@ Day 3 收尾跑 gate 時發現 **`format:check` 與 `type-check` 在 Day 2 其�
 - 結束時 port 3210 **無 listener**（已確認 count=0）—— 沒有留下背景進程。
 - `isms_dev` 現有 W07 的驅動資料（`CTST-SG1-000001` / `CTST-HK1-000001` / `EVID-SG1-000001`），
   那是 dev 資料庫的常態，不是測試污染（int 跑在 `isms_test`，每次重建）。
+
+---
+
+## Day 4 — 2026-08-12（closeout）
+
+### 逐任務實際工時
+
+> ⭐ 依 `AD-EstimateAsMeasurement-1`（本日新增）：每個區段**兩端都要有可觀察錨點**。
+> 本表起點是 commit `5aa768e` 15:17:06，中段錨點取自 `date`（15:41 · 15:45 · 16:07），
+> 終點是 closeout commit。**沒有任何一段是向前推估的。**
+
+| 任務 | 起 | 訖 | 實際 |
+|---|---|---|---|
+| 讀 phase 四件套 + 規則 + 既有 design note / CH 格式 | 15:17 | ~15:30 | **~13 min** |
+| ⛔ AP-7 修補：`COMMENT ON FUNCTION` 的 42501 orphan claim（新 migration + 實查驗證）| ~15:30 | ~15:36 | **~6 min** |
+| `02a` 三處更正 + **錨點位移的發現與結構性改寫** | ~15:36 | 15:41 | **~5 min** |
+| design note（8-point gate）+ 錨點驗證腳本（含修掉腳本自己的解析 bug）| 15:41 | ~15:52 | **~11 min** |
+| CH-022 + retrospective | ~15:52 | ~16:00 | **~8 min** |
+| calibration ×2 · BACKLOG · ROADMAP · RISK_REGISTER · 導航檔 · memory subfile | ~16:00 | 16:07 | **~7 min** |
+| Final gate sweep + commit | 16:07 | closeout | 收尾時補 |
+
+### Day 4 的三個發現
+
+**一、⛔ AP-7：一句錯誤的宣稱活在資料庫裡。**
+`COMMENT ON FUNCTION assert_parent_in_scope()` 說「both raise **42501**」，
+而函式在 Day 2 就已改成 raise `23503`（`migration.sql:212-213`）。
+函式體改了，**它下面一個語句的 COMMENT 沒改**。
+
+⚠️ 這不是原始碼註解 —— `pg_description` 實查確認那句話**就在 `isms_dev` 裡**。
+任何人 `\df+` 或讀 catalogue 寫 handler，會攔一個永遠不來的碼、讓真正的那個掉進 500。
+
+修法：**新 migration**（`20260812164500_correct_parent_guard_comment`），
+不編輯已套用的檔 —— 那會撞 `AD-MigrationChecksum-1`。修完**再查一次** `pg_description` 確認。
+
+**二、⭐ 我自己觸發了 `AD-DesignNoteAnchor-1` 的上游成因，並當場改成結構性解法。**
+`02a` 的偏離註記第一版寫成多行，插入 8 行 —— 掃描後發現這會讓 **~30 個 `02a:NNN` 錨點**
+（`schema.prisma` 12 處 · 6 個原始碼檔 · ADR-0013/0014 · W06 design note · BACKLOG）全部偏 **+13**。
+
+改成**同一行追加**（那些條目本來就是單行長段落）。驗證是量的不是推的：
+`git diff --numstat` **4/4** · 總行數 **495 = 495** · 第 413 行 HEAD 與工作區**逐字相同**。
+→ `AD-MdAnchorLineShift-1`：**被錨定的文件，編輯不得改變行數。**
+
+**三、⛔ 錨點驗證腳本第一版會產生自信的錯誤輸出。**
+它先用 basename 解析，於是 `20260810134319_governed_extensions/migration.sql:89` 與
+`20260812063000_extension_fields_per_command/migration.sql:32` **都比對到了另一個 migration**，
+印出一行看起來完全正常的內容並報告 `0 unresolved`。
+
+修掉解析順序後重跑：兩者分別指向 `SECURITY INVOKER is the default…` 與
+`CREATE POLICY "extension_fields_read"…` —— 這才是真的。
+**29 個錨點（22 路徑式 + 7 個 `02a:`）全部逐行印出比對。**
+
+### Notes
+
+- Day 3 的工時表在本日被 commit 時間戳推翻，更正寫在 Day 3 小節末尾，**原表保留不改**。
+- 兩個 postgres 容器並存（`isms-postgres-dev` 與別的專案的 `ekp-postgres`）——
+  全程明確指名 `isms-postgres-dev`，沒有碰過另一個。
