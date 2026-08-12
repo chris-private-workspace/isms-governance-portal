@@ -120,9 +120,9 @@ describe('EvidenceRepository.create', () => {
       catalog: [{ key: 'known', dataType: 'string', required: false, orgEntityId: null }],
     });
 
-    await expect(
-      repo.create(client, { ...INPUT, extensions: { nope: 1 } }),
-    ).rejects.toBeInstanceOf(ExtensionValidationError);
+    await expect(repo.create(client, { ...INPUT, extensions: { nope: 1 } })).rejects.toBeInstanceOf(
+      ExtensionValidationError,
+    );
 
     expect(calls).toEqual(['catalog']);
   });

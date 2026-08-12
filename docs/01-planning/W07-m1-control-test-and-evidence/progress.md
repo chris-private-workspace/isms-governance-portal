@@ -187,6 +187,11 @@ oracle 仍關閉（兩者同為 `23503`），且現在兩個訊號各說各的�
 
 ### Gate（實際輸出，非「都過了」）
 
+> ⛔ **這張表的前三列在 Day 3 被推翻，見 Day 3 §「兩個假 gate 宣稱」。**
+> `format:check` 與 `type-check` 當時**其實是紅的**（`apps/api` 各兩個問題），
+> 而我用 `tail -N` 讀多 workspace 的 npm 輸出，只看到最後一個（web）的成功訊息。
+> 下表保留原樣不修改 —— 那是當時真的寫下的東西，改掉就銷毀了證據。
+
 | Gate | 結果 | vs Day-0 baseline |
 |---|---|---|
 | lint（api + web）| **0** | = |
@@ -211,3 +216,146 @@ W07 新增的**每一個非 module 檔案都是 100% statements**。
   兩張表 / 兩個 type / 一個 function / 兩個 trigger + 刪 `_prisma_migrations` 一列），未動其他物件。
 - `git checkout -b X origin/main` 會把 upstream 設成 `origin/main` —— 裸 `git push` 會推 main。
   已 `--unset-upstream`；push 時用 `-u origin <branch>`。
+
+---
+
+## Day 3 — 2026-08-12（API-level 驗證 + 元驗證）
+
+### 逐任務實際工時
+
+| 任務 | 起 | 訖 | 實際 |
+|---|---|---|---|
+| 進程盤點（3210 空 / 3200 是別人的）+ rebuild + 啟動 + startup log | 14:43 | ~14:58 | **~15 min** |
+| 主路徑 API-level（SG1 → HK1 → SG 滾升，三次啟動）| ~14:58 | ~15:12 | **~14 min** |
+| carryover：`risks` int 11b 改 `createMany` | ~15:12 | ~15:15 | **~3 min** |
+| 元驗證 harness + 8 輪中性化 + N7 錨點修正重跑 | ~15:15 | ~15:50 | **~35 min** |
+| ⛔ 兩個假 gate 宣稱的發現與修正 | ~15:50 | ~16:05 | **~15 min** |
+| **Day 3 小計** | 14:43 | 16:05 | **~1 hr 22 min** |
+
+> 時間戳說明：本節的分鐘數以工具呼叫的實際間隔記錄；`date` 在 14:43 與 15:14 各取過一次，
+> 中間的分段是估到最近的 5 分鐘，**不是精確計時**。標示出來以免下游把它當成秒級資料。
+
+### ⚪ 環境（沒有殺任何不屬於本 session 的東西）
+
+- **port 3210 開始時沒有 listener** —— 沒有陳舊 api 進程要清
+- **port 3200 有一個 Next.js dev server（PID 36748，啟動於 2026-08-08 20:54）** ——
+  比本 session 早四天，**不是我開的**，依 `local-runtime-ops.md` §4 沒有碰它。本 phase 無 UI，也不需要它
+- 全程只殺過我自己在本 session 啟動的 api 進程（5944 → 60444 → 36672），
+  每次殺之前都先確認 `StartTime` 與 PID
+- PostgreSQL：`docker/compose.yml` 已 up 2 天（healthy），未重啟
+
+### Startup log 證明 wiring 生效（不是推測）
+
+```
+[InstanceLoader] ControlTestModule dependencies initialized
+[InstanceLoader] EvidenceModule dependencies initialized
+[RouterExplorer] Mapped {/control-tests, GET} route
+[RouterExplorer] Mapped {/control-tests, POST} route
+[RouterExplorer] Mapped {/evidence, GET} route
+[RouterExplorer] Mapped {/evidence, POST} route
+[DevPrincipal] WARN  DEV PRINCIPAL ACTIVE — ... (SG1) ... not by any credential
+```
+
+### ⚪ API-level 驗證（真進程 + 真 PostgreSQL `isms_dev`）
+
+**⛔ 這不是 drive-through。** 這兩組端點**沒有 UI**，所以本節只證明「API 會回應且行為正確」，
+**不主張任何可用性**。依 `verification-discipline.md` §適用範圍的純後端豁免。
+
+**scope = SG1**
+
+| 動作 | 觀察 | 預期 |
+|---|---|---|
+| `GET /control-tests`（前）| 200, 0 rows | ✅ |
+| `POST /control-tests`（自己的 control）| **201** `ref=CTST-SG1-000001 status=scheduled scheduledFor=2026-09-30T00:00:00.000Z _devPrincipal=true` | ✅ |
+| `GET /control-tests`（後）| 200, 1 row | ✅ |
+| `POST /evidence`（綁那個 test）| **201** `ref=EVID-SG1-000001 linkedType=control_test` | ✅ |
+| `GET /evidence` | 200, 1 row | ✅ |
+| `POST /control-tests` 指向 **HK1 私有 control** | **404** `{"message":"control or tester not found"}` | ✅ |
+| `POST /control-tests` 指向**不存在的 id** | **404** `{"message":"control or tester not found"}` | ✅ |
+| ⭐ **oracle 在 HTTP 層** | **CLOSED —— status 與 body 完全相同** | ✅ |
+| `POST /evidence` 指向不存在的 test | **404** `{"message":"linkedId not found"}` | ✅ |
+| `POST /control-tests` `orgEntityId=HK1` | **404** `{"message":"org entity ...c1 not found"}` | ✅ |
+| `POST /control-tests` 壞的 `scheduledFor` | **400** `scheduledFor must be an ISO-8601 string when present` | ✅ |
+| `POST /evidence` 空 `hash` | **400** `hash is required and must be a non-empty string` | ✅ |
+
+⭐ **Day 2 的 SQLSTATE 改判在這裡看得見價值**：父列不可達回「control or tester not found」、
+列自身越界回「org entity ... not found」——**歸因正確**，而兩者都是 404、都不洩漏存在性。
+
+**scope = HK1**（重啟，`DEV_PRINCIPAL_ENTITIES=HK1`，startup log 確認 `assignment (HK1)`）
+
+| 動作 | 觀察 |
+|---|---|
+| `GET /control-tests` | 0 rows —— 看不到 `CTST-SG1-000001` |
+| `POST /control-tests` 指向 **SG1 的 group control** | **201** `CTST-HK1-000001` ✅ **合法的跨實體引用** |
+| `POST /control-tests` 指向 SG1 私有 control | **404**，訊息與上面完全相同 |
+| 再讀 `GET /control-tests` | `CTST-HK1-000001` —— **只有自己的** |
+
+⚠️ 第一次讀是 0 rows，而「HK1 看不到 SG1 的列」與「HK1 沒有列」在那時是**同一個觀察**。
+所以在 HK1 建了自己的列之後**再讀一次**，雙邊都有資料時才算真的量到隔離。
+
+**scope = SG + roll-up**（第三次重啟）：`CTST-SG1-000001` / `EVID-SG1-000001` 可見，
+`CTST-HK1-000001` **不可見** —— 四個範疇問題在 HTTP 層全部驗完。
+
+### 元驗證：8 個機制逐一中性化
+
+中性化改的是 **migration**，不是活資料庫 —— int suite 每次 `globalSetup` 都會 drop/recreate
+`isms_test`，直接改資料庫會在任何測試執行之前被洗掉，然後整輪回綠而什麼都沒證明。
+每一輪都先斷言**位元組真的變了**才跑（W06 的 N4 是靜默 no-op）。
+
+| # | 中性化的機制 | 結果 |
+|---|---|---|
+| N1 | `control_tests_read` USING → `true` | **RED ×1** |
+| N2 | `control_tests_insert` WITH CHECK → `true` | **RED ×1** |
+| N3 | `evidence_read` USING → `true` | **RED ×1** |
+| N4 | `evidence_insert` WITH CHECK → `true` | **RED ×1** |
+| N5 | `control_tests` 的 trigger 移除 | **RED ×3** |
+| N6 | `evidence` 的 trigger 移除 | **RED ×2** |
+| N7 | `risks` WITH CHECK → `true`（carryover 驗收）| **RED ×1** |
+| N8 | `extension_fields_update` USING 還原成修補前形狀 | **RED ×1** |
+
+**8/8 —— 每個宣稱會擋東西的機制，都有至少一個測試在它被移除時轉紅。**
+所有 migration 事後以 `git diff` + grep 確認**逐位元組還原**（無殘留 `NEUTRALISED` / `(true)`）。
+
+⛔ **N7 第一次跑是「STAYED GREEN」，而那是我的量測錯誤不是發現。**
+我的錨點 `WITH CHECK ("org_entity_id" = ANY (app_entity_scope()));` 在那個 migration 裡出現**三次**
+（`asset_groups` / `assets` / `risks`），`String.replace` 換掉第一個 ——
+**我中性化的是 `asset_groups`，`risks` 從未被動過**。改用完整 policy 區塊當唯一錨點後重跑：RED ×1。
+零轉紅先查是不是假象，這條規則今天第二次救回一個錯誤結論。
+
+### ⛔ 兩個假 gate 宣稱（Day 2 報告的更正）
+
+Day 3 收尾跑 gate 時發現 **`format:check` 與 `type-check` 在 Day 2 其實都是紅的**：
+
+- `format:check`：`evidence.repository.spec.ts` · `scoped-client.types.ts` 兩個檔案未過
+- `type-check`：`control-test.controller.spec.ts:122` · `evidence.controller.spec.ts:112` 各一個
+  **TS2353**（spec 故意送出 body 型別沒有的欄位，但沒有 cast）
+
+**根因是同一個**：我用 `... 2>&1 | tail -N` 讀**多 workspace** 的 npm 輸出。
+兩次都是 `apps/api` 失敗、`apps/web` 成功，而 `tail` 只留下最後一個 workspace 的成功訊息。
+**`tail -N` 用在多 workspace 輸出上就是一個會藏住失敗的過濾器** ——
+與 CLAUDE.md 禁止 `lint --silent` 是同一族的錯誤，我在同一天違反了它自己記載的那條教訓。
+
+⚠️ 另一個相關事實：jest 不做完整型別檢查（TS2353 在測試裡不會炸），
+所以那兩個型別錯誤**只有 `tsc --noEmit` 抓得到** —— 235 個測試全綠並不涵蓋它。
+
+已修正並以**逐 workspace 可見**的方式重驗（兩個 header 都在、中間無 error）。
+→ Day 4 記一條 AD：gate 輸出的讀法本身需要一條規則。
+
+### Gate（Day 3 收尾，實際輸出）
+
+| Gate | 結果 |
+|---|---|
+| lint（api + web）| **0**，兩個 workspace 皆可見 |
+| format:check（api + web）| **All matched files use Prettier code style!** ×2 |
+| type-check（api + web）| clean，兩個 workspace 皆可見 |
+| unit test | **23 suites / 235 tests passed** |
+| coverage | stmt **92.58** · br **92.32** · fn **96.26** · lines **94** |
+| int test | **8 suites / 105 tests passed** |
+| build（api + web）| clean |
+| `run_all` | **6/6** |
+
+### Notes
+
+- 結束時 port 3210 **無 listener**（已確認 count=0）—— 沒有留下背景進程。
+- `isms_dev` 現有 W07 的驅動資料（`CTST-SG1-000001` / `CTST-HK1-000001` / `EVID-SG1-000001`），
+  那是 dev 資料庫的常態，不是測試污染（int 跑在 `isms_test`，每次重建）。

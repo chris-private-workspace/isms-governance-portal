@@ -155,9 +155,7 @@ export interface ScopedAssetClient extends ScopedRefCodeClient, ScopedExtensionC
  * conclusion: a repository able to read the control table first could tell the
  * two apart, so it is not given the delegate.
  */
-export interface ScopedControlTestClient
-  extends ScopedRefCodeClient,
-    ScopedExtensionCatalogClient {
+export interface ScopedControlTestClient extends ScopedRefCodeClient, ScopedExtensionCatalogClient {
   readonly controlTest: {
     findMany(args?: Prisma.ControlTestFindManyArgs): Promise<ControlTest[]>;
     create(args: Prisma.ControlTestCreateArgs): Promise<ControlTest>;

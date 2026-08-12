@@ -285,20 +285,36 @@ describe('risk module (integration)', () => {
    * write-side half of 約束 8 on this table has no coverage at all — and the
    * gate would have stayed green while it was removed.
    */
+  /**
+   * ⭐ REWRITTEN IN W07 — `AD-ReturningMasksCheck-1`.
+   *
+   * The W05 version called `risk.create()`, and W06 Day 3 measured what that
+   * actually proved: Prisma's `create()` always emits RETURNING, and PostgreSQL
+   * applies the SELECT policy to the row being returned. So the test passed on
+   * the READ policy hiding the row, never on the WRITE policy refusing it —
+   * neutralise `risks`' WITH CHECK and the old version stayed green while a
+   * cross-entity row landed.
+   *
+   * `createMany` emits no RETURNING, so there is nothing left to hide behind.
+   * Verified the only way this claim can be verified: with the WITH CHECK
+   * neutralised, this version goes RED (W07 Day 3 meta-verification N7).
+   */
   it('11b. the risks policy refuses a cross-entity write on its own, without the counter', async () => {
     const sg1 = await clientFor(['SG1']);
 
     await expect(
-      sg1.risk.create({
-        data: {
-          orgEntityId: HK1,
-          refCode: 'RISK-HK1-PLANTED-1',
-          title: 'planted straight into the table',
-          assetId: HK1_ASSET,
-          threatId: THREAT,
-          vulnerabilityId: VULN,
-          ciaType: 'c',
-        },
+      sg1.risk.createMany({
+        data: [
+          {
+            orgEntityId: HK1,
+            refCode: 'RISK-HK1-PLANTED-1',
+            title: 'planted straight into the table',
+            assetId: HK1_ASSET,
+            threatId: THREAT,
+            vulnerabilityId: VULN,
+            ciaType: 'c',
+          },
+        ],
       }),
     ).rejects.toThrow(/row-level security/i);
 
