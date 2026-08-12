@@ -16,7 +16,7 @@ expert; flag any you want changed.
 ## 0. Entity index — the complete buildable list
 
 **Every entity in the platform, and where its fields are specified.** Nothing is buildable that is
-not on this list; adding an entity means adding a row here in the same change.
+not on this list; adding an entity means adding a row here in the same change. ⚠️ **Enforced since W08** by `scripts/lint/check_entity_index.py` (`run_all` 7/7): a model on neither this index nor its explicit `EXCLUDED` list fails the build. Deliberate exclusions are infrastructure tables carrying none of the §1.1 base fields — today just `RefCodeCounter`, which *issues* `ref_code` rather than carrying one. This paragraph is appended in place rather than expanded into a subsection because ~300 `file:line` anchors point into this document.
 
 ### Shared core — specified in this document (§3)
 

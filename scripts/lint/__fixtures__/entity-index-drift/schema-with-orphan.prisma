@@ -1,0 +1,38 @@
+// File: scripts/lint/__fixtures__/entity-index-drift/schema-with-orphan.prisma
+// Purpose: The negative case for check_entity_index.py — a model on no index row.
+// Category: Tooling / lint fixture
+// Scope: Phase W08
+//
+// ⛔ NOT a real schema and never generated from. It exists so the detector has
+// something it MUST reject. A detector whose parser goes stale finds zero
+// violations and exits 0, which is indistinguishable from a clean repo
+// (AD-NegativeGate-1) — this file is what makes that distinguishable.
+//
+// Three models, chosen to exercise all three matching paths:
+//   - Policy         matches 02a §0 by MODEL name         → must NOT be flagged
+//   - ExtensionField matches only via ALIASES             → must NOT be flagged
+//   - ShadowLedger   matches nothing anywhere             → MUST be flagged
+//
+// If you "tidy up" ShadowLedger, the self-test fails loudly rather than
+// silently — that is deliberate.
+//
+// Created: 2026-08-12 (Phase W08)
+
+model Policy {
+  id String @id
+
+  @@map("policies")
+}
+
+model ExtensionField {
+  id String @id
+
+  @@map("extension_fields")
+}
+
+/// The orphan. On no 02a §0 row, under any of its three names.
+model ShadowLedger {
+  id String @id
+
+  @@map("shadow_ledgers")
+}
