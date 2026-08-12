@@ -136,8 +136,8 @@
 - [ ] **`risks` int 11b 改為不產生 `RETURNING`**（`AD-ReturningMasksCheck-1`）
   - DoD: 中性化 `risks` 的 `WITH CHECK` 後它**會紅**
   - Verify: 中性化 → 跑 → 看到紅 → 還原
-  - 🚧 **移到 Day 3**：驗收條件本身就是中性化，與 §3.3 元驗證同一批操作；
-    在 Day 2 做等於把資料庫改兩次卻只驗一次
+  - 🚧 ~~移到 Day 3~~ → ✅ **Day 3 完成**：改用 `createMany`（無 `RETURNING`），
+    元驗證 **N7 RED ×1** 確認它會在 `risks` 的 `WITH CHECK` 中性化時轉紅
 
 ### 2.x Full gate
 
@@ -159,25 +159,37 @@ _(⚪ **無 UI**。本 phase 不做 drive-through，報告一律寫「**API-leve
 
 ### 3.1 Clean restart
 
-- [ ] 殺掉陳舊的 api 進程並確認新程序是 3210 的唯一擁有者（列出所有 node 進程比對 PID/PPID/StartTime，
+- [x] 殺掉陳舊的 api 進程並確認新程序是 3210 的唯一擁有者（列出所有 node 進程比對 PID/PPID/StartTime，
       不只看 port 擁有者 —— Risk Class C 加強版）
   - ⚠️ **殺之前先確認那不是使用者或其他 session 開的**
-- [ ] 擷取證明 migration 與 module wiring 生效的 startup log 行
+  - ✅ **3210 開始時無 listener，沒有東西要殺**。3200 的 Next.js（PID 36748，2026-08-08 20:54 啟動）
+    **不是本 session 的，沒有碰**。全程只殺自己起的 5944 / 60444 / 36672
+- [x] 擷取證明 migration 與 module wiring 生效的 startup log 行
+  - ✅ 兩個 module initialized + 四條路由 mapped + dev-principal 警告，逐行貼進 progress.md
 
 ### 3.2 主路徑（API-level）
 
-- [ ] `POST /control-tests` → 讀回；`POST /evidence` 綁到該 test → 讀回
-- [ ] **跨實體引用被拒**：A 建指向 B 私有 control 的 test → 被拒，且拒絕來自資料庫層
-- [ ] 四個範疇測試對兩張表各成立（讀拒 / 寫拒且資料未變 / RLS 獨立 / 滾升子樹）
-- [ ] 觀察到的 vs 預期 → progress.md Day 3
+- [x] `POST /control-tests` → 讀回；`POST /evidence` 綁到該 test → 讀回
+  - ✅ 201 `CTST-SG1-000001` / 201 `EVID-SG1-000001`，兩個 GET 都讀得回來
+- [x] **跨實體引用被拒**：A 建指向 B 私有 control 的 test → 被拒，且拒絕來自資料庫層
+  - ✅ 404，且**與「不存在的 id」status + body 完全相同** —— oracle 在 HTTP 層也是關的
+- [x] 四個範疇測試對兩張表各成立（讀拒 / 寫拒且資料未變 / RLS 獨立 / 滾升子樹）
+  - ✅ SG1 / HK1 / SG+rollUp 三次重啟各驗一段；⚠️ HK1 第一次讀是 0 rows（與「沒有資料」
+    無法區分），故在 HK1 建了自己的列之後**再讀一次**才算數
+- [x] 觀察到的 vs 預期 → progress.md Day 3
 
 ### 3.3 元驗證（中性化）
 
-- [ ] **逐機制中性化**：每條新 policy / trigger 各中性化一次
+- [x] **逐機制中性化**：每條新 policy / trigger 各中性化一次
   - DoD: 對應測試**轉紅**；零轉紅一律先查 `pg_policies` / `pg_trigger` 證實編輯生效再下結論
   - Verify: 中性化前後 anchor **逐字不同**（W06 N4 空跑的教訓）
-- [ ] 中性化矩陣（機制 × 轉紅測試數）寫進 progress.md
-- [ ] 全部還原並重跑 full gate 確認回到綠
+  - ✅ **8/8 全部轉紅**（N1-N8）。⛔ N7 第一次「STAYED GREEN」是**我的錨點不唯一**，
+    中性化到了 `asset_groups`；改用完整 policy 區塊後 RED ×1
+- [x] 中性化矩陣（機制 × 轉紅測試數）寫進 progress.md
+- [x] 全部還原並重跑 full gate 確認回到綠
+  - ✅ `git diff` + grep 確認 migration 逐位元組還原；⛔ 但這一步同時揭露
+    **Day 2 的 `format:check` / `type-check` 宣稱是假的**（`tail -N` 藏住了 api 的失敗），
+    已修正並以逐 workspace 可見的方式重驗
 
 ---
 

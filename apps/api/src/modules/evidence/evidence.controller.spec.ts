@@ -109,7 +109,11 @@ describe('EvidenceController', () => {
   it('has no route from the body to linkedType', async () => {
     const { controller, createCalls } = build();
 
-    await controller.create({ ...VALID_BODY, linkedType: 'attestation' });
+    // Cast, because CreateEvidenceBody has no `linkedType` — which is the point.
+    await controller.create({
+      ...VALID_BODY,
+      linkedType: 'attestation',
+    } as Parameters<EvidenceController['create']>[0]);
 
     expect(createCalls[0]).not.toHaveProperty('linkedType');
   });

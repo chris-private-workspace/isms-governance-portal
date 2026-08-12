@@ -119,7 +119,14 @@ describe('ControlTestController', () => {
   it('has no route from the body to the lifecycle', async () => {
     const { controller, createCalls } = build();
 
-    await controller.create({ ...VALID_BODY, status: 'passed', conclusion: 'fine' });
+    // Cast, because CreateControlTestBody has no such properties — which is the
+    // point. This is a caller sending fields the API does not document, and the
+    // assertion is that they reach nothing.
+    await controller.create({
+      ...VALID_BODY,
+      status: 'passed',
+      conclusion: 'fine',
+    } as Parameters<ControlTestController['create']>[0]);
 
     expect(createCalls[0]).not.toHaveProperty('status');
     expect(createCalls[0]).not.toHaveProperty('conclusion');
