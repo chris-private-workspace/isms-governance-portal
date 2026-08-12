@@ -365,3 +365,60 @@ Day 0 那段（無起點錨點）不計。⛔ 遠低於 `CALIBRATION-MATRIX.md` 
 
 - Day 4 closeout：`CH-023` · W07 design note 追加 D1 分流結果（**同行追加，行數不變**）·
   retrospective + calibration · 新 AD 登記 · 導航檔 · `git diff --name-status` 對照 plan §4
+
+---
+
+## Day 4 — 2026-08-13
+
+### Today's Accomplishments
+
+- **4.1** `CH-023` · W07 design note 追加 D1 分流結果（**1/1，344 = 344**）· BACKLOG 新增 6 條 AD
+- **4.2** `retrospective.md` Q1-Q7 · calibration matrix + log · `RISK_REGISTER` R4 ·
+  `CLAUDE.md` · `ROADMAP.md` · `MEMORY.md` + `memory/project_w08_issue_and_action.md` ·
+  `status: closed` · final gate sweep
+
+### plan §4 對照 —— 28/28，零計畫外
+
+`git diff --name-status edb5853..HEAD` 逐一對照 plan §4：**28 個目標全部命中**，
+UNTOUCHED 五項（`entity-scope.resolver.ts` · `modules/control-test/` · `evidence/` ·
+既有 10 個 migration · `docs/14-adr/` · `.github/workflows/`）**全部未動**。
+本次**沒有**漏做的附帶動作（`AD-DecisionSideEffect-1` 的檢查，成本 < 1 min）。
+
+### ⚠️ Calibration —— 兩個定義差 3.6 倍，而差額可以被算出來
+
+| 定義 | 值 | Ratio | Band |
+|---|---|---|---|
+| 拍板的窗口（`AD-CalibrationMetric-2`）| `20:17:02 → 00:1x` ≈ **238 min / 3.97 hr** | **0.84** | **IN** |
+| 逐段兩端錨點加總 | **~66 min / 1.1 hr** | **0.23** | **UNDER** |
+
+差額 **169 min（71%）** 是四次等待使用者回覆的間隔，且它**可以獨立機械算出** ——
+每個 Day 的起始時間戳減去前一個 commit 的時間戳：`55 + 78 + 28 + 8`。
+`238 − 169 = 69`，與逐段量測的 **66** 對得上（差 3 min 是 commit 本身）。
+
+⭐ **兩個方法交叉驗證成功，所以問題不在量測而在定義。**
+⚠️ **那個 IN 是巧合** —— 169 分鐘恰好把 0.23 抬進 band → `AD-CalibrationIdleGap-1`。
+
+⛔ **`AD-BottomUpBlueprint-1` 的提議被執行了，而它沒有收斂**：`actual/bottom-up` = **0.116**，
+比 W07 的 0.17 **還低**，四段全在 9-12 倍之間無離群值。AD **不關**，附替代方案。
+
+### Drift / Issue（Day 4）
+
+| ID | Finding | 處置 |
+|---|---|---|
+| **D-memkw** | **`MEMORY.md` 的 W05/W06/W07 三條 Keywords 原本錯位** —— 第 65 行是 W06 的、66 行是 W05 的，而 **W07 完全沒有 Keywords**。累積自 W05→W07 三次 closeout | 在我要加 W08 的**同一區塊**，故一併歸位 + 補上 W07 缺的那行。**沒有刪除任何既有 Keywords**。⚠️ 這不是「順路開新工作」（節流閘），是「不在錯的結構上疊加」—— 若照原樣加 W08，錯位會更難看懂 |
+| **D-adcount** | BACKLOG 條數的兩種數法給出 **75 vs 77** | 查了：差額是**優先度判準表**的 3 個示例（130-132 行，不是 AD 條目）減去 `AD-NegativeGate-1` 的 `🔴 **P0 候選**`（格式與 pattern 不符）。⚠️ BACKLOG 開頭記錄過「第一版數法的欄位索引假設對兩列失效」—— **同一個坑的第二次**，這次兩種數法對照後才取值，並把數法寫進 BACKLOG 開頭 |
+
+### 工時
+
+| 區段 | 起 | 迄 | 實際 | 錨點 |
+|---|---|---|---|---|
+| Day 4（4.1 → final gate）| 23:54:26 | **00:14:39** | **20 min 13 s** | ✅ 兩端閉合 |
+
+**五段合計**（Day 0 verify 段無起點錨點，不計）：**~66 min**。
+bottom-up 對應項（closeout 1.5 hr = 90 min）→ Day 4 高估 **4.5 倍** ——
+⭐ **這是五段裡最低的**，因為 closeout 的工作量**不隨藍本複用而縮減**（文件是新寫的）。
+→ 這條觀察支持 retro Q2 的替代方案：**藍本度分級**，而不是對所有項目套同一個乘數。
+
+### Remaining
+
+- ⏳ **PR push + open → CI → merge：等使用者確認**（push 是 outward-facing）

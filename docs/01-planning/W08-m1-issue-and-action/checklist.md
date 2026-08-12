@@ -322,36 +322,64 @@ _(⚪ 本 phase **無 UI**，故不做 drive-through。所有結論一律寫
 
 ### 4.1 Change record
 
-- [ ] **`docs/03-implementation/changes/CH-023-w08-issue-and-action.md`**
+- [x] **`docs/03-implementation/changes/CH-023-w08-issue-and-action.md`**
   - DoD: Problem / Root Cause / Solution / Verification / Impact；
-        含 API-level 驗證結論（**不得寫 drive-through PASS**）+ 關掉的 AD
+        含 API-level 驗證結論（**不得寫 drive-through PASS`**）+ 關掉的 AD
   - Verify: 逐條對照 plan §5 的 11 項 Acceptance
-- [ ] **W07 design note 追加 D1 分流結果**
+  - → Verdict 寫 **⚪ API-level verified，無 UI，不主張可用性**；四個 load-bearing 細節逐一寫出
+- [x] **W07 design note 追加 D1 分流結果**
   - DoD: 記錄「判準第一次導出選項 B 且被中性化驗收」；
         ⚠️ **同行追加，不得改變該檔行數**（`AD-MdAnchorLineShift-1`）
   - Verify: `git diff --numstat` 顯示增刪相等
-- [ ] **新 AD 登記到 `BACKLOG.md`**
+  - → **1/1**，行數 **344 = 344**。追加內容明記「⛔ 選 D 對 `ControlTest` 仍然正確，
+    本段不推翻它 —— 判準沒變，只是第一次遇到符合另一側的父表」
+- [x] **新 AD 登記到 `BACKLOG.md`**
   - DoD: `Issue.source` 無配對 id（規格缺口）· D-denominator 的結論 · Day 1-3 發現的其他
   - Verify: 逐條在 BACKLOG 可見，不是只寫在 progress
+  - → 新增 **6** 條：`AD-IssueBareEnum-1`（**M7 前必須拍板**）· `AD-MigrationTimestampTz-1` ·
+    `AD-ModuleCoverageDilution-1` · `AD-TestNameWiderThanProof-1` · `AD-MetaVerificationBug-1` ·
+    `AD-CalibrationIdleGap-1`；關閉 **2** 條；更新 `AD-BorrowedRefusal-1`（第 4 次）與
+    `AD-BottomUpBlueprint-1`（提議被執行且失敗，附替代方案）；`§Known Issues` 的 detector 條件標為已交付
+  - → §Open **75 條（P0 5 / P1 46 / P2 24）**，⚠️ 兩種數法對照後才取值（見 BACKLOG 開頭）
 
 ### 4.2 Closeout
 
-- [ ] `retrospective.md` Q1-Q7 + calibration（`pattern-reuse-feature` 0.50，第 2 個資料點；
+- [x] `retrospective.md` Q1-Q7 + calibration（`pattern-reuse-feature` 0.50，第 2 個資料點；
       ⚠️ 第 1 個定義受污染 → 兩點不構成窗口；ratio 出 band 就標記 re-point）
-- [ ] `calibration-matrix.md` 那一行 —— 填這個骨架，**≤ 1 行 ~250 字元**
-      （lint 上限 400；完整敘述 → `calibration-log.md`）：
-      `| \`pattern-reuse-feature\` | 0.50 | <mean> | KEEP/re-point (W08 ratio ~<Y> IN/OVER band; <一子句>; if 2nd >1.20 → <Z>; → calibration-log) |`
-- [ ] **`AD-BottomUpBlueprint-1` 的驗收** —— 用「寫差異」估法後 `actual / bottom-up` 是否回到 ≥ 0.4；
+  - → ⚠️ **兩個定義給出差 3.6 倍的答案，兩個都列**：窗口 **0.84 IN** / 逐段 **0.23 UNDER**。
+    差額 169/238 min 是等待使用者，**可獨立機械算出**且與逐段量測交叉驗證（69 vs 66）
+  - → 官方取拍板的定義（0.84），但**明記那個 IN 是巧合** —— 169 分鐘恰好把 0.23 抬進 band
+- [x] `calibration-matrix.md` 那一行 —— 填這個骨架，**≤ 1 行 ~250 字元**
+      （lint 上限 400；完整敘述 → `calibration-log.md`）
+  - → 已填；`rules-hygiene` PASS（行 ≤ 400 字元）。完整敘述進 `CALIBRATION-LOG.md` §1
+- [x] **`AD-BottomUpBlueprint-1` 的驗收** —— 用「寫差異」估法後 `actual / bottom-up` 是否回到 ≥ 0.4；
       是則可關，否則記錄「問題不在估法」
-- [ ] **`git diff --name-status <base>..HEAD` 對照 plan §4** —— 抓漏做的附帶動作
+  - → ⛔ **沒有回到 0.4，反而更低**：**0.116**（W07 是 0.17）。四段全在 9-12 倍、**無離群值**
+  - → 結論：**「拆得更細」不是答案** —— 每項都用同一個錯誤的單位成本。**AD 不關**，
+    附上替代方案（三級藍本度 × 實測單位成本，目前只有第三級的資料 ≈ **8 min/項**），
+    ⚠️ 樣本只有一個 phase → **下個 phase 先照舊估一次再比對**，不現在改 plan 模板
+- [x] **`git diff --name-status <base>..HEAD` 對照 plan §4** —— 抓漏做的附帶動作
       （`AD-DecisionSideEffect-1`，成本 < 1 min）
-- [ ] Final gate sweep: lint 0/0 · format:check ×2 · type-check ×2 · unit · int · web ·
+  - → **28 個目標全部命中，零計畫外檔案**；UNTOUCHED 五項全部未動。本次無漏做的附帶動作
+- [x] Final gate sweep: lint 0/0 · format:check ×2 · type-check ×2 · unit · int · web ·
       build ×2 · `run_all` **7/7** · `lint:negative` PASS · coverage
       （⚠️ 逐 workspace 分開跑，取真退出碼）
-- [ ] 導航檔: `CLAUDE.md` Current-Phase + Last-Updated · `MEMORY.md` pointer + subfile ·
+  - → lint 0/0 · format ×2 · type-check ×2 · build ×2 · web ✅ · unit **276 / 27 suites** ·
+    int **125 / 10 suites** · coverage **92.07 / 91.9 / 96.63 / 93.62** ·
+    `run_all` **7/7**（含 `rules-hygiene` 與 `status-markers` E1-E4 clean）·
+    `lint:negative` PASS（**41** 檔 0 bypass 3 allowlisted）
+- [x] 導航檔: `CLAUDE.md` Current-Phase + Last-Updated · `MEMORY.md` pointer + subfile ·
       `BACKLOG.md`（CLOSE 掉 `AD-EntityCountDerivation-1` / `AD-EntityIndexIncomplete-1`）·
       `ROADMAP.md` 主線第 4 列 · `RISK_REGISTER.md` R4（10 → 12 張無稽核寫入的表）
-- [ ] Anti-pattern 自檢（retro Q5）：AP-1..AP-7 → 違規數
-- [ ] **frontmatter `status:` 翻 `closed`**（R9 —— 只 commit code 不算收尾）
+  - → 全數完成。⚠️ **計畫外的小修**：`MEMORY.md` 的 W05/W06/W07 三條 Keywords **原本錯位**
+    （65 是 W06 的、66 是 W05 的，W07 **完全沒有**）—— 在我要加 W08 的同一區塊，故一併歸位
+    並補上 W07 缺的那行。**沒有刪除任何既有 Keywords**
+  - → `RISK_REGISTER` R4 從「反諷」升為「合規閉環缺一角」：CAPA 的 `status` 可被任何值覆寫
+    任何值而**沒有東西記錄那次覆寫**，`risk_accepted` 是一次沒有簽名的正式風險接受
+- [x] Anti-pattern 自檢（retro Q5）：AP-1..AP-7 → 違規數
+  - → **總計 0**。AP-7 逐一檢查三處新註記（`02a:19` · design note D1 · schema 兩個 enum
+    docstring）皆指向**存在**的東西；AP-3 由 11 項 API-level 走查 + **N1-N6 六次中性化**支撐
+- [x] **frontmatter `status:` 翻 `closed`**（R9 —— 只 commit code 不算收尾）
+  - → `status: closed`；`check_status_markers` 回報 13 pre-doc、**E1/E2/E3/E4 clean**
 - [ ] **Commit** → ⏳ PR push + open → CI → merge: **PENDING USER CONFIRMATION**
       （push 是 outward-facing）→ merge 經 `gh` 驗證後翻狀態標籤
