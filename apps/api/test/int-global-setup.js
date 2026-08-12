@@ -250,6 +250,47 @@ const SEED = {
       '00000000-0000-0000-0000-000000000a61',
     ],
   ],
+  // W08. One finding per entity. Both sides again, for the reason the asset
+  // fixtures give: with only SG1 rows, "HK1 cannot see SG1's issue" and "HK1 has
+  // no issues" are the same observation.
+  issues: [
+    // [id, orgEntityId, refCode, title, source, severity]
+    [
+      '00000000-0000-0000-0000-000000000a80',
+      '00000000-0000-0000-0000-0000000000c0',
+      'ISSU-SG1-000001',
+      'Backup restore was never tested',
+      'test',
+      'high',
+    ],
+    [
+      '00000000-0000-0000-0000-000000000a81',
+      '00000000-0000-0000-0000-0000000000c1',
+      'ISSU-HK1-000001',
+      'Leavers keep VPN access past their last day',
+      'manual',
+      'critical',
+    ],
+  ],
+  // W08. One action per entity, each under that entity's OWN issue — the
+  // composite key permits nothing else, which is what the suite goes on to pin.
+  actions: [
+    // [id, orgEntityId, refCode, issueId, description]
+    [
+      '00000000-0000-0000-0000-000000000a90',
+      '00000000-0000-0000-0000-0000000000c0',
+      'ACTN-SG1-000001',
+      '00000000-0000-0000-0000-000000000a80',
+      'Schedule a quarterly restore drill',
+    ],
+    [
+      '00000000-0000-0000-0000-000000000a91',
+      '00000000-0000-0000-0000-0000000000c1',
+      'ACTN-HK1-000001',
+      '00000000-0000-0000-0000-000000000a81',
+      'Wire offboarding to the VPN directory group',
+    ],
+  ],
   // Global libraries (multi-tenant-data.md:63) — no org_entity_id, and that is
   // the property the suite pins: BOTH entities must read the same rows.
   threats: [
@@ -371,6 +412,20 @@ module.exports = async function globalSetup() {
       [id, orgEntityId, refCode, linkedId],
     );
   }
+  for (const [id, orgEntityId, refCode, title, source, severity] of SEED.issues) {
+    await seed.query(
+      `INSERT INTO issues (id, org_entity_id, ref_code, title, source, severity, updated_at)
+       VALUES ($1, $2, $3, $4, $5::issue_source, $6::issue_severity, now())`,
+      [id, orgEntityId, refCode, title, source, severity],
+    );
+  }
+  for (const [id, orgEntityId, refCode, issueId, description] of SEED.actions) {
+    await seed.query(
+      `INSERT INTO actions (id, org_entity_id, ref_code, issue_id, description, updated_at)
+       VALUES ($1, $2, $3, $4, $5, now())`,
+      [id, orgEntityId, refCode, issueId, description],
+    );
+  }
   for (const [id, name, category] of SEED.threats) {
     await seed.query(
       `INSERT INTO threats (id, name, category, updated_at) VALUES ($1, $2, $3, now())`,
@@ -417,6 +472,15 @@ module.exports = async function globalSetup() {
   await seed.query(
     `INSERT INTO ref_code_counters (org_entity_id, entity_type, last_seq, updated_at)
      SELECT org_entity_id, 'evidence', count(*), now() FROM evidence GROUP BY org_entity_id`,
+  );
+  // W08. Same derivation, same reason.
+  await seed.query(
+    `INSERT INTO ref_code_counters (org_entity_id, entity_type, last_seq, updated_at)
+     SELECT org_entity_id, 'issue', count(*), now() FROM issues GROUP BY org_entity_id`,
+  );
+  await seed.query(
+    `INSERT INTO ref_code_counters (org_entity_id, entity_type, last_seq, updated_at)
+     SELECT org_entity_id, 'action', count(*), now() FROM actions GROUP BY org_entity_id`,
   );
   for (const [id, orgEntityId, entityType, key, dataType, required] of SEED.extensionFields) {
     await seed.query(

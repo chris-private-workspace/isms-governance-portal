@@ -183,3 +183,82 @@ plan §7 已經按 `AD-BottomUpBlueprint-1` 的建議改用「寫差異」估法
 ### Remaining for Next Day
 
 - Day 2：controller + module × 2、int spec × 2（各四個範疇測試）、繞開發號的直接寫入測試、full gate
+
+---
+
+## Day 2 — 2026-08-12
+
+### Today's Accomplishments
+
+- **2.1** `modules/issue/` + `modules/action/`：controller · module · controller spec 各兩份；
+  `app.module.ts` 掛上（現有 8 個業務 module）
+- **2.2** `issue.int.spec.ts`（9 測試）· `action.int.spec.ts`（11 測試）· `int-global-setup.js`
+  種入 issues `a80`/`a81` + actions `a90`/`a91` + 兩個導出的 ref_code counter
+- **2.x** full gate 全綠
+
+### ⭐ 第一個 body 帶 enum 的端點，和它帶來的新失敗模式
+
+前面每一片的 request body 都只有 uuid / timestamp / 自由文字。這些東西給錯值時，
+會在**外鍵**上失敗，而外鍵的 SQLSTATE 是 `scope-refusal.ts` 認得的 → 變成 404。
+
+**enum 不是這樣。** Prisma 在任何 SQLSTATE 產生**之前**就拒絕未知 variant，錯誤裡沒有
+這個 app 認得的碼，於是掉進 `throw error` → **500**。
+
+> `{"severity": "urgent"}` 是一個 typo，而沒有守衛時它被回報成伺服器故障。
+
+守衛寫在 controller，且合法值由 `Object.values(IssueSource)` **導出**：
+
+```
+const SOURCES = Object.values(IssueSource) as string[];
+```
+
+⚠️ **抄一份字面清單會是一個會說謊的 docstring** —— `02a:229` 列了五個 source，三個因為
+目標表不存在而未建（`IssueSource` 今天只有 `test` / `manual`）。那天 `audit` 進了 schema，
+字面清單會繼續拒絕它，而**不會有任何測試失敗來說這件事**。
+
+### Drift / Issue（Day 2）
+
+| ID | Finding | 處置 |
+|---|---|---|
+| **D-modcov** | **coverage 三項低於 Day-0 baseline**（92.07/91.9/96.63/93.62 vs 92.58/92.32/96.26/94）| **已歸因，不是退化**：`modules/*/*.module.ts` 全部 0%（既有 6 個 + 新 2 個），它們是 DI metadata 沒有可測邏輯。`entity-scope.module.ts`/`health.module.ts` 是 100% 因為有 unit test 直接 import 它們。jest 門檻 80/70/80/80 → 四項遠高於，**gate 綠**。⛔ **但趨勢要記**：每加一個 module 稀釋一次，第 20 個時會很明顯 → Day 4 進 BACKLOG（候選：`collectCoverageFrom` 排除 `*.module.ts`，或給它們一個統一 smoke test）|
+
+### 第 4 次 `AD-BorrowedRefusal-1` —— 這次是**寫測試時**就避開的
+
+`action.int.spec.ts` 測試 8 要證明 `actions_insert` 的 `WITH CHECK` **自己**會擋。
+顯而易見的寫法是「SG1 的 client 寫一列 `orgEntityId: HK1` + `issueId: SG1_ISSUE`」——
+而那會靠**複合 FK 的 23503** 通過，`actions_insert` 從未被評估。
+
+實際寫法：`issueId: HK1_ISSUE` 配 `orgEntityId: HK1` —— **這一對是匹配的**，複合 FK 滿足，
+所以擋它的只可能是 RLS。三個 bypass 齊備：
+
+| bypass | 防的是誰代勞 | 出處 |
+|---|---|---|
+| 不經 `issueRefCode` | W04 的 counter policy | W05 clause 2 |
+| `createMany`（無 `RETURNING`）| SELECT policy | W06 Day 3 |
+| **父子 entity 配對匹配** | **複合 FK** | **W08（本次）** |
+
+⛔ 三次的代勞者各不相同（counter · `RETURNING` · trigger），所以規則不能列舉代勞者 ——
+唯一可靠的判準仍是 **Day 3 N3：中性化 `actions_insert` 後這個測試要轉紅**。**尚未驗。**
+
+### 一個 W07 沒有的好處（順帶量到）
+
+複合 FK **不需要被要求就涵蓋 UPDATE**。W07 的 trigger 必須明寫 `BEFORE INSERT OR UPDATE`
+才擋得住「先合法寫入、再改指向」的兩步走（W07 Day 1 M6 量到的）。
+`actions` 的測試 6 走同一條路徑而**沒有為此寫任何額外的 SQL** —— 少一件會被忘記的事。
+
+### 工時
+
+| 區段 | 起 | 迄 | 實際 | 錨點 |
+|---|---|---|---|---|
+| Day 2（2.1 → 2.x full gate）| 22:49:30 | 23:01:43 | **12 min 13 s** | ✅ 兩端閉合 |
+
+bottom-up 對應項（controller+module ×2 = 1.0 · int spec ×2 = 1.5）= **2.5 hr / 150 min**
+→ 高估 **12.3 倍**。與 Day 1 的 11.8 倍**一致**，不是離群值。
+
+→ 兩天兩段，同一個方向、同一個量級。`AD-BottomUpBlueprint-1` 的判斷（「該修的是估算不是乘數」）
+現在有第二、第三個資料點；Day 4 retro 定案時應該提出**具體的替代估法**而不只是再記一次。
+
+### Remaining for Next Day
+
+- Day 3：乾淨重啟 → API-level 走查（真進程 + 真 PostgreSQL）→ **N1-N6 元驗證**
+  （N1 = 移掉複合 FK 後測試 4 必須**轉綠**；N3 = 中性化 `actions_insert` 後測試 8 必須轉紅）

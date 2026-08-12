@@ -165,37 +165,64 @@
 
 ### 2.1 Controller + module × 2
 
-- [ ] **`modules/issue/` — controller + module + `.controller.spec.ts`**
+- [x] **`modules/issue/` — controller + module + `.controller.spec.ts`**
   - DoD: 藍本 `modules/control-test/`；create-only；server-owned 欄位不收呼叫者輸入
   - Verify: `npm run test -w apps/api -- issue.controller`
-- [ ] **`modules/action/` — controller + module + `.controller.spec.ts`**
+  - → ⭐ **本專案第一個 body 帶 enum 的端點**，而那需要前幾片都不需要的東西：
+    Prisma 拒絕未知 enum variant 的錯誤**不帶** `scope-refusal.ts` 認得的 SQLSTATE，
+    所以沒有守衛時 `{"severity":"urgent"}` 是 **500** —— 一個 typo 被回報成故障。
+    合法值由 `Object.values(IssueSource)` **導出**不是抄寫（抄寫會在 schema 加 variant 時變成謊）
+- [x] **`modules/action/` — controller + module + `.controller.spec.ts`**
   - DoD: 同上
   - Verify: `npm run test -w apps/api -- action.controller`
-- [ ] **`bootstrap/app.module.ts` 掛 2 個 module**
+  - → `issueId` 直通；`status`/`completedAt`/`verifiedBy` 三者一起被擋（三者同時可設 = 自簽自核）
+- [x] **`bootstrap/app.module.ts` 掛 2 個 module**
   - DoD: 兩組路由在 `/api-docs` 出現
   - Verify: 啟動後 `curl http://localhost:3210/api-docs-json` 確認路徑存在
+  - → ⏳ **路由存在性留到 Day 3 §3.2 用真進程驗**（Day 2 只有 `build` EXIT=0 證明它編得起來，
+    那**不證明**路由掛上了 —— 依 `verification-discipline.md`，這裡不宣稱）
 
 ### 2.2 整合測試 — 四個範疇測試 × 2
 
-- [ ] **`issue.int.spec.ts`**
+- [x] **`issue.int.spec.ts`**
   - DoD: 跨實體讀拒 / 跨實體寫拒且**資料未變** / RLS 層獨立成立 / 滾升角色只見授權子樹
   - Verify: `npm run test:int -w apps/api -- issue.int`
-- [ ] **`action.int.spec.ts`**
+  - → 9 個測試全過。⚠️ 這是**平淡的那個**：Issue 是父表、不引用任何東西，所以沒有
+    trigger 或 key 能擋在它的 `WITH CHECK` 前面 —— 只需要兩個 bypass 而不是三個
+- [x] **`action.int.spec.ts`**
   - DoD: 同上，另加 §3.4 的三個分流測試
   - Verify: `npm run test:int -w apps/api -- action.int`
-- [ ] **繞開發號的直接寫入測試（`AD-BorrowedRefusal-1` 第 4 次的防線）**
+  - → 11 個測試全過。測試 4 = **Day 3 N1 的目標**（移掉複合 FK 後必須轉綠）；
+    測試 5 = oracle（absent 與 unreadable 訊息**逐字相同**）；測試 6 = UPDATE 重指向
+  - → ⭐ 順帶量到一個 W07 沒有的好處：**FK 不需要被要求就涵蓋 UPDATE**，
+    而 W07 的 trigger 必須明寫 `BEFORE INSERT OR UPDATE` 才行 —— 少一件會被忘記的事
+- [x] **繞開發號的直接寫入測試（`AD-BorrowedRefusal-1` 第 4 次的防線）**
   - DoD: 不經 repository、**不產生 `RETURNING`**、不帶 `ref_code`；
         在 `actions` 自己的 `WITH CHECK` 中性化下**會紅**
   - Verify: 中性化 → 跑 → 確認轉紅 → 還原 → 再跑
-- [ ] **`int-global-setup.js` 種入跨範疇 fixture**
+  - → 已寫成 `action.int.spec.ts` 測試 8，**第三個 bypass 是刻意設計的**：
+    `issueId: HK1_ISSUE` 配 `orgEntityId: HK1` —— **這一對是匹配的**，所以複合 FK 滿足、
+    無法代勞。⛔ 顯而易見的寫法（`SG1_ISSUE` + `HK1`）會靠 key 的 23503 通過而
+    `actions_insert` 從未被評估 —— 那就是第 4 次。⏳ **中性化驗收是 Day 3 N3**
+- [x] **`int-global-setup.js` 種入跨範疇 fixture**
   - DoD: SG1 的 issue + HK1 的 issue 各一，供跨實體引用測試使用
   - Verify: 重建 `isms_test` 後查列數
+  - → issues `a80`/`a81` · actions `a90`/`a91`，各實體一筆；`issue`/`action` 兩個
+    ref_code counter 由種入的列**導出**不是寫死（否則第一個經 API 建立的會拿到已用的號）
 
 ### 2.x Full gate
 
-- [ ] lint 0/0 · format:check ✅×2 · type-check ✅×2 · unit · int · web · build ✅×2 ·
+- [x] lint 0/0 · format:check ✅×2 · type-check ✅×2 · unit · int · web · build ✅×2 ·
       `run_all` **7/7** · `lint:negative` PASS · coverage ≥ Day-0 baseline
       （⚠️ **逐 workspace 分開跑，不用 `tail`**）
+  - → lint 0/0 · format ×2 · type-check ×2 · build ×2 · web 10 · `run_all` **7/7**
+    （`entity-index` 仍 14/36）· `lint:negative` PASS（**41** 檔 0 bypass 3 allowlisted）
+  - → unit **276 / 27 suites** · int **125 / 10 suites**
+  - → ⚠️ **coverage 三項低於 Day-0 baseline**（92.07/91.9/96.63/93.62 vs 92.58/92.32/96.26/94）
+    → **已歸因，不是本 phase 的退化**：`modules/*/*.module.ts` 全部是 0%（既有 7 個皆然 ——
+    asset · control · control-test · evidence · policy · risk），因為它們是 DI metadata、
+    沒有可測邏輯。我加的是第 8、9 個，每加一個就稀釋一次。
+    jest 門檻是 80/70/80/80，四項**遠高於**它 → gate 綠。⛔ **趨勢本身要記** → Day 4 進 BACKLOG
 
 ---
 

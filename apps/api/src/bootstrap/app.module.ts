@@ -17,6 +17,7 @@
  * Last Modified: 2026-08-12
  *
  * Modification History (newest-first):
+ *   - 2026-08-12: Import IssueModule + ActionModule (W08) — slice 5's endpoints
  *   - 2026-08-12: Import ControlTestModule + EvidenceModule (W07) — slice 4's endpoints
  *   - 2026-08-12: Import ControlModule + AssetModule (W06) — slice 3's endpoints
  *   - 2026-08-11: Import RiskModule — the asset-based risk chain (W05)
@@ -29,10 +30,12 @@ import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { EntityScopeModule } from '../entity-scope/entity-scope.module';
 import { HealthModule } from '../health/health.module';
+import { ActionModule } from '../modules/action/action.module';
 import { AssetModule } from '../modules/asset/asset.module';
 import { ControlModule } from '../modules/control/control.module';
 import { ControlTestModule } from '../modules/control-test/control-test.module';
 import { EvidenceModule } from '../modules/evidence/evidence.module';
+import { IssueModule } from '../modules/issue/issue.module';
 import { PolicyModule } from '../modules/policy/policy.module';
 import { RiskModule } from '../modules/risk/risk.module';
 
@@ -52,6 +55,8 @@ const ENV_FILES = [resolve(process.cwd(), '.env'), resolve(process.cwd(), '../..
     AssetModule,
     ControlTestModule,
     EvidenceModule,
+    IssueModule,
+    ActionModule,
   ],
 })
 export class AppModule {}
