@@ -1,5 +1,5 @@
 ---
-status: active   # draft | active | closed | closed_partial —— 機器可讀的唯一權威
+status: closed   # draft | active | closed | closed_partial —— 機器可讀的唯一權威
 ---
 
 # Phase W08 Plan — Issue + Action，與父表接受錨點時的分流驗收
@@ -16,8 +16,10 @@ status: active   # draft | active | closed | closed_partial —— 機器可讀�
 ⚪ **無 UI → API-level verified**，不做 drive-through、不暗示可用性。
 **feature-continuation class → 不產出 design note**（理由見 §1）。
 
-**Status**: **Approved-to-execute**（使用者 2026-08-12 —— 範圍裁決 slice 5 = `Issue` + `Action`；
-`RefCodeCounter` 明記為刻意排除 → Scope decision (f)；approve 後開 Day 0）
+**Status**: **Closed**（2026-08-13 —— 六個 deliverable 全交付，checklist 無未勾項，
+plan §4 的 28 個目標全部命中且零計畫外檔案。PR #47 pending）
+起手為 Approved-to-execute（使用者 2026-08-12 —— 範圍裁決 slice 5 = `Issue` + `Action`；
+`RefCodeCounter` 明記為刻意排除 → Scope decision (f)）
 
 **Branch**: `feature/W08-issue-and-action`
 **Base**: `main` HEAD `edb5853`（審計 #3 的收尾 commit，PR #46 merged；Day 0 §0.2 實測確認）

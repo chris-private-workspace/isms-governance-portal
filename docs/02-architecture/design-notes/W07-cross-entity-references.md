@@ -60,7 +60,7 @@ committed 12.8 hr (`spike` 0.65) → **actual ~3.8 hr**（逐任務分鐘數見
 | 繞過 repository 直接寫 SQL | ⚠️ 無防護 | — | ⚠️ **無防護** | ⛔ 仍然擋 |
 
 **選 D 的具體理由**：唯一同時 (a) 關掉存在性 oracle、(b) 不誤擋 ADR-0014 的 group 擴寬、
-(c) 在 UPDATE 路徑成立、(d) 繞過應用層仍然有效的形狀。
+(c) 在 UPDATE 路徑成立、(d) 繞過應用層仍然有效的形狀。 ⭐ **W08 驗收 —— 這張表會分流，不是只有一個答案。** `issues` 沒有 `controls` 那個「M7 連結表要求兩側 entity 不同」的約束，所以它**給得起**錨點，`actions → issues` 因此走**選項 B**。而 N1（移掉 `actions_issue_id_org_entity_id_fkey`）讓跨實體引用**插入成功**，恰好三個測試轉紅、其餘八個不受影響 —— 擋住它的確實是那把鑰匙。順帶量到選 B 的一個本表沒有列出的好處：**複合 FK 免費涵蓋 UPDATE**，而 (c) 那一格在 W07 是靠 trigger 明寫 `BEFORE INSERT OR UPDATE` 才成立的。⛔ 選 D 對 `ControlTest` 仍然正確，本段不推翻它 —— 判準沒變，只是第一次遇到符合另一側的父表。詳見 `CH-023` 與 `01-planning/W08-m1-issue-and-action/progress.md` Day 3。
 
 **否決其他選項的理由**：
 
