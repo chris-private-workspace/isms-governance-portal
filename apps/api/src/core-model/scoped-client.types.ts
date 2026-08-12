@@ -30,12 +30,14 @@
  * Key Components:
  *   - ScopedRefCodeClient: what issuing a reference code needs
  *   - ScopedExtensionCatalogClient: what validating governed extensions needs
- *   - ScopedPolicyClient / ScopedRiskClient: the above, plus one table each
+ *   - ScopedPolicyClient / ScopedRiskClient / ScopedControlClient: the above, plus one table each
+ *   - ScopedAssetGroupClient / ScopedAssetClient: split so the asset path cannot read groups
  *
  * Created: 2026-08-10 (Phase W03)
- * Last Modified: 2026-08-11
+ * Last Modified: 2026-08-12
  *
  * Modification History (newest-first):
+ *   - 2026-08-12: Add Control + the split asset pair (W06) — the split is an oracle guard
  *   - 2026-08-11: Add ScopedRiskClient; extract the catalog half (W05) — second consumer
  *   - 2026-08-10: Add ScopedRefCodeClient (W04) — ScopedPolicyClient extends it
  *   - 2026-08-10: Initial creation (Phase W03) — structural shape, not a token
@@ -45,6 +47,9 @@
  *   - apps/api/src/entity-scope/scoped-prisma.provider.ts:106 — what satisfies this
  */
 import type {
+  Asset,
+  AssetGroup,
+  Control,
   ExtensionField,
   OrgEntity,
   Policy,
@@ -83,6 +88,53 @@ export interface ScopedRiskClient extends ScopedRefCodeClient, ScopedExtensionCa
   readonly risk: {
     findMany(args?: Prisma.RiskFindManyArgs): Promise<Risk[]>;
     create(args: Prisma.RiskCreateArgs): Promise<Risk>;
+  };
+}
+
+/**
+ * The control library (W06).
+ *
+ * ⚠️ `findMany` here reaches rows this client does NOT own — the read policy is
+ * widened for `applies_to_scope = 'group'` (ADR-0014). That is the one place in
+ * this file where a scoped delegate is not a synonym for "my entity's rows", and
+ * it is deliberate: a group-shared control library that only its author can read
+ * is not the thing 00:59 promises.
+ */
+export interface ScopedControlClient extends ScopedRefCodeClient, ScopedExtensionCatalogClient {
+  readonly control: {
+    findMany(args?: Prisma.ControlFindManyArgs): Promise<Control[]>;
+    create(args: Prisma.ControlCreateArgs): Promise<Control>;
+  };
+}
+
+/**
+ * The asset-group half of the asset chain (W06).
+ *
+ * Separate from ScopedAssetClient rather than merged, and the separation is the
+ * control: see that interface for what merging them would make writable.
+ */
+export interface ScopedAssetGroupClient extends ScopedRefCodeClient, ScopedExtensionCatalogClient {
+  readonly assetGroup: {
+    findMany(args?: Prisma.AssetGroupFindManyArgs): Promise<AssetGroup[]>;
+    create(args: Prisma.AssetGroupCreateArgs): Promise<AssetGroup>;
+  };
+}
+
+/**
+ * The asset half (W06).
+ *
+ * ⚠️ Deliberately does NOT expose `assetGroup`, for the reason ScopedRiskClient
+ * records about `asset`. Creating an asset names a group by id, and the
+ * COMPOSITE foreign key refuses another entity's group with the identical error
+ * it gives for a group that does not exist (measured, W05 Day 2). A repository
+ * that could read the group table first would be able to tell those apart —
+ * which is the oracle 約束 8 forbids. Both delegates exist on the same runtime
+ * object; what makes the oracle unwritable is that this TYPE cannot name one.
+ */
+export interface ScopedAssetClient extends ScopedRefCodeClient, ScopedExtensionCatalogClient {
+  readonly asset: {
+    findMany(args?: Prisma.AssetFindManyArgs): Promise<Asset[]>;
+    create(args: Prisma.AssetCreateArgs): Promise<Asset>;
   };
 }
 
