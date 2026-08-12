@@ -262,3 +262,106 @@ bottom-up 對應項（controller+module ×2 = 1.0 · int spec ×2 = 1.5）= **2.
 
 - Day 3：乾淨重啟 → API-level 走查（真進程 + 真 PostgreSQL）→ **N1-N6 元驗證**
   （N1 = 移掉複合 FK 後測試 4 必須**轉綠**；N3 = 中性化 `actions_insert` 後測試 8 必須轉紅）
+
+---
+
+## Day 3 — 2026-08-12
+
+⚪ **API-level verified（gate + 真進程 + 真 PostgreSQL），無 UI，不主張可用性。**
+本 phase 沒有任何 user-facing surface，所以這裡**不是** drive-through，措辭不得暗示可用性。
+
+### 3.1 乾淨重啟 —— 沒有東西要殺
+
+3210 本來就沒有 listener。14 個 node 程序逐一檢視後**一個都沒碰**：3200 是本專案的
+web dev server（PID 11688→36748，**8/8 啟動，非本 session**）· 別專案 frontend · azurite ·
+playwright MCP · statusline。
+
+啟動 log 是 **Day 2 刻意不宣稱的那件事**（「路由掛上了」）的證據：
+
+```
+LOG [InstanceLoader] IssueModule dependencies initialized +0ms
+LOG [InstanceLoader] ActionModule dependencies initialized +0ms
+LOG [RouterExplorer] Mapped {/issues, GET} route +0ms
+LOG [RouterExplorer] Mapped {/issues, POST} route +1ms
+LOG [RouterExplorer] Mapped {/actions, GET} route +0ms
+LOG [RouterExplorer] Mapped {/actions, POST} route +0ms
+WARN [DevPrincipal] DEV PRINCIPAL ACTIVE — EVERY entity-scoped endpoint is scoped by a
+     hard-coded assignment (SG1), not by any credential.
+[isms-api] listening on http://127.0.0.1:3210 (api-docs at /api-docs)
+```
+
+收工後 `TaskStop` + 複驗：**3210 free**，無父程序已死的殘留 worker。
+
+### 3.2 API-level 走查 — observed vs intended
+
+| # | 送出 | 預期 | **實際** | |
+|---|---|---|---|---|
+| A1 | `GET /issues` | 200 · 空 · 帶 `_devPrincipal` | `200 {"data":[],"_devPrincipal":true,…}` | ✅ |
+| A2 | `POST /issues` SG1 有效 | 201 · `ISSU-SG1-000001` · `open` | `201` `ISSU-SG1-000001` · `status:"open"` · `dueDate`/`ownerUserId`/`description` 皆 **null** | ✅ |
+| A3 | `POST /issues` HK1 | **404 不是 403** | `404 org entity …c1 not found` | ✅ |
+| A4 | `severity:"urgent"` | **400 不是 500** ⭐ | `400 severity must be one of: low, medium, high, critical` | ✅ |
+| A5 | `source:"audit"` | 400 · 清單導出 | `400 source must be one of: test, manual` | ✅ |
+| B1 | `POST /actions` 自己的 issue | 201 · `ACTN-SG1-000001` | `201` · `completedAt`/`verifiedBy` null · `status:"open"` | ✅ |
+| B2 | `issueId` 不存在 | 404 · **只帶欄位名** | `404 issue or assignee not found` | ✅ |
+| B3a | `issueId` = HK1 的 issue（**存在**但不可讀）| 404 | `404 issue or assignee not found` | ✅ |
+| B3b | `issueId` = 完全不存在 | **與 B3a 逐字相同** | `404 issue or assignee not found` | ✅ |
+| B4 | `GET /actions` | 列出 B1 | 一筆 | ✅ |
+| B5 | `GET /issues` | 只見 SG1 的 | 一筆；看不到手動種入的 HK1 那筆 | ✅ |
+
+⭐ **B3a / B3b 是 API 層的 oracle 測試**：為它在 `isms_dev` 種了一筆 HK1 的 issue（`…dd01`）。
+兩個回應**逐字相同** —— 呼叫者無法分辨「那個 id 屬於別人」與「那個 id 不存在」。
+
+⚠️ **A4 是本 phase 新增的守衛第一次在真進程上被驗。** 沒有它，一個 typo 是 500。
+
+⚠️ `isms_dev` 現在多了走查產生的資料（1 issue + 1 action + 1 筆手動種入的 HK1 issue）。留著。
+
+### 3.3 元驗證 N1-N6
+
+⚠️ **中性化必須改 migration 檔本身。** `int-global-setup.js:317-318` 每次 `test:int` 都
+`DROP DATABASE … WITH (FORCE)` + `CREATE` + `migrate deploy` —— 直接下的 SQL 會被沖掉。
+
+| N | 中性化 | 預期 | **實際轉紅** | |
+|---|---|---|---|---|
+| **N1** | 移掉 `actions_issue_id_org_entity_id_fkey` | 測試 4 轉紅 | **4、5、6**（其餘 **8 綠**）| ✅ |
+| **N2** | `issues_insert` `WITH CHECK` → `true` | 測試 7 | **只有 7** | ✅ |
+| **N3** | `actions_insert` `WITH CHECK` → `true` | 測試 8 | **只有 8** | ✅ |
+| **N4** | `issues_read` `USING` → `true` | 測試 5 | **5 + 9**（roll-up）| ✅ |
+| **N5** | `actions_read` `USING` → `true` | 測試 7 | **7 + 11**（roll-up）| ✅ |
+| **N6** | fixture 的孤兒變成非孤兒 | `run_all` 6/7 | **6/7 `[FAIL] entity-index`** | ✅ |
+
+**⭐⭐ N1 是本 phase 的核心結論。** W07 design note 的 D1 判準說「父表給得起錨點時用複合 FK」——
+移掉那把鑰匙，跨實體引用**插入成功**（`Received promise resolved instead of rejected`），
+而其餘 8 個測試不受影響。**擋住它的確實是複合 FK，不是別的東西。**
+
+N1 順帶證實了 Day 2 只是「結構上推論」的那件事：測試 6（UPDATE 重指向）從未為 UPDATE 寫過
+任何額外 SQL，卻隨 FK 一起失效 —— **FK 免費涵蓋 UPDATE**，而 W07 的 trigger 必須明寫
+`BEFORE INSERT OR UPDATE` 才行（W07 Day 1 M6）。
+
+**⭐⭐ N3 = `AD-BorrowedRefusal-1` 第 4 次確認不存在。** Day 2 刻意把測試 8 的
+`(issueId, orgEntityId)` 寫成**匹配的一對**，好讓複合 FK 無法代勞；N3 證明了那個設計有效 ——
+中性化 `actions_insert` 後**只有它**轉紅。
+
+### Drift / Issue（Day 3）
+
+| ID | Finding | 處置 |
+|---|---|---|
+| **D-n6design** ⭐ | **N6 第一版是我把元驗證本身設計錯了** —— 把 fixture 的 `ShadowLedger` 改名成 `Policy2` + table `policies`，以為它就不再是孤兒；而 `Policy2` 與 `policies` **都不在**索引上（索引寫的是 `Policy`），所以它仍然是孤兒，`run_all` 照樣 7/7、EXIT=0 | ⛔ **EXIT=0 讀起來像「N6 通過」**。查了才發現是設計錯。更正版改成 `Risk` + `risks`（真的在索引上）→ 6/7 FAIL ✅。→ 通則：**元驗證本身也會有 bug，而它的 bug 長得跟「通過」一樣** |
+| **D-widename** | 測試 6（issue）與測試 9（action）—— 兩個「cross-entity WRITE through the repository」—— 在 INSERT policy 中性化下**仍然綠**。它們借的是 `ref_code_counters` 的拒絕（W05 的形狀）| **不是缺口**：7/8 才是 INSERT policy 的專屬測試且正確轉紅。但那兩個測試的**名稱比它們實際證明的寬** → Day 4 記一條 AD（名稱應該說「repository 路徑會拒絕」，不是「cross-entity WRITE 被 X 拒絕」）|
+| **D-pollfalse** | 啟動後 90 秒的 poll 回報 `API DID NOT COME UP`，而 6 秒後手動查是 **200**。⚠️ 我第一時間提出「Windows 先解析 IPv6」的解釋並寫進了回覆 —— **實測 `localhost` 與 `127.0.0.1` 兩個都通，那個解釋是錯的** | **根因未確定**（最可能是 16 秒 tsc 編譯讓它卡在窗口邊緣）。⛔ 記為未確定，**不編一個聽起來合理的原因**。與 Day 0「exit 1 = 指令不存在」、Day 1「Glob 找不到 ≠ 檔案不存在」同族：**工具的否定回報不是事實的否定** |
+
+### 工時
+
+| 區段 | 起 | 迄 | 實際 | 錨點 |
+|---|---|---|---|---|
+| Day 3（3.1 → N6 + checksum 複驗）| 23:32:28 | 23:42:11 | **9 min 43 s** | ✅ 兩端閉合 |
+
+bottom-up 對應項（分流+元驗證 0.75 · Day 3 API 驗證 0.75）= **1.5 hr / 90 min** → 高估 **9.3 倍**。
+
+**四段合計**：bottom-up 8.0 hr（480 min）· 實際 **46.4 min** · ratio **0.097**。
+Day 0 那段（無起點錨點）不計。⛔ 遠低於 `CALIBRATION-MATRIX.md` 的 0.4 下限，且**方向一致、
+無離群值** —— Day 4 retro 要提出具體的替代估法，不是再記一次「高估了」。
+
+### Remaining for Next Day
+
+- Day 4 closeout：`CH-023` · W07 design note 追加 D1 分流結果（**同行追加，行數不變**）·
+  retrospective + calibration · 新 AD 登記 · 導航檔 · `git diff --name-status` 對照 plan §4

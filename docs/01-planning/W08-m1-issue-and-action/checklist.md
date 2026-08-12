@@ -234,34 +234,87 @@ _(⚪ 本 phase **無 UI**，故不做 drive-through。所有結論一律寫
 
 ### 3.1 Clean restart
 
-- [ ] **乾淨重啟**
+- [x] **乾淨重啟**
   - DoD: 殺掉陳舊 dev server / 孤兒 worker；確認新程序是 3210 的**唯一擁有者**；
         擷取證明 wiring 生效的 startup log 行（`task-workflow.md` §Risk Class C）
   - Verify: 列出所有 node 程序的 PID / PPID / StartTime，確認無父程序已死的殘留
         ⚠️ 殺之前先確認那不是使用者或其他 session 的程序
+  - → **3210 本來就沒有 listener，沒有東西要殺**。14 個 node 程序逐一檢視：3200 是本專案的
+    web dev server（PID 11688→36748，**8/8 啟動，非本 session**）· 另有別專案 frontend ·
+    azurite · playwright MCP · statusline —— **一個都沒碰**
+  - → 啟動 log 擷取（這是 Day 2 刻意不宣稱的那件事的證據）：
+    `IssueModule dependencies initialized` · `ActionModule dependencies initialized` ·
+    `Mapped {/issues, GET}` `{/issues, POST}` `{/actions, GET}` `{/actions, POST}` ·
+    `WARN [DevPrincipal] DEV PRINCIPAL ACTIVE` · `listening on http://127.0.0.1:3210`
+  - → 收工後 `TaskStop` + 複驗：**3210 free**，無父程序已死的殘留 worker
 
 ### 3.2 API-level 走查（不是 drive-through）
 
-- [ ] **`POST /issues` 主路徑** —— 建立、回應含 `ISSU-` ref_code、跨實體讀取回 **404 不是 403**
-- [ ] **`POST /actions` 主路徑** —— 綁到自己 entity 的 issue 成功
-- [ ] **`POST /actions` 跨實體引用** —— `issue_id` 指向另一 entity 的 issue → 被拒，
+- [x] **`POST /issues` 主路徑** —— 建立、回應含 `ISSU-` ref_code、跨實體讀取回 **404 不是 403**
+  - → A2 **201** `ISSU-SG1-000001`，`status:"open"`，`dueDate`/`ownerUserId`/`description` 皆 null
+  - → A3 **404** `org entity …c1 not found`（訊息帶的是**呼叫者自己送的** id，非查得的）
+  - → ⭐ A4 `severity:"urgent"` → **400** `severity must be one of: low, medium, high, critical`
+    —— 沒有這個守衛時它是 **500**。本 phase 新增的那一段，第一次在真進程上被驗
+  - → A5 `source:"audit"` → **400** `source must be one of: test, manual` —— 清單是**導出的**
+- [x] **`POST /actions` 主路徑** —— 綁到自己 entity 的 issue 成功
+  - → B1 **201** `ACTN-SG1-000001`，`completedAt`/`verifiedBy` null、`status:"open"`
+  - → B4 `GET /actions` 列出它；B5 `GET /issues` 只見 SG1 的，看不到手動種入的 HK1 那筆
+- [x] **`POST /actions` 跨實體引用** —— `issue_id` 指向另一 entity 的 issue → 被拒，
       錯誤訊息**只帶欄位名不帶 id**
-- [ ] observed-vs-intended 對照 → progress.md Day 3（逐項貼出實際回應，不是摘要）
+  - → ⭐ **API 層的 oracle 測試**：為此在 `isms_dev` 種了一筆 HK1 的 issue（`…dd01`）
+    - B3a（**存在**但不可讀）→ 404 `issue or assignee not found`
+    - B3b（**不存在**）　　 → 404 `issue or assignee not found`
+    - **逐字相同** —— 呼叫者無法分辨「屬於別人」與「不存在」
+- [x] observed-vs-intended 對照 → progress.md Day 3（逐項貼出實際回應，不是摘要）
 
 ### 3.3 元驗證（每個宣稱會擋東西的機制各中性化一次）
 
-- [ ] **N1 — 移掉 `actions` 的複合 FK** → §3.4 測試 1 必須**轉綠**
+> ⚠️ **措辭更正**：plan / 本檔原寫 N1「必須**轉綠**」，指的是**被禁止的操作變成成功**。
+> 而測試斷言的是拒絕，所以那個判準的可觀察形式是**測試從 pass 變 fail**。兩者是同一件事，
+> 但「轉綠」字面讀起來像「測試通過」，會把判準讀反。以下一律用「測試轉紅／轉綠」的字面意思。
+>
+> ⚠️ **中性化必須改 migration 檔本身**，不能只改資料庫：`int-global-setup.js:317-318` 每次
+> `test:int` 都 `DROP DATABASE … WITH (FORCE)` + `CREATE` + `migrate deploy`，任何直接下的
+> SQL 會被沖掉。六次編輯／還原後 `isms_dev` 的 checksum 逐字複驗（見 3.3 末項）。
+
+- [x] **N1 — 移掉 `actions` 的複合 FK** → §3.4 測試 1 必須**轉綠**（= 測試 4 **轉紅**）
   - DoD: 這是 D1 分流的**核心驗收** —— 若移掉後仍然紅，擋住的不是複合 FK，必須查清是誰
   - Verify: 中性化前後各跑一次，逐次貼出結果
-- [ ] **N2 — 中性化 `issues` 的 `WITH CHECK`** → 對應測試轉紅
-- [ ] **N3 — 中性化 `actions` 的 `WITH CHECK`** → 對應測試轉紅（含 2.2 的直接寫入測試）
-- [ ] **N4 — 中性化 `issues` 的 `USING`** → 跨實體讀測試轉紅
-- [ ] **N5 — 中性化 `actions` 的 `USING`** → 跨實體讀測試轉紅
-- [ ] **N6 — detector 的孤兒 model fixture** → `run_all` 轉為 6/7 fail
-- [ ] **零轉紅一律先查再下結論**
+  - → **3 failed, 8 passed**，而且是**正確的三個**：
+    測試 4「SG1 may NOT action HK1's issue」→ `Received promise resolved instead of rejected`
+    （**插入成功了** —— 擋住它的確實是這把鑰匙）· 測試 5 oracle → `Received constructor: Object` ·
+    測試 6 UPDATE 重指向 → `resolved instead of rejected`
+  - → ⭐ **順帶證實 Day 2 記的那個好處**：測試 6 從未為 UPDATE 寫過任何額外 SQL，
+    而它隨 FK 一起失效 —— FK 免費涵蓋 UPDATE，W07 的 trigger 必須明寫 `OR UPDATE`
+  - → 其餘 **8 個全綠**（含測試 8 的 RLS、9、10、11）—— 它們**不依賴**這把鑰匙
+- [x] **N2 — 中性化 `issues` 的 `WITH CHECK`** → 對應測試轉紅
+  - → **1 failed, 8 passed** —— **只有**測試 7（`issues_insert` 的專屬測試）
+- [x] **N3 — 中性化 `actions` 的 `WITH CHECK`** → 對應測試轉紅（含 2.2 的直接寫入測試）
+  - → **1 failed, 10 passed** —— **只有**測試 8。⭐⭐ `AD-BorrowedRefusal-1` **第 4 次確認不存在**：
+    Day 2 刻意讓 `(issueId, orgEntityId)` 配對匹配好讓複合 FK 無法代勞，這裡證明了那個設計有效
+  - → ⚠️ **順帶量到一件要記的事**：測試 6（issue）與測試 9（action）—— 兩個「cross-entity WRITE
+    through the repository」—— 在 INSERT policy 中性化下**仍然綠**。它們借的是 `ref_code_counters`
+    的拒絕（W05 的形狀）。**這不是缺口**，因為 7/8 才是 INSERT policy 的專屬測試且正確轉紅；
+    但那兩個測試的**名稱比它們實際證明的寬** → 記進 progress
+- [x] **N4 — 中性化 `issues` 的 `USING`** → 跨實體讀測試轉紅
+  - → **2 failed**：測試 5（跨實體讀）+ 測試 9（roll-up）。roll-up 一起紅是**正確的** ——
+    它也走 SELECT policy，`USING(true)` 讓它看到全部
+- [x] **N5 — 中性化 `actions` 的 `USING`** → 跨實體讀測試轉紅
+  - → **2 failed**：測試 7 + 測試 11，同上
+- [x] **N6 — detector 的孤兒 model fixture** → `run_all` 轉為 6/7 fail
+  - → ⚠️ **第一版設計錯誤**：把 `ShadowLedger` 改名成 `Policy2` + table `policies`，
+    以為它就不再是孤兒 —— 而 `Policy2` / `policies` **都不在**索引上（索引寫的是 `Policy`），
+    所以它**仍然是孤兒**，run_all 照樣 7/7。⛔ **EXIT=0 讀起來像 N6 通過**
+  - → 更正版：改成 `Risk` + `risks`（**真的在**索引上）→ `run_all` **6/7**，
+    `[FAIL] entity-index`；還原後回 **7/7**
+- [x] **零轉紅一律先查再下結論**
   - DoD: 任何一項零轉紅時，先查 `pg_policies` / `\d` 證實編輯真的生效，
         再判斷是「沒被測到」還是「編輯沒生效」（W06 N4/N5 的教訓）
   - Verify: 逐項貼出 anchor 中性化前後的**逐字差異**
+  - → 每次中性化都先印 `anchor found: True`，還原後印 `restored byte-identical: True`
+  - → **零轉紅發生 1 次（N6 第一版），查了，是我的元驗證設計錯而非機制沒被測到**
+  - → 六次編輯／還原後複驗 `isms_dev` migration checksum：
+    db `8d66d0c7…` = file `8d66d0c7…` **match True**（`AD-MigrationChecksum-1`）
 
 ---
 
