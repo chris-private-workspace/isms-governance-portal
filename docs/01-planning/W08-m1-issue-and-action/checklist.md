@@ -86,40 +86,78 @@
 
 ### 1.1 `Issue` model + migration
 
-- [ ] **`schema.prisma` +1 model +2 enum（`IssueSource` · `IssueSeverity` · `IssueStatus`）**
+- [x] **`schema.prisma` +1 model +2 enum（`IssueSource` · `IssueSeverity` · `IssueStatus`）**
   - DoD: 欄位照 `02a:229` + §1.1 base fields；`source` 只有 `test` / `manual`；
         `@@unique([id, orgEntityId])` 存在，docstring 寫明**為什麼它給得起而 `controls` 給不起**
   - Verify: `npx prisma validate`；讀回 docstring 確認無 orphan claim
-- [ ] **migration：`issues` 表 + per-command policies**
+  - → `The schema at prisma\schema.prisma is valid 🚀`。⚠️ **實為 3 個 enum**（本行標題寫 +2
+    卻列了 3 個名字，起草筆誤）；連同 `ActionStatus` 全 phase 共 **4 個**，plan §3.0/§4 寫 3
+  - → ⭐ 額外寫進 docstring 的兩個**規格缺口**（不是實作選擇）：`source` 是裸 enum
+    （追不回哪一次 test）· `risk_accepted` 無指向 `risks` 的欄位。皆按 已確認參數 #9 記錄不發明
+- [x] **migration：`issues` 表 + per-command policies**
   - DoD: `FOR SELECT` / `FOR INSERT` / `FOR UPDATE`，**無 `FOR DELETE`**；`FORCE ROW LEVEL SECURITY`
         跟隨 W07 的決定；複合唯一鍵在 SQL 裡確實存在
   - Verify: `npm run prisma:migrate -w apps/api` 後查 `pg_policies` 逐條列出
+  - → 兩張表**同一個 migration**（`20260812211801_issue_and_action`，Prisma 一次生成，非兩個）。
+    `pg_policies` 實查：`issues_read`/`_insert`/`_update` 三條、無 DELETE；
+    `relrowsecurity=t relforcerowsecurity=t`；GRANT 為 `INSERT,SELECT,UPDATE`
+  - → ⚠️ **時間戳有真問題並已處置**：Prisma 用 **UTC**（`20260812131655`），而 W07 手建的
+    `20260812164500_correct_parent_guard_comment` 用**本地時間** → 新 migration 會排在一個
+    **已套用**的之前。重命名為 `20260812211801`（本地當下，晚於它）。⛔ 這不是編時間 ——
+    目錄名的唯一功能是排序，而正確的順序就是它現在表示的。→ 記 AD
 
 ### 1.2 `Action` model + migration
 
-- [ ] **`schema.prisma` +1 model +1 enum（`ActionStatus`）**
+- [x] **`schema.prisma` +1 model +1 enum（`ActionStatus`）**
   - DoD: 欄位照 `02a:231`；`verified_by` 依 D-verifiedby 的結論，docstring 記錄推斷依據
   - Verify: `npx prisma validate`
-- [ ] **migration：`actions` 表 + 複合 FK + per-command policies**
+  - → `verified_by` **給了 FK**（不同於同後綴的 `created_by`/`updated_by`）：§1.1 把那兩個標
+    "Audit"（列的 metadata），§3 把這個列為 Action 自己的欄位。領域引用給 RI，稽核 metadata
+    是 ADR-0003 的事。欄位名保留 `verified_by` 不改成 `_user_id`（已確認參數 #9）
+  - → **不建 `owner_user_id`**：`assignee_user_id` 就是它的 contextual owner，兩欄一義正是
+    `Asset` docstring 拒絕過的形狀
+- [x] **migration：`actions` 表 + 複合 FK + per-command policies**
   - DoD: `FOREIGN KEY (issue_id, org_entity_id) REFERENCES issues(id, org_entity_id)`；
         policies 同 §1.1
   - Verify: `\d actions` 讀出約束定義（不是 grep migration 檔）
+  - → `pg_constraint` 實查：`actions_issue_id_org_entity_id_fkey -> FOREIGN KEY (issue_id,
+    org_entity_id) REFERENCES issues(id, org_entity_id) ON UPDATE CASCADE ON DELETE RESTRICT` ✅
+  - → ⭐ **無 `assert_parent_in_scope` trigger**（刻意）——`pg_trigger` 實查兩表各只有
+    `validate_extensions`。複合 FK 就是這裡的機制；Day 3 N1 會移掉它驗證這句話
 
 ### 1.3 Repository × 2
 
-- [ ] **`issue.repository.ts` + `.spec.ts`**
+- [x] **`issue.repository.ts` + `.spec.ts`**
   - DoD: 藍本 `control-test.repository.ts`；`ISSU-` 發號；SQLSTATE → `scope-refusal.ts` 的映射
   - Verify: `npm run test -w apps/api -- issue.repository`
-- [ ] **`action.repository.ts` + `.spec.ts`**
+  - → 8 個測試全過，檔案覆蓋率 **100 / 100 / 100 / 100**
+- [x] **`action.repository.ts` + `.spec.ts`**
   - DoD: 同上；`ACTN-` 發號；複合 FK 違反（`23503`）映射到 `UnknownReferenceError`
   - Verify: `npm run test -w apps/api -- action.repository`
-- [ ] **`scoped-client.types.ts` +2 介面**
+  - → 9 個測試全過，覆蓋率 **100 / 100 / 100 / 100**。含一條**呼叫序列**斷言
+    （`['catalog','issueRefCode','insert']`）—— 它釘的是「中間沒有人去查父列」
+- [x] **`scoped-client.types.ts` +2 介面**
   - DoD: 結構型別自宣告（W03 的技術），**不是** DI token；⛔ `ScopedActionClient` **不得**含 `issue`
   - Verify: `npm run type-check -w apps/api`
+  - → EXIT=0。`ScopedIssueClient` 無需辯護的省略（它是**父**表）；`ScopedActionClient` 不含 `issue`
+- [x] **錨點重新校準**（計畫外 —— `AD-DesignNoteAnchor-1`「造成偏移的 phase 負責」）
+  - DoD: 本 phase 對 `schema.prisma` 的插入位移了既有行號；**活參考**逐一改，歷史快照不追
+  - Verify: 逐一 grep 實際新行號，**不推算**
+  - → 量到：`Entity-scoped ON PURPOSE` 163→**174** · `model RefCodeCounter` 172→**183** ·
+    `model AssetGroup` 538→**622** · 其複合錨點 569→**653** · controls 拒絕錨點段 808-812→**892-896**
+  - → 已改 5 處活參考：`check_entity_index.py` · W07 design note（×2，**行數 344=344 不變**）·
+    `BACKLOG.md:77` · `ROADMAP.md:77` · W08 plan（4 處）。
+    不追：`CH-022` · `W07/retrospective.md` · `memory/project_w07_*`（歷史快照）
 
 ### 1.x Partial gate
 
-- [ ] `npm run lint -w apps/api` · `npm run type-check -w apps/api`（**分開跑，取各自退出碼**）
+- [x] `npm run lint -w apps/api` · `npm run type-check -w apps/api`（**分開跑，取各自退出碼**）
+  - → lint 0 · type-check 0 · format **首跑 1**（兩個 repository 的長 import）→ `prettier --write`
+    → 0；重驗 CR count = **0**（prettier 未引入 CRLF）
+  - → 完整 unit suite: **252 / 25 suites**（Day-0 為 235/23）；coverage
+    **93.02 / 92.76 / 96.39 / 94.35**，四項**全部高於** Day-0 baseline
+  - → `run_all` **7/7**，`entity-index` 自動由 12/36 變 **14 / 36** —— 這是 Day-0 那個 detector
+    真的在導出而非硬編碼的證明（我沒有碰它）
 
 ---
 

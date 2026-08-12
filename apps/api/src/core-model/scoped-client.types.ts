@@ -33,11 +33,13 @@
  *   - ScopedPolicyClient / ScopedRiskClient / ScopedControlClient: the above, plus one table each
  *   - ScopedAssetGroupClient / ScopedAssetClient: split so the asset path cannot read groups
  *   - ScopedControlTestClient / ScopedEvidenceClient: same guard, kept by a trigger instead
+ *   - ScopedIssueClient / ScopedActionClient: back to a composite key, because Issue can anchor
  *
  * Created: 2026-08-10 (Phase W03)
  * Last Modified: 2026-08-12
  *
  * Modification History (newest-first):
+ *   - 2026-08-12: Add Issue + Action (W08) — the guard swings back to a composite key
  *   - 2026-08-12: Add ControlTest + Evidence (W07) — parent guard is a trigger here
  *   - 2026-08-12: Add Control + the split asset pair (W06) — the split is an oracle guard
  *   - 2026-08-11: Add ScopedRiskClient; extract the catalog half (W05) — second consumer
@@ -49,12 +51,14 @@
  *   - apps/api/src/entity-scope/scoped-prisma.provider.ts:106 — what satisfies this
  */
 import type {
+  Action,
   Asset,
   AssetGroup,
   Control,
   ControlTest,
   Evidence,
   ExtensionField,
+  Issue,
   OrgEntity,
   Policy,
   Prisma,
@@ -177,6 +181,40 @@ export interface ScopedEvidenceClient extends ScopedRefCodeClient, ScopedExtensi
   readonly evidence: {
     findMany(args?: Prisma.EvidenceFindManyArgs): Promise<Evidence[]>;
     create(args: Prisma.EvidenceCreateArgs): Promise<Evidence>;
+  };
+}
+
+/**
+ * Findings raised by any module (W08).
+ *
+ * No omission to justify here, and that is the point worth recording: Issue is a
+ * PARENT. Its children name it, not the other way round.
+ */
+export interface ScopedIssueClient extends ScopedRefCodeClient, ScopedExtensionCatalogClient {
+  readonly issue: {
+    findMany(args?: Prisma.IssueFindManyArgs): Promise<Issue[]>;
+    create(args: Prisma.IssueCreateArgs): Promise<Issue>;
+  };
+}
+
+/**
+ * Corrective actions under an issue (W08).
+ *
+ * ⚠️ Deliberately does NOT expose `issue` — the same omission as ScopedAssetClient
+ * and ScopedControlTestClient, and the third distinct mechanism enforcing it.
+ * W05 relied on a composite foreign key, W07 on a BEFORE trigger because the
+ * parent refused an anchor; `issues` offers one, so this is back to the key.
+ *
+ * The reason the omission survives all three: whatever collapses "another
+ * entity's issue" and "no such issue" into one error lives in the database, and a
+ * repository able to read the issue table first could tell them apart. That is
+ * the oracle 約束 8 forbids. Not granting the delegate is what makes it
+ * unwritable rather than merely discouraged.
+ */
+export interface ScopedActionClient extends ScopedRefCodeClient, ScopedExtensionCatalogClient {
+  readonly action: {
+    findMany(args?: Prisma.ActionFindManyArgs): Promise<Action[]>;
+    create(args: Prisma.ActionCreateArgs): Promise<Action>;
   };
 }
 

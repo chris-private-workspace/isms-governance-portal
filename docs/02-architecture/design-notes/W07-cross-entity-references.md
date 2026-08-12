@@ -22,7 +22,7 @@ W05 / W06 用 `(parent_id, org_entity_id)` **複合 FK** 關掉跨實體引用�
 **第一次遇到這招用不上的子表**：
 
 - `ControlTest → Control` —— `controls` **刻意不建** `@@unique([id, org_entity_id])`
-  （`apps/api/prisma/schema.prisma:808-812`，M7 的連結表兩側 entity 本來就會不同）
+  （`apps/api/prisma/schema.prisma:892-896`，M7 的連結表兩側 entity 本來就會不同）
 - `Evidence → *` —— `linked_type` + `linked_id` 是多型的，**連 FK 都沒有**
 
 所以本 phase 的問題不是「第 12、13 張表」，是**當父表拒絕錨點時，誰來擋**。
@@ -68,7 +68,7 @@ committed 12.8 hr (`spike` 0.65) → **actual ~3.8 hr**（逐任務分鐘數見
   呼叫者能分辨「存在但不是你的」與「不存在」。**這正是 約束 8 要求回 404 而非 403 的那個洩漏**，
   只是發生在資料庫層，任何 controller 都改不掉。
 - **B（複合 FK）** —— **結構上不可用**，不是「比較差」。`controls` 明文拒絕
-  `@@unique([id, org_entity_id])`（`schema.prisma:808-812`），因為 M7 的
+  `@@unique([id, org_entity_id])`（`schema.prisma:892-896`），因為 M7 的
   `Risk ↔ Control` 連結表要讓 group control 連到**任何**實體的 risk。
 - **C（repository 先讀父列）** —— 違反 約束 8 鐵律 2（優先資料庫層），且它的失效模式
   **正是 W05/W06 反覆量到的那個**：有人繞過 repository 直接寫。⚠️ 更根本的是，
