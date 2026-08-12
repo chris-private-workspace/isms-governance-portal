@@ -298,6 +298,45 @@ describe('control module (integration)', () => {
     expect(hk1.map((r) => r.refCode)).not.toContain('CTRL-HK1-PLANTED-1');
   });
 
+  /**
+   * ⭐⭐ THE TEST 12b COULD NOT BE. Found by Day-3 meta-verification.
+   *
+   * `controls_insert`'s WITH CHECK was neutralised to `true` and 12b stayed
+   * GREEN. Measured directly afterwards, with WITH CHECK still `true`:
+   *
+   *   INSERT ... RETURNING  -> refused, "new row violates row-level security"
+   *   the same INSERT, no RETURNING -> INSERT 0 1, the row landed
+   *
+   * Prisma's `create()` always emits RETURNING, and PostgreSQL applies the
+   * SELECT policy to the row being returned. So 12b — and W05's int 11b, whose
+   * shape it copies — prove that the READ policy hides the row, never that the
+   * WRITE policy refused it. Remove the WITH CHECK and a cross-entity row lands
+   * silently while the suite stays green.
+   *
+   * `createMany` emits no RETURNING, so this one has nothing to hide behind.
+   */
+  it('12c. the controls INSERT policy refuses with no RETURNING to hide behind', async () => {
+    const sg1 = await clientFor(['SG1']);
+
+    await expect(
+      sg1.control.createMany({
+        data: [
+          {
+            orgEntityId: HK1,
+            refCode: 'CTRL-HK1-PLANTED-2',
+            title: 'planted with no RETURNING',
+            type: 'corrective',
+            nature: 'hybrid',
+            frequency: 'annual',
+          },
+        ],
+      }),
+    ).rejects.toThrow(/row-level security/i);
+
+    const hk1 = await repo.list(await clientFor(['HK1']));
+    expect(hk1.map((r) => r.refCode)).not.toContain('CTRL-HK1-PLANTED-2');
+  });
+
   it('13. a roll-up scope sees its authorised subtree, plus the group library', async () => {
     const sg = await clientFor(['SG'], true);
     const owners = new Set((await repo.list(sg)).map((r) => r.orgEntityId));
