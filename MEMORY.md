@@ -60,6 +60,8 @@
 - W04 [User and base fields](memory/project_w04_user_and_base_fields.md) — MERGED #34 (`5bb0c9f`) 2026-08-10; ADR-0012 拍板 `users` 全域無 `org_entity_id`（範疇是 role assignment 的屬性不是人的）；**元驗證產出新知識** —— counter 的 RLS 失效讓 W03 的 oracle 防護重新變得可區分.
   Keywords: ADR-0012 · identity 是第三類 · ref_code_counters entity-scoped · upsert increment 原子發號 · permission denied for schema public · template1 繼承 · AD-DbBuildPathParity-1 · AD-MigrationChecksum-1 · 拒絕點從 insert 移到 counter
 - W05 [Asset and risk chain](memory/project_w05_asset_and_risk_chain.md) — MERGED #36 (`700f5d6`) 2026-08-11, **`closed_partial`**; 評分成為 generated column（ADR-0013）所以呼叫者物理上寫不了；**元驗證發現新表的 RLS 被上游 counter 代勞而零覆蓋**（全 gate 綠），同一天補測試並在中性化狀態下證明它會紅。
+- W06 [Row-level scope](memory/project_w06_row_level_scope.md) — PR-pending 2026-08-12; 第一張**範疇屬於列**的表（ADR-0014：三條 per-command policy，**缺席的 policy 比窄的更嚴格**）；⭐ **`RETURNING` 讓 SELECT policy 遮蔽 `WITH CHECK`** —— 三個「繞開發號」測試（含 W05 條款 2）測的是讀不是寫，中性化後零轉紅。
+  Keywords: applies_to_scope · per-command policy · RETURNING masks WITH CHECK · createMany · group-shared control · AD-ReturningMasksCheck-1 · AD-GroupRowTheft-1 · 無有效 actual
   Keywords: ADR-0013 · generated column · GREATEST 忽略 NULL · all-or-none CHECK · ELSE 'acceptable' 捏造治理主張 · CREATE OR REPLACE 一欄兩世代 · FK 檢查繞過 RLS · 複合 FK · 23503 · AD-BorrowedRefusal-1 · AD-CalibrationMetric-2 · 七不變式可複製 6/需調整 0
 
 ---

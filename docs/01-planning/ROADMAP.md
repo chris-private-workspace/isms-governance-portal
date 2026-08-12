@@ -8,6 +8,7 @@
 **Status**: Active
 
 > **Modification History**
+> - 2026-08-12: Advance item 4 to M1 slice 3 (Phase W06) — 8/35 entities, ADR-0014, clause 2 refuted
 > - 2026-08-11: Advance item 4 to M1 slice 2 (Phase W05) — 7/35 entities, invariants adjudicated
 > - 2026-08-10: Drop the duplicated negative-gate count — single source is BACKLOG (audit AD-8)
 > - 2026-08-10: Phase 無 —— 首次填入排序項（CH-016）；啟用門檻已達成，見下方 §為什麼現在啟用
@@ -67,7 +68,7 @@
 | 2b | `AD-SecDoDAutomation-1` —— **B 類三點**（#17 seed 資料無 checksum-valid 卡號 · #10 瀏覽器儲存禁令 · #25 危險 sink）| ⬜ | 第 2 項（已完成）| 同上 §建議的實作順序 |
 | 2c | **拍板：Entra ID 之後，`16` #11–15 的密碼／憑證責任邊界** | ⬜ | — | 同上 §需要拍板的 —— **可能值得一份 ADR** |
 | 3 | **OQ-6 spike → ADR-0005** —— 受治理擴充欄位的儲存機制 | ✅ | — | W03（2026-08-10）—— [`ADR-0005`](../14-adr/0005-governed-extension-storage.md)；兩層獨立性已元驗證 |
-| 4 | **M1 — Data foundation** | ▶ | **slice 2 / N 已交付**（W05，2026-08-11，**MERGED PR #36**，`closed_partial`）—— 資產鏈五張表 + `POST/GET /risks` + ADR-0013（評分是 generated column）。⭐ **W04 那七個不變式的可複製性已裁決：可複製 6 / 不適用 1 / 需調整 0** —— 形狀確認可抄，另加兩條新條款（entity-scoped 表之間 FK 一律複合 · 每張新表要有繞開發號的直接寫入測試）。⚠️ **M1 的 DoD 仍未達成** —— 35 個實體裡建了 **7** 個，其餘 28 張表是 slice 3..N；⛔ **`AD-RiskBand-1` 必須在 M8 之前拍板**（儀表板數的是分帶不是分數）| [`07:32`](../02-architecture/07-wave1-build-plan.md) · [W05 retro §US-6](./W05-m1-asset-and-risk-chain/retrospective.md) · [W04 design note](../02-architecture/design-notes/W04-user-and-base-fields.md) |
+| 4 | **M1 — Data foundation** | ▶ | **slice 3 / N 已交付**（W06，2026-08-12，⏳ PR-pending）—— `Control` + 三個寫入端點 + **ADR-0014**（範疇可以是**列**的屬性；三條 per-command policy，無 `FOR DELETE`）。⭐ **W05 兩條新條款的裁決：條款 1 夠用 / 條款 2 需再加** —— 「繞開發號的直接寫入測試」被實測推翻：Prisma `create()` 的 `RETURNING` 讓 SELECT policy 先擋，所以它測的是**讀**的 policy。新版條款要求該寫入**不得產生 `RETURNING`**，且驗收是「中性化 `WITH CHECK` 後它會紅」。**W04 七不變式第二次負載：可複製 6 / 需補充 1**（權限檢查在 RLS 之前）。⚠️ **M1 的 DoD 仍未達成** —— 35 個實體裡建了 **8** 個，其餘 27 張表是 slice 4..N；⛔ **`AD-RiskBand-1` 必須在 M8 之前拍板**（儀表板數的是分帶不是分數）| [`07:32`](../02-architecture/07-wave1-build-plan.md) · [W06 retro §US-6](./W06-m1-control-and-asset-endpoints/retrospective.md) · [W06 design note](../02-architecture/design-notes/W06-row-level-scope.md) |
 | 5 | `AD-ScopedClientDI-1` —— 範疇化 client 如何抵達 `core-model` | ✅ | — | W03（2026-08-10）—— ⚠️ **結論與原提議不同**：token 不建（零消費者），型別是 `core-model` 自宣告的結構型別，實例走方法參數 |
 | 6 | `AD-ScopeConcurrency-1` —— 並行範疇汙染的常駐測試 | ✅ | — | W03（2026-08-10）—— 40 次**交錯**查詢，逐列斷言 |
 | 7 | `AD-SecDoDAutomation-1` **實作** | ⬜ | 第 2 項的分類結果 —— 跳過分類會建出對人工項目無效的假 gate | [`BACKLOG.md`](./BACKLOG.md) |

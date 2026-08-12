@@ -103,7 +103,32 @@ Log 是**歷史紀錄** —— 只有在要調整某個乘數、或要理解某�
 
 ### `spike`
 
-**現行乘數**: 0.65 | **資料點**: 3（⚠️ **只有 1 個是預先宣告定義後量的** —— 見下方 W04）
+**現行乘數**: 0.65 | **資料點**: 4（⚠️ **仍只有 1 個可用** —— W06 無有效 actual，見下）
+
+#### Phase W06 — ⛔ **無 ratio**（不是 UNDER、不是 OVER，是**量不到**）
+
+- Bottom-up 13 hr → committed ~6.5 hr (0.50) → **Day 1 改判 spike** → ~8.5 hr (0.65)
+- **改判理由**：D1 拍板的 A′ 是本 repo 第一個非單一 `FOR ALL` 的 policy 形狀，
+  觸發 plan §1/§7 **起草時就寫好**的條件。⭐ 值得記的是**改判發生在 Day 1 而非 retro**——
+  預先宣告條件的價值就在這裡：它讓改判是執行規則，不是事後歸類。
+- ⛔ **為什麼不產出 ratio**：逐字套用 `AD-CalibrationMetric-2`（branch 第一個 commit →
+  closeout commit）得到 **≈17.8 hr → ratio ≈2.09**，而中間跨了一夜
+  （17:27 → 09:47，**約 16.3 hr 無活動**）。**新定義只移除了「上一個 phase 的 closeout 當 base」，
+  完全沒有處理閒置區間** —— 它是為了修 W05 的污染而生的，**第一次套用就被同一類污染擊中**。
+- **commit 時間戳在本 phase 根本量不到工作**：session 內相鄰 commit 間隔只有
+  31.7 min（Day 0-1）與 24 min（Day 2-3），而 **Day 2 的全部實作**（schema + migration +
+  2 repository + 2 controller + 6 個測試檔）落在兩個 session 之間那段無 commit 的區間裡。
+  **每個 session 第一個 commit 之前的工作，這個量尺看不見。**
+- ⭐ **真正的根因不是量尺壞了，是我沒用量尺。** `task-workflow.md` §Step 5 明文要求
+  progress.md 逐日記錄逐任務工時；**W06 一次都沒記**。
+  ⚠️ **W04 那則已經預告過這件事** —— 它寫著「`AD-TimeTracking-1/-2` 仍不建議關閉：
+  本則證明的是牆鐘可用，不是逐項工時不需要」。**W06 就是它咬人的那個 phase。**
+- **行動**：**KEEP 0.65**，本點記為**無有效 actual**，⛔ **不併入 3-phase 窗口**
+  （與 `pattern-reuse-feature` 的受污染點同樣處理）。
+  下個 phase **Day 1 起在 progress.md 記逐任務分鐘數**；**連續 2 個 phase 有資料後再檢討定義** ——
+  先修執行，不要再改一次定義。→ `AD-CalibrationNoActual-1`
+- ⚠️ **W04 那則預告的「第一次真正的 3-phase 窗口判定會在 W06 成立」因此沒有成立。**
+  同單位的有效樣本仍是 **1**（W04）。
 
 #### Phase W04 — ratio 0.81（IN band）⭐ 第一個「先定義、再量」的資料點
 

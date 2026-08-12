@@ -321,30 +321,68 @@ _(⚪ **無 user-facing surface** → drive-through 不適用。一律標 **API-
 
 ### 4.1 Change record
 
-- [ ] **`docs/03-implementation/changes/CH-021-w06-control-and-asset-endpoints.md`**
+- [x] **`docs/03-implementation/changes/CH-021-w06-control-and-asset-endpoints.md`**
       （Problem / Root Cause / Solution / Verification / Impact —— 含 **API-level verified** 標示）
-- [ ] ⭐ **US-6：W05 追加的兩條條款逐條裁決「夠用 / 需再加」**
+- [x] ⭐ **US-6：W05 追加的兩條條款逐條裁決「夠用 / 需再加」**
   - DoD: 每條一行 + 一句理由。**這是本 phase 對 slice 4 最有價值的產出**
   - Verify: 寫進 retrospective；⚠️ 同時裁決 **W04 七不變式在第二次負載下是否仍然成立**
+  - → **條款 1 夠用** —— W06 給了複合 FK 第一個負載，中性化退化成單欄 FK **2 個測試轉紅**
+  - → ⛔ **條款 2 需再加，且是被實測推翻的** —— 它宣稱釘住 `WITH CHECK`，中性化後**一個都沒紅**。
+    新版文字（retro §US-6）：該寫入**不得產生 `RETURNING`**，且**驗收是中性化後它會紅**
+  - → **W04 七不變式第二次負載：可複製 6 / 需補充 1 / 不適用 0**。
+    ⭐ 補充 2.7：**權限檢查在 RLS 之前** —— 這個順序決定一個測試證明的是哪一層
 
 ### 4.2 Closeout
 
-- [ ] `retrospective.md` Q1-Q7 + calibration
+- [x] `retrospective.md` Q1-Q7 + calibration
   - ⚠️ **`actual` 用 `AD-CalibrationMetric-2` 的新定義**（branch **第一個 commit** → closeout commit），
     並明記 plan 起草不在窗口內故為**下界**。**這是那條 AD 的第一次實際套用**
   - ⚠️ **若 D1 已改判為 spike** → class 改 `spike` 0.65 並在 Q2 說明改判理由
-- [ ] `CALIBRATION-MATRIX.md` 那一行 —— **≤ 1 行 ~250 字元**（lint 上限 400；完整敘述 → `CALIBRATION-LOG.md`）
-- [ ] Final gate sweep: lint 0 · type 0 · format 0 · unit ≥138 · int ≥54 · web 10 · build 0 ·
+  - → ✅ Q1-Q7 完成；class 已改 `spike` 0.65（改判發生在 **Day 1** 而非 retro —— 條件寫在 plan 裡）
+  - → ⛔ **這條 AD 的第一次套用就失效，所以本 phase 不產出 ratio**：逐字套用得 ≈2.09，
+    而中間**跨了一夜約 16.3 hr**。新定義只移除了「上一個 phase 的 closeout 當 base」，
+    **沒有處理閒置區間**。⭐ 更根本的是 **progress.md 一次都沒記逐任務工時**（§Step 5 要求）
+    → **不編數字**，本點記為「無有效 actual」且不併窗口 → `AD-CalibrationNoActual-1`
+- [x] `CALIBRATION-MATRIX.md` 那一行 —— **≤ 1 行 ~250 字元**（lint 上限 400；完整敘述 → `CALIBRATION-LOG.md`）
+  - → `spike` 那一行 **233 字元**（量過，不是估的）。完整敘述已進 `CALIBRATION-LOG.md` §1 `spike`
+  - → ⚠️ log 裡明記兩件 W04 已預告而 W06 撞上的事：「第一次真正的 3-phase 窗口在 W06 成立」**沒有成立**，
+    以及「牆鐘可用不代表逐項工時不需要」**咬人了**
+- [x] Final gate sweep: lint 0 · type 0 · format 0 · unit ≥138 · int ≥54 · web 10 · build 0 ·
       `run_all` 6/6 · `lint:negative` PASS
-- [ ] ⭐ **`git diff --name-status <base>..HEAD` 對照 plan §4**（`AD-DecisionSideEffect-1`）
+  - → lint **0** · type **0** · format **0** · unit **192 / 19 suites** · int **81 / 6 suites** ·
+    web **10 / 1 file** · build **0** · `run_all` **6/6** ·
+    `lint:negative` **PASS（28 檔 0 bypass 3 allowlisted）** ·
+    coverage **93.35 / 92.47 / 95.74 / 94.56**（歸因見 2.x）
+- [x] ⭐ **`git diff --name-status <base>..HEAD` 對照 plan §4**（`AD-DecisionSideEffect-1`）
   - DoD: 逐項確認 plan §4 列的每個檔案都真的動了，**特別是寫在裁決句子裡的附帶動作**
   - Verify: 差異寫進 progress.md；W05 用這一步抓到兩個漏做的交付
-- [ ] 導航檔: `CLAUDE.md` Current-Phase + Last-Updated（**各 1 行**）· `MEMORY.md` pointer + subfile ·
+  - → **plan §4 的 14 項全部落地**；三個 `UNTOUCHED` 宣告皆成立
+    （`entity-scope/**` · `modules/{policy,risk}/**` · `apps/web/**` 都不在 diff 裡）
+  - → ⚠️ **第 2 項「被移出內容的落點」實際上不需要編輯** —— 那張 trigger 表本來就在
+    `.claude/rules/README.md`，US-1 移除的是 CLAUDE.md 裡的**重複**。plan 預期 NEW/EDIT，
+    實際 **0 次編輯**，方向是好的但**與 plan 不符，記在這裡而不是默默通過**
+  - → 超出 plan §4 的：`artifacts/` 4 檔（量測要求隱含）· `BACKLOG.md`（節流閘要求）·
+    `14-adr/README.md`（第 14 項隱含）· design note（**spike 改判後才需要**）
+- [x] 導航檔: `CLAUDE.md` Current-Phase + Last-Updated（**各 1 行**）· `MEMORY.md` pointer + subfile ·
       `BACKLOG.md` §Shipped 加列 · `ROADMAP.md` 第 4 項進度（**兩處都要改**）
-- [ ] ⭐ **關掉的 AD**：`AD-ClaudeMdBudget-1`（US-1 達成）
+  - → `CLAUDE.md`：Current Phase 1 行 + Last Updated 1 行 + Tech Stack 的 ADR 清單改 `0010–0014`。
+    **28,452 bytes，headroom 1,548**（US-1 的成果在 closeout 之後仍 ≥1,500）
+  - → `MEMORY.md` 1 條指標 + `memory/project_w06_row_level_scope.md`
+  - → `BACKLOG.md` §Shipped 加 W06 列 · `ROADMAP.md` **第 4 項 + Modification History 兩處都改**
+- [x] ⭐ **關掉的 AD**：`AD-ClaudeMdBudget-1`（US-1 達成）
   - ⚠️ **W05 checklist 2.4 的 🚧 也在本 phase 關閉** —— 回頭把那一列標成已解封並指向本 phase
-- [ ] `RISK_REGISTER.md` 複查（**模板新增的那一列**）—— R4 因本 phase 再增三條無稽核寫入路徑而需更新
-- [ ] Anti-pattern 自檢（retro Q5）：AP-1..AP-7 → 違規數
+  - → `AD-ClaudeMdBudget-1` 已從 §Open 移除（headroom 196 → 1,548）；§Open **67 條**
+    （新增 4 關閉 1，**逐列重數**：P0 5 / P1 41 / P2 21）
+  - → W05 checklist 該列已標 `🚧→✅`，寫明解封事件與承載測試，**未刪除原本的 🚧 理由**
+- [x] `RISK_REGISTER.md` 複查（**模板新增的那一列**）—— R4 因本 phase 再增三條無稽核寫入路徑而需更新
+  - → R4 更新：**7 → 8 張表**，複查日 2026-08-12。⭐ **敞口不只 +1 張表** ——
+    `asset_groups`/`assets` 在 W05 沒有寫入路徑，本 phase 讓**三條無稽核路徑同時變成真的可達**
+  - → ⭐ 另記一個 M3 必須答的新問題：group control 的**跨實體讀取**是合法滾升路徑，
+    依 guardrail 4 它**自身也要被稽核** —— 需要的不只是寫入稽核
+- [x] Anti-pattern 自檢（retro Q5）：AP-1..AP-7 → 違規數
+  - → **總計 0**。⭐ AP-3 有一個**被攔下**：A′ 的第四條 `FOR DELETE` policy 在寫下去之前
+    被判定為「中性化不會有任何測試轉紅」→ 改為不寫。AP-5 有一個刻意不建
+    （`controls` 沒有 `@@unique([id, org_entity_id])` —— M7 的連結表不能用複合 FK）
 - [ ] **Commit** → ⏳ PR push + open → CI → merge: **PENDING USER CONFIRMATION**
       （push 是 outward-facing）→ merge 經 `gh` 驗證後翻 `status:` frontmatter
   - ⚠️ **文件引用 commit 一律用 merge 後 `main` 上的 SHA**（`AD-DesignNoteAnchor-1`）——
