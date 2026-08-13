@@ -291,6 +291,48 @@ const SEED = {
       'Wire offboarding to the VPN directory group',
     ],
   ],
+  // W09. One template and one assignment per entity. The template's `version` is
+  // left at its default 1 here; the suite bumps SG1's to 2 in place to prove the
+  // snapshot trigger copies what it finds rather than always writing 1.
+  assessmentTemplates: [
+    // [id, orgEntityId, refCode, name, subjectType]
+    [
+      '00000000-0000-0000-0000-000000000aa0',
+      '00000000-0000-0000-0000-0000000000c0',
+      'ASTM-SG1-000001',
+      'Annual RCSA',
+      'risk',
+    ],
+    [
+      '00000000-0000-0000-0000-000000000aa1',
+      '00000000-0000-0000-0000-0000000000c1',
+      'ASTM-HK1-000001',
+      'Access review questionnaire',
+      'control',
+    ],
+  ],
+  // ⚠️ Neither instance names a reviewer. The SoD check only fires when two names
+  // are present, so a seed that filled both would be asserting the rule holds
+  // rather than leaving the suite free to test both sides of it.
+  assessmentInstances: [
+    // [id, orgEntityId, refCode, templateId, subjectType, subjectId]
+    [
+      '00000000-0000-0000-0000-000000000ab0',
+      '00000000-0000-0000-0000-0000000000c0',
+      'ASIN-SG1-000001',
+      '00000000-0000-0000-0000-000000000aa0',
+      'risk',
+      '00000000-0000-0000-0000-000000000a20',
+    ],
+    [
+      '00000000-0000-0000-0000-000000000ab1',
+      '00000000-0000-0000-0000-0000000000c1',
+      'ASIN-HK1-000001',
+      '00000000-0000-0000-0000-000000000aa1',
+      'control',
+      '00000000-0000-0000-0000-000000000a21',
+    ],
+  ],
   // Global libraries (multi-tenant-data.md:63) — no org_entity_id, and that is
   // the property the suite pins: BOTH entities must read the same rows.
   threats: [
@@ -426,6 +468,47 @@ module.exports = async function globalSetup() {
       [id, orgEntityId, refCode, issueId, description],
     );
   }
+  for (const [id, orgEntityId, refCode, name, subjectType] of SEED.assessmentTemplates) {
+    await seed.query(
+      `INSERT INTO assessment_templates
+         (id, org_entity_id, ref_code, name, subject_type, definition, updated_at)
+       VALUES ($1, $2, $3, $4, $5::assessment_subject_type, $6::jsonb, now())`,
+      [
+        id,
+        orgEntityId,
+        refCode,
+        name,
+        subjectType,
+        // Two questions with ids, because the suite answers one of them and then
+        // answers a third that was never asked — which must succeed, since
+        // nothing can refuse it.
+        JSON.stringify({
+          sections: [
+            {
+              id: 's1',
+              title: 'Access',
+              questions: [
+                { id: 'q1', type: 'yes_no_na', text: 'Are leaver accounts revoked in 24h?' },
+                { id: 'q2', type: 'score', text: 'Rate the evidence quality 1-5' },
+              ],
+            },
+          ],
+        }),
+      ],
+    );
+  }
+  // ⚠️ template_version is NOT supplied — the BEFORE INSERT trigger fills it from
+  // the template. Passing one here would seed the very assertion the suite makes.
+  for (const [id, orgEntityId, refCode, templateId, subjectType, subjectId] of SEED
+    .assessmentInstances) {
+    await seed.query(
+      `INSERT INTO assessment_instances
+         (id, org_entity_id, ref_code, template_id, template_version,
+          subject_type, subject_id, period, updated_at)
+       VALUES ($1, $2, $3, $4, 0, $5::assessment_subject_type, $6, now(), now())`,
+      [id, orgEntityId, refCode, templateId, subjectType, subjectId],
+    );
+  }
   for (const [id, name, category] of SEED.threats) {
     await seed.query(
       `INSERT INTO threats (id, name, category, updated_at) VALUES ($1, $2, $3, now())`,
@@ -481,6 +564,18 @@ module.exports = async function globalSetup() {
   await seed.query(
     `INSERT INTO ref_code_counters (org_entity_id, entity_type, last_seq, updated_at)
      SELECT org_entity_id, 'action', count(*), now() FROM actions GROUP BY org_entity_id`,
+  );
+  // W09. `assessment_response` is deliberately NOT seeded — no responses exist,
+  // so its counter starts absent and issueRefCode's upsert creates it. Same
+  // reasoning W05 recorded for `risk`: the first-ever code for a type is a path
+  // that otherwise never runs.
+  await seed.query(
+    `INSERT INTO ref_code_counters (org_entity_id, entity_type, last_seq, updated_at)
+     SELECT org_entity_id, 'assessment_template', count(*), now() FROM assessment_templates GROUP BY org_entity_id`,
+  );
+  await seed.query(
+    `INSERT INTO ref_code_counters (org_entity_id, entity_type, last_seq, updated_at)
+     SELECT org_entity_id, 'assessment_instance', count(*), now() FROM assessment_instances GROUP BY org_entity_id`,
   );
   for (const [id, orgEntityId, entityType, key, dataType, required] of SEED.extensionFields) {
     await seed.query(

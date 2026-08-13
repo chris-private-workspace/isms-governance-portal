@@ -101,46 +101,53 @@
 
 ### 2.1 三個 repository + spec
 
-- [ ] **`assessment-template.repository.ts`**（+ spec）
-  - DoD: entity-scoped 讀寫；spec 覆蓋率 100%
-  - Verify: `npm run test -w apps/api -- assessment-template.repository`
-- [ ] **`assessment-instance.repository.ts`**（+ spec）
-  - DoD: 同上；含 SoD 違反時的錯誤傳遞
-  - Verify: `npm run test -w apps/api -- assessment-instance.repository`
-- [ ] **`assessment-response.repository.ts`**（+ spec）
-  - DoD: 同上；`evidence_id` 可為 NULL
-  - Verify: `npm run test -w apps/api -- assessment-response.repository`
+- [x] **`assessment-template.repository.ts`**（+ spec）
+  - DoD: entity-scoped 讀寫；spec 覆蓋 `definition` 原樣通過、不寫 `version`/`status`
+  - Verify: 9 個測試綠
+- [x] **`assessment-instance.repository.ts`**（+ spec）
+  - DoD: 同上；含 SoD 違反時的錯誤傳遞；**不接受 `templateVersion`**
+  - Verify: 9 個測試綠，含「23514 → SoD 且**不是**兩個 404 之一」
+- [x] **`assessment-response.repository.ts`**（+ spec）
+  - DoD: 同上；`evidence_id` 可為 NULL；**未被問過的題目會被接受**（成本寫成測試）
+  - Verify: 7 個測試綠
+- [x] ⭐ **超出 plan：第二個 migration，`template_version` 由 DB 快照**
+  - DoD: 呼叫端說 99 存入 1 · 模板升 2 存入 2 · 不可達模板 → 23503 非 23502 · UPDATE 不重取
+  - Verify: 四項 psql 實測 + int spec 測試 5/6/7/8
 
 ### 2.2 `scoped-client.types.ts` +3 介面
 
-- [ ] **三個介面，⛔ 各自只含自己需要的 model**
-  - DoD: 比照 W08 的 `ScopedActionClient` 不含 `issue` —— 介面不給用不到的存取
-  - Verify: `npm run type-check -w apps/api`
+- [x] **三個介面，⛔ 各自只含自己需要的 model**
+  - DoD: `ScopedAssessmentInstanceClient` **不含** `assessmentTemplate`；
+        `ScopedAssessmentResponseClient` **不含** `assessmentInstance` 與 `evidence`
+  - Verify: type-check clean
 
 ### 2.3 `modules/assessment/` controller + module
 
-- [ ] **6 個端點（3 POST + 3 GET）**
-  - DoD: 非法 enum → **400**；不存在或越界 id → **404**；合法值由 `Object.values()` 導出
-  - Verify: `npm run test -w apps/api -- assessment.controller`
-- [ ] **`app.module.ts` 註冊**
-  - DoD: 端點在 `/api-docs` 出現
-  - Verify: 乾淨重啟後 `curl localhost:3210/api-docs`（Risk Class C：先殺陳舊程序）
+- [x] **6 個端點（3 POST + 3 GET）**
+  - DoD: 非法 enum → **400**；不存在或越界 id → **404**；**SoD → 422**；
+        合法值由 `Object.values()` 導出
+  - Verify: 13 個 controller 測試綠
+- [x] **`bootstrap/app.module.ts` 註冊**（⚠️ 非 plan 寫的 `src/app.module.ts` —— D1）
+  - DoD: `AssessmentModule` 在 imports 清單
+  - Verify: type-check + build clean；**int spec 用 `Test.createTestingModule` 實際建起模組**
 
 ### 2.4 整合測試
 
-- [ ] **`assessment.int.spec.ts` —— 每張表四項範疇測試**
+- [x] **`src/modules/assessment/assessment.int.spec.ts`**（⚠️ 非 plan 寫的 `apps/api/test/` —— D15）
   - DoD: 跨實體讀拒 / 跨實體寫拒且資料未變 / RLS 層獨立成立 / 滾升只看到授權子樹
   - DoD: **測試名稱不得寬於它證明的東西**（`AD-TestNameWiderThanProof-1`）——
-        釘住哪一層擋的，或在 docstring 明寫本測試不釘層
-  - Verify: `npm run test:int -w apps/api -- assessment`
-- [ ] **SoD 的常駐負面案例**
+        每個測試名指出擋的是哪一層，Day 3 的四個 N 目標逐一標在測試上
+  - Verify: **20/20 綠**
+- [x] **SoD 的常駐負面案例**
   - DoD: 同一 user 同時為 assignee 與 reviewer → 插入失敗，且斷言的是 CHECK 不是別的
-  - Verify: 同上
+  - Verify: 測試 9（拒絕）+ 9b（單邊放行）+ 9c（**不是** 404 形狀）
 
 ### 2.x Full gate
 
-- [ ] lint 0/0 · web test 10 · api unit · api int · type-check ×2 · build ×2 ·
-      coverage 四項 · `run_all` 7/7 · `lint:negative` PASS
+- [x] lint **0/0** · web test **10** · api unit **314/31** · api int **145/11** ·
+      type-check clean ×2 · build clean ×2 · coverage **92.07/90.67/97.14/93.49** ·
+      `run_all` **7/7** · `lint:negative` **PASS**（46 檔 0 bypass 3 allowlisted）·
+      `check_entity_index` **17 / 36**
       （⛔ 逐 workspace 逐項可見，不用 `tail` / `--silent`）
 
 ---

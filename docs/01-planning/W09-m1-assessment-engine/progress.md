@@ -85,3 +85,62 @@
 
 - Day 2：三個 repository + spec · `scoped-client.types.ts` +3 介面 · controller + module ·
   int spec（含 D12 的 version-2 測試與 D13 的 ref_code 成本量測）
+
+---
+
+## Day 2 — 2026-08-13 — Repositories + endpoints + integration
+
+### Today's Accomplishments
+
+- **三個 repository + spec**（9 + 9 + 7 = 25 個單元測試）
+- **`scoped-client.types.ts` +3 介面** —— 三個都扣住父表 delegate
+- **controller（6 端點）+ module + spec**（13 個測試）
+- **`assessment.int.spec.ts` —— 20 個測試**，含四項範疇測試 ×3 表
+- ⭐ **超出 plan：第二個 migration**（見下）
+- **Full gate**：lint 0/0 · web 10 · api unit **314/31** · api int **145/11** ·
+  type-check ×2 · build ×2 · coverage **92.07/90.67/97.14/93.49** · `run_all` 7/7 ·
+  `lint:negative` PASS · `check_entity_index` **17 / 36**
+
+### ⭐ 今天最重要的一件事：一個設計衝突，以及它的解法
+
+`02a:330` 要求 `template_version` 是**指派當下的快照**。要複製它就得讀模板 ——
+但 W05 起每個 scoped client 都刻意**不給父表 delegate**，理由逐字寫在三個介面上：
+「不給 delegate 才叫寫不出來，而不只是不建議」。
+
+三個選項，兩個是壞的：
+
+| 選項 | 為什麼不行 |
+|---|---|
+| 呼叫端自己傳 `templateVersion` | 那不是快照，是**宣稱**。D12 已標它是 AP-3 邊緣，這樣只會更糟 |
+| 給 instance client 開 `assessmentTemplate` delegate | 為了取一個整數，把三個 phase 建立的 oracle 防線拆掉 |
+| **DB 在 `BEFORE INSERT` 填它** | ✅ 介面維持窄的，且欄位真的是規格說的那個意思 |
+
+⭐ **而這個 trigger 差一點自己開一個 oracle。** 如果模板不可達時 `RAISE`，
+「別人的模板」與「不存在的模板」就會得到**不同的錯誤** —— 正是 W07 量到的那個陷阱
+（該次的結論是「關掉 oracle 的是執行順序不是 trigger 本身」）。
+解法是 `COALESCE(..., 0)` **不 RAISE**：讓後面的複合 FK 用 23503 拒絕兩者。
+
+⚠️ 還有一層：`BEFORE` trigger 也跑在 `NOT NULL` **之前**，所以留 NULL 會先得到 23502，
+oracle 換條路又回來了。0 是刻意選的 —— `version` 預設 1 且只增，沒有模板會是 0。
+
+**四項實測**：呼叫端謊報 99 → 存 1 · 模板升 2 → 存 2 · 不可達 → 23503 · UPDATE 不重取。
+D12 因此關閉：機制是**可證偽的**，即使 production 還沒有產生第 2 版的路徑。
+
+### Issues / Discoveries
+
+| ID | 發現 | 處置 |
+|----|------|------|
+| **D15** | plan §4 把 int spec 寫成 `apps/api/test/assessment.int.spec.ts`；實際慣例是 `src/modules/<x>/<x>.int.spec.ts`（10 個既有檔全部如此）| **Risk Class D 第二次**（同一個 phase 內）。⚠️ 兩次都是「plan 引用路徑靠猜」，而 Day 0 Prong 1 只驗了 plan 列的路徑**存不存在**，沒驗**慣例對不對** —— 前者答「檔案不在」，後者才答「你要放的地方是錯的」 |
+| **D16** ⭐⭐ | **測試 12（跨實體證據被拒）第一版是用一個不存在的 id 通過的** —— 我把 `a60`/`a61`（control_test 的 id）當成 evidence 的 id，實際是 `a70`/`a71`。拒絕的是「不存在」不是「跨實體」 | ✅ **被測試 13 抓到**（「可以引用自己實體的證據」）—— 那個正向控制組正是為此存在。⭐ **這是 `AD-BorrowedRefusal-1` 的形狀第 5 次，而這次是被結構抓到的**：拒絕測試旁邊放一個共用同一機制的正向測試，錯的 fixture 就無所遁形。⚠️ 若當初只寫拒絕測試，它會綠著騙過整個 phase |
+| **D17** | 覆蓋率 branch **91.9 → 90.67**（−1.23），lines 93.62 → 93.49（−0.13），funcs 96.63 → **97.14**（+0.51）| 門檻 80/70/80/80，四項遠高於。⚠️ 但 branch 掉 1.23 **大於** `AD-ModuleCoverageDilution-1` 從一個 module 檔能解釋的量 —— 多出來的是 controller 的三組驗證分支（三個端點各自的 required/optional 檢查）。Day 4 記入該 AD 當第二個資料點 |
+| **D18** | `assessment_response` 的 counter **刻意不 seed**，讓 `issueRefCode` 的 upsert 走「該類型第一次發號」那條路 | 沿用 W05 對 `risk` 的同一個決定。⚠️ 這條路徑否則永遠不會在測試裡跑到 |
+
+### D13 的成本量測（ref_code 每答一題一次）
+
+⚠️ **本 phase 未量到真實數字** —— 端點是一次一筆，沒有批次提交路徑，所以「40 題 40 次」
+是**從程式碼推導**而非實測。⛔ 不寫成已量測。真正要量需要一個批次端點，那是 slice 7+ 的事。
+已寫進 `assessment-response.repository.ts` 的 header 與 spec 的測試名。
+
+### Remaining for Next Day
+
+- Day 3：元驗證（N1-N6），**預期方向必須在跑之前寫下**（`AD-MetaVerificationBug-1`）
