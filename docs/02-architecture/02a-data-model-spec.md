@@ -31,7 +31,7 @@ not on this list; adding an entity means adding a row here in the same change. �
 | `AssetGroup` · `Asset` | 1 | Promoted to Wave 1 — risk assessment is asset-based |
 | `StatementOfApplicability` | 1 | Mandatory ISO 27001 output |
 | `Control` | 1 | |
-| `Assessment` (RCSA) | — | ⛔ **NOT A SEPARATE TABLE.** An RCSA is an `AssessmentInstance` whose `subject_type` is `risk` — this row is kept so the old name still finds its home. Ruled by the user 2026-08-13 on the column overlap: §3's `Assessment` gives `subject_type`+`subject_id`, `period`, `assessor_user_id`, `reviewer_user_id` and two timestamps, while `AssessmentInstance` gives the same fields with `assignee_user_id` for the first and `status` for the last two — and §4 defines **one** lifecycle for the pair. Building both would be one concept with two private definitions, which guardrail 3 forbids. ⚠️ **The ruling had a cost**: §3's `Assessment` enumerates `risk/control/**process**/entity` while the engine's is `risk/control/**vendor**/entity` (:326 and `05:43`, twice). `process` now has no home → `AD-AssessmentProcessSubject-1` |
+| `Assessment` (RCSA) | — | ⛔ **NOT A SEPARATE TABLE.** An RCSA is an `AssessmentInstance` whose `subject_type` is `risk` — this row is kept so the old name still finds its home. Ruled by the user 2026-08-13 on the column overlap: §3's `Assessment` gives `subject_type`+`subject_id`, `period`, `assessor_user_id`, `reviewer_user_id` and two timestamps, while `AssessmentInstance` gives the same fields with `assignee_user_id` for the first and `status` for the last two — and §4 defines **one** lifecycle for the pair. Building both would be one concept with two private definitions, which guardrail 3 forbids. ⚠️ **The ruling had a cost, since paid**: §3's `Assessment` enumerates `risk/control/**process**/entity` while the engine's was `risk/control/**vendor**/entity` (:326 and `05:43`, twice), so `process` briefly had no home. **Closed 2026-08-13 by CH-025** — the user ruled `process` into the engine's enum (:326 now lists five), because losing a subject kind was a side effect of collapsing two tables rather than anything anybody chose |
 | `ControlTest` | 1 | |
 | `Evidence` | 1 | Polymorphic |
 | `Issue` · `Action` (CAPA) | 1 | Shared by every module that raises findings |
@@ -323,9 +323,18 @@ user: `accessRequests.js` shows `who:'External — BSI auditor'` with `opco:'—
 **AccessReviewCampaign** — `name`, `scope_description`, `due_date`, `owner_user_id`,
 `items_total`, `items_completed`, `status`. Per-reviewer progress is derived from its items.
 
-**AssessmentTemplate** — `name`, `version`, `subject_type` (risk / control / vendor / entity),
-sections, and questions with `question_type` (yes-no-NA / score / free text) and
-`evidence_required` (bool).
+**AssessmentTemplate** — `name`, `version`, `subject_type` (risk / control / **process** /
+vendor / entity), sections, and questions with `question_type` (yes-no-NA / score / free text)
+and `evidence_required` (bool).
+
+> ⚠️ **`process` added 2026-08-13 (CH-025), by ruling rather than by reading.** This line and
+> `05:43` originally gave four subject kinds; §3's `Assessment` (RCSA) gave four *different*
+> ones, each list holding one the other lacked. W09 built only the four both agreed on and
+> recorded the difference. The user then ruled that `process` belongs here — losing a whole
+> subject kind had been a side effect of collapsing `Assessment` into `AssessmentInstance`
+> (a decision made on the column overlap), not something anybody chose. The full order is
+> `risk, control, process, vendor, entity`: the superset that keeps both original lists in
+> their own relative order.
 
 **AssessmentInstance** — `template_id`, `template_version`, `subject_type` + `subject_id`,
 `period`, `assignee_user_id`, `reviewer_user_id`, `status`.

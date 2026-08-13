@@ -130,14 +130,24 @@ describe('AssessmentController', () => {
     const { controller } = build();
 
     const error = await controller
-      .createTemplate({ ...TEMPLATE_BODY, subjectType: 'process' })
+      .createTemplate({ ...TEMPLATE_BODY, subjectType: 'supplier' })
       .catch((e: unknown) => e);
 
     expect(error).toBeInstanceOf(BadRequestException);
-    // ⚠️ `process` is 02a:223's fifth value, which has no home since Assessment
-    // (RCSA) was ruled a use case rather than a table. This test documents the
-    // rejection so that closing the gap has a visible consequence here.
     expect((error as Error).message).toContain('vendor');
+  });
+
+  it('accepts `process`, which two specifications disagreed about', async () => {
+    const { controller } = build();
+
+    // 02a:223 named it, 02a:326 and 05:43 did not. W09 built only the four all
+    // three agreed on; CH-025 is the user's ruling that this one belongs. Pinned
+    // as its own test rather than folded into the loop below, because the loop
+    // would keep passing if `process` were removed from the enum again — it
+    // asserts "every member is accepted", not "this member exists".
+    await expect(
+      controller.createTemplate({ ...TEMPLATE_BODY, subjectType: 'process' }),
+    ).resolves.toBeDefined();
   });
 
   it('derives the accepted values from the generated client, never a literal list', async () => {

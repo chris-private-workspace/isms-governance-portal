@@ -1240,23 +1240,25 @@ model Action {
   @@map("actions")
 }
 
-/// 02a:326 verbatim for AssessmentTemplate ("risk / control / vendor / entity"),
-/// and 05:43 gives the same four for AssessmentInstance. Two independent sources
-/// agree, so this is the engine's enumeration.
+/// The UNION of two specifications, and the union is a ruling rather than a
+/// reading. 02a:326 and 05:43 both give the engine "risk / control / vendor /
+/// entity"; 02a:223 gives `Assessment` (RCSA) "risk / control / process /
+/// entity". Four values are common, and each list has one the other lacks.
 ///
-/// ⛔ 02a:223 lists a FIFTH shape — "risk/control/process/entity" — for
-/// `Assessment (RCSA)`, substituting `process` for `vendor`. That entity is not
-/// being built: the user ruled on 2026-08-13 that it is a use case (an instance
-/// whose subject is a risk), not a table, because its columns duplicate
-/// AssessmentInstance under different names. The ruling was made on the column
-/// overlap; the enum difference was not noticed by anyone at the time. So
-/// `process` now has no home, and an RCSA over a process — which 02a:223
-/// explicitly contemplates — cannot be expressed. Recorded rather than fixed:
-/// adding `process` here would be merging two specifications on my own
-/// authority, and 已確認參數 #9 reserves that.
+/// W09 built the four that both sources agreed on and recorded the gap, because
+/// merging two specifications is not a reading of them (已確認參數 #9). The user
+/// ruled on 2026-08-13 (CH-025): **add `process`**. An RCSA over a business
+/// process is something 02a:223 explicitly contemplates, and the ruling that
+/// made `Assessment` a use case rather than a table was decided on the column
+/// overlap — nobody had compared the enums. Dropping a subject kind as a side
+/// effect of collapsing two tables was not what was decided.
+///
+/// Order is `risk, control, process, vendor, entity` — the superset that keeps
+/// both source lists in their own relative order.
 enum AssessmentSubjectType {
   risk
   control
+  process
   vendor
   entity
 
