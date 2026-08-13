@@ -48,29 +48,33 @@
 
 ### 1.1 Schema
 
-- [ ] **`schema.prisma` +2 model**（`RiskManagementReport` · `RMReportVersion`）
+- [x] **`schema.prisma` +2 model**（`RiskManagementReport` · `RMReportVersion`）
   - DoD: 欄位逐一對應 `02a:253/255`；`state` 不建且 docstring 寫明理由與三選一結論；
         `prepared_by`/`approved_by` 是 `String`；兩張表皆有 `org_entity_id` 與 §1.1 base fields
-  - Verify: `npm run prisma:generate -w apps/api`
+  - Verify: `npm run prisma:generate -w apps/api` → ✅ 20 models（13 → 20，header 同步修正）
 
 ### 1.2 Migration
 
-- [ ] **`<ts>_rm_report_snapshot/migration.sql`**
+- [x] **`20260813071857_rm_report_snapshot/migration.sql`**
   - DoD: 兩張表 + 兩條複合 FK + `FORCE ROW LEVEL SECURITY` +
         `rm_reports` 三條 policy（SELECT/INSERT/UPDATE）+
         `rm_report_versions` **兩條**（SELECT/INSERT，⛔ 無 UPDATE）+
         GRANT 無 UPDATE 於版本表；註解寫明「守衛是缺席的 policy，GRANT 只是縱深」
-  - Verify: `npm run prisma:migrate -w apps/api`
+  - Verify: `prisma migrate dev` 套用成功；**`pg_policies` 實測 5 條**
+        （`rm_reports` 3 / `rm_report_versions` **2**）· `relforcerowsecurity=t` ×2 ·
+        `role_table_grants` 版本表僅 SELECT+INSERT
 
 ### 1.3 Ref code 前綴
 
-- [ ] **`ref-code.ts` +2 前綴**
-  - DoD: 與既有前綴無衝突；unit spec 覆蓋兩個新前綴
-  - Verify: `npm run test -w apps/api -- ref-code`
+- [ ] 🚧 **`ref-code.ts` +2 前綴** —— **Day-0 D1 證明此任務前提不成立**：該檔沒有前綴登記表，
+      且 `:65-69` 明文拒絕建一個。**不刪本項**（保留「原計畫 vs 現實」軌跡）。
+      解封條件：前綴改宣告為新 repository 的 module 常數，於 **Day 2.1** 完成並驗證與既有
+      12 個前綴無衝突。屆時本項若仍未勾，代表 Day 2.1 也漏了。
 
 ### 1.x Partial gate
 
-- [ ] `npm run type-check -w apps/api` clean · `npm run lint -w apps/api` 0/0
+- [x] `npm run type-check -w apps/api` clean · `npm run lint -w apps/api` 0/0 ·
+      **`check_entity_index` 17 → 19 / 35**（Day-0 預測「不需加 ALIAS」成立）
 
 ---
 
