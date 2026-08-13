@@ -4,8 +4,11 @@
 
 **Category / Scope**: Version Control / on-demand rule
 **Created**: 2026-08-07
-**Last Modified**: 2026-08-07
+**Last Modified**: 2026-08-13
 **Status**: Active
+
+> **Modification History**
+> - 2026-08-13: Add branch-deletion criterion (patch-id, not ancestry) + archive-before-delete
 
 **Trigger（什麼時候 Read）**: 寫 commit message / 開新 branch / 開 PR。
 
@@ -97,7 +100,33 @@ chore/<what>
 - 小寫、dash 分隔
 - ≤ 60 字元
 - 從 `main` 開分支
-- Merge 後刪除（保持 repo 乾淨）
+- Merge 後刪除（保持 repo 乾淨）—— 遠端自 2026-08-13 起由 `deleteBranchOnMerge` 自動處理
+
+### 刪分支之前：判準不能用 ancestry
+
+本 repo 走 **rebase merge**，main 上是**改寫過的 hash**，所以
+`git branch --merged main` 對已 merge 的分支**回傳空的**，`git log main..<branch>`
+**列出一堆 commit** —— 兩個方向都答錯（`AD-RebaseMergeBranchCheck-1`）。
+
+```bash
+git cherry main <branch>     # 用 patch-id 比對：'-' = 已在 main，'+' = 未合併
+```
+
+⚠️ **`+` 不等於「內容不在 main」** —— 手寫撿回的內容 patch-id 必然不同。
+出現 `+` 時**逐段比對內容**再決定，不要直接下結論。
+
+### ⛔ 刪之前先問：這個 commit 還有第二份嗎
+
+**從未 push 的分支，刪掉就是唯一一份沒了**（`AD-UnpushedWorkInvisible-1`）。
+內容確實已在 main → 直接刪。**內容不在 main 且刪不可逆** → 先封存再刪：
+
+```bash
+git tag -a archive/<branch-name> <sha> -m "<為什麼這份要留、怎麼取回>"
+git push origin archive/<branch-name>
+```
+
+Tag 不會出現在分支清單裡，不會被誤認成在跑的工作，要刪也是一行。
+先例：`archive/status-audit-20260810-3`（一份從未進 main 的完整稽核報告）。
 
 ---
 
