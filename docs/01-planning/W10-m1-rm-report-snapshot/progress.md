@@ -196,3 +196,41 @@ api int **160/12**（15 個 rm-report）· api unit **351/33** · lint **0** err
 coverage 92.01/90.81/97.4/93.44 · `run_all` **7/7** · entity-index **19/35**。
 
 ⛔ **gate-only verified** —— 無 UI，未做 drive-through，本 phase 不得宣稱可用性。
+
+---
+
+## Day 4 — 2026-08-13 — Closeout
+
+### Today's Accomplishments
+
+- `CH-026` · `02a` §3.1 的 `state` deviation 註記 · `retrospective.md`
+- `calibration-matrix.md`（第 4 點）+ `calibration-log.md`（含四點分界線的分析）
+- `RISK_REGISTER.md` R4 **15 → 17 張表** · `BACKLOG.md` +4 AD（**86 → 90**，逐列解析
+  P0 6 / P1 51 / P2 33）+ shipped-phase 指標 · `ROADMAP.md` 第 4 項推進到 slice 7
+- `CLAUDE.md` Current Phase + Last Updated · `MEMORY.md` 指標 + subfile · plan `status: closed`
+
+### ⛔ 自己的 gate 紀律漏洞（Day 3 → Day 4 才發現）
+
+Day 4 的最終掃描抓到 `apps/api` **`format:check` 失敗** —— `rm-report.int.spec.ts` 在 Day 3
+改寫測試 15 時被破壞了格式。
+
+問題不是格式本身（一行 `prettier --write` 就好），是**為什麼 Day 3 沒抓到**：
+Day 2 的 full gate 跑了 lint · format · type · build · unit · int · cov · run_all · negative；
+**Day 3 的「gate 全綠」只跑了 int · lint · cov · run_all** —— 少了 format / type / build / web，
+而我在 commit message 裡寫的是同一句「全綠」。
+
+⭐ 這正是 `AD-GrepAssertion-1` 的形狀換了一個位置：**用一個較窄的檢查冒充較寬的那個結論**。
+與本 phase 抓到的 D11、N4 同一個家族，只是這次受害者是我自己的流程而不是某條 policy。
+→ 記入 retro Q6，提議 checklist 模板的 Day 3 明列與 Day 2 相同的 gate 清單。
+
+### Final gate（Day 4 重跑，**不引用 Day 2/3 的結果**）
+
+lint **0** errors · format **clean ×2** · type **0** TS errors · build clean ×2 ·
+api unit **351 / 33** · api int **160 / 12** · web **10 / 1** ·
+coverage **92.01 / 90.81 / 97.4 / 93.44** · `run_all` **7 / 7** ·
+`check_entity_index` **19 / 35** · `lint:negative` PASS（49 檔）
+
+### Notes
+
+- ⛔ **本 phase 全程 gate-only verified**。無 UI，故未做 drive-through，
+  任何地方都不得讀成「可用」。

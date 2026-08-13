@@ -69,6 +69,8 @@
   Keywords: 複合 FK vs trigger 的分流判準 · FK 免費涵蓋 UPDATE · 第一個 enum body 端點（未知 variant = 500）· Object.values 導出不抄寫 · check_entity_index detector · 分母 36 不是 35 · ExtensionField/extension_fields/extension_field_catalog 三名 · AD-MetaVerificationBug-1 · AD-CalibrationIdleGap-1 · AD-IssueBareEnum-1 · pattern-reuse 0.84/0.23
 - W09 [Shared assessment engine](memory/project_w09_assessment_engine.md) — MERGED #50 (`6446099`) 2026-08-13, **`closed`**; **17/35**（分母 −1：`Assessment` 判為用例不是表）。⭐ `template_version` 逼出三選一，選了「DB 在 BEFORE INSERT 填」，而該 trigger 用 `COALESCE` 不 `RAISE` 才沒自己開 oracle。元驗證 **6/6 方向全中**；⛔ 第一次 N1 改資料庫被重建覆蓋，**20/20 全綠而什麼都沒量到**。
   Keywords: 快照不可偽造 · 父表 delegate 的三選一 · evidence 首次回頭補錨點 · 第一個跨欄位 CHECK（SoD）· 宣告式約束免費涵蓋 UPDATE · 中性化改來源不改狀態 · AD-NeutraliseRebuiltState-1 · AD-AssessmentProcessSubject-1 · AD-BorrowedRefusal-1 首次事先預測 · AD-TestNameWiderThanProof-1 首次被元驗證抓到 · 新估法預測 64 vs 實測 58.5
+- W10 [RM report snapshot](memory/project_w10_rm_report_snapshot.md) — 2026-08-13, **`closed`**; **19/35**。⭐ `02a` 給了兩個互斥的「哪一版現行」欄位，只建父表指標，換到版本表**一條 `FOR UPDATE` policy 都沒有**。⛔ **唯一索引是 existence oracle**（不受 RLS 管且早於 FK；23505 vs 23503 可列舉別實體的版本標籤）—— 量到才發現，修法是把 entity 放進鍵。元驗證 **6/6**，其中 N4 零轉紅如預測；⛔ 補的測試第一版被 `RETURNING` 遮蔽而**再次踩進已記錄的陷阱**。
+  Keywords: 不可變表 = 缺席的 policy · GRANT 先於 policy（測試推翻我的註解）· AD-UniqueKeyOracle-1 · 呼叫端可選的唯一 tuple · promote 進 DB 因 runScoped 每 op 一個交易 · 循環複合 FK + MATCH SIMPLE · AD-CalibrationDay0InOrOut-1 · 0.23/0.24 不含 Day 0 而 0.50/0.84 含 · AD-BorrowedRefusal-1 第 5 次 · AD-ReturningMasksCheck-1 再次被踩
 
 ---
 
