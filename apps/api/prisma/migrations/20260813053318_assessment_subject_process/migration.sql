@@ -1,0 +1,25 @@
+-- ===========================================================================
+-- `process` joins the engine's subject types (CH-025, user ruling 2026-08-13)
+-- ===========================================================================
+-- Two specifications each named a subject kind the other lacked: 02a:326 and
+-- 05:43 give the engine risk/control/vendor/entity, while 02a:223 gives
+-- `Assessment` (RCSA) risk/control/process/entity. W09 built the four both
+-- agreed on and recorded the difference (AD-AssessmentProcessSubject-1) rather
+-- than merging them, because merging two specifications is a decision and
+-- 已確認參數 #9 reserves it for the user.
+--
+-- ⭐ Why this is a correction and not an extension: the ruling that made
+-- `Assessment` a use case rather than a table was decided on the COLUMN overlap
+-- — assessor_user_id vs assignee_user_id, submitted_at+reviewed_at vs status.
+-- Nobody compared the enums. Losing a whole subject kind was a side effect of
+-- collapsing two tables, not something anybody chose.
+--
+-- Placed AFTER 'control', which makes the full order risk, control, process,
+-- vendor, entity — the superset that keeps both source lists in their own
+-- relative order. Enum position affects ordering only, but a reader comparing
+-- this against either specification should not have to reconcile a reshuffle.
+--
+-- ⚠️ PostgreSQL 12+ permits ADD VALUE inside a transaction as long as the new
+-- label is not USED in the same transaction. This migration only declares it;
+-- the first row carrying it is written by a caller, long after commit.
+ALTER TYPE "assessment_subject_type" ADD VALUE 'process' AFTER 'control';
