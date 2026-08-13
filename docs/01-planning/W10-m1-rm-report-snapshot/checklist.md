@@ -66,10 +66,11 @@
 
 ### 1.3 Ref code 前綴
 
-- [ ] 🚧 **`ref-code.ts` +2 前綴** —— **Day-0 D1 證明此任務前提不成立**：該檔沒有前綴登記表，
+- [x] 🚧→✅ **`ref-code.ts` +2 前綴** —— **Day-0 D1 證明此任務前提不成立**：該檔沒有前綴登記表，
       且 `:65-69` 明文拒絕建一個。**不刪本項**（保留「原計畫 vs 現實」軌跡）。
-      解封條件：前綴改宣告為新 repository 的 module 常數，於 **Day 2.1** 完成並驗證與既有
-      12 個前綴無衝突。屆時本項若仍未勾，代表 Day 2.1 也漏了。
+      **解封（Day 2.1）**：`RMRP` / `RMRV` 宣告為 `rm-report.repository.ts` 的 module 常數，
+      與既有 12 個（`ACTN` `AGRP` `AST` `ASIN` `ASRP` `ASTM` `CTST` `CTRL` `EVID` `ISSU` `POL`
+      `RISK`）無衝突；unit spec 各斷言一次產出的完整 code。`ref-code.ts` **UNTOUCHED**。
 
 ### 1.x Partial gate
 
@@ -82,32 +83,38 @@
 
 ### 2.1 Repository
 
-- [ ] **`rm-report.repository.ts` + `rm-report-version.repository.ts`（+ 各自 spec）**
+- [x] **`rm-report.repository.ts`（+ spec）** —— **一個檔**，非兩個（Day-0 **D2**）
   - DoD: 各自的 scoped-client 介面**只含自己的 delegate**（不開父表 delegate）；
-        發版是**單一交易**（insert 版本 → repoint 父表）；23503/23505 對應到既有 refusal 分類
-  - Verify: `npm run test -w apps/api -- rm-report`
+        ~~發版是單一交易~~ → **改由 DB 的 AFTER INSERT trigger 原子完成**（見下方 D7）；
+        23503/23505 對應到既有 refusal 分類（23505 為本 phase 新增）
+  - Verify: `npm run test -w apps/api -- rm-report` → **14 → 27 → 36 tests**
 
 ### 2.2 端點
 
-- [ ] **`modules/rm-report/` 四檔 + `app.module.ts` 註冊**
-  - DoD: 五個端點；查無一律 404；`isCurrent` 由指標**導出**不是欄位；
-        controller spec 覆蓋 400 / 404 分支
+- [x] **`modules/rm-report/` 四檔 + `app.module.ts` 註冊**
+  - DoD: ~~五個端點~~ → **四個**（`GET`/`POST` × 2 表）。plan §3.3 列的 `GET /:id` 形式
+        **全 repo 沒有任何先例**（12 個 controller 全是 list+create），照既有風格而非 plan 的宣稱。
+        → 記為 **D8**，不刪本行；查無一律 404；`isCurrent` **不是欄位也不是端點欄位**
+        （見 D9）；controller spec 覆蓋 400 / 404 / **409** / 422 分支
   - Verify: `npm run test -w apps/api -- rm-report.controller`
 
 ### 2.3 整合測試
 
-- [ ] **`rm-report.int.spec.ts`** —— 每張表四項範疇測試 + 不可變 + 指標完整性
-  - DoD: 跨實體讀 404 / 跨實體寫拒絕且**資料未變**（逐欄位比對）/ RLS 層獨立成立
-        （繞過 repository 直接 SQL）/ 滾升角色只見授權子樹；
-        UPDATE 已發布版本被拒；跨報告與跨實體指標各一個 23503；
-        第二版發布後**第一版逐欄位未變**
-  - Verify: `npm run test:int -w apps/api -- rm-report`
+- [x] **`rm-report.int.spec.ts`** —— 14 個測試
+  - DoD: 跨實體讀 404 且**對照組證明資料存在** / RLS 層獨立成立（raw SQL）/
+        滾升角色只見授權子樹（APAC 見兩個、SG 只見一個）；UPDATE 已發布版本被拒；
+        跨報告指標被拒；第二版發布後**第一版 `toEqual` 逐欄位未變**；
+        ⭐ 新增測試 12 —— oracle 回歸測試（撞標籤與不撞標籤**必須同錯**）
+  - Verify: `npm run test:int -w apps/api -- rm-report` → **14 passed**
 
 ### 2.x Full gate
 
-- [ ] lint 0/0 · format clean ×2 · type clean ×2 · build clean ×2 ·
-      api unit · api int · web 10 · `npm run test:cov -w apps/api` ≥ baseline ·
-      `python scripts/lint/run_all.py` 7/7 · `check_entity_index` **19/35** · `lint:negative` PASS
+- [x] lint **0/0** · format clean ×2 · type clean ×2 · build clean ×2 ·
+      api unit **351/33**（315/31）· api int **159/12**（145/11）· web **10/1** ·
+      coverage **92.01/90.81/97.4/93.44**（branches + functions 高於 baseline，
+      statements/lines 低 ≤0.06pp，殘餘來自 `*.module.ts` —— 實測 **12 個全部 0%**，
+      非本 phase 引入）· `run_all` **7/7** · `check_entity_index` **19/35** ·
+      `lint:negative` PASS（49 檔，46 → 49）
 
 ---
 

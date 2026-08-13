@@ -17,6 +17,7 @@
  * Last Modified: 2026-08-13
  *
  * Modification History (newest-first):
+ *   - 2026-08-13: Import RmReportModule (W10) — the versioned snapshot pair
  *   - 2026-08-13: Import AssessmentModule (W09) — one module, three tables
  *   - 2026-08-12: Import IssueModule + ActionModule (W08) — slice 5's endpoints
  *   - 2026-08-12: Import ControlTestModule + EvidenceModule (W07) — slice 4's endpoints
@@ -40,6 +41,7 @@ import { EvidenceModule } from '../modules/evidence/evidence.module';
 import { IssueModule } from '../modules/issue/issue.module';
 import { PolicyModule } from '../modules/policy/policy.module';
 import { RiskModule } from '../modules/risk/risk.module';
+import { RmReportModule } from '../modules/rm-report/rm-report.module';
 
 // One .env at the monorepo root. `npm run dev -w apps/api` sets cwd to
 // apps/api, so the root file has to be named explicitly — the default lookup
@@ -60,6 +62,7 @@ const ENV_FILES = [resolve(process.cwd(), '.env'), resolve(process.cwd(), '../..
     IssueModule,
     ActionModule,
     AssessmentModule,
+    RmReportModule,
   ],
 })
 export class AppModule {}

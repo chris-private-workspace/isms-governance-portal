@@ -55,11 +55,13 @@
  *   - isScopeRefusal(): structural search for SQLSTATE 42501 in a driver error
  *   - UnknownReferenceError / isUnknownReference(): the same, for 23503
  *   - isCheckViolation(): the same, for 23514 — a stated rule, not a hidden one
+ *   - DuplicateKeyError / isUniqueViolation(): 23505 — safe only for scoped keys
  *
  * Created: 2026-08-10 (Phase W03)
  * Last Modified: 2026-08-13
  *
  * Modification History (newest-first):
+ *   - 2026-08-13: Add the 23505 predicate (W10) — a unique index ignores RLS
  *   - 2026-08-13: Add the 23514 predicate (W09) — a CHECK is a rule, not a refusal
  *   - 2026-08-11: Add the 23503 half (W05) — a composite FK moved the refusal point
  *   - 2026-08-10: Initial creation (Phase W03) — drive-through found 500 on refusal
@@ -157,4 +159,39 @@ const CHECK_VIOLATION_SQLSTATE = '23514';
  */
 export function isCheckViolation(error: unknown): boolean {
   return collectCodes(error, 0).includes(CHECK_VIOLATION_SQLSTATE);
+}
+
+/** postgres `unique_violation` — a caller-chosen tuple that already exists. */
+const UNIQUE_VIOLATION_SQLSTATE = '23505';
+
+/**
+ * Raised when a write reused a value that must be unique.
+ *
+ * ⚠️ W10 ADDED A FOURTH CODE, AND IT IS THE ONE THAT IS ONLY SAFE CONDITIONALLY.
+ * The three above are safe to surface because the database has already collapsed
+ * "absent" and "not yours" before this code runs. A unique index has not: it does
+ * not respect RLS, and it is checked BEFORE the foreign key. W10 Day 2 measured
+ * what that meant for `rm_report_versions` — inserting into another entity's
+ * report answered 23505 when the label collided with one of theirs and 23503 when
+ * it did not, which enumerates their version history one guess at a time.
+ *
+ * The fix was in the schema, not here: 20260813153153_version_label_key_scoped
+ * put org_entity_id into the key, so a probe carrying the caller's own entity
+ * cannot collide with anyone else's rows. Re-measured: both cases now answer
+ * 23503, and a genuine duplicate on the caller's OWN report still answers 23505.
+ *
+ * ⛔ So this predicate is safe for keys whose tuple is scoped or server-issued,
+ * and NOT safe for a caller-supplied tuple that spans entities. Adding a unique
+ * index means asking which kind it is; using this predicate is not the check.
+ */
+export class DuplicateKeyError extends Error {
+  constructor(readonly field: string) {
+    super(`${field} already exists`);
+    this.name = 'DuplicateKeyError';
+  }
+}
+
+/** True when anywhere in the error chain the database reported SQLSTATE 23505. */
+export function isUniqueViolation(error: unknown): boolean {
+  return collectCodes(error, 0).includes(UNIQUE_VIOLATION_SQLSTATE);
 }
