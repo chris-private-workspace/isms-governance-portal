@@ -1,7 +1,7 @@
 // File: apps/api/prisma/schema.prisma
-// Purpose: The entity graph, 13 models in. Every table here is on 02a §0's index.
+// Purpose: The entity graph, 20 models in. Every table here is on 02a §0's index.
 // Category: core-model
-// Scope: Phase W01 (M0) → W07 (M1 slice 4)
+// Scope: Phase W01 (M0) → W10 (M1 slice 7)
 // Owner: docs/02-architecture/02a-data-model-spec.md §0 (entity index)
 //
 // Description:
@@ -27,9 +27,10 @@
 //   (rules-on-demand/multi-tenant-data.md).
 //
 // Created: 2026-08-08 (Phase W01)
-// Last Modified: 2026-08-12
+// Last Modified: 2026-08-13
 //
 // Modification History (newest-first):
+//   - 2026-08-13: Phase W10 — RM report + versions; first table with no UPDATE path
 //   - 2026-08-12: Phase W07 — ControlTest + Evidence; trigger-guarded references
 //   - 2026-08-10: Phase W04 — User (ADR-0012), ref_code counters, Policy base fields
 //   - 2026-08-10: Phase W03 — governed extensions (ADR-0005): JSONB + catalog
@@ -105,6 +106,9 @@ model OrgEntity {
   assessmentInstances AssessmentInstance[]
   assessmentResponses AssessmentResponse[]
 
+  riskManagementReports RiskManagementReport[]
+  rmReportVersions      RMReportVersion[]
+
   version   Int       @default(1)
   createdAt DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
   updatedAt DateTime  @updatedAt @map("updated_at") @db.Timestamptz(6)
@@ -173,6 +177,12 @@ model User {
   ownedAssessmentTemplates AssessmentTemplate[] @relation("AssessmentTemplateOwner")
   assignedAssessments      AssessmentInstance[] @relation("AssessmentAssignee")
   reviewedAssessments      AssessmentInstance[] @relation("AssessmentReviewer")
+
+  /// Only the REPORT has a user owner. Its versions record `prepared_by` and
+  /// `approved_by` as free text, because 02a:262 measured that those are
+  /// governance bodies (ITSC, ISC) and forbids coercing a committee into a user
+  /// record — a relation here would be exactly that coercion.
+  ownedRiskManagementReports RiskManagementReport[] @relation("RmReportOwner")
 
   @@map("users")
 }
@@ -1501,4 +1511,186 @@ model AssessmentResponse {
   @@index([orgEntityId, retiredAt])
   @@index([instanceId, retiredAt])
   @@map("assessment_responses")
+}
+
+/// The controlled deliverable produced FROM the live risk register (02a §3.1),
+/// not a second copy of it. The register (`risks`) stays the single source of
+/// truth; this table holds the report identity, and `rm_report_versions` holds
+/// the point-in-time sheets that the Information Security Committee approved.
+///
+/// ⭐ THIS ROW IS THE MUTABLE HALF OF THE PAIR, ON PURPOSE.
+/// 02a names two ways to say which version is current — `current_version_id`
+/// here (02a:253) and `state` on the version (02a:257) — and they cannot both
+/// exist, because flipping `state` is an UPDATE on a row 02a:260 says is never
+/// edited. Keeping the pointer HERE is what lets the version table have no
+/// FOR UPDATE policy at all (ADR-0014: an absent policy is stricter than a
+/// narrow one). "At most one current version" then holds by construction — a
+/// single-valued column cannot name two rows — rather than by a partial index.
+/// See RMReportVersion for the deviation this records.
+///
+/// ⚠️ No `status`: §4 defines no lifecycle for a report. Its versions carry the
+/// history, and inventing states here would be 已確認參數 #9.
+model RiskManagementReport {
+  id String @id @default(uuid()) @db.Uuid
+
+  /// `RMRP-<ENTITY_CODE>-<seq>`. Server-issued; see ref-code.ts.
+  refCode String @unique @map("ref_code")
+
+  /// 02a:253 calls this "scope of the report" — the entity the report covers,
+  /// which is also the entity that scopes access to it. One column, both jobs.
+  orgEntityId String @map("org_entity_id") @db.Uuid
+
+  title String
+
+  /// The pointer, nullable because a report exists before its first version is
+  /// issued. Guarded by a COMPOSITE foreign key on (current_version_id, id) →
+  /// rm_report_versions(id, report_id), which includes this row's own id so that
+  /// "the current version must belong to THIS report" is a database fact.
+  ///
+  /// ⚠️ MATCH SIMPLE is what makes the nullable case work: when
+  /// current_version_id is NULL the constraint is satisfied even though `id` is
+  /// NOT NULL. Measured in W10 Day 0 (D3) rather than assumed — under MATCH FULL
+  /// this design would not have been buildable.
+  currentVersionId String? @map("current_version_id") @db.Uuid
+
+  /// §1.1's accountable owner. 02a:253 names no contextual owner for a report,
+  /// so the base field is the owner rather than a duplicate of one (the
+  /// AssessmentTemplate reasoning). ⚠️ Deliberately NOT on the version:
+  /// `prepared_by` / `approved_by` there are committees, not people.
+  ownerUserId String? @map("owner_user_id") @db.Uuid
+
+  createdBy String? @map("created_by") @db.Uuid
+  updatedBy String? @map("updated_by") @db.Uuid
+
+  version    Int  @default(1)
+  extensions Json @default("{}") @db.JsonB
+
+  orgEntity OrgEntity @relation(fields: [orgEntityId], references: [id])
+  owner     User?     @relation("RmReportOwner", fields: [ownerUserId], references: [id])
+
+  versions       RMReportVersion[] @relation("ReportVersions")
+  currentVersion RMReportVersion?  @relation("CurrentVersion", fields: [currentVersionId, id], references: [id, reportId])
+
+  createdAt DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt DateTime  @updatedAt @map("updated_at") @db.Timestamptz(6)
+  retiredAt DateTime? @map("retired_at") @db.Timestamptz(6)
+
+  /// The anchor `rm_report_versions` references (the issues:1166 reasoning).
+  @@unique([id, orgEntityId])
+  @@index([orgEntityId, retiredAt])
+  @@map("rm_reports")
+}
+
+/// One approved, point-in-time sheet of a risk management report (02a:255).
+/// Immutable: correcting a report means issuing a new version, never editing one
+/// (02a:260). Retained 3 years per version (05:76) — archived, not deleted.
+///
+/// ⭐ HOW THE IMMUTABILITY IS ENFORCED, AND WHY IT IS NOT A TRIGGER.
+/// The migration gives this table a FOR SELECT and a FOR INSERT policy and
+/// nothing else. With no FOR UPDATE policy, RLS refuses every update regardless
+/// of what GRANT says — the same mechanism ADR-0014 adjudicated for DELETE, and
+/// the reason W06's control_library migration could write "this table does not
+/// depend on the GRANT below staying as it is". A trigger would be a second
+/// mechanism for a guarantee the first one already gives (AP-5).
+///
+/// ⛔ RECORDED DEVIATION: 02a:257 lists `state` (current / superseded). It is NOT
+/// built. `state` would have to change when a newer version arrives, which is the
+/// one thing this table forbids; and with `current_version_id` on the parent it
+/// would be a second representation of one fact with no reconciliation rule —
+/// exactly what 02a:225 refused for ControlTest.result. Superseded is derived:
+/// a version is current iff its report's current_version_id names it.
+///
+/// ⚠️ CONSEQUENCE, STATED PLAINLY. Every base field that exists to record change
+/// — `version`, `updated_by`, `updated_at`, `retired_at` — is structurally frozen
+/// at its insert value here, because no path can write it. They are kept for
+/// §1.1 consistency, not because anything maintains them. In particular
+/// `retired_at` means the 3-year archival in 05:76 has no mechanism on this
+/// table: enabling one is a policy change, not a column change.
+model RMReportVersion {
+  id String @id @default(uuid()) @db.Uuid
+
+  /// `RMRV-<ENTITY_CODE>-<seq>`. Server-issued; see ref-code.ts.
+  refCode String @unique @map("ref_code")
+
+  /// Redundant with the report's, and deliberately so (約束 8 iron law 1).
+  orgEntityId String @map("org_entity_id") @db.Uuid
+
+  /// N:1 and required. Composite FK on (report_id, org_entity_id): rm_reports
+  /// offers the anchor, so W08's option B applies — a key, not W07's trigger.
+  reportId String @map("report_id") @db.Uuid
+
+  /// ⚠️ NOT semver, and not validated as anything. The source register uses
+  /// year-based labels — `2025.7`, `2024`, `1.2`, `1.1`, `1.0` (rmVersions.js:4-8)
+  /// — so imposing a format here would reject the real data it exists to hold.
+  /// Uniqueness within the report is enforced; shape is not.
+  versionLabel String @map("version_label")
+
+  /// ⚠️ TEXT, NOT a foreign key to users, and this is the load-bearing part.
+  /// rmVersions.js records by:'ITSC' and appr:'ISC' — the IT Steering Committee
+  /// and the Information Security Committee. 02a:262 is explicit: "Do not
+  /// silently coerce a committee into a user record — that would misstate who
+  /// approved." Whether governance bodies become first-class actors is
+  /// AD-Model-Gaps; until then the honest storage is the name they signed with.
+  preparedBy String @map("prepared_by")
+  approvedBy String @map("approved_by")
+
+  /// Timestamptz, matching Issue.dueDate and ControlTest.scheduledFor. A second
+  /// temporal convention for one column would be the invention, not the alignment.
+  effectiveDate DateTime @map("effective_date") @db.Timestamptz(6)
+
+  /// Required. Every row in the source register carries one, and a controlled
+  /// document register entry that does not say why it was revised is not the
+  /// evidence-grade record guardrail 5 asks for.
+  changeNote String @map("change_note")
+
+  /// When the sheet below was frozen — distinct from `effective_date`, which is
+  /// when the approved version takes effect.
+  snapshotAt DateTime @map("snapshot_at") @db.Timestamptz(6)
+
+  /// The frozen sheet (02a:258): Services · Assets · Threats · Risk assessment ·
+  /// Treatment. JSONB because it is a rendering, not a store — the live data is
+  /// in `risks` and this is what it looked like.
+  ///
+  /// ⛔ Its structure is NOT validated, for the same reason as
+  /// AssessmentTemplate.definition: no specification exists to validate against,
+  /// and a validator asserting a shape I invented would look like a guarantee
+  /// while enforcing a guess. AD-AssessmentDefinitionUnvalidated-1's family.
+  ///
+  /// ⛔ Nothing in this codebase PRODUCES this payload. The caller supplies it.
+  /// Freezing the live register into a sheet needs rules this project has not
+  /// decided (which risks, at which instant, how retired ones are treated) and
+  /// belongs with the risk programme. What is built here is the ability to hold
+  /// a snapshot immutably, not the ability to take one.
+  sheet Json @db.JsonB
+
+  /// ⚠️ No `owner_user_id`: 02a:255 names prepared_by and approved_by, and both
+  /// are committees. A user-owner column on a row that can never be updated would
+  /// be permanently wrong the day that person leaves. The report carries the
+  /// accountable owner; the version carries who signed it.
+  /// ⚠️ No `status`: §4 defines no lifecycle for a version, and `state` is the
+  /// recorded deviation above.
+  createdBy String? @map("created_by") @db.Uuid
+  updatedBy String? @map("updated_by") @db.Uuid
+
+  version    Int  @default(1)
+  extensions Json @default("{}") @db.JsonB
+
+  orgEntity OrgEntity            @relation(fields: [orgEntityId], references: [id])
+  report    RiskManagementReport @relation("ReportVersions", fields: [reportId, orgEntityId], references: [id, orgEntityId])
+
+  /// The back-reference for the parent's pointer. A list on the Prisma side
+  /// because Prisma models every relation that way; at most one report can name
+  /// a given version, since the pointer is a single-valued column.
+  currentOf RiskManagementReport[] @relation("CurrentVersion")
+
+  createdAt DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt DateTime  @updatedAt @map("updated_at") @db.Timestamptz(6)
+  retiredAt DateTime? @map("retired_at") @db.Timestamptz(6)
+
+  /// One label per report. The pair the parent's composite pointer resolves.
+  @@unique([reportId, versionLabel])
+  @@unique([id, reportId])
+  @@index([orgEntityId, retiredAt])
+  @@index([reportId, effectiveDate])
+  @@map("rm_report_versions")
 }
