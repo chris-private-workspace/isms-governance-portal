@@ -99,10 +99,22 @@ ALTER TABLE "rm_report_versions" ADD CONSTRAINT "rm_report_versions_report_id_or
 -- ===========================================================================
 -- ⭐ "rm_report_versions" gets NO UPDATE. It is the first table in this schema
 -- that is immutable by design (02a:260 -- correcting a report means issuing a
--- new version, never editing one), and this is the defence-in-depth half of
--- that. The ENFORCING half is the absent policy below: W06's control_library
--- migration is explicit that a table "does not depend on the GRANT staying as
--- it is", so a guarantee resting on GRANT alone would not be a guarantee.
+-- new version, never editing one).
+--
+-- ⚠️ CORRECTED AFTER MEASUREMENT (W10 Day 2). This comment first called the
+-- GRANT "defence in depth" and the absent policy below "the enforcing half".
+-- That is not the runtime order: an UPDATE from the application role raises
+-- 42501 HERE, because privilege is checked before any policy is consulted. The
+-- integration test that found this was written predicting the opposite -- it
+-- expected a statement that matched zero rows -- and failed.
+--
+-- Both layers are real, and the ranking is about durability rather than order.
+-- This GRANT is what refuses today. The absent policy is what would still refuse
+-- if someone widened this line, which is the guarantee W06's control_library
+-- migration means when it says a table "does not depend on the GRANT staying as
+-- it is". Day 3's N1 removes them one at a time; until then, "the policy holds
+-- on its own" is a prediction and is written as one.
+--
 -- No DELETE anywhere, as on every other table: records are retired, never
 -- removed (guardrail 3).
 GRANT SELECT, INSERT, UPDATE ON "rm_reports"         TO isms_app;
@@ -135,10 +147,15 @@ CREATE POLICY "rm_reports_update" ON "rm_reports"
 
 -- ⭐⭐ TWO policies, not three. THE ABSENCE OF "rm_report_versions_update" IS
 -- THE FEATURE. ADR-0014 settled that an absent policy is stricter than a narrow
--- one: with RLS forced and no FOR UPDATE policy, every update on this table is
--- refused no matter what any future GRANT says. That is how a snapshot stays a
--- snapshot -- declaratively, covering paths nobody enumerated, rather than by a
--- trigger listing the ones somebody thought of.
+-- one: with RLS forced and no FOR UPDATE policy, an update should be refused no
+-- matter what any future GRANT says. That is how a snapshot stays a snapshot --
+-- declaratively, covering paths nobody enumerated, rather than by a trigger
+-- listing the ones somebody thought of.
+--
+-- ⚠️ "should be" rather than "is", deliberately: with the GRANT above also
+-- withholding UPDATE, nothing has yet reached this layer to find out. Day 3's
+-- N1a grants UPDATE and leaves this absence in place; if the row changes then,
+-- this whole comment is wrong and the immutability was the GRANT's all along.
 --
 -- ⛔ Do not "complete the set". Adding rm_report_versions_update would silently
 -- make every prior version editable, and no test that passes today would fail.

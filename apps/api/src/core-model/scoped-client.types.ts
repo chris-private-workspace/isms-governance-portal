@@ -69,6 +69,8 @@ import type {
   Prisma,
   RefCodeCounter,
   Risk,
+  RiskManagementReport,
+  RMReportVersion,
 } from '../generated/prisma';
 
 /**
@@ -274,6 +276,54 @@ export interface ScopedAssessmentResponseClient
   readonly assessmentResponse: {
     findMany(args?: Prisma.AssessmentResponseFindManyArgs): Promise<AssessmentResponse[]>;
     create(args: Prisma.AssessmentResponseCreateArgs): Promise<AssessmentResponse>;
+  };
+}
+
+/**
+ * Controlled risk-management deliverables (W10).
+ *
+ * A parent, like Issue — nothing to withhold. Note what is NOT here either:
+ * no `update`. Promoting a version is an UPDATE of `current_version_id`, and it
+ * is done by an AFTER INSERT trigger in the database, not from here. See
+ * ScopedRmReportVersionClient for why that had to be true.
+ */
+export interface ScopedRmReportClient extends ScopedRefCodeClient, ScopedExtensionCatalogClient {
+  readonly riskManagementReport: {
+    findMany(args?: Prisma.RiskManagementReportFindManyArgs): Promise<RiskManagementReport[]>;
+    create(args: Prisma.RiskManagementReportCreateArgs): Promise<RiskManagementReport>;
+  };
+}
+
+/**
+ * Approved point-in-time sheets (W10).
+ *
+ * ⚠️ Deliberately does NOT expose `riskManagementReport` — the same omission as
+ * every child interface above, kept by the composite key (W08's option B, since
+ * rm_reports offers the anchor).
+ *
+ * ⭐ AND IT NEARLY DID NOT SURVIVE, for a reason none of the earlier ones faced.
+ * Issuing a version must also move the report's pointer, so this interface
+ * appeared to need `riskManagementReport.update`. Granting a WRITE without a
+ * READ would not have been the oracle 約束 8 forbids — an update on an
+ * unreachable report is a not-found either way — but the two writes still had to
+ * be one unit of work, and runScoped gives every operation its own transaction
+ * (scoped-prisma.provider.ts:83). W04 already refused the fix that would help:
+ * threading $transaction through these interfaces (policy.repository.ts:111).
+ *
+ * The database promotes instead, in the same statement as the insert
+ * (20260813152548_promote_on_issue). So this interface is narrow AND the two
+ * writes cannot come apart — the W09 template_version resolution, second use.
+ *
+ * ⚠️ Consequence worth knowing before widening this: a version repository cannot
+ * compute `isCurrent`, because that fact lives on the report. It should not — a
+ * derived copy beside the pointer is the second representation 02a:257 was cut
+ * for.
+ */
+export interface ScopedRmReportVersionClient
+  extends ScopedRefCodeClient, ScopedExtensionCatalogClient {
+  readonly rMReportVersion: {
+    findMany(args?: Prisma.RMReportVersionFindManyArgs): Promise<RMReportVersion[]>;
+    create(args: Prisma.RMReportVersionCreateArgs): Promise<RMReportVersion>;
   };
 }
 

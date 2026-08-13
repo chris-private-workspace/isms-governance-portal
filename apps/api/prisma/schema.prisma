@@ -1687,8 +1687,23 @@ model RMReportVersion {
   updatedAt DateTime  @updatedAt @map("updated_at") @db.Timestamptz(6)
   retiredAt DateTime? @map("retired_at") @db.Timestamptz(6)
 
-  /// One label per report. The pair the parent's composite pointer resolves.
-  @@unique([reportId, versionLabel])
+  /// One label per report — with org_entity_id in the key, which is REDUNDANT for
+  /// every row that can legitimately exist and is there anyway.
+  ///
+  /// ⛔ Without it this index is an existence oracle, measured in W10 Day 2 rather
+  /// than reasoned about. Unique-index enforcement does not respect RLS (the same
+  /// property W07 measured for referential integrity), and it runs BEFORE the
+  /// composite foreign key. So inserting into another entity's report returned
+  /// 23505 when the label collided with one of theirs and 23503 when it did not —
+  /// their whole version history, one guess at a time, with the report id and the
+  /// label echoed in the error DETAIL.
+  ///
+  /// With org_entity_id in the key, a probe carrying the caller's own entity can
+  /// never collide with another entity's rows, so both cases fall through to the
+  /// foreign key and answer 23503. Uniqueness is not weakened: the composite FK
+  /// forces a version's org_entity_id to equal its report's, so among rows that
+  /// can exist, (report_id, version_label) is still unique.
+  @@unique([reportId, orgEntityId, versionLabel])
   @@unique([id, reportId])
   @@index([orgEntityId, retiredAt])
   @@index([reportId, effectiveDate])
