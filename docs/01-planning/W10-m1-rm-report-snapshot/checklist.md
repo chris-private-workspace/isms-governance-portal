@@ -128,7 +128,10 @@ _(本 phase 無 user-facing surface，故不做 drive-through。以中性化取�
 
 - [x] **在 progress.md 寫下 N1..N4 的預期方向**，含**預期不動的那一項**
   - DoD: 每項標「預期轉紅的測試名稱 + 理由」或「預期不動 + 理由」；寫完才准執行
-  - Verify: progress.md §3.1 表格，commit `8179319`（07:54:17Z）**早於**所有中性化執行
+  - Verify: progress.md §3.1 表格，commit **`8a9cce6`**（author date **07:54:16Z**）
+        **早於**所有中性化執行。⚠️ PR #52 是 rebase merge，此 SHA 由 `8179319` 改寫而來；
+        **author date 不受 rebase 影響**（實測：兩者皆 07:54:16Z，只有 commit date 變成 merge 時間），
+        所以「預測寫在前面」這件事仍可查證
         —— N1 因 Day-2 的 D11 拆成 N1a/N1b，並新增 N5，共 **6 項**
 
 ### 3.2 中性化（改 **migration 來源**，不改 live DB —— `AD-NeutraliseRebuiltState-1`）

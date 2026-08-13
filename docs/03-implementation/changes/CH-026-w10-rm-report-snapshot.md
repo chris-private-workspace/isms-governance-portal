@@ -1,7 +1,7 @@
 # CH-026 — Risk Management Report as an immutable versioned snapshot
 
 **Type**: Change (phase-produced record — W10, M1 slice 7)
-**Status**: Closed
+**Status**: Closed（MERGED PR #52, `afa667a`）
 **Created**: 2026-08-13
 **Phase**: [W10](../../01-planning/W10-m1-rm-report-snapshot/plan.md)
 
@@ -82,7 +82,7 @@ performed and nothing here should be read as a statement about usability.
 | `lint:negative` | PASS — 49 files scanned |
 
 **Meta-verification — six neutralisations, six matching predictions**, written down and committed
-(`8179319`, 07:54:17Z) before any of them ran:
+(**`8a9cce6`**, author date 07:54:16Z) before any of them ran:
 
 | N | Neutralised | Predicted | Measured |
 |---|---|---|---|
