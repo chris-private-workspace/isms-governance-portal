@@ -41,15 +41,26 @@
  *   404 translation is safe here for the same reason, but it needs its own
  *   detector — a single code check would have let this one through as 500.
  *
+ *   ⚠️ W09 ADDED A THIRD CODE, and it is not a scope refusal at all. 23514 is a
+ *   CHECK violation, raised by `assessment_instances_sod` when a reviewer and an
+ *   assignee are the same person. It lives here because the classification
+ *   machinery is here, not because segregation of duties is a scoping concern —
+ *   and the distinction matters for the HTTP mapping: 42501 and 23503 both become
+ *   404 because answering anything else would confirm an id, while 23514 becomes
+ *   422. The caller already knows both user ids; refusing to say why would hide
+ *   a rule from the person who has to satisfy it, and reveal nothing in return.
+ *
  * Key Components:
  *   - ScopeRefusedError: domain error; carries only what the caller supplied
  *   - isScopeRefusal(): structural search for SQLSTATE 42501 in a driver error
  *   - UnknownReferenceError / isUnknownReference(): the same, for 23503
+ *   - isCheckViolation(): the same, for 23514 — a stated rule, not a hidden one
  *
  * Created: 2026-08-10 (Phase W03)
- * Last Modified: 2026-08-11
+ * Last Modified: 2026-08-13
  *
  * Modification History (newest-first):
+ *   - 2026-08-13: Add the 23514 predicate (W09) — a CHECK is a rule, not a refusal
  *   - 2026-08-11: Add the 23503 half (W05) — a composite FK moved the refusal point
  *   - 2026-08-10: Initial creation (Phase W03) — drive-through found 500 on refusal
  *
@@ -130,4 +141,20 @@ export class UnknownReferenceError extends Error {
 /** True when anywhere in the error chain the database reported SQLSTATE 23503. */
 export function isUnknownReference(error: unknown): boolean {
   return collectCodes(error, 0).includes(FK_VIOLATION_SQLSTATE);
+}
+
+/** postgres `check_violation` — a stated rule the row broke. */
+const CHECK_VIOLATION_SQLSTATE = '23514';
+
+/**
+ * True when anywhere in the error chain the database reported SQLSTATE 23514.
+ *
+ * ⚠️ Deliberately does NOT identify WHICH check. Today `assessment_instances` has
+ * exactly one, so its caller can name the rule it broke; a second check on the
+ * same table would make that inference wrong, and the fix then is to read
+ * `meta.constraint` rather than to widen this. Recording it here so the next
+ * person meets the assumption instead of the bug.
+ */
+export function isCheckViolation(error: unknown): boolean {
+  return collectCodes(error, 0).includes(CHECK_VIOLATION_SQLSTATE);
 }

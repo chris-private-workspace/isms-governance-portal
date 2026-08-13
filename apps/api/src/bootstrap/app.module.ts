@@ -14,9 +14,10 @@
  *   real code.
  *
  * Created: 2026-08-08 (Phase W01)
- * Last Modified: 2026-08-12
+ * Last Modified: 2026-08-13
  *
  * Modification History (newest-first):
+ *   - 2026-08-13: Import AssessmentModule (W09) — one module, three tables
  *   - 2026-08-12: Import IssueModule + ActionModule (W08) — slice 5's endpoints
  *   - 2026-08-12: Import ControlTestModule + EvidenceModule (W07) — slice 4's endpoints
  *   - 2026-08-12: Import ControlModule + AssetModule (W06) — slice 3's endpoints
@@ -31,6 +32,7 @@ import { ConfigModule } from '@nestjs/config';
 import { EntityScopeModule } from '../entity-scope/entity-scope.module';
 import { HealthModule } from '../health/health.module';
 import { ActionModule } from '../modules/action/action.module';
+import { AssessmentModule } from '../modules/assessment/assessment.module';
 import { AssetModule } from '../modules/asset/asset.module';
 import { ControlModule } from '../modules/control/control.module';
 import { ControlTestModule } from '../modules/control-test/control-test.module';
@@ -57,6 +59,7 @@ const ENV_FILES = [resolve(process.cwd(), '.env'), resolve(process.cwd(), '../..
     EvidenceModule,
     IssueModule,
     ActionModule,
+    AssessmentModule,
   ],
 })
 export class AppModule {}

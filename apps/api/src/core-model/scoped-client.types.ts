@@ -34,11 +34,13 @@
  *   - ScopedAssetGroupClient / ScopedAssetClient: split so the asset path cannot read groups
  *   - ScopedControlTestClient / ScopedEvidenceClient: same guard, kept by a trigger instead
  *   - ScopedIssueClient / ScopedActionClient: back to a composite key, because Issue can anchor
+ *   - ScopedAssessment{Template,Instance,Response}Client: the first omission that cost something
  *
  * Created: 2026-08-10 (Phase W03)
- * Last Modified: 2026-08-12
+ * Last Modified: 2026-08-13
  *
  * Modification History (newest-first):
+ *   - 2026-08-13: Add the assessment trio (W09) — a trigger keeps the parent unread
  *   - 2026-08-12: Add Issue + Action (W08) — the guard swings back to a composite key
  *   - 2026-08-12: Add ControlTest + Evidence (W07) — parent guard is a trigger here
  *   - 2026-08-12: Add Control + the split asset pair (W06) — the split is an oracle guard
@@ -52,6 +54,9 @@
  */
 import type {
   Action,
+  AssessmentInstance,
+  AssessmentResponse,
+  AssessmentTemplate,
   Asset,
   AssetGroup,
   Control,
@@ -215,6 +220,60 @@ export interface ScopedActionClient extends ScopedRefCodeClient, ScopedExtension
   readonly action: {
     findMany(args?: Prisma.ActionFindManyArgs): Promise<Action[]>;
     create(args: Prisma.ActionCreateArgs): Promise<Action>;
+  };
+}
+
+/**
+ * Versioned question sets (W09).
+ *
+ * The only one of the three assessment interfaces with no parent to withhold —
+ * a template references nothing but its own entity and its owner.
+ */
+export interface ScopedAssessmentTemplateClient
+  extends ScopedRefCodeClient, ScopedExtensionCatalogClient {
+  readonly assessmentTemplate: {
+    findMany(args?: Prisma.AssessmentTemplateFindManyArgs): Promise<AssessmentTemplate[]>;
+    create(args: Prisma.AssessmentTemplateCreateArgs): Promise<AssessmentTemplate>;
+  };
+}
+
+/**
+ * Assignments (W09).
+ *
+ * ⚠️ Deliberately does NOT expose `assessmentTemplate`, and W09 is the first
+ * phase where that omission cost something rather than merely being observed.
+ * 02a:330 requires `template_version` to be a snapshot of the template's version
+ * at assignment — which needs the template read. Granting the delegate to fetch
+ * one integer would have handed this repository the ability to tell "another
+ * entity's template" from "no such template", the oracle every interface above
+ * is shaped to prevent.
+ *
+ * The database takes the snapshot instead (a BEFORE INSERT trigger under the
+ * caller's own RLS), so the omission survives AND the column means what 02a says
+ * it means. The alternative — accepting the version from the caller — would have
+ * kept this interface narrow while making the column a caller's assertion.
+ */
+export interface ScopedAssessmentInstanceClient
+  extends ScopedRefCodeClient, ScopedExtensionCatalogClient {
+  readonly assessmentInstance: {
+    findMany(args?: Prisma.AssessmentInstanceFindManyArgs): Promise<AssessmentInstance[]>;
+    create(args: Prisma.AssessmentInstanceCreateArgs): Promise<AssessmentInstance>;
+  };
+}
+
+/**
+ * Answers (W09).
+ *
+ * ⚠️ Withholds TWO parents — `assessmentInstance` and `evidence` — because a
+ * response names both. The composite foreign keys give one error for either
+ * being unreachable, and a repository able to read either table could split that
+ * back apart one id at a time.
+ */
+export interface ScopedAssessmentResponseClient
+  extends ScopedRefCodeClient, ScopedExtensionCatalogClient {
+  readonly assessmentResponse: {
+    findMany(args?: Prisma.AssessmentResponseFindManyArgs): Promise<AssessmentResponse[]>;
+    create(args: Prisma.AssessmentResponseCreateArgs): Promise<AssessmentResponse>;
   };
 }
 
