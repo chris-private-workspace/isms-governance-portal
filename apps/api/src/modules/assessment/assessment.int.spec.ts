@@ -263,11 +263,23 @@ describe('assessment module (integration)', () => {
     expect(reviewerOnly.assigneeUserId).toBeNull();
   });
 
-  it('9c. the SoD refusal is NOT a 404-shaped error', async () => {
+  /**
+   * ⚠️ The positive assertion below is NOT redundant with test 9, and Day 3 proved
+   * it. The first version of this test only had the two `.not.toBeInstanceOf`
+   * lines — and with the SoD CHECK neutralised it stayed GREEN, because the call
+   * then SUCCEEDS and `.catch()` hands back a row, which is trivially not an
+   * instance of either error class. A test whose name says "the refusal is not
+   * 404-shaped" passing while there is no refusal at all is
+   * AD-TestNameWiderThanProof-1 exactly. Asserting the class it IS anchors it.
+   */
+  it('9c. the SoD refusal is its own error, not a 404-shaped one', async () => {
     const error = await newInstance({ assigneeUserId: USER, reviewerUserId: USER }).catch(
       (e: unknown) => e,
     );
 
+    // The anchor: without this line the two below pass vacuously the moment the
+    // CHECK is gone.
+    expect(error).toBeInstanceOf(SegregationOfDutiesError);
     // guardrail 6: the caller supplied both ids and is being told a rule it can
     // read forbids that pairing. Collapsing it into the scope refusals would hide
     // a control from the person who has to satisfy it, and conceal nothing.

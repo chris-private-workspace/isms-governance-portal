@@ -165,23 +165,31 @@ _(本 phase 無 user-facing surface，故 Day 3 不是 drive-through。
 
 ### 3.2 中性化清單（⛔ 預期方向必須在跑之前寫下）
 
-- [ ] **先寫下每個 N 的預期轉紅測試，再跑** —— `AD-MetaVerificationBug-1`
-  - [ ] **N1** 移掉 `responses → evidence` 的守衛 → 預期：跨實體引用插入成功，_N_ 個測試轉紅
-  - [ ] **N2** `INSERT` policy 中性化為 `WITH CHECK (true)` → 預期：跨實體寫測試轉紅
-  - [ ] **N3** `SELECT` policy 中性化為 `USING (true)` → 預期：跨實體讀測試轉紅
-  - [ ] **N4** 移掉 SoD CHECK → 預期：SoD 負面案例轉紅，**且只有它**
-  - [ ] **N5** 移掉 `instances → templates` 的複合 FK → 預期：跨實體模板引用插入成功
-  - [ ] **N6** detector fixture 造一個真正在索引上的孤兒 → 預期：`run_all` **6/7 FAIL**
-        （⛔ W08 的第一版用了不在索引上的名字，壞掉的元驗證長得跟成功一樣）
-- [ ] **實測並比對方向**
+- [x] **先寫下每個 N 的預期轉紅測試，再跑** —— `AD-MetaVerificationBug-1`
+      （預期表寫於 progress.md Day 3，**在執行任何 N 之前**）
+  - [x] **N1** 移掉 `responses → evidence` 的複合 FK → 預期 **12** → 實測 **12** ✅
+  - [x] **N2** `assessment_templates_insert` → `WITH CHECK (true)` → 預期 **15 紅、16 仍綠**
+        → 實測 **15 紅、16 綠** ✅（反直覺預測成立：16 的拒絕由 counter policy 代勞）
+  - [x] 🚧 **N3 併入 N2** —— 原列「`SELECT` policy 中性化」，但 15 用 `createMany`
+        已繞開 SELECT policy，而 14（跨實體讀）由三張表共用同一形狀的 policy 覆蓋。
+        **未單獨執行**，理由記於此，不刪本項
+  - [x] **N4** 移掉 SoD CHECK → 預期 **9 紅、9c 錯誤地仍綠** → 實測**完全相符** ✅
+        → 修好 9c 後重跑 **9 + 9c 兩紅** ✅
+  - [x] **N5** 移掉 `instances → templates` 複合 FK → 預期 **8 · 10 · 11** → 實測**三者** ✅
+  - [x] **N6** fixture 孤兒改名為真正在索引上的 `Risk`/`risks` → 預期 `--self-test` FAIL
+        → 實測 **FAIL** 且 `run_all` **6/7** ✅
+- [x] **實測並比對方向**
   - DoD: 方向相符 → 記錄；**方向不符 → 先懷疑元驗證本身，不要先改產品碼**
-  - Verify: 每個 N 各跑一次完整 int suite，逐項記轉紅數 → progress.md Day 3
+  - Verify: 每個 N 各跑一次完整 assessment int suite，逐項記轉紅數 → progress.md Day 3
+  - ⛔ **第一次 N1 是無效的**（改資料庫而非 migration，被 int setup 的重建覆蓋），
+        20/20 全綠看起來像「守衛多餘」—— **靠事前寫下的預期才發現什麼都沒量到**
 
 ### 3.3 復原
 
-- [ ] **每個 N 復原後重跑，確認回到全綠**
+- [x] **每個 N 復原後重跑，確認回到全綠**
   - DoD: 中性化的東西沒有一項殘留
-  - Verify: `git diff` 對 migration 與 policy 檔零殘留 + int suite 全綠
+  - Verify: 兩個 migration 與備份**逐位元組相同**（`diff -q`）· fixture `git diff` **空** ·
+        int **145 / 11 全綠** · `run_all` **7/7**（entity-index 17/36）· unit **38 / 4 全綠**
 
 ---
 

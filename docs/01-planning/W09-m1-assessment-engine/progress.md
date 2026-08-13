@@ -144,3 +144,72 @@ D12 因此關閉：機制是**可證偽的**，即使 production 還沒有產生
 ### Remaining for Next Day
 
 - Day 3：元驗證（N1-N6），**預期方向必須在跑之前寫下**（`AD-MetaVerificationBug-1`）
+
+---
+
+## Day 3 — 2026-08-13 — Meta-verification
+
+### ⛔ 預期方向 —— 寫於執行任何 N 之前
+
+> `AD-MetaVerificationBug-1`：**元驗證本身會有 bug，而它的 bug 長得跟成功一樣。**
+> W08 抓到它的唯一原因是「預期它會紅而它沒紅」。所以預期先寫下，包含**預期不受影響的**。
+> 基準：api int **145 / 11 suites**（assessment suite 20 個）。
+
+| N | 中性化什麼 | **預期轉紅** | **預期不動** | 為什麼 |
+|---|---|---|---|---|
+| **N1** | DROP `assessment_responses_evidence_id_org_entity_id_fkey` | **12**（跨實體證據改為被接受）| 13 · 其餘 18 個 | 只有那把 key 在擋跨實體證據 |
+| **N2** | `assessment_templates_insert` → `WITH CHECK (true)` | **15** | ⭐ **16 預期仍綠** | 16 走 repository，`issueRefCode` 先動 `ref_code_counters`，**counter 的 policy 會代為拒絕**（W05 條款 2 / `AD-BorrowedRefusal-1`）。15 用 `createMany` 繞開它，所以只有 15 真的釘住這條 policy |
+| **N4** | DROP `assessment_instances_sod` CHECK | **9** | 9b · 其餘 | 唯一釘住 SoD 的是測試 9 |
+| — | 同上 | ⭐ **9c 預期「錯誤地」仍綠** | — | 9c 斷言錯誤**不是** `ScopeRefusedError`/`UnknownReferenceError`。CHECK 移掉後 create 成功、`.catch()` 回傳的是**一列資料**，而一列資料本來就不是那兩個 class → 綠。**這是 `AD-TestNameWiderThanProof-1` 的實例，我預期它會被抓到** |
+| **N5** | DROP `assessment_instances_template_id_org_entity_id_fkey` | **8 · 10 · 11** | 其餘 17 個 | 8 是 oracle 測試（兩者都不再拋錯）、10 是跨實體模板、11 是 UPDATE 重指 |
+| **N6** | detector fixture 的孤兒 `ShadowLedger` 改名為 `Risk` + `@@map("risks")` | **`--self-test` FAIL** | — | ⭐ 名字**真的在** `02a` §0 索引上，所以它不再是孤兒 → 自測「fixture orphan detected」不成立。⛔ W08 第一版用了 `Policy2`/`policies`（**不在**索引上），於是它仍是孤兒、自測照樣 PASS，**壞掉的元驗證長得跟成功一樣** |
+
+⚠️ **判讀規則**（寫在前面，避免事後合理化）：
+方向相符 → 記錄。**方向不符 → 先懷疑元驗證本身，不要先改產品碼。**
+
+### 實測結果
+
+| N | 預期轉紅 | **實測** | 相符？ |
+|---|---|---|---|
+| **N1** | 12 | **12**（1 紅 19 綠）| ✅ |
+| **N2** | 15，且 **16 仍綠** | **15**（1 紅 19 綠），16 綠 | ✅ **含那個反直覺的預測** |
+| **N4** | 9，且 **9c 錯誤地仍綠** | **9**（1 紅 19 綠），9c 綠 | ✅ 缺陷如預期被抓到 |
+| **N4′** | 修好 9c 後 9 + 9c | **9 + 9c**（2 紅 18 綠）| ✅ |
+| **N5** | 8 · 10 · 11 | **8 · 10 · 11**（3 紅 17 綠）| ✅ |
+| **N6** | `--self-test` FAIL、`run_all` 6/7 | **FAIL**、**6/7** | ✅ |
+
+**復原驗證**：兩個 migration 與備份**逐位元組相同**（`diff -q`）· fixture `git diff` **空**·
+int **145/11 全綠** · `run_all` **7/7** · unit **38/4 全綠**。
+
+### ⛔ 第一次 N1 是無效的，而它看起來像成功
+
+第一次我用 `psql` 對 `isms_test` 直接 `DROP CONSTRAINT`，然後跑 int suite → **20/20 全綠**。
+
+那不是「守衛是多餘的」，是**中性化根本沒生效** —— int 的 global setup 每次都
+`isms_test rebuilt, migrated and seeded`，我的 ALTER 在測試開始前就被重建覆蓋掉了。
+
+⭐ **抓到它的唯一原因是預期方向寫在前面。** 若沒有先寫「預期 1 紅」，
+20/20 全綠會被讀成「這個守衛沒有被任何測試依賴」，
+而正確的結論是「**這次量測什麼都沒量到**」。這正是 `AD-MetaVerificationBug-1`
+描述的形狀 —— **壞掉的元驗證長得跟成功一模一樣**（本 phase 第 1 次，累計第 2 次）。
+
+**結構性教訓**：中性化必須改**來源**（migration SQL），不是改**狀態**（資料庫）。
+凡是每次執行都會重建的東西，對它做的手術都不算數。
+
+### 兩個修正
+
+| ID | 發現 | 處置 |
+|----|------|------|
+| **D19** ⭐ | **測試 9c 的名稱寬於它證明的東西** —— 原本只有兩個 `.not.toBeInstanceOf`，SoD CHECK 移掉後 create **成功**、`.catch()` 回傳的是一列資料，而一列資料本來就不是那兩個錯誤 class → **綠**。名字說「refusal 不是 404 形狀」，而當時根本沒有 refusal | ✅ 加上 `expect(error).toBeInstanceOf(SegregationOfDutiesError)` 當錨點，**當場在 N4 中性化狀態下驗證它會紅**。⭐ 這是 `AD-TestNameWiderThanProof-1` **第一次被元驗證主動抓到**（W08 那次是靠讀測試名發現的）|
+| **D20** | 我在 N6 用了 `python ... \| tail -4; echo $?`，拿到的是 `tail` 的退出碼 **0** 而非 python 的 | ⚠️ `AD-GrepAssertion-1` 的形狀，**在我剛寫完「不要用 tail」的 phase 裡**。沒有造成錯誤結論（`run_all` 的 6/7 是不含糊的訊號），但它證明該條 AD 升到第 4 級（hook）的判準又多一個實例 |
+
+### 今日總結
+
+**六個中性化，六個方向全部與事前預測相符**，其中兩個是反直覺的預測
+（N2 的 16 仍綠 · N4 的 9c 仍綠）並且都成立。⭐ **`AD-BorrowedRefusal-1` 第一次被事先預測**
+—— 前四次都是事後發現「這個綠燈其實是別人擋的」。
+
+### Remaining for Next Day
+
+- Day 4：CH-024 · `02a` §0 索引更正（US-6，分母 36 → 35）· retrospective · calibration ·
+  導航檔 + BACKLOG · final gate sweep
