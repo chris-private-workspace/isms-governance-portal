@@ -340,7 +340,10 @@ _(⚪ 本 phase **無 UI**，故不做 drive-through。所有結論一律寫
     `AD-ModuleCoverageDilution-1` · `AD-TestNameWiderThanProof-1` · `AD-MetaVerificationBug-1` ·
     `AD-CalibrationIdleGap-1`；關閉 **2** 條；更新 `AD-BorrowedRefusal-1`（第 4 次）與
     `AD-BottomUpBlueprint-1`（提議被執行且失敗，附替代方案）；`§Known Issues` 的 detector 條件標為已交付
-  - → §Open **75 條（P0 5 / P1 46 / P2 24）**，⚠️ 兩種數法對照後才取值（見 BACKLOG 開頭）
+  - → ⛔ **這裡原寫「§Open 75 條（P0 5 / P1 46 / P2 24）」，而它是錯的** ——
+    兩種數法對照做得很認真，但做在**加入第 6 條 `AD-CalibrationIdleGap-1` 之前**，
+    之後沒有重數。closeout 當時真值是 **76**；post-merge 撿回 1 條 + 新增 1 條後為 **78**
+    （P0 5 / P1 48 / P2 25，**於最後一次編輯之後**重數）→ `AD-CountBeforeLastEdit-1`
 
 ### 4.2 Closeout
 

@@ -18,15 +18,20 @@
 > **本檔回答「有什麼工作」，不回答「先做哪個」。**
 > 順序層 [`ROADMAP.md`](./ROADMAP.md) **已於 2026-08-10 啟用**（CH-016）——
 > 啟用當時本檔 §Open 達 48 條，超過「讀完仍不知道下一步」的門檻
-> （**現為 76 條 —— P0 5 / P1 46 / P2 25**，2026-08-13 W08 post-merge：**撿回 1 條**
-> `AD-RebaseMergeBranchCheck-1` —— 它寫於 W03 而承載它的分支從未被 merge，
-> 清理本機分支時才發現，**而發現它的方法正是它自己主張的那個**。
-> 其前為 75 條，2026-08-13 W08 closeout：新增 5 條
+> （**現為 78 條 —— P0 5 / P1 48 / P2 25**，**於最後一次編輯之後重數**，
+> 2026-08-13 W08 post-merge：撿回 `AD-RebaseMergeBranchCheck-1`（寫於 W03，
+> 承載它的分支從未被 merge，清理本機分支時才發現 —— **而發現它的方法正是它自己主張的那個**）
+> + 新增 `AD-CountBeforeLastEdit-1`。
+> ⛔ **W08 closeout 寫的「75 條」是錯的，真值 76** —— 兩種數法對照做在**加入第 6 條之前**，
+> 之後沒有重數；錯誤數字已進 `74d8d56`、checklist 與 PR #47 描述 → `AD-CountBeforeLastEdit-1`。
+> 其前（W08 closeout，實為 76 條）：新增 5 條
 > （`AD-IssueBareEnum-1` · `AD-MigrationTimestampTz-1` · `AD-ModuleCoverageDilution-1` ·
 > `AD-TestNameWiderThanProof-1` · `AD-MetaVerificationBug-1`）、關閉 2 條
 > （`AD-EntityCountDerivation-1` · `AD-EntityIndexIncomplete-1`，由 `check_entity_index.py` 取代）。
-> ⚠️ **數法**：`^\| AD-` 得 75；優先度標記法得 77，差額是**優先度判準表**的 3 個示例
-> 減去 `AD-NegativeGate-1` 的 `🔴 **P0 候選**`（格式不同）—— 兩種數法對照後才取 75。
+> ⚠️ **數法**（機械可重跑）：`git grep -c '^| AD-' -- docs/01-planning/BACKLOG.md`。
+> 優先度用 `| 🔴 P0 |` / `| 🟡 P1 |` / `| 🟢 P2 |` 各數一次，每個**扣 1**（優先度判準表的示例），
+> 再各加回一個異格式的：`AD-NegativeGate-1`（`🔴 **P0 候選**`）· `AD-StaleRecordRef-1`
+> （`🟡 **P1**（升級）`）。⛔ **必須在最後一次編輯之後跑** —— W08 就是在對照之後又加了一條。
 > 其前為 72 條，2026-08-12 審計 #3 後：新增 3 條
 > （`AD-DualLayerHighRisk-1` · `AD-EntityCountDerivation-1` · `AD-EntityIndexIncomplete-1`）。
 > 其前為 69 條，2026-08-12 W07 closeout：
@@ -84,6 +89,7 @@
 | AD-MetaVerificationBug-1 | ⭐⭐ **元驗證本身會有 bug，而它的 bug 長得跟成功一模一樣** —— W08 Day 3 的 N6 第一版把 detector fixture 的孤兒 model 改名成 `Policy2` + table `policies`，以為它就不再是孤兒；而**那兩個名字也不在索引上**（索引寫的是 `Policy`），所以它仍然是孤兒、`run_all` 照樣 7/7、**EXIT=0**。更正為 `Risk`/`risks`（真的在索引上）才得到 6/7 FAIL | W08 Day 3 | 🟡 P1 | ⭐ **這是 `AD-NegativeGate-1` 往上一層的變體**：那條說「宣稱會擋東西的機制要有負面案例」，本條說「**負面案例本身也需要一個能證明它在測對東西的判準**」。⚠️ 抓到它的唯一原因是我**預期它會紅而它沒紅**，然後去查了 —— 若當初把 N6 寫成「預期綠」，這個壞掉的元驗證會被記成通過。提議加進 `verification-discipline.md`：**中性化的預期方向必須在跑之前寫下來**，且「零轉紅先查再下結論」要擴充成「**轉紅方向不符預期時，先懷疑元驗證本身**」。已在本 phase 驗證 1 次（1/3）|
 | AD-CalibrationIdleGap-1 | ⭐ **拍板的 `actual` 定義在 phase 被切成多次對話時，把「等待使用者」算成工時** —— `AD-CalibrationMetric-2` 定義為 branch 第一個 commit → closeout commit。W08 該窗口 **238 min**，而**其中 169 min（71%）是四次等待使用者回覆的間隔**（每個 Day 的起始時間戳減前一個 commit：55+78+28+8）。扣掉後 **69 min**，與逐段兩端錨點量測的 **66 min** 對得上 —— 兩個方法交叉驗證成功，**問題不在量測而在定義** | W08 Day 4 | 🟡 P1 | ⚠️ **後果具體**：官方 ratio 因此是 **0.84（IN band）**，而逐段量測是 **0.23（UNDER）** —— 那 169 分鐘的等待**恰好把它抬進了 band**，掩蓋了真實的估算問題（`AD-BottomUpBlueprint-1`）。⭐ `AD-CalibrationMetric-1` 讓窗口含間隙是**刻意的**，論證是「一致的高估可被乘數吸收」；那個論證預設間隙是**工作的一部分**（思考／CI／除錯），而這裡的間隙是**使用者不在**。提議：窗口扣掉「Day N 起始時間戳 − 前一個 commit 時間戳」的加總 —— **該值可從 commit 機械導出，不依賴 AI 有一個鐘**（那正是原定義的優點，本修正不放棄它）。⚠️ W04-W07 是單次連續 session，本條只影響**多次對話**的 phase；⛔ **不要回頭重算舊資料點**，那是決定不是整理（`AD-CalibrationMetric-2` 的前例）|
 | AD-RebaseMergeBranchCheck-1 | **`git branch --merged main` 在 rebase-merge 下永遠答錯，兩個方向都錯** —— 本 repo 的 PR 走 rebase-merge，main 上是**改寫過的 hash**（W03: `6db88c4..17c2b80` → `f07105f..b20f3f1`）。刪 `feature/W03-governed-extension` 前跑 `git branch --merged main` **回傳空的**，`git log main..<branch>` **列出 7 個 commit** —— 從 ancestry 看它「沒被 merge」，實際上已經 merged | W03 → post-merge · **W08 撿回** | 🟢 P2 | 兩個方向的危害：(a) 用 `--merged` 清分支的人**永遠看不到** rebase-merge 過的分支 → 越積越多；(b) 看到 `main..branch` 非空的人會以為**工作遺失了**。⛔ **判準不能用 ancestry**。⭐⭐ **本條自己就是危害 (a) 的受害者**：它寫於 W03，而承載它的 `chore/w03-status-flip` **從未被 merge**，於是這條 AD 在本機躺了五個 phase，**直到 W08 清理分支時才被發現** —— 發現它的方法正是它自己主張的「不要用 ancestry」。⭐ **W08 量到一個比原文更好的判準**：`git cherry main <branch>`（patch-id 比對）同時處理 rebase 改寫**與**內容比對，比原文提的 `git cat-file -e main:<path>`（只驗路徑存在、不驗內容）與 `gh pr view`（需要 PR 編號）都便宜。實測：21 個本地分支中 **19 個回 0 個未合併 patch**，剩 2 個各有 1 個真的沒進 main —— **其中一個就是本條**。⚠️ 原文記的「origin 現有 11 個 ref」已 stale，W08 當時是 **25 個** |
+| AD-CountBeforeLastEdit-1 | ⭐ **計數做在最後一次編輯之前，所以它必然是錯的** —— W08 closeout 數 §Open 條數時**認真做了兩種數法對照**（`^\| AD-` 得 75、優先度標記得 77，查明差額是判準表的 3 個示例減 `AD-NegativeGate-1` 的異格式標記），然後**才加了第 6 條 `AD-CalibrationIdleGap-1`** 而沒有重數。真值是 **76**，而 **75 進了 BACKLOG 開頭、checklist、commit message 與 PR #47 的描述** | W08 post-merge | 🟡 P1 | ⛔ **這不是「忘了數」，是「數完又改了」** —— 比 `AD-EntityCountDerivation-1`（已關）更難察覺，因為**過程看起來是嚴謹的**：有兩種數法、有差額分析、有寫下方法。⚠️ 諷刺點與 `AD-RebaseMergeBranchCheck-1` 相同：**當時做對照正是為了避免數錯**。⭐ **修法只有兩種，選一個**：(a) 計數改成**機械導出**（`^\| AD-` 一行指令，寫進 closeout checklist 當 Verify）；(b) 乾脆**不寫總數** —— 那個數字的唯一用途是 ROADMAP 的啟用門檻（`> 10 條`），而它早就成立。⛔ **不要靠「記得最後再數一次」** —— 本次已經證明那個紀律在自己最警覺的時候都會失效。目前真值 **78**（P0 5 / P1 48 / P2 25） |
 | AD-DualLayerHighRisk-1 | ⭐ **ADR-0004 選項 C（RLS + 應用層過濾雙層）的解封條件已成立，而它從 `DEFERRED_REGISTER` D002 恢復** —— 使用者 2026-08-12 裁決條件是「**證據表出現**」而非 M3 里程碑（`STATUS_AUDIT.md` §2.7 AD-14）。W07 建了 `evidence`（`schema.prisma` `model Evidence`），且 `multi-tenant-data.md:212` 對「高風險表（稽核軌跡 / 證據 / 事件）」明訂**兩者都用** | D002 恢復 · W07 | 🟡 P1 | ⛔ **當初 defer 的理由現在是假的**：ADR-0004 §Options C 寫「Nothing to apply it to yet — **one business table exists**」，今天是 **12 / 35**。⚠️ **但不要因為條件成立就直接開工** —— 該 ADR 否決 C 的實質理由是「一個不可證偽的防護層就是 AP-3」，所以第一步是**先定義第二層要抓什麼 RLS 抓不到的東西**（候選：repository 層對 `evidence` / 未來 `audit_log` 的 `org_entity_id` 斷言，且**中性化 RLS 後它仍會紅**）。沒有這個定義就實作，交付的仍然是註解。⚠️ **`evidence` 目前同時沒有稽核軌跡**（R4，10 張表無一有）—— 兩件事都指向 M3，值得一起排 |
 | AD-RequiredCheckPrereq-1 | **required check 的前置下載沒有重試，一次網路層攔截就讓所有 PR 停止可 merge** —— PR #44 首跑 `gates` **10 秒即 fail**，掛在「安裝 actionlint（釘版本 + 校驗）」：`curl: (60) SSL certificate problem: self-signed certificate`，`exit code 60`。同一個 run 的其他五個 job 全 pass；同一個 workflow 四小時前在 `main`（run `31562244727`）success；本 PR 對 `^\.github/` 與 `^scripts/` **零命中**。**重跑即過**，故確認為暫時性 | W07 post-merge | 🟡 P1 | ⛔ **失敗訊息完全不提示「這與你的程式碼無關」** —— 只有 `exit code 60`，而它發生在任何檢查跑到之前。⚠️ `gates` 是六個 required context 之一（`CH-015`），所以這個 10 秒的下載步驟**是全 repo merge 能力的單點**。候選修法（**都要動 `ci.yml` → 需使用者確認 + 吃節流閘配額**）：curl 加 `--retry` / 改用釘 SHA 的 action / 快取二進位檔。⚠️ **不要因為「重跑就好」而不記** —— 這條與 `AD-CheckNameCoupling-1` 同族：required check 的脆弱處不在檢查本身，在它周邊沒有人在看的前置條件 |
 | AD-EstimateAsMeasurement-1 | ⭐⭐ **「逐日記錄工時」被遵守了，而記下的數字是編的** —— W07 Day 3 的 progress 工時表寫 **1 hr 22 min**、宣稱結束於 **16:05**；Day 4 起手取 `date` 得到 **15:41**，**一個還沒發生的時刻**。commit 時間戳給出真值 `b9f7611` 14:46:05 → `889993d` 15:17:06 = **31 min**，**超估 2.6 倍**。根因：15:14 之後沒有再取過任何一次 `date`，剩下四段全是**先寫下預期耗時、再把它當成量測** | W07 Day 4 | 🟡 P1 | ⭐ **這是 `AD-CalibrationNoActual-1` 的盲點**：那條要求「有沒有記」，本條講「記的是不是真的」——**它在被完整遵守的情況下仍然產出了假資料**，而該資料的去向是 calibration matrix 的第 5 個資料點。與 `AD-NegativeGate-1` 同構（規則被遵守但無效）。提議：每個時間區段**兩端都要有可觀察錨點**（`date` 或 commit 時間戳）；沒有閉合錨點的區段一律標 `~est` 且**不得進 calibration**。⚠️ 每段單看都「合理」是這個形狀最危險的地方 —— 沒有任何一段離譜到會被自己察覺 |
