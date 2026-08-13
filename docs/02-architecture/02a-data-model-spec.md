@@ -257,6 +257,16 @@ source uses year-based labels), `prepared_by` (see note), `approved_by`, `effect
 `change_note`, `state` (current / superseded), `snapshot_at`, plus the frozen sheet payload
 (Services · Assets · Threats · Risk assessment · Treatment).
 
+> ⚠️ **Recorded deviation (W10): `state` is NOT built.** Same form as `ControlTest.result` (:225)
+> and `applies_to_scope = subtree` (:219) — a specified value deliberately absent, with its reason
+> on file. `state` and `RiskManagementReport.current_version_id` (:253) are two representations of
+> one fact with no reconciliation rule, and they cannot coexist here: flipping `state` to
+> `superseded` is an UPDATE on a row the next bullet says is never edited. Keeping only the parent
+> pointer is what lets `rm_report_versions` carry **no `FOR UPDATE` policy at all** (ADR-0014 —
+> an absent policy is stricter than a narrow one), so "at most one current version" holds by
+> construction rather than by index, and *superseded* is derived: a version is current iff its
+> report's `current_version_id` names it. Both halves measured in W10 Day 3 (N1a/N1b).
+
 - Snapshots are **immutable**: correcting a report means issuing a new version, never editing one.
 - Retention is **3 years per version** (`05`, `retention.js`) — versions are archived, not deleted.
 - ⚠️ `rmVersions.js` records `by:'ITSC'` and `appr:'ISC'` — **governance bodies, not users.**

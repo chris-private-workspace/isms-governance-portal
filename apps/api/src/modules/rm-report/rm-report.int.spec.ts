@@ -76,11 +76,7 @@ describe('rm-report module (integration)', () => {
     return row;
   };
 
-  const issue = async (
-    code: 'SG1' | 'HK1',
-    reportId: string,
-    over: Record<string, unknown> = {},
-  ) =>
+  const issue = async (code: 'SG1' | 'HK1', reportId: string, over: Record<string, unknown> = {}) =>
     repo.issueVersion(await clientFor([code]), {
       orgEntityId: code === 'HK1' ? HK1 : SG1,
       reportId,
@@ -362,9 +358,7 @@ describe('rm-report module (integration)', () => {
     const report = await createReport('SG1');
     await issue('SG1', report.id, { versionLabel: '2024' });
 
-    const error = await issue('SG1', report.id, { versionLabel: '2024' }).catch(
-      (e: unknown) => e,
-    );
+    const error = await issue('SG1', report.id, { versionLabel: '2024' }).catch((e: unknown) => e);
 
     // Not collapsed into the 404 family. The caller owns this report and chose
     // this label; refusing to say it is taken would hide a rule from the only
