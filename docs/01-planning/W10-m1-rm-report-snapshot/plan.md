@@ -12,7 +12,7 @@ status: closed   # draft | active | closed | closed_partial —— 機器可讀�
 （ADR-0014 的缺席即最嚴格），`superseded` 改為導出。無 UI → **gate-only verified**，不做 drive-through。
 非 spike → **不產 design note**。
 
-**Status**: Closed（2026-08-13 收尾，PR 待開。使用者 2026-08-13 核可執行。範圍先於同日由使用者在四個候選群中
+**Status**: Closed（2026-08-13 收尾，**PR #52 MERGED `afa667a`**。使用者 2026-08-13 核可執行。範圍先於同日由使用者在四個候選群中
 選定本組；§0 The design 的 A/B/C 三選一連同「`state` 記錄為 deviation」一併核可）
 
 **Branch**: `feature/W10-rm-report-snapshot`

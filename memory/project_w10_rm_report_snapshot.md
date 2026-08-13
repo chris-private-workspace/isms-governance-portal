@@ -1,6 +1,6 @@
 # W10 — RM report as an immutable versioned snapshot (M1 slice 7)
 
-**Closed**: 2026-08-13 · **PR**: ⏳ pending · **Retro**:
+**Closed**: 2026-08-13 · **PR**: #52 MERGED (`afa667a`) · **Retro**:
 `docs/01-planning/W10-m1-rm-report-snapshot/retrospective.md` ·
 **CH**: `docs/03-implementation/changes/CH-026-w10-rm-report-snapshot.md`
 

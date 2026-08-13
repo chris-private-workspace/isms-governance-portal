@@ -3,7 +3,7 @@
 **Phase**: W10 — Risk Management Report as an immutable versioned snapshot (M1 slice 7)
 **Period**: 2026-08-13 ~ 2026-08-13
 **Plan**: [plan.md](./plan.md)  ← 四件套共置於同一個資料夾
-**PR**: ⏳ pending
+**PR**: #52（MERGED `afa667a`，2026-08-13 09:08:57Z，經 `gh pr view` 驗證）
 **Change record**: `docs/03-implementation/changes/CH-026-w10-rm-report-snapshot.md`
 
 ---
