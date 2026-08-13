@@ -31,7 +31,7 @@ not on this list; adding an entity means adding a row here in the same change. �
 | `AssetGroup` · `Asset` | 1 | Promoted to Wave 1 — risk assessment is asset-based |
 | `StatementOfApplicability` | 1 | Mandatory ISO 27001 output |
 | `Control` | 1 | |
-| `Assessment` (RCSA) | 1 | Runs on the shared assessment engine (`05`) |
+| `Assessment` (RCSA) | — | ⛔ **NOT A SEPARATE TABLE.** An RCSA is an `AssessmentInstance` whose `subject_type` is `risk` — this row is kept so the old name still finds its home. Ruled by the user 2026-08-13 on the column overlap: §3's `Assessment` gives `subject_type`+`subject_id`, `period`, `assessor_user_id`, `reviewer_user_id` and two timestamps, while `AssessmentInstance` gives the same fields with `assignee_user_id` for the first and `status` for the last two — and §4 defines **one** lifecycle for the pair. Building both would be one concept with two private definitions, which guardrail 3 forbids. ⚠️ **The ruling had a cost**: §3's `Assessment` enumerates `risk/control/**process**/entity` while the engine's is `risk/control/**vendor**/entity` (:326 and `05:43`, twice). `process` now has no home → `AD-AssessmentProcessSubject-1` |
 | `ControlTest` | 1 | |
 | `Evidence` | 1 | Polymorphic |
 | `Issue` · `Action` (CAPA) | 1 | Shared by every module that raises findings |

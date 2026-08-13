@@ -1,5 +1,5 @@
 ---
-status: active   # draft | active | closed | closed_partial —— 機器可讀的唯一權威
+status: closed   # draft | active | closed | closed_partial —— 機器可讀的唯一權威
 ---
 
 # Phase W09 Plan — shared assessment engine (M1 slice 6)
@@ -12,9 +12,9 @@ RCSA、控制測試、供應商稽核共用它。⭐ **範圍上的關鍵決定�
 本 phase **無 user-facing surface**，故驗證止於 API 層，報告一律寫 **gate-only verified**。
 **非 spike**（複製 W05–W08 已驗證的形狀）→ **不產出 design note**。
 
-**Status**: Approved-to-execute（使用者 2026-08-13 核可；範圍已於同日兩次裁決：
-slice 6 收評估引擎、`Assessment` 不建表。Day 0 已完成，8 條 drift 見
-[progress.md](./progress.md)，範圍變動 ~8% → 繼續）
+**Status**: Closed（2026-08-13 —— 六個 US 全數交付，20 條 drift/finding 見
+[progress.md](./progress.md)；元驗證 6/6 方向相符；**gate-only verified**，無 drive-through。
+retrospective 見 [retrospective.md](./retrospective.md)）
 
 **Branch**: `feature/W09-assessment-engine`
 **Base**: `main` HEAD `a18b366`（PR #49 merged —— 分支清理 + `AD-UnpushedWorkInvisible-1`）

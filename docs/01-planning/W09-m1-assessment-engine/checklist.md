@@ -197,7 +197,7 @@ _(本 phase 無 user-facing surface，故 Day 3 不是 drive-through。
 
 ### 4.1 Change record
 
-- [ ] **`docs/03-implementation/changes/CH-024-w09-assessment-engine.md`**
+- [x] **`docs/03-implementation/changes/CH-024-w09-assessment-engine.md`**
       （Problem / Root Cause / Solution / Verification / Impact）
   - DoD: 含 **gate-only verified** 的明確標示、關掉與新增的 AD、
         以及 `AssessmentTemplate` 範疇形狀的判斷理由（R2）
@@ -205,22 +205,27 @@ _(本 phase 無 user-facing surface，故 Day 3 不是 drive-through。
 
 ### 4.2 `02a` §0 索引更正（US-6）
 
-- [ ] **`Assessment (RCSA)` 一列改為註記，不刪列**
+- [x] **`Assessment (RCSA)` 一列改為註記，不刪列**
   - DoD: 註明它是 `subject_type = risk` 的 `AssessmentInstance`；舊名找得到新落點
-  - Verify: `python scripts/lint/check_entity_index.py` 報 **17 / 35**（分母由索引導出）
+  - Verify: `check_entity_index.py` 報 **17 / 35** —— Shared core **23 → 22**（分母由索引導出）
 
 ### 4.3 Closeout
 
-- [ ] `retrospective.md` Q1-Q7 + calibration（`pattern-reuse-feature` 0.50，第 3 個資料點；
-      ⛔ 窗口扣掉等待使用者的間隔 —— `AD-CalibrationIdleGap-1`；
-      **三數比對**：committed 3.75 hr vs 新方法預測 1.07 hr vs actual）
-- [ ] `calibration-matrix.md` 那一行 —— **≤ 1 行 ~250 字元**（lint 上限 400）
-- [ ] Final gate sweep: lint 0/0 · web test 10 · api unit · api int · type-check ×2 ·
-      build ×2 · coverage 四項 · `run_all` 7/7 · `lint:negative` PASS
-- [ ] 導航檔: `CLAUDE.md` Current-Phase + Last-Updated · `MEMORY.md` pointer + subfile ·
-      `BACKLOG.md`（CLOSE 掉該項 + 新增 AD）
+- [x] `retrospective.md` Q1-Q7 + calibration（`pattern-reuse-feature` 0.50，第 3 個資料點；
+      窗口 ratio **0.50 UNDER**）
+      - ⛔ **`AD-CalibrationIdleGap-1` 的提議被本 phase 推翻** —— 它說扣除值「可從 commit
+        機械導出」，而使用者訊息的時間戳**不在 git 裡**。四段皆閉合但含量不到的等待前綴，
+        故只能報**上界**，⛔ 不編一個數字去扣
+      - ⭐ **三數比對**：committed 3.75 hr · 新方法預測 **64 min** · 實測 Day 1-3 **58.5 min**
+        → 新法誤差 < 10%，舊法（7.5 hr bottom-up）誤差 **7.7 倍**
+- [x] `calibration-matrix.md` 那一行 —— **≤ 1 行 ~250 字元**（lint 上限 400）
+- [x] Final gate sweep: lint **0/0** · web test **10** · api unit **314/31** ·
+      api int **145/11** · type-check clean ×2 · build clean ×2 ·
+      coverage **92.07/90.67/97.14/93.49** · `run_all` **7/7** · `lint:negative` **PASS**
+- [x] 導航檔: `CLAUDE.md` Current-Phase + Last-Updated · `MEMORY.md` pointer + subfile ·
+      `BACKLOG.md`（新增 6 條 + 更新 3 條）· `ROADMAP.md` · `RISK_REGISTER.md`（R4 12 → **15 張表**）
       ⛔ **計數在最後一次編輯之後才做**（`AD-CountBeforeLastEdit-1`），
-      優先度**逐列解析不 grep**
-- [ ] Anti-pattern 自檢（retro Q5）：AP-1..AP-7 → 違規數
-- [ ] **Commit** → ⏳ PR push + open → CI → merge: **PENDING USER CONFIRMATION**
+      優先度**逐列解析不 grep** → **86 條（P0 5 / P1 50 / P2 31）**，兩次解析一致
+- [x] Anti-pattern 自檢（retro Q5）：AP-1..AP-7 → **0**
+- [x] **Commit** → ⏳ PR push + open → CI → merge: **PENDING USER CONFIRMATION**
       （push 是 outward-facing）→ merge 經 `gh pr view` 驗證後翻 `status:` 標籤
