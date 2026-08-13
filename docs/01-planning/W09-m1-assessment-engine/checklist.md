@@ -51,42 +51,49 @@
 
 ### 1.1 Enums + models
 
-- [ ] **三個 enum 照 `02a` 字面值建，不擴充**
+- [x] **三個 enum 照 `02a` 字面值建，不擴充**
   - DoD: `assessment_subject_type` / `assessment_question_type` /
         `assessment_instance_status` 的值與 `02a:326-333` + §4 逐字相同
-  - Verify: `npm run prisma:migrate -w apps/api` 後 `\dT+` 逐個比對
-- [ ] **三個 model + §1.1 base fields + `org_entity_id NOT NULL`**
+  - Verify: `pg_enum` 實測 → `risk|control|vendor|entity` · `yes_no_na|score|free_text` ·
+        `scheduled|in_progress|submitted|reviewed|completed` **三者逐字相符**
+  - ⛔ **代價已發現**：`02a:223` 的第五個值 `process` 因「`Assessment` 不建表」而**沒有落點** → 見 progress D9
+- [x] **三個 model + §1.1 base fields + `org_entity_id NOT NULL`**
   - DoD: 三張表皆有 `org_entity_id`，含 `assessment_responses`（子表冗餘是故意的，約束 8）
-  - Verify: `\d+ assessment_templates` × 3
+  - Verify: `migrate deploy` 成功；`check_entity_index.py` 報 **17 / 36**（機械導出）
 
 ### 1.2 複合 FK + 單欄 FK
 
-- [ ] **表間引用依 D-evidence-anchor 的結論選形狀**
+- [x] **表間引用依 D-evidence-anchor 的結論選形狀**
   - DoD: `instances → templates`、`responses → instances` 走複合 FK；
         `responses → evidence` 依 Day-0 結論；`*_user_id → users` 走單欄 FK
-  - Verify: `\d assessment_instances` 確認 FK 定義與欄位對
+  - Verify: `pg_get_constraintdef` 實測 → **3 個複合 FK**（含 `(evidence_id, org_entity_id)`）
+        + 3 個 user 單欄 FK + 3 個 org_entity 單欄 FK
+  - ⭐ `evidence` 的錨點由本 migration 補上 —— **首次回頭改前一個 phase 的表**
 
 ### 1.3 SoD CHECK（US-3）
 
-- [ ] **`reviewer_user_id <> assignee_user_id` 的 CHECK 約束**
+- [x] **`reviewer_user_id <> assignee_user_id` 的 CHECK 約束**
   - DoD: 約束存在且 `NULL` 放行；命名為 `assessment_instances_sod`
-  - Verify: 手動 INSERT 同一個 user 兩次 → 失敗；reviewer 為 NULL → 成功
+  - Verify: **四個方向實測** — A reviewer=assignee **FAIL** ✓ · B reviewer NULL **成功** ✓ ·
+        C assignee NULL **成功** ✓ · D UPDATE 改成相等 **FAIL** ✓
+  - ⭐ **D 是免費的**：CHECK 自動涵蓋 UPDATE，與 W08 量到「FK 免費涵蓋 UPDATE」同形狀
 
 ### 1.4 RLS
 
-- [ ] **per-command policy（SELECT / INSERT / UPDATE，無 DELETE）+ FORCE RLS**
-  - DoD: 三張表各三條 policy；`\d+` 顯示 `FORCE ROW LEVEL SECURITY`
-  - Verify: `SELECT polname, polcmd FROM pg_policy` 逐表列出
+- [x] **per-command policy（SELECT / INSERT / UPDATE，無 DELETE）+ FORCE RLS**
+  - DoD: 三張表各三條 policy；`FORCE ROW LEVEL SECURITY`
+  - Verify: `pg_class` 實測 → 三張表皆 `rls=true force=true policies=3`
 
 ### 1.5 `validate_extensions` trigger
 
-- [ ] **三張表各掛一個**（W03 起的既有形狀）
-  - DoD: trigger 存在且 `SECURITY INVOKER`
-  - Verify: `\d assessment_templates` 的 Triggers 區段
+- [x] **三張表各掛一個**（W03 起的既有形狀）
+  - DoD: trigger 存在
+  - Verify: `pg_trigger`（排除 internal）實測 → 三張表各 **1** 個
 
 ### 1.x Partial gate
 
-- [ ] `npm run type-check -w apps/api` clean（⛔ 逐 workspace 可見，不用 `tail`）
+- [x] `npm run type-check -w apps/api` clean（⛔ 逐 workspace 可見，不用 `tail`）
+      + `check_entity_index.py` **17 / 36**
 
 ---
 

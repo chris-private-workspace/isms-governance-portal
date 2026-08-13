@@ -40,3 +40,48 @@
 
 ⭐ **D2 是本 phase 目前最有價值的發現**，而且它**不是缺陷**：判準運作正常，只是第一次遇到
 「父表給得起錨點，但它還沒有」這個情況。前三次的父子表都同 phase 出生，所以問題從未出現過。
+
+---
+
+## Day 1 — 2026-08-13 — Schema + isolation + SoD
+
+### Today's Accomplishments
+
+- **1.1 三個 enum + 三個 model** —— `pg_enum` 實測三者與 `02a` 逐字相符；
+  `migrate deploy` 成功；`check_entity_index.py` **14 → 17 / 36**（機械導出，非手數）
+- **1.2 FK** —— `pg_get_constraintdef` 實測：**3 個複合 FK**
+  （`instances→templates` · `responses→instances` · `responses→evidence`）
+  + 3 個 user 單欄 FK + 3 個 org_entity 單欄 FK。`evidence` 的錨點由本 migration 補上（D2）
+- **1.3 SoD CHECK** —— **四個方向實測全部符合預期**（見下）
+- **1.4 RLS** —— `pg_class` 實測三張表皆 `rls=true force=true`，各 3 條 per-command policy，無 DELETE
+- **1.5 trigger** —— `pg_trigger`（排除 internal）三張表各 1 個
+- **1.x** type-check clean
+
+### SoD 的四個方向（US-3 的核心驗證）
+
+| Case | 預期 | 實測 |
+|---|---|---|
+| A `reviewer = assignee` | FAIL | ✅ `violates check constraint "assessment_instances_sod"` |
+| B `reviewer` NULL | 成功 | ✅ |
+| C `assignee` NULL、`reviewer` 有值 | 成功 | ✅（`x <> NULL` 為 NULL，CHECK 放行）|
+| D UPDATE 改成相等 | FAIL | ✅ |
+
+⭐ **Case D 沒有寫任何東西去支援它** —— CHECK 自動涵蓋 UPDATE，與 W08 量到
+「複合 FK 免費涵蓋 UPDATE，而 W07 的 trigger 必須明寫 `OR UPDATE`」是同一個形狀。
+**宣告式約束涵蓋所有寫入路徑；命令式守衛只涵蓋你列出的那些。**
+
+### Issues / Discoveries
+
+| ID | 發現 | 處置 |
+|----|------|------|
+| **D9** ⛔⭐ | **「`Assessment` 不建表」的裁決有一個當時沒有人看見的代價** —— 引擎的 `subject_type` 由 `02a:326` 與 `05:43` 兩處獨立指定為 `risk/control/vendor/entity`，而 `02a:223` 給 `Assessment (RCSA)` 的是 `risk/control/**process**/entity`。裁決是**基於欄位重疊**做的（`assessor_user_id` vs `assignee_user_id` 等），**沒有人比對過 enum**。結果：`process` 沒有落點，**一個對流程做的 RCSA —— `02a:223` 明文設想的東西 —— 今天無法表達** | ⛔ **不自行合併兩份規格**（已確認參數 #9）。照兩處都同意的四個值建，把缺口寫進 `AssessmentSubjectType` 的 docstring 並開 AD。⚠️ **需要使用者知道**：這是他的裁決的後果，不是實作選擇 |
+| **D10** | **`prisma migrate dev --create-only` 在非互動環境不能用**（`Prisma Migrate has detected that the environment is non-interactive`），而它正是 `AD-MigrationTimestampTz-1` 提的修法 (b) | → 該 AD 只剩修法 (a)：**手建一律用 UTC**。本 migration 目錄 `20260813032048` 即 UTC，且晚於 `20260812211801`。SQL 本體由 `prisma migrate diff` 生成（機器產生），只有目錄名是手寫的 |
+| **D11** | Prisma 7 把 `migrate diff` 的旗標改名：`--from-schema-datasource` **已移除**，改為 `--from-config-datasource`；`--to-schema-datamodel` → `--to-schema` | 已改用新旗標。⚠️ 值得記進 migration 的操作說明 —— 下一個 slice 會再用一次 |
+| **D12** | **`version` 在全 repo 沒有任何地方遞增** —— 9 個 repository 沒有一個寫 `version`。所以 `template_version` 今天永遠 snapshot `1` | ⚠️ **這是 AP-3 的邊緣**：欄位在、複製邏輯會是真的，但**產生第 2 版的路徑不存在**。處置：Day 2 的測試**直接把某個 template 的 version 設成 2 並斷言 instance 記錄到 2** —— 讓機制可證偽，即使 production 路徑還不存在。缺口開 AD |
+| **D13** | `AssessmentResponse` 照 §1.1 帶了 `ref_code`，而 §1.1 沒有給任何豁免。代價：一份 40 題的提交要走 **40 次** `ref_code_counters`，而 W04 讓它成為 per-entity 的序列化點 | 照規格建，**Day 2 量它**再決定。⛔ 不自行發明豁免 —— `User` 的豁免是**有文件、逐欄位說明理由**的（`02a:286-292`），那是先例的形狀 |
+| **D14** | 我用 shell heredoc 追加 schema 內容，**違反自己的 tool-discipline**（寫檔不得用 shell 重定向）。bash 還因引號解析失敗，exit 2 | 改用 Edit 工具重做。⚠️ 規則在 always-loaded context 裡，我仍然違反了 —— 這是「中途漂移」而非「不知道」 |
+
+### Remaining for Next Day
+
+- Day 2：三個 repository + spec · `scoped-client.types.ts` +3 介面 · controller + module ·
+  int spec（含 D12 的 version-2 測試與 D13 的 ref_code 成本量測）
