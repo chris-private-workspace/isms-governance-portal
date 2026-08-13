@@ -1,6 +1,6 @@
 # W09 — Shared assessment engine (M1 slice 6)
 
-**Closed**: 2026-08-13 · **PR**: #50 pending · **Retro**:
+**Closed**: 2026-08-13 · **PR**: #50 MERGED (`6446099`) · **Retro**:
 `docs/01-planning/W09-m1-assessment-engine/retrospective.md` ·
 **CH**: `docs/03-implementation/changes/CH-024-w09-assessment-engine.md`
 

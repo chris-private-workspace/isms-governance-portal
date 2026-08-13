@@ -3,7 +3,7 @@
 **Phase**: W09 — shared assessment engine (M1 slice 6)
 **Period**: 2026-08-13 ~ 2026-08-13
 **Plan**: [plan.md](./plan.md)  ← 四件套共置於同一個資料夾
-**PR**: #50（PR-pending）
+**PR**: #50（MERGED `6446099`，2026-08-13 05:44Z，經 `gh pr view` 驗證）
 **Change record**: `docs/03-implementation/changes/CH-024-w09-assessment-engine.md`
 
 ---
