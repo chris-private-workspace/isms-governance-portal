@@ -17,7 +17,7 @@ status: closed   # draft | active | closed | closed_partial —— 機器可讀�
 **feature-continuation class → 不產出 design note**（理由見 §1）。
 
 **Status**: **Closed**（2026-08-13 —— 六個 deliverable 全交付，checklist 無未勾項，
-plan §4 的 28 個目標全部命中且零計畫外檔案。PR #47 pending）
+plan §4 的 28 個目標全部命中且零計畫外檔案。**MERGED** PR #47，main head `74d8d56`）
 起手為 Approved-to-execute（使用者 2026-08-12 —— 範圍裁決 slice 5 = `Issue` + `Action`；
 `RefCodeCounter` 明記為刻意排除 → Scope decision (f)）
 

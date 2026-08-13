@@ -1,6 +1,6 @@
 # W08 — M1 slice 5: the criterion finally had two answers
 
-**Phase**: W08 · **Period**: 2026-08-12 ~ 2026-08-13（Day 0–4，**跨午夜但無睡眠間隔**）· **Status**: **`closed`** —— PR #47 pending
+**Phase**: W08 · **Period**: 2026-08-12 ~ 2026-08-13（Day 0–4，**跨午夜但無睡眠間隔**）· **Status**: **`closed`** —— MERGED PR #47（rebase，main head `74d8d56`）
 **Authority**: `docs/01-planning/W08-m1-issue-and-action/retrospective.md`（完整 retro）
 **Change record**: `docs/03-implementation/changes/CH-023-w08-issue-and-action.md`
 **Design note**: **無** —— feature continuation 不是 spike；D1 的分流結果**同行追加**到 W07 的 design note

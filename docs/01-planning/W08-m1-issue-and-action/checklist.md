@@ -381,5 +381,16 @@ _(⚪ 本 phase **無 UI**，故不做 drive-through。所有結論一律寫
     docstring）皆指向**存在**的東西；AP-3 由 11 項 API-level 走查 + **N1-N6 六次中性化**支撐
 - [x] **frontmatter `status:` 翻 `closed`**（R9 —— 只 commit code 不算收尾）
   - → `status: closed`；`check_status_markers` 回報 13 pre-doc、**E1/E2/E3/E4 clean**
-- [ ] **Commit** → ⏳ PR push + open → CI → merge: **PENDING USER CONFIRMATION**
+- [x] **Commit** → ⏳ PR push + open → CI → merge: **PENDING USER CONFIRMATION**
       （push 是 outward-facing）→ merge 經 `gh` 驗證後翻狀態標籤
+  - → 使用者確認後 push；**PR #47** 開啟，六個 required check 全 SUCCESS
+    （`gates` 1m42s —— ⚠️ `AD-RequiredCheckPrereq-1` 的單點這次沒觸發 · `映像 build + 啟動探測`
+    1m52s · SAST 31s · trivy 21s · gitleaks 15s · SCA 10s）；`mergeStateStatus: CLEAN`
+  - → **merge 經 `gh` 驗證**（非宣稱）：`state: MERGED` · `mergedAt: 2026-08-13T01:09:05Z` ·
+    `mergeCommit: 74d8d56`。本地 main fast-forward 到 `74d8d56`
+  - → ⚠️ **rebase merge：五個 SHA 全部被改寫**（`d357300`→`ff313bb` … `647d602`→`74d8d56`），
+    `git merge-base --is-ancestor` 對五個舊 SHA **全回 False**。全 repo grep 舊 SHA 只有
+    **1 處**引用（`CALIBRATION-LOG.md:53`），已改指 main 側並回填實測窗口 **238.9 min**
+    （起草時的下界誤差 0.9 min，未跨 band 線）
+  - → 狀態標籤已翻 **8 處**：`CLAUDE.md` · `MEMORY.md` · `memory/project_w08_*` · `plan.md` ·
+    `retrospective.md` · `CH-023` · `BACKLOG.md` · `ROADMAP.md`

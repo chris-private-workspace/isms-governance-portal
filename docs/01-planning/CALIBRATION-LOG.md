@@ -50,9 +50,13 @@ Log 是**歷史紀錄** —— 只有在要調整某個乘數、或要理解某�
 
 - Bottom-up 9.5 hr → committed 4.75 hr (mult 0.50) → actual **3.97 hr（窗口）/ 1.1 hr（逐段）**
 - **⛔ 拍板的定義把「等待使用者」算成了工時。** `AD-CalibrationMetric-2` 定義 actual =
-  branch 第一個 commit → closeout commit。本 phase 該窗口是 `d357300` 20:17:02 →
-  closeout ≈ 00:15 = **238 min**（⚠️ **下界** —— closeout commit 落地後可回讀，
-  但它晚 5-10 min 不會跨過 band 線，0.84 → 0.87 仍 IN）。
+  branch 第一個 commit → closeout commit。本 phase 該窗口是 `ff313bb` 20:17:02 →
+  `74d8d56` 00:15:54 = **238.9 min**（⚠️ **merge 後回讀的實測值**；起草時寫的下界
+  「≈ 00:15 / 238 min」誤差 **0.9 min**，未跨 band 線，ratio 仍 0.84。
+  ⭐ **這兩個 SHA 是 rebase 後 main 上的** —— PR #47 用 rebase merge，branch 側的
+  `d357300` … `647d602` 五個**全部**不在 main 上（`git merge-base --is-ancestor` 五個皆 False，
+  這是 `AD-DesignNoteAnchor-1` 修正後的判準，不是 `git cat-file -e`）。
+  **author date 未被 rebase 改變**（逐一比對過），所以算術不受影響）。
   而這個 phase **被切成四次對話**，每次結束都停下來等使用者說「要接著開」。
   那四段等待可以**獨立機械算出** —— 每個 Day 的起始時間戳減去前一個 commit 的時間戳：
   `55 + 78 + 28 + 8 = 169 min`，佔窗口的 **71%**。
