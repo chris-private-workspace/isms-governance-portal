@@ -129,3 +129,25 @@ D2 → 減 1 個 repository 檔 + 1 個 spec 檔）= **~12.5%**，**≤ 20% → 
 
 - Day 3：元驗證。N1 因 D11 拆成 **N1a**（只加 GRANT）與 **N1b**（加 GRANT + policy）；
   新增 **N5**（還原唯一鍵為 `(report_id, version_label)`，預期測試 12 轉紅）
+
+---
+
+## Day 3 — 2026-08-13 — 元驗證
+
+### 3.1 預期方向（**寫於執行任何一項中性化之前**，本節與其 commit 早於下方實測）
+
+中性化一律改 **migration 來源**（`AD-NeutraliseRebuiltState-1`）—— int setup 每次重建資料庫，
+改 live DB 的手術不算數。基準：`rm-report.int.spec.ts` **14 passed**。
+
+| N | 中性化的東西 | 預期轉紅 | 預期**不動** | 理由 |
+|---|---|---|---|---|
+| **N1a** | 只加 `GRANT UPDATE ON rm_report_versions`，**保持沒有 `_update` policy** | **測試 6** —— 它斷言錯誤訊息含 `42501`；權限放行後 raw UPDATE 會命中 0 列而**成功**，斷言失敗 | ⚠️ **測試 5 仍綠** —— 它只斷言 `rejects.toThrow()`，而 RLS 濾掉該列時 Prisma 會丟 P2025。**它分不出兩層**。兩個「未變」斷言也仍綠（policy 還在擋） | 若測試 6 轉紅而 rows 仍未變 → **缺席的 policy 自己撐得住**，D11 的預測成立 |
+| **N1b** | N1a **再加上** `rm_report_versions_update` policy | **測試 5 + 測試 6 皆紅**，且兩者的「未變」斷言**也**紅（列真的被改掉） | — | 兩層都拿掉才失去不可變性 → 兩層都是承重的 |
+| **N2** | 移除 `rm_reports_current_version_id_id_fkey` | **測試 7** —— 指標指向別份報告的版本會成功 | 測試 3 / 4（promote 仍由 trigger 做） | 複合指標鍵是唯一擋住它的東西 |
+| **N3** | 移除 `rm_report_versions_report_id_org_entity_id_fkey` | **測試 8 · 12 · 13** —— 三者都靠 23503 | 測試 5 / 6 / 7 / 14 | 沒有這把鍵，跨實體與不存在的 report_id 都插得進去 |
+| **N4** | 移除 `rm_report_versions_insert` policy 的 `WITH CHECK` | ⚠️ **預期零轉紅** | **全部 14 個仍綠** | ⭐ `AD-BorrowedRefusal-1` 的檢查點，**事先預測**：repository 先呼叫 `issueRefCode`，而 counter 是 entity-scoped，所以跨實體的 `orgEntityId` 在到達本表之前就被 counter 的 policy 拒絕。若真的零轉紅，代表本表的 INSERT policy **今天沒有任何測試在證明它** |
+| **N5** | 唯一鍵還原成 `(report_id, version_label)` | **測試 12** —— 撞標籤會變成 `DuplicateKeyError`，不撞的仍是 `UnknownReferenceError`，兩者不再相同 | 測試 14（自己的報告重複標籤仍是 23505） | D10 的 oracle 回歸測試 |
+
+⛔ **N4 的預期是「不動」，而那不是好消息**。它若成立，本 phase 就交付了一條**沒有任何測試
+在證明**的 policy —— 這正是 W05 量到「新表的 RLS 被上游 counter 代勞而零覆蓋」的同一個形狀，
+第 5 次。屆時要補的是一個**繞過 `issueRefCode`** 的直接寫入測試，不是把 N4 改成別的東西。
