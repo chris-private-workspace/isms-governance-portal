@@ -1,0 +1,204 @@
+# Phase W09 — Checklist (shared assessment engine)
+
+[Plan](./plan.md)
+
+---
+
+## Day 0 — Plan-vs-Repo Verify（三-prong）+ Branch
+
+### 0.1 三-prong Day-0 verify（對照 `main` HEAD `a18b366`）
+
+> 完整程序：`docs/rules-on-demand/day0-plan-verify.md`
+
+- [x] **Prong 1 — path verify**：7 個 NEW 目標皆不存在；4 個 EDIT 目標**3 存在 1 不存在** → **D1**；
+      `CH-024` 未被佔用（最後是 `CH-023-w08-issue-and-action.md`）
+- [x] **Prong 2 — content verify**（drift → progress.md）：
+  - [x] **D-evidence-anchor** — `evidence` model 有沒有 `@@unique([id, orgEntityId])`？
+        → 決定 `responses.evidence_id` 走複合 FK（W08）或 trigger（W07）
+        → **沒有；但它也給得起（無 `appliesToScope`）→ 複合 FK + ALTER `evidence`**（**D2**）
+  - [x] **D-template-scope** — grep `AssessmentTemplate` 於 `02a` / `05` / `13`，
+        確認規格是否曾指定範疇形狀；三種先例的錨點各讀一次
+        （`Threat` 全域 · `extension_field_catalog` · `Control` ADR-0014）
+        → **三處全部沒有提到範疇** → 走 entity-scoped（**D3**）
+  - [x] **D-assessment-row** — 讀 `02a` §0 的 `Assessment (RCSA)` 那一列原文，
+        並讀 `check_entity_index.py` 的 `parse_index` 確認註記後分母會變 35
+        → 它在 `02a:34`（Shared core），引擎三張在 `:52`（Foundation services）→ **跨區段**（**D5**）
+  - [x] **D-question-id** — grep `question_id` 全 repo，確認 `02a` 沒有在別處定義它的來源
+        → **全 repo 只出現 1 次**（`02a:333`），無定義（**D4**）
+  - [x] **D-user-fk** — 確認 `users` 無 `org_entity_id`（ADR-0012），單欄 FK 是對的（**D7**）
+  - [x] **D-refs-to-assessment** — 全 repo grep `Assessment (RCSA)` 的引用，
+        確認改 `02a` §0 不會弄斷別處（R5）→ 僅 `02a:223` 一處（其餘是本 phase 自己的文件）
+- [x] **Prong 2.5 — child component tree**：**N/A**（無前端變更）
+- [x] **Prong 3 — schema verify**：`schema.prisma` 確認三個 model 不存在（grep 命中 0）；
+      最後一個 migration 為 `20260812211801_issue_and_action`；
+      → **改用 `prisma migrate dev --create-only` 生成目錄名**（機器產生 UTC 戳），
+      即 `AD-MigrationTimestampTz-1` 的修法之一
+- [x] **D-baselines** — 逐 workspace 實測並記錄：web test **10** · api unit **276/27** ·
+      api int **125/10** · lint **0/0** · type-check clean ×2 · build clean ×2 ·
+      coverage **92.07/91.9/96.63/93.62** · `run_all` **7/7** · `lint:negative` **PASS**
+      ⛔ **不得引用 plan 抄來的 W08 數字** —— 那是待驗證的宣稱（實測後**十項全部相符**）
+      ⚠️ `lint:negative` 是 **root** script，叫法是 `npm run lint:negative`（**無 `-w`**）—— **D8**
+- [x] **Catalog drift** — progress.md Day-0 表格（**8 條 D1–D8**）
+- [x] **Go/no-go** — 範圍變動 **~8%** → **繼續 Day 1**
+
+### 0.2 Branch
+
+- [x] `git checkout -b feature/W09-assessment-engine`（從 `main` `a18b366`）
+
+---
+
+## Day 1 — Schema + isolation (US-1, US-2)
+
+### 1.1 Enums + models
+
+- [ ] **三個 enum 照 `02a` 字面值建，不擴充**
+  - DoD: `assessment_subject_type` / `assessment_question_type` /
+        `assessment_instance_status` 的值與 `02a:326-333` + §4 逐字相同
+  - Verify: `npm run prisma:migrate -w apps/api` 後 `\dT+` 逐個比對
+- [ ] **三個 model + §1.1 base fields + `org_entity_id NOT NULL`**
+  - DoD: 三張表皆有 `org_entity_id`，含 `assessment_responses`（子表冗餘是故意的，約束 8）
+  - Verify: `\d+ assessment_templates` × 3
+
+### 1.2 複合 FK + 單欄 FK
+
+- [ ] **表間引用依 D-evidence-anchor 的結論選形狀**
+  - DoD: `instances → templates`、`responses → instances` 走複合 FK；
+        `responses → evidence` 依 Day-0 結論；`*_user_id → users` 走單欄 FK
+  - Verify: `\d assessment_instances` 確認 FK 定義與欄位對
+
+### 1.3 SoD CHECK（US-3）
+
+- [ ] **`reviewer_user_id <> assignee_user_id` 的 CHECK 約束**
+  - DoD: 約束存在且 `NULL` 放行；命名為 `assessment_instances_sod`
+  - Verify: 手動 INSERT 同一個 user 兩次 → 失敗；reviewer 為 NULL → 成功
+
+### 1.4 RLS
+
+- [ ] **per-command policy（SELECT / INSERT / UPDATE，無 DELETE）+ FORCE RLS**
+  - DoD: 三張表各三條 policy；`\d+` 顯示 `FORCE ROW LEVEL SECURITY`
+  - Verify: `SELECT polname, polcmd FROM pg_policy` 逐表列出
+
+### 1.5 `validate_extensions` trigger
+
+- [ ] **三張表各掛一個**（W03 起的既有形狀）
+  - DoD: trigger 存在且 `SECURITY INVOKER`
+  - Verify: `\d assessment_templates` 的 Triggers 區段
+
+### 1.x Partial gate
+
+- [ ] `npm run type-check -w apps/api` clean（⛔ 逐 workspace 可見，不用 `tail`）
+
+---
+
+## Day 2 — Repositories + endpoints (US-2, US-4)
+
+### 2.1 三個 repository + spec
+
+- [ ] **`assessment-template.repository.ts`**（+ spec）
+  - DoD: entity-scoped 讀寫；spec 覆蓋率 100%
+  - Verify: `npm run test -w apps/api -- assessment-template.repository`
+- [ ] **`assessment-instance.repository.ts`**（+ spec）
+  - DoD: 同上；含 SoD 違反時的錯誤傳遞
+  - Verify: `npm run test -w apps/api -- assessment-instance.repository`
+- [ ] **`assessment-response.repository.ts`**（+ spec）
+  - DoD: 同上；`evidence_id` 可為 NULL
+  - Verify: `npm run test -w apps/api -- assessment-response.repository`
+
+### 2.2 `scoped-client.types.ts` +3 介面
+
+- [ ] **三個介面，⛔ 各自只含自己需要的 model**
+  - DoD: 比照 W08 的 `ScopedActionClient` 不含 `issue` —— 介面不給用不到的存取
+  - Verify: `npm run type-check -w apps/api`
+
+### 2.3 `modules/assessment/` controller + module
+
+- [ ] **6 個端點（3 POST + 3 GET）**
+  - DoD: 非法 enum → **400**；不存在或越界 id → **404**；合法值由 `Object.values()` 導出
+  - Verify: `npm run test -w apps/api -- assessment.controller`
+- [ ] **`app.module.ts` 註冊**
+  - DoD: 端點在 `/api-docs` 出現
+  - Verify: 乾淨重啟後 `curl localhost:3210/api-docs`（Risk Class C：先殺陳舊程序）
+
+### 2.4 整合測試
+
+- [ ] **`assessment.int.spec.ts` —— 每張表四項範疇測試**
+  - DoD: 跨實體讀拒 / 跨實體寫拒且資料未變 / RLS 層獨立成立 / 滾升只看到授權子樹
+  - DoD: **測試名稱不得寬於它證明的東西**（`AD-TestNameWiderThanProof-1`）——
+        釘住哪一層擋的，或在 docstring 明寫本測試不釘層
+  - Verify: `npm run test:int -w apps/api -- assessment`
+- [ ] **SoD 的常駐負面案例**
+  - DoD: 同一 user 同時為 assignee 與 reviewer → 插入失敗，且斷言的是 CHECK 不是別的
+  - Verify: 同上
+
+### 2.x Full gate
+
+- [ ] lint 0/0 · web test 10 · api unit · api int · type-check ×2 · build ×2 ·
+      coverage 四項 · `run_all` 7/7 · `lint:negative` PASS
+      （⛔ 逐 workspace 逐項可見，不用 `tail` / `--silent`）
+
+---
+
+## Day 3 — Meta-verification (US-5) — 純後端，gate-only verified
+
+_(本 phase 無 user-facing surface，故 Day 3 不是 drive-through。
+⛔ 所有報告寫「gate-only verified」，不得暗示可用性。)_
+
+### 3.1 Clean restart
+
+- [ ] **乾淨重啟並確認新程序是 3210 的唯一擁有者**
+  - DoD: 列出所有 node 程序檢視 PID/PPID/StartTime，殺掉孤兒 worker；擷取 startup log
+  - Verify: `docs/rules-on-demand/local-runtime-ops.md` 的程序
+
+### 3.2 中性化清單（⛔ 預期方向必須在跑之前寫下）
+
+- [ ] **先寫下每個 N 的預期轉紅測試，再跑** —— `AD-MetaVerificationBug-1`
+  - [ ] **N1** 移掉 `responses → evidence` 的守衛 → 預期：跨實體引用插入成功，_N_ 個測試轉紅
+  - [ ] **N2** `INSERT` policy 中性化為 `WITH CHECK (true)` → 預期：跨實體寫測試轉紅
+  - [ ] **N3** `SELECT` policy 中性化為 `USING (true)` → 預期：跨實體讀測試轉紅
+  - [ ] **N4** 移掉 SoD CHECK → 預期：SoD 負面案例轉紅，**且只有它**
+  - [ ] **N5** 移掉 `instances → templates` 的複合 FK → 預期：跨實體模板引用插入成功
+  - [ ] **N6** detector fixture 造一個真正在索引上的孤兒 → 預期：`run_all` **6/7 FAIL**
+        （⛔ W08 的第一版用了不在索引上的名字，壞掉的元驗證長得跟成功一樣）
+- [ ] **實測並比對方向**
+  - DoD: 方向相符 → 記錄；**方向不符 → 先懷疑元驗證本身，不要先改產品碼**
+  - Verify: 每個 N 各跑一次完整 int suite，逐項記轉紅數 → progress.md Day 3
+
+### 3.3 復原
+
+- [ ] **每個 N 復原後重跑，確認回到全綠**
+  - DoD: 中性化的東西沒有一項殘留
+  - Verify: `git diff` 對 migration 與 policy 檔零殘留 + int suite 全綠
+
+---
+
+## Day 4 — closeout
+
+### 4.1 Change record
+
+- [ ] **`docs/03-implementation/changes/CH-024-w09-assessment-engine.md`**
+      （Problem / Root Cause / Solution / Verification / Impact）
+  - DoD: 含 **gate-only verified** 的明確標示、關掉與新增的 AD、
+        以及 `AssessmentTemplate` 範疇形狀的判斷理由（R2）
+  - DoD: **非 spike → 不寫 design note**（複製既有形狀，無新機制值得 extract）
+
+### 4.2 `02a` §0 索引更正（US-6）
+
+- [ ] **`Assessment (RCSA)` 一列改為註記，不刪列**
+  - DoD: 註明它是 `subject_type = risk` 的 `AssessmentInstance`；舊名找得到新落點
+  - Verify: `python scripts/lint/check_entity_index.py` 報 **17 / 35**（分母由索引導出）
+
+### 4.3 Closeout
+
+- [ ] `retrospective.md` Q1-Q7 + calibration（`pattern-reuse-feature` 0.50，第 3 個資料點；
+      ⛔ 窗口扣掉等待使用者的間隔 —— `AD-CalibrationIdleGap-1`；
+      **三數比對**：committed 3.75 hr vs 新方法預測 1.07 hr vs actual）
+- [ ] `calibration-matrix.md` 那一行 —— **≤ 1 行 ~250 字元**（lint 上限 400）
+- [ ] Final gate sweep: lint 0/0 · web test 10 · api unit · api int · type-check ×2 ·
+      build ×2 · coverage 四項 · `run_all` 7/7 · `lint:negative` PASS
+- [ ] 導航檔: `CLAUDE.md` Current-Phase + Last-Updated · `MEMORY.md` pointer + subfile ·
+      `BACKLOG.md`（CLOSE 掉該項 + 新增 AD）
+      ⛔ **計數在最後一次編輯之後才做**（`AD-CountBeforeLastEdit-1`），
+      優先度**逐列解析不 grep**
+- [ ] Anti-pattern 自檢（retro Q5）：AP-1..AP-7 → 違規數
+- [ ] **Commit** → ⏳ PR push + open → CI → merge: **PENDING USER CONFIRMATION**
+      （push 是 outward-facing）→ merge 經 `gh pr view` 驗證後翻 `status:` 標籤
