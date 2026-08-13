@@ -101,6 +101,10 @@ model OrgEntity {
   issues          Issue[]
   actions         Action[]
 
+  assessmentTemplates AssessmentTemplate[]
+  assessmentInstances AssessmentInstance[]
+  assessmentResponses AssessmentResponse[]
+
   version   Int       @default(1)
   createdAt DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
   updatedAt DateTime  @updatedAt @map("updated_at") @db.Timestamptz(6)
@@ -165,6 +169,10 @@ model User {
   /// 02a:416 does for ControlTest, so nothing enforces it — this is the column a
   /// future rule would read, kept separate from `assignee` so it can be.
   verifiedActions Action[] @relation("ActionVerifier")
+
+  ownedAssessmentTemplates AssessmentTemplate[] @relation("AssessmentTemplateOwner")
+  assignedAssessments      AssessmentInstance[] @relation("AssessmentAssignee")
+  reviewedAssessments      AssessmentInstance[] @relation("AssessmentReviewer")
 
   @@map("users")
 }
@@ -1074,6 +1082,10 @@ model Evidence {
 
   orgEntity OrgEntity @relation(fields: [orgEntityId], references: [id])
 
+  /// The one relation that DOES point here, added in W09: a response's optional
+  /// evidence. Composite, so a cross-entity reference is refused by the key.
+  responses AssessmentResponse[]
+
   /// ⛔ NO Prisma relation for `linked_id`, deliberately. Declaring one would make
   /// Prisma emit a real foreign key to control_tests — which reads as tidier and
   /// would structurally break the thing this column is for: the day
@@ -1084,6 +1096,17 @@ model Evidence {
   updatedAt DateTime  @updatedAt @map("updated_at") @db.Timestamptz(6)
   retiredAt DateTime? @map("retired_at") @db.Timestamptz(6)
 
+  /// ⭐ Added in W09, not when this table was built — and that is the point worth
+  /// recording. The three anchors that existed before (asset_groups, assets,
+  /// issues) were each created in the SAME migration as the child that needed
+  /// one, so "does the parent offer an anchor" had never been asked of a table
+  /// an earlier phase delivered. W07's D1 criterion answers it cleanly: a trigger
+  /// is for parents that STRUCTURALLY cannot offer the pair (controls cannot —
+  /// a group-shared control legitimately belongs to a different entity than its
+  /// child). This table has no appliesToScope; one row belongs to one entity. So
+  /// it can, and assessment_responses.evidence_id gets a composite key rather
+  /// than a trigger that would have been the wrong mechanism for the right fear.
+  @@unique([id, orgEntityId])
   @@index([orgEntityId, retiredAt])
   @@index([linkedType, linkedId])
   @@map("evidence")
@@ -1215,4 +1238,265 @@ model Action {
   @@index([orgEntityId, retiredAt])
   @@index([issueId, retiredAt])
   @@map("actions")
+}
+
+/// 02a:326 verbatim for AssessmentTemplate ("risk / control / vendor / entity"),
+/// and 05:43 gives the same four for AssessmentInstance. Two independent sources
+/// agree, so this is the engine's enumeration.
+///
+/// ⛔ 02a:223 lists a FIFTH shape — "risk/control/process/entity" — for
+/// `Assessment (RCSA)`, substituting `process` for `vendor`. That entity is not
+/// being built: the user ruled on 2026-08-13 that it is a use case (an instance
+/// whose subject is a risk), not a table, because its columns duplicate
+/// AssessmentInstance under different names. The ruling was made on the column
+/// overlap; the enum difference was not noticed by anyone at the time. So
+/// `process` now has no home, and an RCSA over a process — which 02a:223
+/// explicitly contemplates — cannot be expressed. Recorded rather than fixed:
+/// adding `process` here would be merging two specifications on my own
+/// authority, and 已確認參數 #9 reserves that.
+enum AssessmentSubjectType {
+  risk
+  control
+  vendor
+  entity
+
+  @@map("assessment_subject_type")
+}
+
+/// 02a:327-328 ("yes-no-NA / score / free text"), spelled for SQL. 05:42 adds
+/// `evidence_required` as a per-question FLAG, not a fourth type — it lives in
+/// the template's definition document, not here.
+enum AssessmentQuestionType {
+  yes_no_na
+  score
+  free_text
+
+  @@map("assessment_question_type")
+}
+
+/// 02a §4: "Assessment/RCSA (Scheduled -> InProgress -> Submitted -> Reviewed ->
+/// Completed)". Prose, like ActionStatus, not a mermaid diagram — a specified
+/// lifecycle in a different format, not an invented one.
+///
+/// ⚠️ It belongs to the INSTANCE, not the template. §4 names one lifecycle for
+/// the pair, and it is the assignment that moves through states; a template is
+/// content. That is also why AssessmentTemplate has no `status` column.
+///
+/// ⚠️ Transitions are unenforced, exactly as Policy and Issue record: any value
+/// may be written over any other until M5. This column states intent.
+enum AssessmentInstanceStatus {
+  scheduled
+  in_progress
+  submitted
+  reviewed
+  completed
+
+  @@map("assessment_instance_status")
+}
+
+/// A named, versioned question set (02a:326, 05:42). One engine, three consumers:
+/// RCSA, control testing and vendor service audits — 05:39 is explicit that this
+/// is to be built ONCE "rather than three times".
+///
+/// ⚠️ `version` here IS the §1.1 base field, not a second column beside it. §1.1
+/// defines `version` as "incremented on change; full history retained", which is
+/// precisely what a template version is — so 02a:326's `version` and the base
+/// field are the same thing, and AssessmentInstance.templateVersion snapshots it.
+/// ⛔ Nothing increments it yet. No repository in this codebase writes `version`
+/// on any table, so every template is version 1 today and templateVersion always
+/// snapshots 1. The COPY is real and tested against a version-2 row; the PUBLISH
+/// path that would produce one does not exist. Recorded, not papered over.
+///
+/// ⚠️ No `status`: §4 defines a lifecycle for the instance, not for the template.
+/// Giving this table one would mean inventing its states (已確認參數 #9).
+model AssessmentTemplate {
+  id String @id @default(uuid()) @db.Uuid
+
+  /// `ASTM-<ENTITY_CODE>-<seq>`. Server-issued; see ref-code.ts.
+  refCode String @unique @map("ref_code")
+
+  /// ⚠️ Entity-scoped by DEFAULT, not by specification. 02a:52, 02a:326 and 05:42
+  /// are all silent on this table's scope shape (measured in W09 Day 0, D3), and
+  /// three precedents were available: a global library (Threat), an entity-scoped
+  /// catalog (extension_fields), and row-level scope (Control, ADR-0014). The
+  /// most restrictive one is taken because widening later is a migration, while
+  /// narrowing later is a data-loss question. If group-standard templates turn
+  /// out to be needed, ADR-0014's shape is the one to copy.
+  orgEntityId String @map("org_entity_id") @db.Uuid
+
+  name String
+
+  subjectType AssessmentSubjectType @map("subject_type")
+
+  /// Sections AND questions in ONE document (02a:326 names both; 05:42 describes
+  /// sections containing questions with a type and an evidence-required flag).
+  ///
+  /// ⛔ Deliberately NOT a table. 02a specifies no `AssessmentQuestion` entity, so
+  /// creating one would be inventing an entity — and the §0 index is explicit that
+  /// nothing is buildable that is not on it. The cost is stated plainly:
+  /// AssessmentResponse.questionId is a key INTO this document, not a foreign key,
+  /// so nothing at the database layer refuses an answer to a question that does
+  /// not exist. Same shape as Issue.source (AD-IssueBareEnum-1).
+  ///
+  /// ⛔ Its internal structure is NOT validated. There is no specification to
+  /// validate against, and a validator asserting a shape I invented would be worse
+  /// than none: it would look like a guarantee while enforcing my guess.
+  ///
+  /// ⚠️ Distinct from `extensions`, which IS validated (ADR-0005) because the
+  /// extension catalog declares what may appear there. Nothing declares this.
+  definition Json @db.JsonB
+
+  /// §1.1's accountable owner. 02a:326 names no contextual owner for a template —
+  /// unlike AssessmentInstance, which gets assignee and reviewer — so the base
+  /// field is the owner rather than a duplicate of one (the Issue reasoning).
+  ownerUserId String? @map("owner_user_id") @db.Uuid
+
+  createdBy String? @map("created_by") @db.Uuid
+  updatedBy String? @map("updated_by") @db.Uuid
+
+  version    Int  @default(1)
+  extensions Json @default("{}") @db.JsonB
+
+  orgEntity OrgEntity            @relation(fields: [orgEntityId], references: [id])
+  owner     User?                @relation("AssessmentTemplateOwner", fields: [ownerUserId], references: [id])
+  instances AssessmentInstance[]
+
+  createdAt DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt DateTime  @updatedAt @map("updated_at") @db.Timestamptz(6)
+  retiredAt DateTime? @map("retired_at") @db.Timestamptz(6)
+
+  /// The anchor `assessment_instances` references (the issues:1166 reasoning).
+  @@unique([id, orgEntityId])
+  @@index([orgEntityId, retiredAt])
+  @@map("assessment_templates")
+}
+
+/// A template assigned to a subject for a period (02a:330, 05:43). This is the
+/// row that carries the §4 lifecycle, and the row the SoD rule is about.
+///
+/// ⭐ This is also `Assessment (RCSA)` (02a:223). The user ruled on 2026-08-13
+/// that the two are one entity — 02a:223's columns duplicate this table's under
+/// different names (`assessor_user_id` for `assignee_user_id`, `submitted_at` +
+/// `reviewed_at` for `status`) while §4 defines only ONE lifecycle for the pair.
+/// An RCSA is an instance whose subjectType is `risk`. See AssessmentSubjectType
+/// for what that ruling cost.
+model AssessmentInstance {
+  id String @id @default(uuid()) @db.Uuid
+
+  /// `ASIN-<ENTITY_CODE>-<seq>`. Server-issued; see ref-code.ts.
+  refCode String @unique @map("ref_code")
+
+  orgEntityId String @map("org_entity_id") @db.Uuid
+
+  /// N:1 and required. Guarded by the composite key, not by a trigger:
+  /// assessment_templates offers the anchor, so W08's option B applies.
+  templateId String @map("template_id") @db.Uuid
+
+  /// Snapshot of the template's `version` AT ASSIGNMENT (02a:330). Copied, never
+  /// a foreign key: the point is that later edits to the template do not silently
+  /// rewrite what this assignment was answered against.
+  templateVersion Int @map("template_version")
+
+  /// ⛔ NO foreign key, and no composite one either. The subject is polymorphic
+  /// across four tables (risks, controls, vendors, org_entities), of which
+  /// `vendors` does not exist at all — 02a:59 puts it in Wave 2. This is the
+  /// Evidence.linkedId shape for the same reason: a relation that must be dropped
+  /// to add the second case never modelled the first one.
+  subjectType AssessmentSubjectType @map("subject_type")
+  subjectId   String                @map("subject_id") @db.Uuid
+
+  /// 02a:330 says "period" and names no type. Timestamptz, matching
+  /// ControlTest.scheduledFor and Issue.dueDate — introducing a second temporal
+  /// convention for one column would be the invention, not the alignment.
+  period DateTime @db.Timestamptz(6)
+
+  assigneeUserId String? @map("assignee_user_id") @db.Uuid
+  reviewerUserId String? @map("reviewer_user_id") @db.Uuid
+
+  status AssessmentInstanceStatus @default(scheduled)
+
+  /// ⚠️ No `owner_user_id`. 02a:330 names two contextual owners, so the §1.1 base
+  /// field would be a third name for the same accountability — the Action
+  /// reasoning (assignee IS the contextual owner), applied to a row that has both
+  /// halves of a segregated duty.
+  createdBy String? @map("created_by") @db.Uuid
+  updatedBy String? @map("updated_by") @db.Uuid
+
+  version    Int  @default(1)
+  extensions Json @default("{}") @db.JsonB
+
+  orgEntity OrgEntity            @relation(fields: [orgEntityId], references: [id])
+  template  AssessmentTemplate   @relation(fields: [templateId, orgEntityId], references: [id, orgEntityId])
+  assignee  User?                @relation("AssessmentAssignee", fields: [assigneeUserId], references: [id])
+  reviewer  User?                @relation("AssessmentReviewer", fields: [reviewerUserId], references: [id])
+  responses AssessmentResponse[]
+
+  createdAt DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt DateTime  @updatedAt @map("updated_at") @db.Timestamptz(6)
+  retiredAt DateTime? @map("retired_at") @db.Timestamptz(6)
+
+  /// The anchor `assessment_responses` references.
+  @@unique([id, orgEntityId])
+  @@index([orgEntityId, retiredAt])
+  @@index([templateId, retiredAt])
+  @@index([subjectType, subjectId])
+  @@map("assessment_instances")
+}
+
+/// One answer to one question of one instance (02a:333).
+///
+/// ⚠️ Carries `ref_code` like every other domain entity, and that is a cost worth
+/// naming: §1.1 grants no exemption, so a 40-question submission takes 40 trips
+/// through ref_code_counters — which W04 made a per-entity serialisation point.
+/// Built to the specification; the cost is measured in Day 2 rather than dodged
+/// by inventing an exemption the way User's (documented, justified) one was.
+model AssessmentResponse {
+  id String @id @default(uuid()) @db.Uuid
+
+  /// `ASRP-<ENTITY_CODE>-<seq>`. Server-issued; see ref-code.ts.
+  refCode String @unique @map("ref_code")
+
+  /// Redundant with the instance's, and deliberately so (約束 8 iron law 1):
+  /// every business table filters on its own column, child tables included.
+  orgEntityId String @map("org_entity_id") @db.Uuid
+
+  instanceId String @map("instance_id") @db.Uuid
+
+  /// ⛔ A key into the template's `definition` document, NOT a foreign key —
+  /// there is no questions table to point at. Nothing refuses an answer to a
+  /// question that was never asked. See AssessmentTemplate.definition.
+  questionId String @map("question_id")
+
+  /// 02a:333 says "answer" and names no type, while 02a:327 gives three question
+  /// types whose answers are a boolean-ish, a number and a string. JSONB holds all
+  /// three without inventing a discriminated column set.
+  answer Json @db.JsonB
+
+  /// Optional (02a:333). Composite FK: `evidence` is plainly entity-scoped — it
+  /// has no appliesToScope, unlike `controls` — so W07's D1 criterion says the
+  /// anchor, not a trigger. ⚠️ `evidence` did not HAVE the anchor: it is added by
+  /// this migration, the first time this project has gone back to a table an
+  /// earlier phase delivered (W09 Day 0, D2).
+  evidenceId String? @map("evidence_id") @db.Uuid
+
+  /// ⚠️ No `status` (§4 defines no lifecycle for an answer) and no
+  /// `owner_user_id` (the instance's assignee answered it; a second name for the
+  /// same person is the duplication Action's docstring refuses).
+  createdBy String? @map("created_by") @db.Uuid
+  updatedBy String? @map("updated_by") @db.Uuid
+
+  version    Int  @default(1)
+  extensions Json @default("{}") @db.JsonB
+
+  orgEntity OrgEntity          @relation(fields: [orgEntityId], references: [id])
+  instance  AssessmentInstance @relation(fields: [instanceId, orgEntityId], references: [id, orgEntityId])
+  evidence  Evidence?          @relation(fields: [evidenceId, orgEntityId], references: [id, orgEntityId])
+
+  createdAt DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt DateTime  @updatedAt @map("updated_at") @db.Timestamptz(6)
+  retiredAt DateTime? @map("retired_at") @db.Timestamptz(6)
+
+  @@index([orgEntityId, retiredAt])
+  @@index([instanceId, retiredAt])
+  @@map("assessment_responses")
 }
