@@ -4,7 +4,7 @@
 **Phase**: W08（M1 slice 5）
 **Scope**: `core-model` · `modules` · tooling（`scripts/lint/`）
 **Components**: —
-**PR**: #47（pending）
+**PR**: #47 —— **MERGED** 2026-08-13（rebase，main head `74d8d56`）
 
 ---
 

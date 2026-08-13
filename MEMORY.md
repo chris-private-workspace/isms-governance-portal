@@ -65,7 +65,7 @@
   Keywords: applies_to_scope · per-command policy · RETURNING masks WITH CHECK · createMany · group-shared control · AD-ReturningMasksCheck-1 · AD-GroupRowTheft-1 · 無有效 actual
 - W07 [Cross-entity references](memory/project_w07_cross_entity_references.md) — MERGED #44 (`19bc4f7`) 2026-08-12, **`closed`**; **RI 檢查繞過 RLS**，所以父表拒絕複合錨點時「指向看不到的父列」會成功 = 存在性 oracle；⭐ **關掉它的是 BEFORE 的執行順序，不是 trigger 本身**。⛔ 兩個假 gate（`tail -N` 藏多 workspace 的紅）· 工時表把推估當量測（82→31 min）。
   Keywords: assert_parent_in_scope · SECURITY INVOKER · BEFORE 跑在約束之前 · 存在性 oracle · 多型 linked_id 無 FK · 23503 vs 42501 改判 · Prisma 改寫 FK 訊息 · AD-BorrowedRefusal-1 第 3 次 · AD-GrepAssertion-1 tail 藏紅 · AD-EstimateAsMeasurement-1 · AD-MdAnchorLineShift-1 · spike 0.30
-- W08 [Issue and action](memory/project_w08_issue_and_action.md) — PR #47 pending 2026-08-13, **`closed`**; **W07 的 D1 判準第一次導出另一個答案** —— `issues` 給得起複合錨點所以走 FK 而非 trigger，N1 移掉它 → 跨實體引用**插入成功**（3 紅 8 綠）；⭐ `AD-BorrowedRefusal-1` 第 4 次**在寫測試時就被設計掉**。⛔ N6 是**壞掉的元驗證而 EXIT=0 讀起來像通過**；calibration 的 169/238 分鐘是等待使用者。
+- W08 [Issue and action](memory/project_w08_issue_and_action.md) — MERGED #47 (`74d8d56`) 2026-08-13, **`closed`**; **W07 的 D1 判準第一次導出另一個答案** —— `issues` 給得起複合錨點所以走 FK 而非 trigger，N1 移掉它 → 跨實體引用**插入成功**（3 紅 8 綠）；⭐ `AD-BorrowedRefusal-1` 第 4 次**在寫測試時就被設計掉**。⛔ N6 是**壞掉的元驗證而 EXIT=0 讀起來像通過**；calibration 的 169/238 分鐘是等待使用者。
   Keywords: 複合 FK vs trigger 的分流判準 · FK 免費涵蓋 UPDATE · 第一個 enum body 端點（未知 variant = 500）· Object.values 導出不抄寫 · check_entity_index detector · 分母 36 不是 35 · ExtensionField/extension_fields/extension_field_catalog 三名 · AD-MetaVerificationBug-1 · AD-CalibrationIdleGap-1 · AD-IssueBareEnum-1 · pattern-reuse 0.84/0.23
 
 ---

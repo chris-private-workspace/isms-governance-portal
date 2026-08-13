@@ -3,7 +3,7 @@
 **Phase**: W08 — Issue + Action，與 W07 判準第一次導出另一個答案
 **Period**: 2026-08-12 ~ 2026-08-13
 **Plan**: [plan.md](./plan.md)
-**PR**: #47（pending）
+**PR**: #47 —— **MERGED** 2026-08-13T01:09:05Z（rebase，main head `74d8d56`）
 **Change record**: `docs/03-implementation/changes/CH-023-w08-issue-and-action.md`
 
 ---
