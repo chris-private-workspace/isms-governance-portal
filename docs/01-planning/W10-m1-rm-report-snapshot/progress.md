@@ -151,3 +151,48 @@ D2 → 減 1 個 repository 檔 + 1 個 spec 檔）= **~12.5%**，**≤ 20% → 
 ⛔ **N4 的預期是「不動」，而那不是好消息**。它若成立，本 phase 就交付了一條**沒有任何測試
 在證明**的 policy —— 這正是 W05 量到「新表的 RLS 被上游 counter 代勞而零覆蓋」的同一個形狀，
 第 5 次。屆時要補的是一個**繞過 `issueRefCode`** 的直接寫入測試，不是把 N4 改成別的東西。
+
+### 3.2 實測 vs 預期 —— **6 / 6 方向全中**
+
+中性化一律改 migration 來源；每次跑完整 int setup（資料庫重建）。基準 **14 passed**。
+
+| N | 預期 | 實測 | 相符 |
+|---|---|---|---|
+| **N1a** | 測試 6 紅 · 測試 5 **仍綠** · 列未變 | 測試 6 紅（`Received: "undefined"` —— raw UPDATE 未報錯）· 測試 5 綠 · **`isms_test` 內 `change_note='rewritten by raw sql'` 計數 = 0** | ✅ |
+| **N1b** | 測試 5 + 6 皆紅，且列**真的**被改 | 兩者皆紅；DB 出現 `quietly rewritten`（Prisma 路徑）與 `rewritten by raw sql`（raw 路徑） | ✅ |
+| **N2** | 測試 7 紅 | 測試 7 紅（13 passed） | ✅ |
+| **N3** | 測試 8 · 12 · 13 紅 | 正是這三個（11 passed） | ✅ |
+| **N4** | **零轉紅** | **14/14 全綠** | ✅ |
+| **N5** | 測試 12 紅 | 測試 12 紅（13 passed） | ✅ |
+
+⭐ **N1a 是本 phase 最重要的一格**：D11 說「今天擋住的是 GRANT」，而「缺席的 policy 自己撐得住」
+當時只是預測。N1a 把 GRANT 放行、policy 留空 —— raw UPDATE **不報錯但零筆被改**。
+兩層都是真的，順序是 GRANT 先、policy 後，而 policy 是那個**在 GRANT 被放寬後仍然成立**的。
+
+⚠️ **一個代理指標差點騙到我**：查「有幾列的 `change_note` 不是 `Initial release`」得到 1，
+差點讀成「被改寫了一列」。實際那是測試 4 那個**合法的**第二版。改問確切字串才得到 0。
+`feedback_evidence_must_support_claim` 的形狀，當場自己抓到。
+
+### 3.3 N4 暴露的缺口，以及補它時踩到的第二個坑
+
+N4 零轉紅 = 本表 INSERT policy 的 `WITH CHECK` **沒有任何測試在證明**（每條路徑都先過
+`issueRefCode`，而 counter 是 entity-scoped，所以在到達本表之前就被拒）。
+→ `AD-BorrowedRefusal-1` **第 5 次**，且是**第 2 次事先預測到**（W09 的 N2 是第 1 次）。
+
+補的測試 15 用 SG1 的 client 寫一列 HK1 的版本（複合 FK 滿足，只剩 `WITH CHECK` 能拒）。
+
+⛔ **第一版用 `client.rMReportVersion.create()`，重跑 N4 仍然全綠** ——
+Prisma 的 `create()` 會發 `RETURNING`，SELECT policy 先擋，`runScoped` 的交易把 insert 回滾掉，
+結果與 `WITH CHECK` 拒絕**無從分辨**。這正是 **`AD-ReturningMasksCheck-1`**（W06 記錄）
+與 **W05 條款 2** 改寫後要求的那件事：繞過寫入**不得產生 `RETURNING`**。
+
+改成不帶 `RETURNING` 的 raw `INSERT` 後：guard 在 → 綠；**N4 第三次 → 測試 15 紅**。
+⭐ 一條被記錄過的陷阱，我照樣踩了一次，而**唯一抓到它的機制是「補完測試後再跑一次中性化」**。
+
+### 3.4 Gate（復原後）
+
+`git checkout apps/api/prisma/migrations/` → `git status` 對該目錄為空。
+api int **160/12**（15 個 rm-report）· api unit **351/33** · lint **0** errors ·
+coverage 92.01/90.81/97.4/93.44 · `run_all` **7/7** · entity-index **19/35**。
+
+⛔ **gate-only verified** —— 無 UI，未做 drive-through，本 phase 不得宣稱可用性。

@@ -319,6 +319,45 @@ describe('rm-report module (integration)', () => {
     expect((error as Error).message).toBe('risk management report not found');
   });
 
+  it('15. the version INSERT policy refuses on its own, with the counter bypassed', async () => {
+    const hk1Report = await createReport('HK1');
+    const sg1 = await clientFor(['SG1']);
+
+    // ⭐ WRITTEN BECAUSE N4 FOUND NOTHING. Neutralising this policy's WITH CHECK
+    // left all 14 tests green: every path into this table goes through
+    // issueRefCode first, and the counter is entity-scoped, so RLS refuses there
+    // and this policy is never reached. That is AD-BorrowedRefusal-1 for the
+    // fifth time — a guard shipped with no test proving it, while the suite
+    // looked complete.
+    //
+    // ⛔ AND THE FIRST VERSION OF THIS TEST DID NOT WORK EITHER. It used
+    // sg1.rMReportVersion.create(), which N4 also left green: Prisma's create()
+    // emits RETURNING, the SELECT policy refuses to read an HK1 row back, and
+    // runScoped's transaction rolls the insert away — indistinguishable from a
+    // WITH CHECK refusal. That is AD-ReturningMasksCheck-1, the trap W06 recorded
+    // and W05's clause 2 was rewritten to demand: the bypass write must not
+    // produce a RETURNING.
+    //
+    // So: raw INSERT, no RETURNING, caller-supplied ref_code. The composite FK is
+    // satisfied (the report really is HK1's) and nothing reads the row back, so
+    // the ONLY thing left to refuse it is this policy's WITH CHECK.
+    await expect(
+      sg1.$executeRawUnsafe(
+        `INSERT INTO rm_report_versions
+           (id, ref_code, org_entity_id, report_id, version_label, prepared_by,
+            approved_by, effective_date, change_note, snapshot_at, sheet, updated_at)
+         VALUES (gen_random_uuid(), 'RMRV-HK1-999001', '${HK1}', '${hk1Report.id}',
+                 'bypass', 'ITSC', 'ISC', now(), 'written around the counter',
+                 now(), '{}'::jsonb, now())`,
+      ),
+    ).rejects.toThrow();
+
+    const hk1 = await clientFor(['HK1']);
+    const landed = await hk1.rMReportVersion.findMany({ where: { refCode: 'RMRV-HK1-999001' } });
+    // Refused, not merely errored: HK1 itself cannot see the row either.
+    expect(landed).toHaveLength(0);
+  });
+
   it('14. but a duplicate label on the caller’s OWN report is told plainly', async () => {
     const report = await createReport('SG1');
     await issue('SG1', report.id, { versionLabel: '2024' });
