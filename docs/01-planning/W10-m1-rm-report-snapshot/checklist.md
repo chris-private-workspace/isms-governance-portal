@@ -126,26 +126,35 @@ _(本 phase 無 user-facing surface，故不做 drive-through。以中性化取�
 
 ### 3.1 預期方向（**必須在跑任何一項之前寫下**）
 
-- [ ] **在 progress.md 寫下 N1..N4 的預期方向**，含**預期不動的那一項**
+- [x] **在 progress.md 寫下 N1..N4 的預期方向**，含**預期不動的那一項**
   - DoD: 每項標「預期轉紅的測試名稱 + 理由」或「預期不動 + 理由」；寫完才准執行
-  - Verify: progress.md Day 3 有該表格且 commit 時間早於中性化執行
+  - Verify: progress.md §3.1 表格，commit `8179319`（07:54:17Z）**早於**所有中性化執行
+        —— N1 因 Day-2 的 D11 拆成 N1a/N1b，並新增 N5，共 **6 項**
 
 ### 3.2 中性化（改 **migration 來源**，不改 live DB —— `AD-NeutraliseRebuiltState-1`）
 
-- [ ] **N1** — 為 `rm_report_versions` 補上一條 `FOR UPDATE` policy + GRANT UPDATE
-      → 預期：不可變測試由紅轉綠（即 UPDATE 成功）
-- [ ] **N2** — 移除 `(current_version_id, id)` 複合 FK → 預期：跨報告指標測試轉綠
-- [ ] **N3** — 移除 `(report_id, org_entity_id)` 複合 FK → 預期：跨實體子表 insert 轉綠
-- [ ] **N4** — 移除版本表的 `FOR INSERT` policy 的 `WITH CHECK`
-      → 預期方向於 3.1 事先寫下（`AD-BorrowedRefusal-1` 第 5 次的檢查點）
-- [ ] **每項跑完整 int setup**（資料庫重建），逐項記錄實測 vs 預期
+- [x] **N1a** — 只加 `GRANT UPDATE`，**保持沒有 `_update` policy`**
+      → 實測：測試 6 紅、測試 5 綠、`change_note='rewritten by raw sql'` **計數 0**
+      ⭐ **缺席的 policy 自己撐得住** —— D11 的預測成立
+- [x] **N1b** — N1a 再加上 `_update` policy → 測試 5 + 6 皆紅，且列**真的**被改寫
+- [x] **N2** — 移除 `(current_version_id, id)` 複合 FK → 測試 7 轉紅
+- [x] **N3** — 移除 `(report_id, org_entity_id)` 複合 FK → 測試 8 · 12 · 13 轉紅
+- [x] **N4** — 移除版本表 `FOR INSERT` policy 的 `WITH CHECK`
+      → **零轉紅**（如預測）= `AD-BorrowedRefusal-1` 第 5 次，**第 2 次事先預測到**
+- [x] **N5**（新增）— 唯一鍵還原成 `(report_id, version_label)` → 測試 12 轉紅（oracle 回歸）
+- [x] **補測試 15** —— 繞過 `issueRefCode` 的直接寫入，讓 N4 有裁判
+      ⛔ 第一版用 `create()`，N4 重跑**仍全綠**（`RETURNING` 遮蔽 `WITH CHECK`，
+      `AD-ReturningMasksCheck-1`）→ 改用不帶 `RETURNING` 的 raw INSERT，
+      **N4 第三次終於讓它轉紅**
+- [x] **每項跑完整 int setup**（資料庫重建），逐項記錄實測 vs 預期 → **6/6 方向全中**
   - Verify: `npm run test:int -w apps/api -- rm-report`（每次中性化後）
 
 ### 3.3 復原
 
-- [ ] **migration 復原為中性化前狀態**，全套 gate 重跑一次
-  - DoD: `git diff` 對 migration 目錄為空；int 測試回到全綠
-  - Verify: `git status --short apps/api/prisma/ && npm run test:int -w apps/api`
+- [x] **migration 復原為中性化前狀態**，全套 gate 重跑一次
+  - DoD: `git status --short apps/api/prisma/` 為空；int 測試回到全綠
+  - Verify: api int **160/12** · api unit **351/33** · lint 0 errors ·
+        coverage 92.01/90.81/97.4/93.44 · `run_all` 7/7 · entity-index 19/35
 
 ---
 
