@@ -114,6 +114,31 @@ risk 那一處會補成一個仍然恆真的斷言。
 
 **整體預期**：**187 → 4 failed / 183 passed**，且紅的**恰好**是上述四個。
 
+**執行結果（預測 commit `c17c9b5` 之後跑）—— ⭐ 4/4 方向全中，逐字相符**：
+
+```
+Test Suites: 3 failed, 12 passed, 15 total
+Tests:       4 failed, 183 passed, 187 total
+
+  ● risk module (integration) › 14. RLS holds at the client, independently of the repository
+  ● asset module (integration) › 7. RLS holds at the client, independently of the repository
+  ● entity scoping (integration) › rolls up the authorised subtree and stops at the sibling branch
+  ● entity scoping (integration) › a country grant without roll-up sees nothing below it
+```
+
+| # | 預期 | 實際 | 判定 |
+|---|---|---|---|
+| V1 | `:155` 轉紅 | 轉紅 | ✅ |
+| V2 | `:168` 轉紅 | 轉紅 | ✅ |
+| V3 | `asset` test 7 轉紅 | 轉紅 | ✅ |
+| V4 | `risk` test 14 轉紅 | 轉紅 | ✅ |
+| — | 其餘 183 不動 | 183 passed | ✅ |
+
+**還原驗證**：`git checkout --` 三個檔 → `git status --short` **輸出為空** →
+重跑 `test:int` **187 / 15 全綠**。控制組與還原各驗一次。
+
+⇒ **這四個斷言現在有鑑別力**：對造集合真的為空時它們會紅，而不是恆真。
+
 ⚠️ **一個已預見的干擾，寫在前面**：V4 若改成「拿掉那筆 `create`」則**不會轉紅** ——
 同檔 `:248` test 10 已經建過 HK1 risk，jest 檔案內循序執行。所以 V4 改的是**查詢目標**
 而不是移除寫入。⭐ 這也順帶說明我補的 `create` 在**當前執行順序下是冗餘的** ——
