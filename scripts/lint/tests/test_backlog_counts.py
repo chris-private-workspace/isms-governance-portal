@@ -146,6 +146,24 @@ class TestBacklogCounts(unittest.TestCase):
         self.assertIn("其前 9 條", BASELINE)
         self.assertIn("達 48 條", BASELINE)
 
+    def test_a_history_line_carrying_the_full_shape_is_still_excluded(self) -> None:
+        """What the 現為 anchor actually buys: no false positive.
+
+        Added because neutralising the anchor turned NOTHING red (CH-027 N4a).
+        The anchor does not stop a wrong count from slipping through -- the
+        exactly-once rule does that. It stops a PAST figure written in the
+        current shape from being read as a second declaration. Today's file has
+        no such line, so nothing else in this suite can reach the case.
+        """
+        self._assert_baseline_clean()
+        decoy = BASELINE.replace(
+            "> 其前 9 條，某次 closeout：新增 2 條。",
+            "> 其前 9 條 —— P0 3 / P1 4 / P2 2，某次 closeout：新增 2 條。",
+            1,
+        )
+        self.assertNotEqual(decoy, BASELINE)
+        self.assertEqual(cbc.check_text(decoy, "decoy"), [])
+
     def test_rows_below_the_open_section_are_not_counted(self) -> None:
         """Direct proof of the section boundary, not an inference from the total.
 

@@ -30,9 +30,10 @@ Description:
         plain `🟡 P1`, plus `🔴 **P0 候選**` and `🟡 **P1**（升級）`.
       - A cell that cannot be parsed is a FAILURE, never a skip. Skipping is how
         a detector ends up green because it cannot see (lint-detector-authoring.md).
-      - Cells contain BARE PIPES (`:145` carries `|R-1.0|` inside a code span,
-        which markdown does not exempt), so a fixed column index -- from either
-        end -- silently lands on the wrong cell. The priority is therefore found
+      - Cells contain BARE PIPES (AD-TimeTracking-1's symptom cell carries
+        `|R-1.0|` inside a code span, which markdown does not exempt), so a
+        fixed column index -- from either end -- silently lands on the wrong
+        cell. The priority is therefore found
         by matching WHOLE CELLS and requiring exactly one hit per row. Notes
         cells mentioning `（原 🟡 P1）` or `grep -c "🔴 P0"` do not match, because
         they are not whole cells.
