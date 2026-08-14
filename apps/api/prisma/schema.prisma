@@ -1927,6 +1927,14 @@ model AuditLog {
   /// personal data in a domain column puts it in the audit trail too — where
   /// guardrail 5 forbids ever editing it out. That constraint belongs to the
   /// modules; this column cannot enforce it.
+  ///
+  /// ⛔ NEVER WRITE JSON null HERE — omit the field instead. A jsonb column has
+  /// two empty states and JavaScript has one: SQL NULL means "no snapshot", the
+  /// jsonb value `null` is a snapshot containing null, and the hash covers the
+  /// four characters it renders as. Prisma returns JavaScript `null` for both,
+  /// so a verifier outside the database cannot tell them apart. A CHECK
+  /// constraint in the migration refuses the ambiguous state — Prisma cannot
+  /// express one, so it exists only there.
   before Json? @db.JsonB
   after  Json? @db.JsonB
 

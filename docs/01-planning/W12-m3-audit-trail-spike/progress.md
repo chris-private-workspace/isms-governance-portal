@@ -290,3 +290,88 @@ type-check 第一次紅時我用 `tail -25` 讀 log，看到錯誤全在 `verify
 於是判斷「spec 檔沒有被 type-check」。**錯** —— spec 的錯誤在被截掉的那一段。
 `AD-NarrowPatternWideClaim-1` 的近親，也是 `verification-discipline.md`
 證據層變體表裡列的「**撞上限當搜完**」。⇒ 讀 gate log 一律用 `grep -E "^src/"` 取全部，不用 `tail`。
+
+---
+
+## Day 2 — 2026-08-14 — 攔截點 · 範疇測試 · 量測
+
+### ✅ D16 — 依賴反轉成立，而且是**機械證明**的
+
+`contracts/audit-hook.ts`（介面）→ `entity-scope` 依賴它 → `audit-trail` 實作它 → `bootstrap` 接線。
+**MATRIX 未動一個字**。
+
+⭐ 證據不只是「lint 綠」——「lint 綠」也可能是偵測器失效。`lint:negative` **PASS** 且印出：
+
+```
+[lint:negative] PASS — boundaries/dependencies rejected audit-trail -> core-model, as it must.
+[no-scope-bypass] PASS — 57 file(s) scanned, 0 bypasses; 3 allowlisted
+```
+
+⇒ 偵測器**仍在偵測**，CH-012 的常駐負面案例仍然有效，而我的反轉是**滿足**矩陣不是繞過它。
+
+### ⭐ D17 — D3 的限制比 Day 0 判斷的**窄一點**，而那個差別是整個攔截點的可行性
+
+Day 0 的 D3 說：array 形式的 `$transaction` 讓「讀 `prev_hash` → 寫列」在應用層不可行。**對**。
+但今天量到的是：**可以往那個陣列再加一個元素** —— 稽核列因此能與領域寫入**同一個交易**。
+
+驗證方式不是讀 code，是**測原子性**：領域寫入撞唯一鍵失敗時，稽核列**沒有留下**。
+若兩者是分開的交易，這個測試會多出一列。
+
+⇒ 精確的界線是：**稽核列的每個值都必須在領域寫入執行「之前」就算得出來**。三個後果：
+
+| 後果 | 狀態 |
+|---|---|
+| `before` 永遠 SQL NULL | 讀不到先前狀態 —— 沒有任何 query 的結果傳得回這一層 |
+| `after` 是**請求的 payload**，不是儲存後的列 | 預設值 / trigger / DB 端生成都不反映 |
+| `resource_id` 對 create 不可得 | Prisma 在此之後才指派 id；靠 `refCode` 補，那是慣例不是保證 |
+
+⛔ 而**唯一**能拿到真 before/after 的單一語句是 `INSERT ... SELECT` 指名領域表 ——
+那正是 `eslint.config.mjs:75-77` 禁止本範疇做的事，理由白紙黑字：
+「an audit trail that depends on domain shape needs editing whenever an entity is added」。
+⇒ **邊界規則在這個限制被撞到之前就預測了它**。真正的解是**每張領域表一個 trigger**（OLD/NEW 免費），
+與 A 的鏈是同一個動作。這是 ADR-0003 的一級輸入。
+
+### ⛔⛔ D18 — jsonb 有兩種「空」，JavaScript 只有一種
+
+int 第一次跑：**4 個失敗**，而線索是 `Expected: 9n, Received: 1n` ——
+斷點在**第 1 列**，不是被竄改那列。⇒ 不是竄改偵測壞掉，是**每一列都對不上**。
+
+逐列量出來的原因：
+
+| | 值 | `field()` 產生 |
+|---|---|---|
+| DB 實際存的 | `jsonb_typeof(before) = 'null'` ⇒ **JSON null** | `4:null` |
+| TS 讀回來看到的 | JavaScript `null` | `-1:` |
+
+`before: null` 傳給 Prisma 的 `Json?` 欄位，存進去的是 **JSON null 這個值**，不是 SQL NULL。
+DB 端交叉驗證：`as_stored = t`（trigger 自洽）、`with_sql_null = f`（換成 SQL NULL 就不同）。
+
+⛔ **而這不是「TS 少處理一個 case」** —— Prisma 對 SQL NULL 與 JSON null **都回 JavaScript `null`**，
+所以驗證器**在結構上無法區分**。⇒ 正解不是補判斷，是**讓那個狀態不可能存在**：
+
+1. recorder **省略** key（不寫 `before: null`）⇒ 欄位維持 SQL NULL
+2. migration 加 **CHECK constraint** —— `before IS NULL OR jsonb_typeof(before) <> 'null'`
+
+第 2 條是真正的修法：鏈的可驗證性不能依賴「每個未來的寫入者都記得」。
+**constraint 已獨立驗過會擋**（直接 INSERT `'null'::jsonb` → `violates check constraint`），
+不是靠「測試綠了所以它應該有效」。
+
+### ✅ 四個範疇測試（約束 8）+ 竄改偵測 —— int **11 / 11**
+
+| # | 測的是 | 結果 |
+|---|---|---|
+| 1 | 跨實體讀 | HK1 scope 看不到任何 SG1 的列 |
+| 2 | 跨實體寫 | 被拒 **且逐列確認 SG1 的資料未變**（只驗回應碼會漏掉「回錯但寫進去了」）|
+| 3 | RLS 層獨立 | raw `pg` 連線、無 Nest 無 Prisma；先斷言 `rolsuper=f, rolbypassrls=f` |
+| 4 | append-only | UPDATE / DELETE 皆 **42501** |
+
+⛔ **42501 = `permission denied for table` = GRANT，且是先擋的那層。**
+**不得**據此宣稱缺席的 UPDATE/DELETE policy 也成立 —— GRANT 擋在前面時那層觀察不到。N3 才量它。
+
+**竄改偵測**用 owner 連線（app role 根本改不動，那本身就是第一個結果）：
+改 `operation` → 指名該列 `kind=content`；改 `after` payload → 同樣指名；**還原後回到 intact**。
+
+⭐ `audit.int.spec.ts` 由 **`AppModule`** 組圖而非 `SoaModule`。理由是承重的：
+hook 走 `@Optional` 注入（要求注入會弄壞 11 個無關的 int suite），
+所以 test-local 的圖在稽核**關掉**的情況下也會全綠。組真正的 root 才能讓 N2 轉紅。
+⚠️ 這是**已知的 fail-open**，寫在 `ScopedPrismaFactory` 建構子裡，不是藏起來。

@@ -107,19 +107,34 @@
 
 ### 2.1 攔截點 + 接上 1 個模組
 
-- [ ] **`contracts/audit-hook.ts`（介面）+ `scoped-prisma.provider.ts`（依賴它）+
+- [x] **`contracts/audit-hook.ts`（介面）+ `scoped-prisma.provider.ts`（依賴它）+
       `audit.module.ts` + `app.module.ts`（接線）**
   - DoD: 接上 **1 個模組**（`soa`）；該模組的寫入**繞不過**；
     ⛔ **`npm run lint` 必須綠** —— 那是邊界矩陣的機械證明（Day-0 D1）
   - Verify: `npm run test:int -w apps/api -- audit` + `npm run lint`
   - ⛔ **不改 `eslint.config.mjs` 的 MATRIX** —— 它守著 CH-012 的常駐負面案例
+  - ✅ **lint 0，MATRIX 未動**。⭐ 更強的證據：`lint:negative` **PASS** 且明文印出
+    「rejected `audit-trail -> core-model`, as it must」⇒ 偵測器**仍在偵測**，
+    依賴反轉是滿足矩陣而非繞過它
+  - ✅ **稽核列與領域寫入同交易**（`$transaction` 陣列第 3 個元素）——
+    int 測試「領域寫入失敗時不留稽核列」證明了原子性
+  - ⚠️ **hook 是 `@Optional` 注入 = fail-open**，原因寫在 `ScopedPrismaFactory` 建構子：
+    要求注入會弄壞 11 個與稽核無關的 int suite。**補償**：`audit.int.spec.ts` 由
+    **`AppModule`** 組圖（不是 `SoaModule`）⇒ 拿掉 `app.module.ts` 那一行（N2）會**轉紅**
+  - ⚠️ raw query（`model === undefined`）**不被稽核** —— 已命名的洞，不是疏漏
 
 ### 2.2 範疇測試 + 竄改偵測
 
-- [ ] **`audit.int.spec.ts`：4 個範疇測試 + 竄改偵測**
+- [x] **`audit.int.spec.ts`：4 個範疇測試 + 竄改偵測**
   - DoD: 跨實體讀拒 / 跨實體寫拒且資料未變 / RLS 層獨立成立 /
     **append-only 由誰擋要指名**（GRANT vs policy —— W10 在這裡量到過反直覺結果）
   - Verify: `npm run test:int -w apps/api -- audit`
+  - ✅ **11 / 11 passed**。四項逐一：跨實體讀只看到自己的列 · 跨實體寫被拒**且逐列確認資料未變** ·
+    raw `pg` 連線（無 Nest 無 Prisma）獨立成立 · append-only **量到 42501 = GRANT**
+  - ⛔ **42501 是 `permission denied for table`，即 GRANT，而且是先擋的那一層。**
+    測試註解明寫**不得**據此宣稱「缺席的 policy 也成立」—— GRANT 擋在前面時那層觀察不到。N3 才是量它的地方
+  - ✅ 竄改偵測用 **owner 連線**（app role 根本改不動 —— 那本身就是第一個結果）：
+    改 `operation` → 指名該列 `kind=content`；改 `after` payload → 同樣指名；**還原後回到 intact**
 
 ### 2.3 量測
 

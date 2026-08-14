@@ -14,9 +14,10 @@
  *   real code.
  *
  * Created: 2026-08-08 (Phase W01)
- * Last Modified: 2026-08-13
+ * Last Modified: 2026-08-14
  *
  * Modification History (newest-first):
+ *   - 2026-08-14: Import AuditModule (W12) — global, because entity-scope may not import it
  *   - 2026-08-14: Import SoaModule (W11) — the mandatory ISO 27001 artifact
  *   - 2026-08-13: Import RmReportModule (W10) — the versioned snapshot pair
  *   - 2026-08-13: Import AssessmentModule (W09) — one module, three tables
@@ -31,6 +32,7 @@
 import { resolve } from 'node:path';
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
+import { AuditModule } from '../audit-trail/audit.module';
 import { EntityScopeModule } from '../entity-scope/entity-scope.module';
 import { HealthModule } from '../health/health.module';
 import { ActionModule } from '../modules/action/action.module';
@@ -53,6 +55,12 @@ const ENV_FILES = [resolve(process.cwd(), '.env'), resolve(process.cwd(), '../..
 @Module({
   imports: [
     ConfigModule.forRoot({ isGlobal: true, envFilePath: ENV_FILES }),
+    // ⚠️ Global, and its absence is silent — ScopedPrismaFactory takes the hook
+    // optionally because eleven integration suites build their graph from one
+    // module rather than from here. Removing this line is exactly W12's N2
+    // neutralisation, and audit.int.spec.ts composes AppModule so that it goes
+    // red rather than quietly stopping the audit trail.
+    AuditModule,
     EntityScopeModule,
     HealthModule,
     PolicyModule,
