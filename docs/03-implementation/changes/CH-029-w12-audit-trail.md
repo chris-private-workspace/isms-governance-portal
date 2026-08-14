@@ -1,7 +1,7 @@
 # CH-029 — The audit trail, and the difference between refusing and saying so
 
 **Type**: Change (phase-produced record — W12, audit-trail spike)
-**Status**: Closed（PR pending）
+**Status**: Closed（MERGED PR #58, `ea58fdb`）
 **Created**: 2026-08-14
 **Phase**: [W12](../../01-planning/W12-m3-audit-trail-spike/plan.md)
 
@@ -116,7 +116,7 @@ after Day 3's neutralisations were restored):
 ⭐ Coverage rising on all four is a first in several phases — and it happened **because the gate
 went red first**. See below.
 
-**Measurement — A vs B on two cost axes, predictions committed (`5956711`) before the benchmark
+**Measurement — A vs B on two cost axes, predictions committed (`1fcdf8f`) before the benchmark
 ran.** Single-machine Docker on Windows, one entity, `n=200` per group, two independent runs;
 these are evidence of *relative* shape, not production numbers.
 
@@ -145,7 +145,8 @@ lock, and **a single-threaded benchmark cannot see it** — an uncontended lock 
 axis is where the decision was actually made.
 
 **Meta-verification — four neutralisations, 4/4 on direction**, written down and committed
-(**`aec77f2`**) before any of them ran. Every one is a *permit*, not a deletion.
+(**`294e178`**, author date `2026-08-14T17:10:14+08:00`) before any of them ran. Every one is a
+*permit*, not a deletion.
 
 | N | Neutralised | Predicted red | Measured |
 |---|---|---|---|

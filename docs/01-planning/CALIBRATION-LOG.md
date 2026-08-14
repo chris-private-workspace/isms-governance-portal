@@ -240,7 +240,9 @@ W10 的分界線把污染從兩類降到一類，**沒有降到零**。→ 回�
 #### Phase W12 — ratio **1.025（IN band）** ⭐ 本欄第一個 IN 點，而它的價值有一半要打折
 
 - Bottom-up **6.0 hr** → committed **3.9 hr**（mult 0.65）→ actual **4.00 hr**（239.97 min）
-- **窗口**：`ef7dea6` 14:33:25 → `544f052` 18:33:23，兩端皆 author date，**含 Day 0**。
+- **窗口**：`7503f8d` 14:33:25 → `f7a0c03` 18:33:23，兩端皆 author date，**含 Day 0**。
+  ⭐ **merge（rebase）後在 main 側重算，239.97 min 完全不變** —— 12 個 SHA 全被改寫而
+  author date 逐秒相同。`AD-DesignNoteAnchor-1` 的第 3 個資料點：**穩定錨點是 author date 不是 SHA**。
   起草在首個 commit 之前 ⇒ 仍是**下界**（`AD-CalibrationDay0InOrOut-1` 第 4 次確認同一個模糊處）。
 - ⭐⭐ **這是 `AD-EstimateAsMeasurement-1` 提議的修法第一次被執行**：retro §Q2 的 actual /
   ratio / band **三格留白**，等 closeout commit 落地後才由 author date 逐秒回填。

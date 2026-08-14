@@ -22,7 +22,7 @@
  *   them is meaningless. What they do support is the shape of the difference,
  *   which is what the decision needs.
  *
- *   ⚠️ Predictions P1-P5 were written into progress.md and committed (5956711)
+ *   ⚠️ Predictions P1-P5 were written into progress.md and committed (1fcdf8f)
  *   BEFORE this file ran. Anything here that contradicts them is reported as
  *   measured, and the instrument is suspected first — three times this phase a
  *   surprising number has been the measurement's fault, not the system's.

@@ -789,7 +789,38 @@ no-scope-bypass 掃 57 檔 0 旁路）· api unit **451 / 38** · api int **187 
 coverage **92.27 / 91.66 / 98.95 / 93.64** · `run_all` **8 / 8**（⛔ **第一次是 7/8**，見 D22）·
 `check_entity_index` **21 / 35**。
 
-⚠️ **本機全綠，CI 未驗** —— 分支尚未 push（push 是 outward-facing，需使用者確認）。
+⚠️ 當下**本機全綠，CI 未驗** —— 分支尚未 push（push 是 outward-facing，需使用者確認）。
+
+### ✅ Post-merge — PR #58 MERGED（`ea58fdb`），CI 六個 required check 全綠
+
+`gates` **2m43s** · 映像 build + 啟動探測 **1m33s** · 靜態安全 SAST **32s** ·
+容器映像 trivy **27s** · 憑證外洩 gitleaks（全歷史）**16s** · 依賴漏洞 SCA **11s**。
+`mergeStateStatus: CLEAN` · `mergeable: MERGEABLE`（`gh pr view` 驗證，不是靠 CI 頁面看起來綠）。
+
+⭐ **`gates` 在 CI 的 PostgreSQL 上跑完整 int suite，其中 3 個是併發 benchmark**
+（8 個寫入者打同一實體）。它們在 GitHub runner 上通過 ⇒ 那組時間斷言**不是只在本機成立** ——
+這是本 phase 唯一一組會受硬體影響的測試，而它是本機以外第一次被執行。
+
+### 📌 D23 — rebase 改寫 12 個 SHA，而穩定的錨點是 author date（第 3 個資料點）
+
+`AD-DesignNoteAnchor-1` 已量過兩次「author date 不受 rebase 影響」，本次是第 3 次，
+且第一次是**在一個依賴它的推導上**驗的：
+
+| | branch 側 | main 側 |
+|---|---|---|
+| 窗口左端 | `ef7dea6` 14:33:25 | `7503f8d` **14:33:25** |
+| 窗口右端 | `544f052` 18:33:23 | `f7a0c03` **18:33:23** |
+| 跨度 | 239.97 min | **239.97 min** |
+| ratio | 1.025 | **1.025** |
+
+⇒ **要改的只是 SHA 字串，不是數字。** 若 calibration 當初綁的是 SHA 的存在性而非 author date，
+這個推導會在 merge 當下靜默失效。
+
+⛔ **掃描範圍差點又太窄**：14 處引用裡有**一處在原始碼**（`bench.int.spec.ts:25` 的 header
+註解引用「預測 commit」），只 grep `docs/` 會漏掉它 —— 那正是
+`feedback_evidence_must_support_claim` 的形狀。用全 repo grep 而非目錄 glob。
+⛔ 驗證新 SHA 用的是 `git merge-base --is-ancestor <sha> main`（6/6 True），
+**不是 `git cat-file -e`** —— 後者在本 repo 會對已被改寫的舊 SHA 也回成功。
 
 ### 📌 Calibration 刻意留白
 

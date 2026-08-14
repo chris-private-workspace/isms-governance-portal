@@ -144,7 +144,7 @@
   - ⛔ **這是跨層比較**（PL/pgSQL vs TypeScript）—— 結果表要標明，不得假裝兩個數字同質
   - Verify: 結果表寫進 progress.md
   - ⚠️ **預期方向先寫下來再跑**（同 W10 / W11 的中性化紀律）
-  - ✅ **預測先 commit（`5956711`）再跑**。判定 **2 ✅ · 2 ⛔ · 1 ⚠️** —— 見 progress §五個預測
+  - ✅ **預測先 commit（`1fcdf8f`）再跑**。判定 **2 ✅ · 2 ⛔ · 1 ⚠️** —— 見 progress §五個預測
   - ⭐ **對照組是同一個 repository、同一張表、同一組 policy**，只差 hook 不在 DI 圖裡
     （`SoaModule` 單獨組圖）—— 不是另一條「看起來像」的路徑
   - 🚩 **第一版量出「稽核讓寫入變快」** ⇒ 順序偏差大於效應。改成**交錯**並加兩個儀器檢查：
@@ -184,7 +184,7 @@ _(本 phase 無 user-facing surface。報告一律寫 **gate-only verified**，�
   - DoD: N1 `prev_hash` 串接 · N2 攔截點 · N3 append-only（補 UPDATE GRANT）· N4 SELECT policy
     —— 每個寫明**預期哪些測試轉紅、哪些不動**
   - ⚠️ **中性化 = 放行，不是刪除**（W11 在 N4 用了刪除，量到的是 no-op 而非 guard）
-  - ✅ commit **`aec77f2`**，逐條指名測試標題。四個都是**放行**：N1 trigger 仍在只是不連結 ·
+  - ✅ commit **`294e178`**，逐條指名測試標題。四個都是**放行**：N1 trigger 仍在只是不連結 ·
     N2 註解掉 module import · N3 **補回** GRANT · N4 policy 仍在但 `USING (true)`
 
 ### 3.2 執行 + 逐項對照
@@ -269,7 +269,7 @@ _(本 phase 無 user-facing surface。報告一律寫 **gate-only verified**，�
     coverage **92.27 / 91.66 / 98.95 / 93.64** · `run_all` **8 / 8** · `check_entity_index` **21 / 35**
   - 🚩 **`run_all` 第一次是 7/8** —— `check_status_markers` [FAIL E2]：frontmatter 已翻 `closed`
     而**內文的 Status 那一行仍是 `Approved-to-execute`**。⭐ 那正是 R9 的機械形式，**我兩處只改了一處**
-  - ⚠️ **本機全綠，CI 未驗**（分支未 push）
+  - ✅ **CI 已驗**（PR #58，六個 required check 全綠）—— 本行原寫「本機全綠，CI 未驗」，已解
 - [x] 導航檔: `CLAUDE.md` Current-Phase + Last-Updated + **Tech Stack 那格的 ADR 清單**（0003 已採納）·
       `MEMORY.md` pointer + subfile · `BACKLOG.md`（新增 AD + §Shipped 加 1 行）·
       `ROADMAP.md` · `RISK_REGISTER.md`
@@ -290,10 +290,17 @@ _(本 phase 無 user-facing surface。報告一律寫 **gate-only verified**，�
   - ✅ **3 項**：AP-1 **1（已處置**：ADR 確實引用 B 的數字當 FC1/FC2 基準線，且附 Wave 1 期限
     → `AD-StrategyBSunset-1`）· AP-3 **1 找到 1 修好 0 出貨**（策略 B 的正確性從未被斷言）·
     AP-7 **1 刻意保留**（`AFTER INSERT` 原文不刪，更正寫在相鄰處）。其餘 4 項為 0 / N/A
-- [ ] **Commit** → ⏳ PR push + open → CI → merge: **PENDING USER CONFIRMATION**
-      （push 是 outward-facing）→ merge 經 `gh pr view` 驗證後翻 `status:` 標籤
-  - ✅ **commit 已完成，兩個**：`544f052`（closeout —— 文件 + 導航檔）·
-    `e237d4b`（calibration 回填）。⛔ 分成兩個是刻意的，理由見 4.2 的 calibration 段
-  - ⏳ **未做**：push · 開 PR · CI · merge · 翻 `status:` 為 merged 態 —— **等使用者確認**
+- [x] **Commit** → PR push + open → CI → merge（使用者 2026-08-14 確認後執行）
+      → merge 經 `gh pr view` 驗證後翻 `status:` 標籤
+  - ✅ **commit 三個**（main 側 SHA）：`f7a0c03`（closeout —— 文件 + 導航檔）·
+    `4d02e1e`（calibration 回填）· `ea58fdb`（把兩個 commit 記進 checklist）。
+    ⛔ 前兩個分成兩個是刻意的，理由見 4.2 的 calibration 段
+  - ✅ **PR #58 MERGED**（`ea58fdb`，rebase merge），CI **六個 required check 全綠**：
+    `gates` 2m43s · 映像 build + 啟動探測 1m33s · SAST 32s · trivy 27s · gitleaks 16s · SCA 11s
+  - ⭐ **`gates` 在 CI 的 PostgreSQL 上跑完整 int suite，含 3 個併發 benchmark** ——
+    那組時間斷言不是只在本機成立。⇒ 「本機綠但 CI 未驗」的紅旗**已關**
+  - ⚠️ **rebase 改寫全部 12 個 SHA** —— 14 處引用（含 **`bench.int.spec.ts:25` 一處在原始碼裡**）
+    已改指 main 側；⭐ **author date 逐秒不變**，所以 calibration 的 4.00 hr 不必重算，
+    在 main 側重算複驗後值相同（`AD-DesignNoteAnchor-1` 第 3 個資料點）
   - ⚠️ **rebase merge 會改寫 SHA** —— 引用「預測寫在前面」的 commit 要改指 main 側並補
     **author date**（W11 量到它逐秒不變，第 3 個資料點）
