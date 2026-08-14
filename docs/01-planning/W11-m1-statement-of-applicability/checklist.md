@@ -49,11 +49,13 @@
 
 ### 1.1 Model + enum
 
-- [ ] **`schema.prisma`：`model StatementOfApplicability` + `enum SoaImplementationStatus`**
+- [x] **`schema.prisma`：`model StatementOfApplicability` + `enum SoaImplementationStatus`**
   - DoD: 欄位對齊 `02a:215`；**四個 deviation 各有 docstring**（D1 `framework` 非 FK ·
     D2 無 `control_id` · D3 唯一鍵含 entity · D4 enum 值自宣告且**刻意不含 `not_applicable`**）；
     `version` 單一 int（不是兩個）；`approvedBy` 是 `String?` 非 FK
   - Verify: `npx prisma validate` + `npm run type-check -w apps/api`
+  - → `The schema is valid 🚀`；欄位名用 **`framework` 而非 `framework_id`**（名字不該宣稱不存在的邊）；
+    順帶要在 `OrgEntity` / `User` 各補一條 back-relation（Prisma 要求雙向）
 
 ### 1.2 Migration
 
@@ -62,17 +64,31 @@
     **`@@unique([orgEntityId, framework, clauseRef])`**
   - Verify: `npm run prisma:migrate -w apps/api` 後 `\d statements_of_applicability`
   - ⚠️ **用 Edit 工具寫 migration，不用 heredoc** —— W09 / W10 / CH-027 三次同形違反
+  - → ✅ 用 **Write 工具**（新檔）寫，無 heredoc。⛔ **Verify 指令跑不了** ——
+    `migrate dev` 被 W10 留下的 checksum 漂移擋住（progress §B1）。改由 **int suite 驗證**
+    （它 DROP+CREATE 後 `migrate deploy`，遇到的是空的 `_prisma_migrations`）：**160 / 12 全綠**
+  - → **D10：不建複合 FK 也不建 `(id, org_entity_id)` 錨點** —— SoA 不是任何表的子表，
+    沒有可複合的對象；今天零消費者的錨點是 AP-5（plan §3.2 的描述不精確，**原文保留**）
 
 ### 1.3 Repository
 
-- [ ] **`core-model/soa.repository.ts` + spec**
+- [x] **`core-model/soa.repository.ts` + spec**
   - DoD: `list` / `create`（`asset.repository.ts` 的形狀）；`ref_code` 前綴 `SOA` 且 docstring
     註明自宣告（W04 D3 ruling）；23505 走 `DuplicateKeyError`
   - Verify: `npm run test -w apps/api -- soa.repository`
+  - → **9 / 9 通過**。藍本改用 `issue.repository.ts`（Day-0 D2：`asset` 是雙表）。
+    ⭐ 23505 的安全性**依 `scope-refusal.ts:183` 的條件逐條確認**（鍵含 `org_entity_id` ⇒ scoped
+    ⇒ 可 surface），而不是假設 W10 的結論自動適用
 
 ### 1.x partial gate
 
-- [ ] lint 0 · type 0（**只跑這兩項就只能說這兩項** —— W10 Day 3 曾以 4 項冒充 9 項）
+- [x] lint 0 · type 0（**只跑這兩項就只能說這兩項** —— W10 Day 3 曾以 4 項冒充 9 項）
+  - → 實跑七項並**逐項取 exit code**（不共用管線後的 `$?`）：format **0**（⛔ **修正前是 1**）·
+    lint 0 · type 0 · unit **360 / 34** · int **160 / 12** · `run_all` **8/8** ·
+    `check_entity_index` **20 / 35**
+  - → ⛔ **`format:check` 當場紅了** —— 正是 W10 Day 3 漏掉的那一項。
+    這次因為逐項取 exit code 而在**當天**發現，不是 Day 4
+  - → ⛔ build 與 coverage **本日未跑**，故本段不宣稱它們的狀態（留 Day 2 full gate）
 
 ---
 

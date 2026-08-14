@@ -71,6 +71,7 @@ import type {
   Risk,
   RiskManagementReport,
   RMReportVersion,
+  StatementOfApplicability,
 } from '../generated/prisma';
 
 /**
@@ -324,6 +325,25 @@ export interface ScopedRmReportVersionClient
   readonly rMReportVersion: {
     findMany(args?: Prisma.RMReportVersionFindManyArgs): Promise<RMReportVersion[]>;
     create(args: Prisma.RMReportVersionCreateArgs): Promise<RMReportVersion>;
+  };
+}
+
+/**
+ * Statement of Applicability rows (W11).
+ *
+ * ⚠️ Exposes NEITHER `control` NOR any framework table, and for two different
+ * reasons. There is no framework table to expose (02a never defines one — see the
+ * model header), and `control` is withheld for the reason every other client in
+ * this file withholds its neighbours: a repository reaches only what its own
+ * writes need, so a future caller cannot travel sideways through a type it was
+ * handed for something else.
+ */
+export interface ScopedSoaClient extends ScopedRefCodeClient, ScopedExtensionCatalogClient {
+  readonly statementOfApplicability: {
+    findMany(
+      args?: Prisma.StatementOfApplicabilityFindManyArgs,
+    ): Promise<StatementOfApplicability[]>;
+    create(args: Prisma.StatementOfApplicabilityCreateArgs): Promise<StatementOfApplicability>;
   };
 }
 

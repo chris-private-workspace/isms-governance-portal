@@ -84,3 +84,70 @@ build 確實乾淨。結論相同，**但第一次的證據不支持它**。
 - D8 / D9 是我自己的驗證紀律問題，已寫成 §Risks 的硬約束
 
 ⇒ 繼續 Day 1。plan §3 **未修改**（drift 全部進 §Risks，保留「計畫 vs 現實」的軌跡）。
+
+---
+
+## Day 1 — 2026-08-14 — Schema · migration · repository
+
+交付：`schema.prisma`（model + enum + 兩個 back-relation）· `20260814023210_soa/migration.sql` ·
+`soa.repository.ts` + spec（9 個測試）· `scoped-client.types.ts` +1 介面。
+
+### ⛔ B1 — `prisma migrate dev` 被一個既有的 checksum 漂移擋住（不是本 phase 造成的）
+
+```
+The migration `20260813071857_rm_report_snapshot` was modified after it was applied.
+We need to reset the "public" schema at "localhost:5433"
+```
+
+那是真的：W10 在該 migration **套用之後**就地更正了它的註解（一段被 int 測試推翻的因果宣稱）。
+Prisma 因此要求 reset 開發資料庫 —— **為了一段註解丟掉整個 dev DB**。
+
+⇒ **不 reset**。三條路各自的結果：
+
+| 路 | 結果 |
+|---|---|
+| `migrate dev --create-only` | ⛔ 被 checksum 擋住 |
+| `migrate diff --from-schema/--to-schema` | ⛔ **Prisma 7 下靜默輸出空的** —— exit 0、無 stderr、SQL 檔 0 bytes，**而兩個 schema 明確不同**（SoA 命中數 0 vs 3）。⚠️ 若當時把「空輸出 + exit 0」讀成「沒有差異」，就會得到一個完全錯誤的結論 |
+| **手寫 migration** ✅ | 用 W10 的 migration 當格式藍本；**UTC 時間戳**（`AD-MigrationTimestampTz-1`：手建用本地時間會排到已套用的 migration 之前）|
+
+⭐ **驗證機制是現成的**：int suite 每次 **DROP + CREATE** 自己的資料庫再跑 `migrate deploy`，
+所以它遇到的是**空的 `_prisma_migrations`**，沒有 checksum 可比 —— 本機 dev DB 的漂移影響不到它。
+實測：`[int] isms_test rebuilt, migrated and seeded` + **160 / 12 全綠**，
+代表 `CREATE TYPE` / `CREATE TABLE` / GRANT / RLS / 3 條 policy 全部真的被套用了。
+
+⚠️ **dev DB 的 checksum 漂移仍未解決** —— 它會擋住任何人下一次跑 `migrate dev`。順帶發現，記 BACKLOG。
+
+### D10 — plan §3.2 說的「複合 FK」在這張表上沒有對象
+
+plan §3.2 寫「`CREATE TABLE` + 複合 FK 到 `org_entities`」，而複合 FK 的用途是**強迫子表的
+`org_entity_id` 等於父表的** —— assets/asset_groups · actions/issues · rm_report_versions/rm_reports。
+
+**SoA 不是任何表的子表**：它只引用 `org_entities` 與 `users`，兩者都是單欄 FK。
+⇒ 不建複合 FK，也**不建 `@@unique([id, orgEntityId])` 錨點**（那是給未來子表用的，今天零消費者 = AP-5）。
+理由寫進 migration 註解。⚠️ plan §3.2 原文不改（同 D2 的處理）。
+⭐ W09 的 `evidence` 是先例：錨點晚一個 phase 補上是一個小 migration，不是重新設計。
+
+### ⛔ B2 — `format:check` 紅了，而這正是 W10 Day 3 漏掉的那一項
+
+Day 1.x 的 partial gate 跑出 `FORMAT_EXIT=1`（三個新檔不符 prettier）。
+
+⭐ **抓到它的是「逐項取 exit code」**：每個 gate 各自 `> log 2>&1; echo "EXIT=$?"`，
+不經管線、不共用一個 `$?`。W10 Day 3 報「gate 全綠」時只跑了 9 項中的 4 項，
+而 `format:check` 當時已經是紅的，直到 Day 4 才發現。
+本次 Day-0 的 D9（`BUILD_EXIT` 讀到 `tail` 的 exit code）是同一個機制的第三次，
+這一條 gate 是**照著那個教訓寫的**，當天就收到回報。
+
+### Gate（Day 1.x，逐項實測）
+
+| Gate | 結果 |
+|---|---|
+| `format:check` | **0**（修正後；修正前 1）|
+| `lint` | **0** |
+| `type-check` | **0** |
+| api unit | **360 / 34 suites**（baseline 351 / 33 → **+9 / +1**，正好是新增的 spec）|
+| api int | **160 / 12**（無回歸；SoA 的 int 測試在 Day 2）|
+| `run_all` | **8 / 8** |
+| `check_entity_index` | **20 / 35**（19 → 20）|
+
+⛔ **這七項是實際跑過的全部** —— build 與 coverage 留到 Day 2 的 full gate，
+本段不宣稱它們的狀態。
