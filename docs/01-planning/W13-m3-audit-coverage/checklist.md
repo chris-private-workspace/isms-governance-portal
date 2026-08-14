@@ -88,34 +88,51 @@
 
 ### 2.1 允許清單
 
-- [ ] **`audit.module.ts`：`AUDITED_MODELS` 1 → 15 個名字**
+- [x] **`audit.module.ts`：`AUDITED_MODELS` 1 → 15 個名字**
   - DoD: 名字由 **Day 0 的 D-reach 枚舉導出**，不是手抄；**枚舉方法寫在常數旁邊**
-  - Verify: `npm run test:int -w apps/api -- audit`
+        ✅ 兩條路徑的 grep 指令逐字寫在 docstring 裡，下一個人可以重跑而不是相信這 15 個字串
+  - Verify: `npm run test:int -w apps/api -- audit` ✅ **203 / 16**
   - ⛔ **不加沒有寫入路徑的名字** —— 一個永遠不會被觸發的清單項是 AP-3，且會讓覆蓋率看起來更好
+    ✅ 5 個未加，理由寫在常數旁；漂移守衛的 `unreachable` 斷言會在有人加了不可達的名字時轉紅
   - ⛔ **`RefCodeCounter` 不接**，理由寫在清單旁（plan §3.2），**不是靜靜跳過**
+    ✅ 且理由已由 Day-0 `D-refcode-b` 升級：不只訊噪比，**多實體 scope 下會 throw**
 
 ### 2.2 每個模型一條覆蓋測試
 
-- [ ] **11 個模組的 int spec 各加「這個寫入留下恰好一列稽核」**
+- [x] **11 個模組的 int spec 各加「這個寫入留下恰好一列稽核」**
+  - ⛔ **做法變更（R3，plan §4 DEVIATION）**：11 個模組 spec **未被修改**。實測顯示它們的
+    module-local 圖裡沒有 audit hook（`before=9 after=9`），在那裡斷言等於 AP-3。
+    改為新建 **`audit-trail/audit-coverage.int.spec.ts`**（composes AppModule），**15 條**覆蓋測試
   - DoD: 斷言**恰好一列**（不是 ≥ 1），且該列的 `resource_type` 等於該模型名
-  - Verify: `npm run test:int -w apps/api`
+        ✅ 且「恰好一列」是**依本次 `refCode` 查**得出的，不是 count delta（兩個 AppModule suite 會 race）
+  - Verify: `npm run test:int -w apps/api` ✅ **203 / 16**
   - ⚠️ **`AssessmentResponse` 順帶量一次成本**（`AD-ResponseRefCodeCost-1`：40 題 = 40 次發號，
     現在再加 40 列稽核）—— **量並記錄，本片不最佳化**
+    🚧 **本日未量** —— 覆蓋測試只寫 1 筆 response，量不到 40 題的批次成本。
+    解封：Day 3 N3 量 `RefCodeCounter` 時一併做（同一個「每次 create 的附加成本」問題）
 
 ### 2.3 跨模型的覆蓋斷言
 
-- [ ] **`audit.int.spec.ts`：清單 vs 實際寫入面的一致性測試**
+- [x] **`audit.int.spec.ts`：清單 vs 實際寫入面的一致性測試**
+  - ⚠️ **落在 `audit-coverage.int.spec.ts`** 而非 `audit.int.spec.ts`（同一個 DEVIATION：
+    後者的主題是機制 —— chain / verify / 約束 8；覆蓋與漂移是另一件事）
   - DoD: 若有人新增了 repository 寫入路徑而沒有加進清單，**這個測試要紅**
-  - Verify: `npm run test:int -w apps/api -- audit`
+        ✅ 掃 `core-model/*.ts` 導出 delegate → model 名 → 三方向斷言（未稽核 / 不可達 / 相等）
+        + 一條非空前提（`size > 10`），否則掃不到東西時它自己就是空集合上的真
+  - Verify: `npm run test:int -w apps/api -- audit` ✅
   - ⛔ 這是本片唯一能防止「下一張表又忘了接」的機制 —— 沒有它，R4 的失效模式會原封不動回來
 
 ### 2.x Full gate
 
-- [ ] format ×2 · lint 0 · type 0 · build clean ×2 · `lint:negative` · api unit · api int ·
+- [x] format ×2 · lint 0 · type 0 · build clean ×2 · `lint:negative` · api unit · api int ·
       web · coverage（**branch / funcs 不低於 baseline**）· `run_all` 8/8 ·
       `check_entity_index` **21 / 35**
+  - ✅ **十一項全跑**：format **0/0** · lint **0** · type **0** · build **0/0** ·
+    `lint:negative` **PASS**（`skipped 54 test`）· unit **451/38** · **int 203/16** · web **10/1** ·
+    coverage **92.27 / 91.66 / 98.95 / 93.64**（逐位同 baseline）· `run_all` **8/8** ·
+    `check_entity_index` **21/35**
   - ⛔ **十一項全跑才能說「gate 全綠」**
-  - ⚠️ `check_entity_index` **不應變動** —— 本片不建表。變了就是有東西不對
+  - ⚠️ `check_entity_index` **不應變動** —— 本片不建表。變了就是有東西不對 ✅ **未變動**
 
 ---
 

@@ -222,6 +222,20 @@ coverage 不低於 baseline 的 **branch / funcs**（⚠️ stmts / lines 見 `A
 | — | `apps/api/src/audit-trail/__fixtures__/` | **UNTOUCHED** —— 「DO NOT FIX THIS FILE」|
 | — | `apps/web/**` | **UNTOUCHED** —— 無 UI |
 
+> ⛔ **Day 2 DEVIATION（R3），原表保留不刪 —— 第 3..13 列沒有發生。**
+> 上表第 3–13 列（11 個模組 int spec）**未被修改**，改為新建
+> `apps/api/src/audit-trail/audit-coverage.int.spec.ts`。
+>
+> **理由由實測導出，不由推論導出**：`AuditModule` 是 `@Global`，但 global provider 只在
+> **被拉進圖裡**才生效，而 `ScopedPrismaFactory` 對 hook 是 `@Optional`。11 個模組 spec 都建
+> module-local 圖（`Test.createTestingModule({imports:[AssetModule]})`），其中**沒有 AuditModule**。
+> Day 2 用兩組對照量到：同一個 `AssetGroup` create 在 **AppModule 圖下寫一列**、在
+> **module-local 圖下 `before=9 after=9`**。
+> ⇒ 原做法會讓那 11 條測試要嘛**永遠紅**，要嘛寫成 `≥ 0` 而**正是 AP-3**。
+>
+> ⚠️ 另一條路（把 11 個 spec 都改成 composes AppModule）被否決：11 個 suite 各建一次完整
+> AppModule 圖，成本與風險都遠高於新增一個檔案，且會改動 11 個既有檔案。
+
 ## 5. Acceptance Criteria
 
 1. `AUDITED_MODELS` 含**全部有 repository 寫入路徑的領域模型**，且該清單旁記錄了**枚舉方法**
@@ -276,6 +290,8 @@ coverage 不低於 baseline 的 **branch / funcs**（⚠️ stmts / lines 見 `A
 | ⛔ **dev DB checksum 漂移未修**（`AD-DevDbChecksumDrift-1`）| 本片**無 migration**，故不受影響。⚠️ 但也代表它**又一個 phase 沒被修** |
 | ⭐ **Day-0 `D-refcode-b`** —— `refCodeCounter.upsert` 的 args 是 `{where, create, update}`，**沒有 `data` key**；`audit.recorder.ts:141` 因此得 `null`，`resolveEntity` 退回 context，**多實體 scope 下 throw `UnattributableWriteError`** | §3.2 的判定不變但**理由更硬**：接上它不只是訊噪比問題，是**讓滾升角色的每個 create 失敗**。⚠️ **Day 3 N3 的預期方向改寫**為「單實體 scope 得 2 列 / 多實體 scope 拋錯」，並在該處量到才算數 |
 | ⭐ **Day-0 `D-write-ops`** —— 全 codebase **零個 `client.*.update` / `.delete`**，15 個領域寫入全是 `create`（update 測試走 raw SQL 驗 RLS）| ADR-0003 限制 1（`before` 永遠 NULL）**在只有 create 的世界裡無害**，D-limits 因此全數通過。⛔ 但這讓「覆蓋」有歧義：**接上 15 個模型 ≠ 稽核了所有狀態變更類型**。CH-030 必須明寫這句限定，否則 R4 會被讀成已解決 |
+| ⛔⭐ **Day-2 `D-graph`** —— **module-local 圖不寫稽核列**（實測 `before=9 after=9`；同一寫入在 AppModule 圖下寫一列）| §4 的第 3–13 列（11 個模組 spec）**作廢**，改為新建 `audit-coverage.int.spec.ts`。見 §4 下方的 DEVIATION 段。⚠️ 這條 Day 0 沒抓到 —— 我讀過 `scoped-prisma.provider.ts:151-165` 那段 docstring，但沒把它連到 plan §3.0 的做法上 |
+| ⚠️ **兩個 suite 現在都 composes AppModule** ⇒ 稽核表上的 `before/after` 計數是 race（jest 平行 worker、共用一個 DB）| 覆蓋斷言改成**依本次寫入的 `refCode` 查**，「恰好一列」因此是關於**這一次寫入**的主張而非關於整張表 |
 
 ## 9. Out of Scope（這個 phase 不做 → 另開 slice / AD）
 
