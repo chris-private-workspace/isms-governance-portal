@@ -117,3 +117,122 @@ plan 已修訂並**保留 revision note**（不是默默改）：
 
 ⇒ **繼續 Day 1**。⛔ Day 1 起手第一件事是**確認 `pgcrypto` 可用** ——
 A 落在 PL/pgSQL，寫完才發現沒有 digest 函式的代價是重寫。
+
+---
+
+## Day 1 — 2026-08-14 — Table · chain · verify
+
+### ⭐ D8 — 問題問錯了：不是「pgcrypto 有沒有」，是「PG18 需不需要它」
+
+plan §8 把「`pgcrypto` 是否可用」列為 Day 1 的起手風險。實際量下來，
+**正確答案是 A 根本不需要 pgcrypto**：
+
+| 量到的 | 指令 | 結果 |
+|---|---|---|
+| PG 版本 | `SELECT version()` | **PostgreSQL 18.4**（alpine）|
+| 核心 hash 函式 | `\df sha*` | `pg_catalog` 有 **`sha224/256/384/512`**（`bytea → bytea`）|
+| 正確性 | `encode(sha256('abc'),'hex')` | `ba7816bf…f20015ad` = **NIST 對 `"abc"` 的公開測試向量** |
+| app role 可執行 | 同上，`-U isms_app_user` | **同一個值** |
+| `search_path` 免疫 | `SET search_path TO ''` + `pg_catalog.sha256(...)` | **仍可用** |
+| pgcrypto 本身 | `pg_available_extension_versions` | 1.3 / 1.4 可裝、`trusted=t`、**`installed=f`** |
+
+⭐ **「有回一串 hash」不等於「hash 是對的」** —— 所以這裡比對的是 NIST 公開測試向量，
+不是「看起來像 SHA-256」。這正是 D7 那條教訓的正向應用：先確認儀器對。
+
+**⇒ 裁決：用 `pg_catalog.sha256()`，不裝 pgcrypto。** 四個理由，全部可查證：
+
+1. **少一個部署參數** —— Azure Flexible Server 的 extension 要進 `azure.extensions`
+   server parameter 才能裝；核心函式沒有這一關。設計原則 5（deployment-portable）。
+   ⚠️ **未在 Azure 上實測**，此處陳述的是機制不是量測。
+2. **少一個 migration 權限需求** —— `CREATE EXTENSION` 就算 `trusted` 也要求該角色在
+   該 database 上有 `CREATE`。核心函式零權限需求。
+3. **`search_path` 免疫** —— 上表最後一列。trigger 函式若 `SET search_path = ''`
+   仍能 hash；extension 裝在哪個 schema 就不再是安全考量。
+4. **本機與 CI 同一個 image** —— `ci.yml:214` 與 `image-smoke.yml:109` 都用
+   `docker/compose.yml` 起 DB ⇒ `postgres:18-alpine`。**沒有版本分歧的空間**（AP-6 由構造避免）。
+
+### ⭐ D9 — 整個 repo 零個 `SECURITY DEFINER`，八處 trigger 全是 `SECURITY INVOKER`
+
+建 A 之前先 Grep（AP-2），量到的比預期強：
+
+- `SECURITY DEFINER` 在 `apps/api/prisma/` **零命中**
+- `SECURITY INVOKER` 在 **4 個 migration + `schema.prisma` 2 處** 出現，且每處都寫了理由 ——
+  `20260809171812:25`「scope 必須是**呼叫端的**」·`20260812055744:164`「load-bearing」·
+  `20260813152548:33`「definer-rights 會悄悄 promote 呼叫端看不見的 report」
+
+⚠️ **我原本會預設相反**（稽核日誌「應該」由 definer 寫，才能寫入呼叫端無權的表）。
+既有房規把這條堵死了，而理由是承重的：definer 會讓 trigger 成為繞過 RLS 的洞 —— 那是 guardrail 4。
+
+⇒ **A 的 trigger 必須 `SECURITY INVOKER`**，於是「讀上一列 `prev_hash`」這個 SELECT
+**會被 `audit_log` 自己的 SELECT policy 過濾** ⇒ **鏈是 per-entity 的，不是全域的**。
+這不是妥協，是約束 8 的直接後果，但它是**設計決定**，要寫進 ADR 而不是默默實作。
+
+### D10 — 欄位：`05:22` 的六項對 `multi-tenant-data.md` 草稿，缺一項半
+
+plan §3.1 要求「逐欄對照 `05:21` 補齊」。逐項對完：
+
+| `05:22` 要求 | 草稿欄位 | 判定 |
+|---|---|---|
+| Actor | `actor_id`（假名）| ✅ |
+| Action | `operation` | ✅ |
+| Target reference | `resource_type` + `resource_id` | ✅ |
+| **Before/after snapshot (or diff)** | **無** | ⛔ **缺** —— §3.x 已定調「先存整份，量到問題再說」 |
+| Timestamp | `occurred_at` | ✅ |
+| Source context | `actor_scope` | 🟡 **半** —— 那是授權子樹，不是請求來源 |
+
+⇒ 補 `before` / `after`。**`actor_scope` 不改名也不擴充** —— 它今天承載的是滾升可稽核性
+（`multi-tenant-data.md:161`），把 IP / request-id 塞進同一欄會讓兩個用途互相污染。
+「source context 只覆蓋一半」記為 AD，不在本 phase 擴張（AP-5）。
+
+### ⛔ D11 — A 必須是 `BEFORE INSERT`，而理由是 append-only 本身
+
+plan §3.2 與 checklist 1.2 都寫「`AFTER INSERT` trigger」。**寫不出來**：
+AFTER trigger 不能改 `NEW`，要存 hash 就得下 `UPDATE` ——
+對著一張**刻意沒有 UPDATE grant、也沒有 UPDATE policy** 的表。
+
+⇒ **兩個設計互斥**：由 AFTER trigger 寫的鏈，需要的正是 append-only 存在目的要扣住的那個權限。
+改為 `BEFORE INSERT`（W09 的 `template_version` 是同型先例；W10 的 promote 是 AFTER，
+它自己的註解就寫了「confusing the two is expensive」）。
+
+⚠️ 這**不是** plan 的範圍變動 —— 交付物不變，落點差一個關鍵字。記在這裡是因為
+「AFTER INSERT」這五個字在 plan / checklist 兩處都寫著，讀的人會以為那是已驗證的形狀。
+
+### D12 — 兩個附帶要求，都不是讀出來的
+
+1. **`GRANT USAGE ON SEQUENCE`** —— `BIGSERIAL` 的序列有自己的權限，表上的 INSERT 不含
+   `nextval`。本 repo 其餘 21 張表全是 client 端產生的 UUID ⇒ **這是第一個需要這行的 migration**。
+2. **`prev_hash` / `row_hash` 需要 DB 預設值** —— 否則 Prisma 產生的型別會要求每次 create
+   都帶這兩欄，等於把鏈推進**每一個未來會寫入的模組的呼叫點**。給 `'\x'::bytea` 預設，
+   由 BEFORE trigger 覆寫。⭐ 副作用是好的：**存著零長度 `row_hash` = trigger 沒跑**，
+   那正是 N1 會製造的狀態，也正是 verify 必須報成斷點的狀態。
+
+### ✅ A 的實測（scratch DB `isms_w12_scratch`，全部 migration `deploy` exit 0）
+
+⛔ **不用 dev DB**（checksum 漂移），也不改它。兩個實體、三列，逐項量：
+
+| 觀察 | 指令 | 結果 |
+|---|---|---|
+| SG1 row1 起於 genesis | `prev_hash = decode(repeat('00',32),'hex')` | **t** |
+| SG1 row2 接上 row1 | `prev_hash = lag(row_hash)` | **t** |
+| ⭐ **HK1 row1 也起於 genesis** | 同上，`PARTITION BY org_entity_id` | **t** ⇒ **鏈是 per-entity，量到的不是推的** |
+| hash 真的是 canonical 的 SHA-256 | 獨立重算 `sha256(audit_log_canonical(...))` | **t** ×2 |
+| hash 長度 | `length()` | **32 / 32** ×3 |
+| jsonb 正規化 | 兩種 key 順序寫入 → `SELECT DISTINCT after::text` | **1 列**：`{"a": 2, "b": 1}` |
+| UPDATE | `DO $$ ... EXCEPTION` | **42501 refused** |
+| DELETE | 同上 | **42501 refused** |
+
+⛔ **42501 是 `permission denied for table` = GRANT 在擋，而且是先擋的那一層。**
+**不得由此宣稱「缺席的 policy 也成立」** —— GRANT 擋在前面時，policy 那一層根本觀察不到。
+那正是 N3 要做的事（補回 UPDATE GRANT，看缺席的 policy 是否接手）。
+⚠️ W10 在這裡宣稱過 policy、W11 宣稱過 `WITH CHECK`，**兩次都錯**。本 phase 的 migration
+註解因此**刻意不寫因果**，只寫「N3 量完再寫回來」。
+
+### 🚩 D13 — D7 的教訓在同一天第 3 次現形，這次**攔下了**
+
+第一次跑 probe 時兩個 `genesis_ok` 都回 **f**，看起來像鏈壞了。
+實際是我的斷言寫錯：`repeat('00',64)` 產生 **128** 個字元，而 32 bytes 的 hex 是 **64** 個。
+輸出欄位裡印的 `0000…0000` 本來就是對的。
+
+⭐ **差別在於這次我先懷疑儀器，而不是先懷疑資料** —— 修正比較式後三列全部如預期。
+D7 寫的是「便宜的量法給出意外答案時，第一個要懷疑的是量法本身」；這是它第一次被**用上**
+而不是事後才發現。

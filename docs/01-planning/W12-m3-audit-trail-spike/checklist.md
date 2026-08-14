@@ -50,12 +50,17 @@
 
 ### 1.1 Model + migration
 
-- [ ] **`schema.prisma`：`model AuditLog`** + **`migrations/<ts>_audit_log/migration.sql`**
+- [x] **`schema.prisma`：`model AuditLog`** + **`migrations/<ts>_audit_log/migration.sql`**
   - DoD: `entity_id NOT NULL`；`actor_id` **假名且 docstring 註明永不存個資**（`02a:311`）；
     ⛔ **GRANT 只有 SELECT + INSERT**，且**不建 `FOR UPDATE` / `FOR DELETE` policy**；
     per-command policy 只有 read + insert 兩條
   - Verify: `npx prisma validate` + int suite（它 DROP+CREATE 後 `migrate deploy`）
   - ⚠️ **用 Write/Edit 工具寫 migration，不用 heredoc**（W09/W10/CH-027 三次同形違反）
+  - ✅ **實測**：`prisma validate` 0 · scratch DB `migrate deploy` 0 · int suite **172 / 13, exit 0**
+    （不變）· 22 models（header 的計數已同步更正，並補回 W11 漏掉的 MHist 行）
+  - ⚠️ 欄名是 `org_entity_id` 不是 rule 檔草稿的 `entity_id`（`schema.prisma:61-64`，W02 D-fieldname 已裁決）
+  - ⚠️ 追加兩項非讀得出來的要求 → progress **D12**：`GRANT USAGE ON SEQUENCE`（本 repo 第一次需要）
+    · 兩個 hash 欄需要 DB 預設值，否則 Prisma 型別會把鏈推進每個模組的呼叫點
 
 ### 1.2 兩個 chain 策略（⚠️ Day-0 D3 後由三個縮為兩個，使用者核可）
 
@@ -64,7 +69,13 @@
   - Verify: `npm run test -w apps/api -- chain`
   - ⛔ **起手先確認 `pgcrypto` 可用** —— A 是本 repo 第一段做 hash 的 PL/pgSQL，
     寫完才發現沒有 digest 函式的代價是重寫
+    - ✅ **已做，答案推翻了問題**：PG18 核心就有 `pg_catalog.sha256`（對照 NIST 向量驗過），
+      **不裝 pgcrypto** → progress **D8**
   - ⭐ **C 不實作** —— 由 A、B 的數字推導；ADR 中必須寫明那是**推導不是量測**
+  - ⛔ **上面寫的 `AFTER INSERT` 是錯的，原文保留不刪**：AFTER 不能改 `NEW`，存 hash 就要
+    `UPDATE`，而這張表刻意沒有 UPDATE 權限 ⇒ **實際落在 `BEFORE INSERT`** → progress **D11**
+  - ✅ **A 已實作並實測**（scratch DB）：per-entity 鏈成立（HK1 不接 SG1）· 獨立重算 hash 相符 ·
+    UPDATE / DELETE 皆 42501。⛔ **42501 是 GRANT 擋的，不得據此宣稱缺席的 policy 也成立** —— 那是 N3
 
 ### 1.3 verify-integrity routine
 
