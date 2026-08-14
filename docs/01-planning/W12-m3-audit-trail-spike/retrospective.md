@@ -40,22 +40,39 @@
 - **Committed (calibrated)**: 3.9 hr（mult **0.65**）
 - **量法宣告**（`AD-CalibrationDay0InOrOut-1`）：**含 Day 0**，窗口 = branch **第一個 commit**
   → **closeout commit**。⚠️ plan / checklist 起草在第一個 commit **之前**，故本值仍是**下界**。
-- **Actual**: ⏳ **待 closeout commit 落地後由 author date 逐秒量測回填**
-- **Ratio**: ⏳ 同上
-- **Band 判定**: ⏳ 同上
+- **Actual**: **4.00 hr**（239.97 min）—— `ef7dea6` **14:33:25** → `544f052` **18:33:23**，
+  兩端皆為 author date，**在 closeout commit 存在之後才算**
+- **Ratio**: 4.00 / 3.9 = **1.025**
+- **Band 判定**: ✅ **IN**（0.7–1.2）
 
-> ⛔ **這一格刻意留白，那不是漏填。** `AD-EstimateAsMeasurement-1` 已被記 **2 次**，
+> ⛔ **這三格原本是留白的，那不是漏填。** `AD-EstimateAsMeasurement-1` 已被記 **2 次**，
 > 第 2 次（W11）錯的正是 band 判定本身 —— closeout 當下 closeout commit 還不存在，
 > 於是 actual 用了「估的收尾時刻」得 1.13 IN，merge 後逐秒重算是 1.236 **OVER**。
-> 該 AD 的提議修法就是**留白到 closeout commit 之後再回填**，本 phase 是它的第一次執行。
+> 該 AD 的提議修法就是**留白到 closeout commit 之後再回填**，本 phase 是它的第一次執行，
+> 代價是 closeout 成為**兩個 commit**。
 
-**行動**: ⏳ 待 ratio 出來後決定 KEEP / re-point。
-⚠️ 無論 ratio 落在哪裡，`spike` 這一欄的既有問題不變：`actual / bottom-up` 曾低到 **0.20**，
-遠低於 matrix 的 0.4 下限 ⇒ **該修的是估算不是乘數**（`AD-BottomUpBlueprint-1`）。
+⭐⭐ **兩件事同時成立，而這在 `spike` 這一欄是第一次**：
 
-- [ ] 已回填 `CALIBRATION-MATRIX.md`（≤ 1 行 ~250 字元）— ⏳ 隨 actual 一起
-- [ ] 完整敘述已寫入 `CALIBRATION-LOG.md` §1 — ⏳ 隨 actual 一起
-- [ ] 若 |R − 1.0| > 30%：AD 已記入 `docs/01-planning/BACKLOG.md` — ⏳ 待判定
+1. **ratio 1.025 —— 本欄第一個 IN-band 點**（前四個可用點：W02 1.10 但量法不同單位 ·
+   W03 0.34 · W04 0.81 · W07 **0.30**）。
+2. ⭐ **`actual / bottom-up` = 4.00 / 6.0 = 0.667，第一次高於 matrix 的 0.4 下限。**
+   `AD-BottomUpBlueprint-1` 說 bottom-up 系統性高估約 5 倍（W07 0.17 · W08 0.097 · W09 0.25），
+   而本 phase 是 **0.667**。歸因是可指認的：**plan §7 的 bottom-up 是 Day-0 之後逐項重算的**
+   （−0.5 少一個策略、+0.5 A 改 PL/pgSQL 且多一層契約），也就是在**已知真實形狀**之後才估的。
+   ⚠️ **這同時削弱了它作為資料點的價值** —— 那不是「事前估算變準了」，是「事後重估比較準」，
+   而後者本來就應該。⇒ 不足以支持修改估算方法，記為**一個有條件的正向資料點**。
+
+**行動**: **KEEP 0.65**。⚠️ 單點 IN 不構成調整依據（需 3-phase 移動證據），
+且本欄的分散仍然巨大（0.30 – 1.03）。
+
+**逐段間隙檢查**（`AD-CalibrationIdleGap-1`）：最大間隙 **75.6 min**（benchmark commit ——
+兩次獨立執行 + coverage 紅燈追查）與 **56.7 min**（closeout 本身），
+⭐ **沒有一段是「等使用者」** —— 本 phase 是單次連續 session，所以窗口內沒有 W08 那種
+169 分鐘的等待。這個 ratio 因此不含該 AD 描述的汙染。
+
+- [x] 已回填 `CALIBRATION-MATRIX.md`（≤ 1 行 ~250 字元）
+- [x] 完整敘述已寫入 `CALIBRATION-LOG.md` §1
+- [x] 若 |R − 1.0| > 30%：**不適用**（|1.025 − 1.0| = 0.025）
 
 ---
 

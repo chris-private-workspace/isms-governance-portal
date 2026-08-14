@@ -78,6 +78,16 @@ W10 宣稱是 policy 在擋、W11 宣稱是 `WITH CHECK` 在擋，**兩次都是
 
 ## Calibration
 
-`spike` 第 6 點。⛔ **actual / ratio / band 三格刻意留白到 closeout commit 落地之後才回填** ——
-`AD-EstimateAsMeasurement-1` 提議的修法第一次被執行（W11 那次錯的正是 band 判定本身）。
+`spike` 第 6 點，ratio **1.025 IN** —— ⭐ **本欄第一個 IN-band 點**
+（前四點：W02 1.10 不同單位 · W03 0.34 · W04 0.81 · W07 0.30）。
+actual **4.00 hr** = `ef7dea6` 14:33:25 → `544f052` 18:33:23（author date，含 Day 0）。
+
+⛔ **三格刻意留白到 closeout commit 落地之後才回填** —— `AD-EstimateAsMeasurement-1`
+提議的修法第一次被執行（W11 那次錯的正是 band 判定本身，12 分鐘剛好跨過邊界）。
 代價：closeout 是**兩個 commit**，第二個只做回填。
+
+⭐ `actual/bottom-up` **0.667**，第一次高於 matrix 的 0.4 下限（W07 0.17 · W08 0.097 · W09 0.25）。
+⛔ **但要打折**：plan §7 的 bottom-up 是 **Day-0 之後逐項重算的** ——
+那不是「事前估算變準」，是「事後重估比較準」，而後者本來就應該。
+⭐ 逐段間隙最大 75.6 min（benchmark）與 56.7 min（closeout），**沒有一段是等使用者**
+⇒ 不含 `AD-CalibrationIdleGap-1` 的汙染。

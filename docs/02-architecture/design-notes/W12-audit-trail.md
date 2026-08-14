@@ -28,8 +28,10 @@ W12 要回答的不是「稽核表長什麼樣」，是 **OQ-4 的三個選項�
 US-5 中性化元驗證 · US-6 closeout。
 **驗證期間**：2026-08-14（Day 0-4 同日）。
 **Calibration**：bottom-up 6.0 hr → committed 3.9 hr（`spike` 0.65，第 6 個資料點）→
-**actual 見 [retrospective.md](../../01-planning/W12-m3-audit-trail-spike/retrospective.md) Q2**
-（⛔ 依 `AD-EstimateAsMeasurement-1`，actual 在 closeout commit 落地**之後**才量）。
+**actual 4.00 hr**（`ef7dea6` 14:33:25 → `544f052` 18:33:23，author date）⇒ ratio **1.025 IN**
+—— ⭐ 本欄第一個 IN-band 點。⛔ 依 `AD-EstimateAsMeasurement-1`，actual 在 closeout commit
+落地**之後**才量，故 closeout 是兩個 commit。完整敘述見
+[retrospective.md](../../01-planning/W12-m3-audit-trail-spike/retrospective.md) Q2。
 **測試增量**：unit 376 → **451**（+75：`chain.spec` 25 · `verify.spec` 17 ·
 `audit.recorder.spec` 27 · `scoped-prisma.provider.spec` 5 → 11）· int 172 → **187**
 （+15：`audit.int.spec` 12 · `bench.int.spec` 3）· **4 組中性化**各驗一次，N2 補測後重驗一次。
