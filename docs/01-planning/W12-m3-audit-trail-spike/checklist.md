@@ -180,31 +180,57 @@ _(本 phase 無 user-facing surface。報告一律寫 **gate-only verified**，�
 
 ### 3.1 中性化預測（⛔ 寫下並 **commit** 之後才執行）
 
-- [ ] **四個中性化的預期方向寫進 progress.md 並 commit**
+- [x] **四個中性化的預期方向寫進 progress.md 並 commit**
   - DoD: N1 `prev_hash` 串接 · N2 攔截點 · N3 append-only（補 UPDATE GRANT）· N4 SELECT policy
     —— 每個寫明**預期哪些測試轉紅、哪些不動**
   - ⚠️ **中性化 = 放行，不是刪除**（W11 在 N4 用了刪除，量到的是 no-op 而非 guard）
+  - ✅ commit **`aec77f2`**，逐條指名測試標題。四個都是**放行**：N1 trigger 仍在只是不連結 ·
+    N2 註解掉 module import · N3 **補回** GRANT · N4 policy 仍在但 `USING (true)`
 
 ### 3.2 執行 + 逐項對照
 
-- [ ] **四個中性化各自執行、還原、記錄**
+- [x] **四個中性化各自執行、還原、記錄**
   - DoD: 每次跑完立即還原並驗證（`git diff` 濾掉註解行後為空）；控制組與最終還原各驗一次
   - ⛔ **零轉紅先查再下結論**；⛔ **方向不符預期時先懷疑元驗證本身**（`AD-MetaVerificationBug-1`）
   - ⛔ **補完測試後必須重跑該中性化**（W10 與 W11 各在這裡漏過一次）
+  - ✅ **4/4 方向正確**。控制組 187/15、每次還原後 `git status --short` = **0 dirty**、
+    最終還原再驗 **187 / 15 全綠**
+  - ⭐ **N3 的答案**：`Received: "NO ERROR"`。⛔ **但「沒報錯」≠「沒改到列」** ——
+    直接量：可見 7 列、**`UPDATE 0`**、0 列被改、值未變 ⇒
+    **GRANT 給 42501 明確錯誤，缺席的 policy 給安靜的 0 列。兩層都擋，只有一層會說話**
+  - 🚩 **N2 揭出四個範疇測試裡的第 1 個在稽核全關時仍全綠**（空陣列上 `every` 真 / `some` 假）
+    ⇒ 補**非空前提** ⇒ **重跑 N2：7 紅 → 10 紅**。剩下 2 個通過的是**應該**通過的
+    （走 client 直寫 / 走 raw 連線，本來就與攔截點無關）
+  - ⚠️ **N4 機制對但我掛錯測試** —— 測試檔的**執行順序**決定第二個實體的列何時存在。
+    機制已量測（SG1 scope 看到兩個實體），但 `foreign` 這個斷點種類是**推導不是量測**，照實標
 
 ### 3.3 ADR-0003 的可證偽條件（⛔ 這是 ADR 能否採納的門檻）
 
-- [ ] **從量測導出可證偽條件，寫進 ADR**
+- [x] **從量測導出可證偽條件，寫進 ADR**
   - DoD: 條件是**可觀測、可重跑**的（例：「若寫入 p95 超過 X ms，本決定作廢」），
     不是「若需求改變」這種永遠不會被觸發的句子
   - Verify: `14-adr/README.md` 的 forcing-function 判準逐條對照
+  - ✅ **ADR-0003 已採納**，五條可證偽條件全部可觀測可重跑：
+    **FC1** A/B 併發 overhead 比 > 2×（今天 1.63 / 1.59，`bench.int.spec.ts` 是儀器）·
+    **FC2** 單一實體鏈驗證 > 60 s（今天 10k ≈ 1.0 s，線性 ⇒ ~600k 列）·
+    **FC3** 需要真實 `before` 舊值（應用層攔截給不出來 ⇒ 改每表 trigger）·
+    **FC4** ⭐ 多實體 scope 且 payload 無 `orgEntityId`（**由構造保證會觸發** ——
+    `UnattributableWriteError`，M8 第一個滾升寫入就會炸）·
+    **FC5** `chain.spec.ts` 的 postgres 向量失配（共用 hash 定義破了）
+  - ⚠️ **FC1 / FC2 需要 B 留在 repo** ⇒ ADR 明寫那是**當下的用途**不是「將來可能有用」，
+    並附解封條件：**Wave 1 結束前未重量就刪掉 B 並把條件改寫成絕對值**（AP-1 的處置）
+  - ✅ `decision-form.md` OQ-4 → 已拍板區 · `14-adr/README.md` 索引 + 尚待撰寫 4 → **3**
 
 ### 3.x Full gate（⛔ 逐項複製 Day 2 §2.x 的清單 —— 中性化本身會改 code）
 
-- [ ] format ×2 · lint 0 · type 0 · build clean ×2 · `lint:negative` · api unit · api int ·
+- [x] format ×2 · lint 0 · type 0 · build clean ×2 · `lint:negative` · api unit · api int ·
       web · coverage · `run_all` 8/8 · `check_entity_index` 21/35
   - ⛔ **`AD-PartialGateReportedAsFull-1` 已 3 次，全部是 `format:check`，全部因為
     Day 3 改了 code 而 gate 停在 Day 2**
+  - ✅ **十一項重跑，逐項 exit code**：format **0** · lint **0** · type **0** · build **0** ·
+    `lint:negative` **PASS** · api unit **451 / 38** · api int **187 / 15** · web **10 / 1** ·
+    coverage **92.27 / 91.66 / 98.95 / 93.64** · `run_all` **8 / 8** · `check_entity_index` **21 / 35**
+  - ⭐ 數字與 Day 2 **完全相同** —— 那本身就是四次中性化**全部還原乾淨**的證據
 
 ---
 

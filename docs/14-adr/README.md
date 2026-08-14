@@ -73,6 +73,7 @@ CHANGE record  一次變更的紀錄。做了什麼、為什麼這樣做、怎�
 | # | 決策 | Date | Status |
 |---|------|------|--------|
 | [0001](./0001-backend-framework.md) | 後端 = NestJS 10 + Prisma 7，與 Next.js 前端同一個 monorepo | 2026-08-07 | **已採納** |
+| [0003](./0003-audit-trail-hash-chain.md) | 稽核軌跡 = 逐列 hash chain，由 `BEFORE INSERT` trigger 在資料庫內計算；攔截點是應用層 hook（**W12 spike 實測後拍板；驗證成本維度量到沒有訊號**）| 2026-08-14 | **已採納** |
 | [0004](./0004-entity-scoping-enforcement.md) | Entity scoping = PostgreSQL RLS，由 Prisma client extension 驅動（**W02 spike 實測後拍板；裁決 0001 §可證偽條件 #1 未觸發**）| 2026-08-09 | **已採納** |
 | [0006](./0006-deployment-and-residency-topology.md) | 分區部署於 Azure，中國區走 Azure China（21Vianet） | 2026-08-07 | **已被 [0010](./0010-single-region-deployment-topology.md) 取代** |
 | [0007](./0007-identity-provider.md) | Microsoft Entra ID，取代交付物指定的 Okta | 2026-08-07 | **已採納** |
@@ -96,19 +97,20 @@ CHANGE record  一次變更的紀錄。做了什麼、為什麼這樣做、怎�
 
 原本 9 份是專案啟動時識別出來的開放決策。**0001 / 0006 / 0007 已於 2026-08-07（`CH-005`）採納**，
 移到上方索引（0006 已於 2026-08-08 被 0010 取代，0011 於同日採納；
-**0004 已於 2026-08-09 由 W02 spike 採納**，**0005 已於 2026-08-10 由 W03 spike 採納**）；
-下表是**剩餘 4 份**。
+**0004 已於 2026-08-09 由 W02 spike 採納**，**0005 已於 2026-08-10 由 W03 spike 採納**，
+**0003 已於 2026-08-14 由 W12 spike 採納** —— 它被延後的理由是「判準是寫入吞吐量，零 code 時量不出來」，
+而那個條件**早已不成立、卻沒有任何 gate 會提醒**）；
+下表是**剩餘 3 份**。
 清單原本在舊的 `docs/adr/` 位置，套用開發流程模版重組時併入本索引。  <!-- path-check: ignore — 歷史位置，已不存在 -->
 
 | # | 決策 | 阻斷什麼 | 何時可寫 |
 |---|------|---------|---------|
 | ADR-0002 | Workflow engine：自建 vs. 嵌入 | 平台基礎服務 | **需先 spike**（`decision-form.md` OQ-7）|
-| ADR-0003 | Audit-trail hash-chain 設計 | guardrail 5（不可篡改稽核軌跡）| W01 spike 之後 —— 判準是寫入吞吐量，零 code 時量不出來 |
 | ADR-0008 | AI agent：自建檢索 vs. Copilot Studio 整合 vs. 分區混合 | Wave 3 | Wave 3 |
 | ADR-0009 | AI 處理地點與模型無關推論介面 | Wave 3 | Wave 3 —— ⚠️ 主權論據隨中國移出而失效（ADR-0010），**約束 7 的理由待重寫**（`AD-Constraint7-1`）|
 
 > **決策在這裡出現一份標記為「已採納」的 ADR 之前，都不算定案。**
-> 剩下 4 份刻意不現在寫：**ADR 是決策記錄，不是規劃文件** ——
+> 剩下 3 份刻意不現在寫：**ADR 是決策記錄，不是規劃文件** ——
 > 沒有 runtime 就寫不出可證偽條件（見 `memory/feedback_doc_growth_follows_runtime.md`）。
 >
 > ⚠️ **0012 / 0013 不在原本那 9 份裡。** 它們是 W04 / W05 執行中浮現的決定 ——

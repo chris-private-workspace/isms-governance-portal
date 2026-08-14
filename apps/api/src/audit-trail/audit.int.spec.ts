@@ -128,7 +128,12 @@ describe('audit trail (integration)', () => {
 
   it('records nothing for a read', async () => {
     const client = await clientFor(['SG1']);
+    await createSoa('SG1');
     const before = (await auditRows('SG1')).length;
+    // ⛔ Non-emptiness first. "A read added nothing" and "nothing is being
+    // recorded at all" are the same observation on an empty table — W12's N2
+    // measured this test staying green with the audit trail switched off.
+    expect(before).toBeGreaterThan(0);
 
     await client.statementOfApplicability.findMany({ take: 1 });
 
@@ -152,6 +157,9 @@ describe('audit trail (integration)', () => {
 
     await repo.create(client, payload as Parameters<SoaRepository['create']>[1]);
     const afterFirst = (await auditRows('SG1')).length;
+    // ⛔ Non-emptiness first — otherwise "the failed write left nothing" holds
+    // trivially on a table nothing ever writes to (W12 N2).
+    expect(afterFirst).toBeGreaterThan(0);
 
     await expect(
       repo.create(client, payload as Parameters<SoaRepository['create']>[1]),
@@ -190,11 +198,22 @@ describe('audit trail (integration)', () => {
 
   it('約束 8 (1) — cross-entity read is refused', async () => {
     await createSoa('SG1');
+    await createSoa('HK1');
 
-    const visible = await auditRows('HK1');
+    const sg = await auditRows('SG1');
+    const hk = await auditRows('HK1');
 
-    expect(visible.every((r) => r.orgEntityId === HK1)).toBe(true);
-    expect(visible.some((r) => r.orgEntityId === SG1)).toBe(false);
+    // ⛔ BOTH SIDES MUST BE NON-EMPTY BEFORE THE ISOLATION CLAIM MEANS ANYTHING.
+    // The first version of this test asserted only `every` and `some` over HK1's
+    // view, and W12's N2 measured it staying GREEN with the audit trail switched
+    // off entirely: on an empty array `every` is true and `some` is false. "HK1
+    // cannot see SG1's rows" and "there are no rows" were the same observation —
+    // the exact shape W11 recorded and this file reproduced anyway.
+    expect(sg.length).toBeGreaterThan(0);
+    expect(hk.length).toBeGreaterThan(0);
+
+    expect(hk.every((r) => r.orgEntityId === HK1)).toBe(true);
+    expect(sg.every((r) => r.orgEntityId === SG1)).toBe(true);
   });
 
   it('約束 8 (2) — cross-entity write is refused and nothing changes', async () => {
