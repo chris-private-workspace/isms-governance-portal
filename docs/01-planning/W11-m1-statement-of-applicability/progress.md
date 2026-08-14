@@ -294,3 +294,104 @@ N4 的補救測試（測試 12）寫完後**重跑 N4 仍然 12/12 全綠**。�
 與 W05 / W09 / W10 量到的是同一個形狀。屆時要補的是一個**跨實體 UPDATE** 測試，
 不是把 N4 改成別的東西。⚠️ 補完之後**必須再跑一次 N4**（W10 的教訓：第一版補的測試
 用了 `create()`，`RETURNING` 讓 SELECT policy 代答，重跑才發現它仍然全綠）。
+
+### 3.2 實測 vs 預期 —— 原定四項 **4 / 4 方向全中**，追加兩項 **0 / 2**
+
+中性化一律改 migration 來源；每次跑完整 int setup（資料庫重建）。控制組 **11 passed**。
+
+| N | 預期 | 實測 | 相符 |
+|---|---|---|---|
+| **N1** | 測試 5 · 9 紅，其餘 9 綠 | **正是這兩個**（2 failed, 9 passed）| ✅ |
+| **N2** | 測試 7 紅（兩個斷言）· 測試 6 **仍綠** | 測試 7 紅 —— `Resolved to value: 1`，raw INSERT **真的寫進 1 列**；測試 6 綠 | ✅ |
+| **N3** | 測試 10 紅 —— `collides` 變 `DuplicateKeyError`，`doesNot` 仍成功 | **正是如此**：`Received constructor: DuplicateKeyError extends Error` | ✅ |
+| **N4** | **零轉紅** | **11 / 11 全綠** | ✅ |
+| **N4d**（追加）| 測試 12 紅 | ⛔ **12 / 12 全綠** | ❌ |
+| **N4c**（追加）| 測試 12 紅 | ⛔ **12 / 12 全綠** | ❌ |
+
+⭐ **原定的四個預測全中；由假說推出的兩個追加預測全錯 —— 而錯的那兩個才是有價值的。**
+它們逼出下面的隔離實驗，而隔離實驗推翻了我寫在 migration 註解裡的因果。
+
+### 3.3 D3 實測 —— `AD-UniqueKeyOracle-1` 的第 2 個資料點 ⭐
+
+把 `org_entity_id` 從唯一鍵拿掉之後，SG1 的呼叫端：
+
+| 探測 | 結果 |
+|---|---|
+| 撞 **HK1 持有**的 `(ISO 27001, A.5.9)` | **`DuplicateKeyError`（23505）** |
+| 撞**沒人持有**的 `(ISO 27001, A.5.9999)` | **成功** |
+
+兩個**可分辨**的結果 ⇒ SG1 可以一條一條列舉 HK1 的 SoA，而它連 HK1 的**一列都讀不到**。
+鍵含 `org_entity_id` 時兩者都成功 —— 測試 10 斷言的正是這個「相同」。
+
+⭐ **判準確認可移轉到沒有 parent 的表**，但**失敗模式不同**：W10 是 23505 vs 23503
+（兩個都是錯誤，可分辨）；這裡是 **23505 vs 成功** —— 沒有 FK 可以掉下去，
+所以 oracle **更響亮**，因為「成功」毫無歧義。
+
+### 🚩 3.4 N4 追出來的真相：擋住跨實體搬移的**不是** `WITH CHECK`
+
+N4 零轉紅 → 補測試 12（raw UPDATE、無 `RETURNING`，照 `AD-ReturningMasksCheck-1` 寫）
+→ **重跑 N4 仍然全綠**。此時停下來，不把「綠」讀成「guard 有效」。
+
+第一個假說是 **PostgreSQL 對 `FOR UPDATE` 省略的 `WITH CHECK` 會用 `USING` 回填**
+（即 N4 是 no-op）。⛔ **假說錯了** —— N4d 把 `WITH CHECK` 明確改成 `(true)`，仍然被拒。
+
+⇒ 改用**逐條放行**的隔離（直接對 `isms_test` 下 `ALTER POLICY`，一次只動一條）：
+
+| 放行到哪裡 | 跨實體 UPDATE |
+|---|---|
+| `_update` 的 `WITH CHECK` → `true` | ⛔ 仍被拒 |
+| `_update` 整條放行（`USING (true)`，無 `WITH CHECK`）| ⛔ 仍被拒（= N4c）|
+| 再加 `_insert` 的 `WITH CHECK` → `true` | ⛔ 仍被拒 |
+| **再加 `_read` 的 `USING` → `true`** | ✅ **`UPDATE 1`** —— 列真的離開了 SG1 |
+
+⭐ **擋住它的是 SELECT policy** —— PostgreSQL 會拿 UPDATE 的**新列**去對它檢查，
+錯誤訊息本身就說了：`new row violates row-level security policy`。
+（順帶排除：本表 `pg_trigger` 為 **0 rows**，沒有 trigger 參與。）
+
+⇒ **migration 第 117-120 行原本寫的因果是錯的**，已更正為量到的順序。
+⚠️ 該表 `_update` 的 `WITH CHECK` 與 `_read` 的 `USING` 是**同一個運算式**，
+所以它今天**確實冗餘**，而且**沒有任何測試能區分它們** —— `AD-BorrowedRefusal-1` 第 6 次。
+
+**但它保留**，理由不是保險而是具體的：當讀的那一半**寬於**寫的那一半時它就不再冗餘。
+`controls` **已經處於那個狀態**（group-shared 列可被不該擁有它的實體讀到），
+所以 W06 那句一模一樣的註解**可能對 controls 是對的、只有在這裡是錯的**。
+⛔ **那是另一次量測，不是從這次推論出來的** → 記 BACKLOG。
+
+### 3.5 改動已套用 migration 的註解 —— 這次先驗證了
+
+W10 就地改註解造成 dev DB checksum 漂移（B1），而我這次也改了註解。差別是**先查**：
+`isms_dev` 的 `_prisma_migrations` 最新是 `20260813153153_version_label_key_scoped`，
+**`20260814023210_soa` 不在裡面**（`migrate dev` 被 B1 擋住，從未套用）。
+int DB 每次重建、`_prisma_migrations` 為空。⇒ 今天改它零漂移。
+
+⚠️ **這個安全窗口會關閉** —— B1 一旦修好、SoA 一被套用到 dev DB，同樣的編輯就會製造第二次漂移。
+
+⭐ 還原的驗證用的是**機械判準**而不是肉眼：`git diff` 濾掉所有 `--` 開頭的行之後**輸出為空**
+⇒ 沒有任何一條 SQL 述句被改動，四次中性化全部還原乾淨。
+
+### ⛔ 3.6 `format:check` 又紅了，而且是**同一條 gate、同一個位置**
+
+Day-3 的中性化過程中改了 `soa.int.spec.ts`（`create` helper 加 `track` 參數 + 測試 12），
+**改完沒有重跑 format** —— Day 2 的 full gate 是在那之前跑的。
+
+⚠️ **這是同一形狀第 3 次**：W10 Day 3 漏掉它、拖到 Day 4 才發現；W11 Day 1 抓到一次；
+本次又發生。三次的共同結構是**「Day 2/3 之間改 int spec，而 full gate 停在改動之前」**，
+不是「忘記跑 lint」。⇒ closeout 記 AD：**中性化結束後必須重跑 full gate，因為中性化本身會改 code**。
+
+### Gate（Day 3 收尾，逐項實測、逐項取 exit code）
+
+| Gate | 結果 |
+|---|---|
+| `format:check` ×2 | **0**（⛔ 修正前 **1**）|
+| `lint` ×2 | **0** |
+| `type-check` ×2 | **0** |
+| `build` ×2 | **0** |
+| `lint:negative` | **0** |
+| api unit | **376 / 35 suites** |
+| api int | **172 / 13 suites**（Day 2 為 171 / 12 —— +1 = 測試 12）|
+| web | **10 / 1** |
+| `run_all` | **8 / 8** |
+| `check_entity_index` | **20 / 35** |
+| coverage | **91.83 / 91.01 / 97.5 / 93.29**（與 Day 2 相同；測試 12 是 int，不計入）|
+
+⛔ **gate-only verified** —— 無 UI，未做 drive-through，本 phase 不得宣稱可用性。

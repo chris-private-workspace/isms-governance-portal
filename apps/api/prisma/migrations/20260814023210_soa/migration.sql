@@ -114,10 +114,27 @@ CREATE POLICY "statements_of_applicability_insert" ON "statements_of_applicabili
   FOR INSERT
   WITH CHECK ("org_entity_id" = ANY (app_entity_scope()));
 
--- ⚠️ USING *and* WITH CHECK. USING decides which rows are visible to update;
--- WITH CHECK decides what they may become. With only USING, a caller could move
--- a row it owns into another entity's scope — the update would pass, and the row
--- would leave. W06 recorded the same pairing for controls.
+-- ⛔ THE WITH CHECK HALF IS NOT WHAT REFUSES A CROSS-ENTITY MOVE HERE, and the
+-- first version of this comment said it was. Measured, W11 Day 3, by permitting
+-- one policy at a time against a real UPDATE moving an SG1 row to HK1:
+--
+--   _update WITH CHECK -> true                     still refused
+--   _update USING -> true, WITH CHECK dropped      still refused
+--   + _insert WITH CHECK -> true                   still refused
+--   + _read USING -> true                          UPDATE 1  (the row left)
+--
+-- So the SELECT policy is what does it: PostgreSQL checks the NEW row of an
+-- UPDATE against it, and the error says as much ("new row violates row-level
+-- security policy"). With both expressions identical, this WITH CHECK is
+-- redundant TODAY and no test can distinguish it — AD-BorrowedRefusal-1 in its
+-- sixth form, found by neutralising a guard, seeing nothing change, and hunting
+-- instead of assuming the guard worked.
+--
+-- ⚠️ It is kept, and not merely out of caution: it stops being redundant the
+-- moment the read half widens past the write half. `controls` is already in that
+-- state (group-shared rows are readable by entities that must not own them), so
+-- W06's identically-worded comment may be right for that table and wrong only
+-- here. That is a separate measurement, not an inference from this one.
 CREATE POLICY "statements_of_applicability_update" ON "statements_of_applicability"
   FOR UPDATE
   USING      ("org_entity_id" = ANY (app_entity_scope()))
