@@ -274,6 +274,8 @@ coverage 不低於 baseline 的 **branch / funcs**（⚠️ stmts / lines 見 `A
 | **R4 更新又用手寫計數** | ⛔ `AD-RiskTableCountManual-1` 剛在 W12 被實地擊中。R4 的新數字**必須機械導出**（`AUDITED_MODELS.size` vs `^model` 數），並在 CH-030 寫明導出方法 |
 | Risk Class C（陳舊 dev server）| 無長駐服務驗證需求；int 測試各自建 testing module |
 | ⛔ **dev DB checksum 漂移未修**（`AD-DevDbChecksumDrift-1`）| 本片**無 migration**，故不受影響。⚠️ 但也代表它**又一個 phase 沒被修** |
+| ⭐ **Day-0 `D-refcode-b`** —— `refCodeCounter.upsert` 的 args 是 `{where, create, update}`，**沒有 `data` key**；`audit.recorder.ts:141` 因此得 `null`，`resolveEntity` 退回 context，**多實體 scope 下 throw `UnattributableWriteError`** | §3.2 的判定不變但**理由更硬**：接上它不只是訊噪比問題，是**讓滾升角色的每個 create 失敗**。⚠️ **Day 3 N3 的預期方向改寫**為「單實體 scope 得 2 列 / 多實體 scope 拋錯」，並在該處量到才算數 |
+| ⭐ **Day-0 `D-write-ops`** —— 全 codebase **零個 `client.*.update` / `.delete`**，15 個領域寫入全是 `create`（update 測試走 raw SQL 驗 RLS）| ADR-0003 限制 1（`before` 永遠 NULL）**在只有 create 的世界裡無害**，D-limits 因此全數通過。⛔ 但這讓「覆蓋」有歧義：**接上 15 個模型 ≠ 稽核了所有狀態變更類型**。CH-030 必須明寫這句限定，否則 R4 會被讀成已解決 |
 
 ## 9. Out of Scope（這個 phase 不做 → 另開 slice / AD）
 

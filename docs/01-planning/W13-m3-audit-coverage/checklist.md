@@ -10,35 +10,41 @@
 
 > 完整程序：`docs/rules-on-demand/day0-plan-verify.md`
 
-- [ ] **Prong 1 — path verify**：plan §4 的 14 個目標逐一確認（13 個 EDIT 檔存在 / 1 個 NEW 不存在）；
-      `CH-030` 編號未被佔用
+- [x] **Prong 1 — path verify**：plan §4 的 14 個目標逐一確認（13 個 EDIT 檔存在 / 1 個 NEW 不存在）；
+      `CH-030` 編號未被佔用 ✅ **0 漂移**（最大號 CH-029，含 6 個資料夾形式；modules int spec 恰好 11 個）
   - Verify: `ls docs/03-implementation/changes/ | sort -V | tail -1`
-- [ ] **Prong 2 — content verify**（drift → progress.md）：
-  - [ ] ⭐ **D-reach** — 「14 個可達 / 5 個不可達」**用第二條獨立路徑交叉檢查**
+- [x] **Prong 2 — content verify**（drift → progress.md）：
+  - [x] ⭐ **D-reach** — 「14 個可達 / 5 個不可達」**用第二條獨立路徑交叉檢查**
         （正向：枚舉 `client.<delegate>.(create|update|upsert)`；反向：`^model` 全集減去正向結果）。
         ⛔ **兩條路徑不一致就先查方法，不要挑一個相信**（`AD-NarrowPatternWideClaim-1`，W12 再現 3 次）
-  - [ ] ⭐ **D-vacuous** — **逐一讀**每個 int spec 的範疇測試，數出缺非空前提的個數
+  - [x] ⭐ **D-vacuous** — **逐一讀**每個 int spec 的範疇測試，數出缺非空前提的個數 ✅ **4 個（≤ 5）**
         ⛔ **不 grep 命中數** —— `asset.int.spec.ts` 對 `約束 8` 是 **0 命中而測試存在**（審計 #5 §2.6b）
         ⛔ **若超過 5 個 → 範圍變動 20-50% ⇒ 修訂 plan 並跟使用者再確認**，不要默默吸收
-  - [ ] **D-refcode** — `ref-code.ts:97` 的 upsert 是否**真的每次 create 都跑**（量，不是讀 code）
-  - [ ] **D-limits** — ADR-0003 三條已知限制（`before` NULL · `after` 是請求 payload ·
+  - [x] **D-refcode** — `ref-code.ts:97` 的 upsert 是否**真的每次 create 都跑**（量，不是讀 code）
+        ✅ 讀 code 成立（15 呼叫點 ↔ 15 create）；⛔ **量的部分仍歸 Day 3 N3，此處未量**
+        ⭐ 附帶 `D-refcode-b`：upsert 的 args 無 `data` key ⇒ 多實體 scope 下會 throw（→ plan §Risks）
+  - [x] **D-limits** — ADR-0003 三條已知限制（`before` NULL · `after` 是請求 payload ·
         `resource_id` create 不可得）對 14 個模型**逐一**判定可否接受；不可接受的**指名**
-  - [ ] **D-roadmap** — `ROADMAP` 4c 與 `BACKLOG` 的 `AD-AuditCoverageOneTable-1` 都寫「其餘 **20** 張表」，
+        ✅ **0 個不可接受** —— 14 個全部有 `refCode` + `orgEntityId`；且全 codebase 只有 create ⇒ 限制 1 無害
+  - [x] **D-roadmap** — `ROADMAP` 4c 與 `BACKLOG` 的 `AD-AuditCoverageOneTable-1` 都寫「其餘 **20** 張表」，
         而 recon 說 14。⭐ **那是我在 W12 closeout 寫的** —— 確認後兩處措辭一起改
-- [ ] **Prong 2.5 — child component tree**：**N/A**（無前端）
-- [ ] **Prong 3 — schema verify**：**本片無 schema / migration 變更** ——
-      確認 `git diff --stat main..HEAD -- apps/api/prisma/` 全程為空即為通過
-- [ ] **D-baselines** — api unit **451 / 38** · api int **187 / 15** · web **10 / 1** ·
+        ✅ **成立，實為 3 處**（`ROADMAP:78` · `BACKLOG:115` · `STATUS_AUDIT:271`）；前兩者 Day 4 改，
+        ⛔ 後者是歷史快照**不改**
+- [x] **Prong 2.5 — child component tree**：**N/A**（無前端）
+- [x] **Prong 3 — schema verify**：**本片無 schema / migration 變更** ——
+      確認 `git diff --stat main..HEAD -- apps/api/prisma/` 全程為空即為通過 ✅ 輸出為空
+- [x] **D-baselines** — api unit **451 / 38** · api int **187 / 15** · web **10 / 1** ·
       coverage **92.27 / 91.66 / 98.95 / 93.64** · `run_all` **8/8** ·
       `check_entity_index` **21 / 35** · lint 0 · type 0 · build clean ×2
   - ⛔ **逐項取 exit code**（各自 `> log 2>&1; echo $?`），不共用管線後的 `$?`
-- [ ] **Catalog drift** — progress.md Day-0 表格（`D1..Dn`）
-- [ ] **Go/no-go** — 範圍變動 % → 繼續 / 修訂 / 中止
+- [x] **Catalog drift** — progress.md Day-0 表格（`D1..Dn`）✅ 11 條 + 1 條順路發現記入 BACKLOG 待辦
+- [x] **Go/no-go** — 範圍變動 % → 繼續 / 修訂 / 中止 ✅ **~5% ⇒ 繼續 Day 1**
   - ⛔ **D-vacuous > 5 個** 或 **D-limits 有模型不可接受** ⇒ 20-50% ⇒ **修訂並再確認**
+    （實測 4 / 0，兩條門檻皆未觸發）
 
 ### 0.2 Branch
 
-- [ ] `git checkout -b feature/W13-audit-coverage`（從當時的 `main`）
+- [x] `git checkout -b feature/W13-audit-coverage`（從當時的 `main`）—— base `fa37d6b`（PR #60 已 merge）
 
 ---
 
@@ -166,6 +172,8 @@ _(本 phase 無 user-facing surface。報告一律寫 **gate-only verified**，�
   - ⛔ **R4 措辭**：接上 15 / 21 不等於「已解決」——
     5 個模型沒有寫入路徑、`RefCodeCounter` 刻意不接、raw query 仍是洞，**逐項寫出來**
   - ⛔ **BACKLOG 計數在最後一次編輯之後跑** `python scripts/lint/check_backlog_counts.py`
+  - ⚠️ **Day 0 的順路發現要落地**：`assessment.int.spec.ts:346` 標題說「on all three tables」
+    而 body 只測 2 張（`responses` 未測）—— 新增一條 AD，**本片不修**（`CH-017` 配額）
   - ⚠️ **D-roadmap 若成立**：`ROADMAP` 4c 與 BACKLOG 的「其餘 20 張表」措辭一併更正
 - [ ] Anti-pattern 自檢（retro Q5）：AP-1..AP-7 → 違規數
       ⚠️ 含 **AP-3**：允許清單加了名字算不算 Potemkin？**判準是 N2 有沒有讓恰好一個模組轉紅**
