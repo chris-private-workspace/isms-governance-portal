@@ -1,6 +1,6 @@
 # W12 — Audit trail hash chain (M3 spike → ADR-0003)
 
-**Closed**: 2026-08-14 · **PR**: pending（`feature/W12-audit-trail` 未 push） · **Retro**:
+**Closed**: 2026-08-14 · **PR**: **#58 MERGED**（`ea58fdb`，rebase）· **Retro**:
 `docs/01-planning/W12-m3-audit-trail-spike/retrospective.md` ·
 **CH**: `docs/03-implementation/changes/CH-029-w12-audit-trail.md` ·
 **Design note**: `docs/02-architecture/design-notes/W12-audit-trail.md`
@@ -80,7 +80,9 @@ W10 宣稱是 policy 在擋、W11 宣稱是 `WITH CHECK` 在擋，**兩次都是
 
 `spike` 第 6 點，ratio **1.025 IN** —— ⭐ **本欄第一個 IN-band 點**
 （前四點：W02 1.10 不同單位 · W03 0.34 · W04 0.81 · W07 0.30）。
-actual **4.00 hr** = `ef7dea6` 14:33:25 → `544f052` 18:33:23（author date，含 Day 0）。
+actual **4.00 hr** = `7503f8d` 14:33:25 → `f7a0c03` 18:33:23（author date，含 Day 0）。
+⭐ rebase merge 改寫全部 12 個 SHA 而**在 main 側重算值完全不變** —— author date 逐秒相同
+（`AD-DesignNoteAnchor-1` 第 3 個資料點：穩定錨點是 author date 不是 SHA）。
 
 ⛔ **三格刻意留白到 closeout commit 落地之後才回填** —— `AD-EstimateAsMeasurement-1`
 提議的修法第一次被執行（W11 那次錯的正是 band 判定本身，12 分鐘剛好跨過邊界）。

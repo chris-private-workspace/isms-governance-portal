@@ -3,7 +3,10 @@
 **Phase**: W12 — audit-trail hash chain spike，用量測拍板 ADR-0003
 **Period**: 2026-08-14（Day 0-4 同日）
 **Plan**: [plan.md](./plan.md)  ← 四件套共置於同一個資料夾
-**PR**: PR-pending（分支 `feature/W12-audit-trail` 尚未 push —— ⚠️ **本機全綠，CI 未驗**）
+**PR**: **#58 MERGED**（`ea58fdb`，rebase merge）—— CI **六個 required check 全綠**：
+`gates` 2m43s · 映像 build + 啟動探測 1m33s · SAST 32s · trivy 27s · gitleaks（全歷史）16s · SCA 11s。
+⭐ `gates` 在 CI 的 PostgreSQL 上跑完整 int suite，**包含 3 個併發 benchmark** ——
+那組時間斷言因此不是只在我這台機器上成立。
 **Change record**: [`docs/03-implementation/changes/CH-029-w12-audit-trail.md`](../../03-implementation/changes/CH-029-w12-audit-trail.md)
 
 ---
@@ -40,8 +43,10 @@
 - **Committed (calibrated)**: 3.9 hr（mult **0.65**）
 - **量法宣告**（`AD-CalibrationDay0InOrOut-1`）：**含 Day 0**，窗口 = branch **第一個 commit**
   → **closeout commit**。⚠️ plan / checklist 起草在第一個 commit **之前**，故本值仍是**下界**。
-- **Actual**: **4.00 hr**（239.97 min）—— `ef7dea6` **14:33:25** → `544f052` **18:33:23**，
+- **Actual**: **4.00 hr**（239.97 min）—— `7503f8d` **14:33:25** → `f7a0c03` **18:33:23**，
   兩端皆為 author date，**在 closeout commit 存在之後才算**
+  - ⭐ **merge 後在 main 側重算，值完全相同** —— rebase 改寫了全部 12 個 SHA 而 author date
+    逐秒不變（`AD-DesignNoteAnchor-1` 的第 3 個資料點）。**要改的只是 SHA 字串，不是數字。**
 - **Ratio**: 4.00 / 3.9 = **1.025**
 - **Band 判定**: ✅ **IN**（0.7–1.2）
 
@@ -81,8 +86,8 @@
 - **Drift 數量：7** —— Prong 1: **1**（`audit-trail/` 不是只有 `.gitkeep`，它有 CH-012 的常駐負面
   fixture）/ Prong 2: **5**（D1–D5）/ Prong 3: **1**（`AD-DevDbChecksumDrift-1` 確認**仍在**
   ⇒ migration 預期手寫）
-- **Day-0 成本**：⚠️ **未逐項計時，不編一個數字**。可量的邊界：`ef7dea6`（plan + checklist +
-  Day 0 全部 findings）→ `70a6ebd`（D7 更正）相距 **2 分 35 秒**，Day 1 首個 commit 在其後
+- **Day-0 成本**：⚠️ **未逐項計時，不編一個數字**。可量的邊界：`7503f8d`（plan + checklist +
+  Day 0 全部 findings）→ `2e228ad`（D7 更正）相距 **2 分 35 秒**，Day 1 首個 commit 在其後
   **31 分**。起草在窗口之外（見 Q2 的量法宣告）。
 - **預防的返工**：~1.5-2 hr（**估算，非量測**）—— D3 若留到實作才發現，代價是把已寫好的
   應用層 A/C 全部丟掉、重寫成 PL/pgSQL，並回頭改 plan §3.2；D1 若留到實作才發現，代價是
@@ -111,7 +116,7 @@ plan §3.2 原本寫「三個策略同一個介面，差異只在 `computeHash`�
 
 ## Q4 — 做得好的（保持）
 
-- **兩次量測都先寫預測再 commit，才執行**（`5956711` benchmark 五個預測 · `aec77f2`
+- **兩次量測都先寫預測再 commit，才執行**（`1fcdf8f` benchmark 五個預測 · `294e178`
   中性化四個預期）。⭐ 這不是形式：benchmark 的 **P2 / P3 兩個預測被推翻**，而其中 P3 的反向
   結果（稽核的主成本是那筆額外 INSERT，不是鏈的策略）**直接寫進了 ADR 的 Decision**。
   如果數字先出來，我幾乎確定會把它讀成「符合預期」。

@@ -13,7 +13,8 @@ status: closed   # draft | active | closed | closed_partial —— 機器可讀�
 無 user-facing surface ⇒ **gate-only verified，不做 drive-through**。
 **spike ⇒ 必須產出 design note**（Day 4，`task-workflow.md` §Step 5.5）。
 
-**Status**: Closed（2026-08-14 Day 4 收尾；六個 US 全數交付、checklist 25 項全勾、無 🚧。
+**Status**: Closed（2026-08-14 **MERGED PR #58, `ea58fdb`**；六個 US 全數交付、checklist 25 項全勾、
+無 🚧；CI 六個 required check 全綠。
 ⏳ **calibration 的 actual 於第二個 closeout commit 回填** —— `AD-EstimateAsMeasurement-1`）
 —— 原為 Approved-to-execute（laitim2001 於 2026-08-14 核可；軌別同日由使用者選定「先拍板 ADR-0003」，
 **但改判為 Phase 軌（spike）而非「不走軌」** —— `14-adr/README.md:106` 的判準是「需先 spike」，
