@@ -55,23 +55,32 @@
 
 ### 1.1 逐一讀 + 分類
 
-- [ ] **每個 int spec 的範疇測試逐一讀過並分類**
+- [x] **每個 int spec 的範疇測試逐一讀過並分類**
   - DoD: 產出結果表 —— **查了幾個 / 幾個缺非空前提 / 幾個本來就對**，逐檔指名
-  - Verify: 結果表寫進 progress.md
+        ✅ **13 個 spec / ~30 個範疇測試 → 4 缺、~26 本來就對**（逐檔表在 progress.md §1.1）
+  - Verify: 結果表寫進 progress.md ✅
   - ⛔ **不用命中數代替逐檔讀**（`asset.int.spec.ts` 是現成的反例）
+    ✅ 逐一讀 body；grep 只用來定位斷言形狀。⭐ 反而抓到我**記錯了這條 AD 的標的**
 
 ### 1.2 補非空前提
 
-- [ ] **缺的逐一補上**
+- [x] **缺的逐一補上**
   - DoD: 每個補上的斷言要先斷言「對造實體確實有 N > 0 列」再斷言「本實體看不到它們」
-  - Verify: `npm run test:int -w apps/api`
+        ✅ 4 處（commit `70db22e`）。⚠️ **前提來源不同**：3 處讀回 seed、`risk` 一處**必須自建**
+        （seed 沒有 `risks`）—— 若假設 seed 兩邊都有，那一處會補成另一個恆真斷言
+  - Verify: `npm run test:int -w apps/api` ✅ **187 / 15**
   - ⛔ **補完之後必須在「資料被清空」的狀態下驗一次它會紅** ——
     否則補的可能是另一個永遠為真的斷言（W12 的 N2 就是這樣被抓到的）
+    ✅ **V1–V4 執行完畢，4/4 方向全中**（`4 failed / 183 passed`，紅的恰好是那四個）；
+    還原後 `git status` 空 + 重跑 187/15。預測先 commit（`c17c9b5`）再執行
 
 ### 1.x partial gate
 
-- [ ] format ×2 · lint · type-check · api int —— **逐項取 exit code，只報跑過的**
+- [x] format ×2 · lint · type-check · api int —— **逐項取 exit code，只報跑過的**
+  - ✅ format `apps/api` **0** · format `apps/web` **0** · lint **0** · type-check **0** · api int **187 / 15**
   - ⛔ 未跑的項目要明確列出，**不得寫成「gate 全綠」**（`AD-PartialGateReportedAsFull-1` 已 3 次）
+    ⚠️ **本日未跑**：api unit · web test · build ×2 · `lint:negative` · coverage · `run_all`
+    ⇒ **這不是「gate 全綠」，是 partial gate**。完整清單在 Day 2 §2.x
 
 ---
 
