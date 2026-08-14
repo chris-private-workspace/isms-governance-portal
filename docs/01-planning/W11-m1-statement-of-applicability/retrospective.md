@@ -3,7 +3,7 @@
 **Phase**: W11 — Statement of Applicability (M1 slice 8)
 **Period**: 2026-08-14 ~ 2026-08-14
 **Plan**: [plan.md](./plan.md)
-**PR**: PR-pending
+**PR**: #56 MERGED（`dcc680f`）
 **Change record**: `docs/03-implementation/changes/CH-028-w11-soa.md`
 
 ---
@@ -29,13 +29,26 @@ plan 原文保留，理由記在 progress —— 不是縮減範圍，是規格�
 - **Agent-delegated**: no（plan 宣告，實際成立 —— 全程自己直接做）
 - **Bottom-up est**: 3.0 hr
 - **Committed (calibrated)**: 1.5 hr（mult 0.50）
-- **Actual**: **~1.7 hr**（`52465f0` 10:21 → closeout commit ~12:00，**含 Day 0**）
-- **Ratio**: 1.7 / 1.5 = **~1.13**
-- **Band 判定**: **IN**（0.7–1.2）
+- **Actual**: **~1.85 hr**（`e74efd0` 10:21:12 → `dcc680f` 12:12:26，**含 Day 0**；
+  author date，rebase 後兩側逐秒相同）
+- **Ratio**: 1.854 / 1.5 = **1.236**
+- **Band 判定**: ⛔ **OVER**（> 1.2），**但只超出 0.036**
 
-**發生了什麼**：⭐ **這一欄的第一個 IN-band 資料點**。前四點是 0.23 / 0.24 / 0.50 / 0.84。
-`AD-CalibrationDay0InOrOut-1` 已查明分散來自兩種量法混用；本 phase **事先宣告含 Day 0** 並照做，
-落在 band 內。⚠️ **一個資料點不構成證據** —— 需要連續 3 個同量法的點才談得上調乘數。
+⛔ **這個數字修正過一次，而修正改變了結論。** merge 前我寫的是「1.13 **IN** —— 本欄第一個
+IN-band 點」，那是用**估的**收尾時間（「~12:00」）算的。merge 後拿 author date 逐秒重算：
+`e74efd0` 10:21:12 → `dcc680f` 12:12:26 = **111.23 min = 1.854 hr** ⇒ **1.236，OVER**。
+
+⚠️ 這正是 `AD-EstimateAsMeasurement-1`（W07 記錄的「把推估當量測」）**再次發生** ——
+而且發生在一份專門講「證據要支持結論」的 retrospective 裡。抓到它的是 rebase 後**必須**
+回頭改 SHA 引用這件事，也就是說：**若這次不是 rebase merge，錯的數字會留在 main 上**。
+
+**發生了什麼**：超出 0.036，是 band 邊緣而非系統性低估。`actual / bottom-up = 0.618`，
+遠高於本表 0.4 下限 ⇒ **估算方法本身沒問題**（對照 W07 的 0.17 與 `AD-BottomUpBlueprint-1`）。
+真正吃掉時間的是 Day 3：四個中性化跑完之後**又追加了兩個**，加上逐條放行的隔離實驗 ——
+而那段時間的產出不是程式碼，是**推翻我自己寫的一段因果**。plan §7 的 bottom-up
+把「中性化」估成 0.5 hr，沒有「中性化失敗後的追查」這一項。
+
+**行動**: **KEEP 0.50** —— 單次離群值依規則**忽略**，需連續 3 個 phase `> 1.2` 才調乘數。
 
 ⚠️ **量法的第三個模糊處，本次才浮現**：宣告的窗口是「branch 第一個 commit → closeout commit」，
 而 **plan / checklist 的起草發生在第一個 commit 之前**，不在窗口內。
@@ -47,7 +60,7 @@ Day 0 的**驗證**在窗口內，Day 0 的**起草**不在 → 記進 `AD-Calib
 
 - [x] 已回填 `calibration-matrix.md`（≤ 1 行）
 - [x] 完整敘述已寫入 `calibration-log.md`
-- [x] |R − 1.0| = 13% < 30% → 不需要因此記 AD（但量法模糊處另記）
+- [x] |R − 1.0| = **24%** < 30% → 不需要因此記 AD（但量法模糊處與**推估當量測的再犯**另記）
 
 ---
 

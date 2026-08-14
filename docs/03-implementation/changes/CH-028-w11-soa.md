@@ -1,7 +1,7 @@
 # CH-028 — Statement of Applicability, and the layer that was doing the work
 
 **Type**: Change (phase-produced record — W11, M1 slice 8)
-**Status**: Closed（PR pending）
+**Status**: Closed（MERGED PR #56, `dcc680f`）
 **Created**: 2026-08-14
 **Phase**: [W11](../../01-planning/W11-m1-statement-of-applicability/plan.md)
 
@@ -97,7 +97,7 @@ a different jest config. Every module folder added since W03 has diluted these t
 same way. Branches and functions rose.
 
 **Meta-verification — four planned neutralisations, 4/4 on direction**, written down and committed
-(`0e4b1c6`, author date 03:10Z) before any of them ran:
+(**`e969ed7`**, author date `2026-08-14T03:10:53Z`) before any of them ran:
 
 | N | Neutralised | Predicted | Measured |
 |---|---|---|---|

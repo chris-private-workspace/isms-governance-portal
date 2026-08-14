@@ -215,9 +215,16 @@ _(本 phase 無 user-facing surface。報告一律寫 **gate-only verified**，�
       ⚠️ 含 **AP-7 orphan claim**：本 phase 若動 `02a` 行數，檢查誰引用了那些行號
   - → **AP-7 違規 1 條**：migration 第 117-120 行宣稱了一個沒量過的因果（Day 3 已更正）。
     ⭐ `02a` 行數**未動**（514 → 514），所以沒有任何行號引用失效
-- [ ] **Commit** → ⏳ PR push + open → CI → merge: **PENDING USER CONFIRMATION**
-      （push 是 outward-facing）→ merge 經 `gh pr view` 驗證後翻 `status:` 標籤
-  - ⚠️ **rebase merge 會改寫 SHA** —— 若 closeout 引用了「預測寫在前面」的 commit，
-    改指 main 側並補 **author date**（CH-027 量到它逐秒不變）
-  - 🚧 **阻塞於使用者確認** —— push 是 outward-facing，依 Developer Preferences 必問。
-    ⚠️ 本 phase 的 closeout 引用了 `0e4b1c6`（預測寫在執行之前的證據），rebase merge 後要改指
+- [x] **Commit** → PR push + open → CI → merge
+  - → **MERGED PR #56，`dcc680f`**，2026-08-14T05:24:17Z by laitim2001。
+    ⛔ **經 `gh pr view` 驗證才寫**（上一次使用者說「PR merged」時 #55 實為 OPEN）
+  - → CI 六項全過，且**逐項核對 `gates` 的實際 log**而非採信摘要：
+    `run_all` 8/8 · entity-index **20/35** · backlog-counts OK · unit **376/35** ·
+    int **172/13** · coverage 91.83/91.01/97.5/93.29 —— 與本機**完全一致**
+  - → ⚠️ **rebase merge 改寫全部 7 個 SHA**。已改指 main 側：
+    `0e4b1c6` → **`e969ed7`**（CH-028 的「預測寫在執行之前」證據）·
+    `52465f0` → **`e74efd0`**（calibration 的起點錨）
+  - → ⭐ **author date 逐秒不變**（`2026-08-14T11:10:53+08:00` 兩側相同）——
+    CH-027 之後的**第 3 個資料點**，穩定錨點是 author date 不是 SHA
+  - → ⛔ **改 SHA 引用時順手發現 calibration 算錯**：actual 用了**估的**收尾時間，
+    ratio 由 1.13 (IN) 修正為 **1.236 (OVER)** → `AD-EstimateAsMeasurement-1` 再犯
