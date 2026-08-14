@@ -278,6 +278,85 @@ N4 要證明的是反面，所以**兩件事同時做**：
 **N4 預期：該測試轉綠，全域 203 綠 / 0 紅。**
 ⇒ 若仍紅，代表讓它紅的是別的東西，Day 1 的因果寫錯了。
 
+### 3.2 執行結果 —— 逐項對照（預測 commit `8a0cd04`）
+
+| N | 預期紅 | 實際紅 | 判定 |
+|---|---|---|---|
+| **N1** 清空清單 | 26 | **27** | ⚠️ **方向對、數字差 1** |
+| **N2** 只移除 `Issue` | **恰好 2** | **恰好 2** | ✅ **逐測試相符** |
+| **N3** 補回 `RefCodeCounter` | 2 | **5** | ⚠️ **量測全中，紅的測試少算 3** |
+| **N4** 拿掉前提 + 保持 V3 | **0** | **0** | ✅ |
+
+#### N1 — 27 紅（預期 26）
+
+`audit-coverage` **16 / 16** ✅ · `audit.int.spec` **10 / 12** ✅ ——
+**綠的正是預測的那兩個**（`約束 8 (2)` 靠 `rejects.toThrow()`、`(4)` 靠 42501）。
+⭐ 而且 `audit.int.spec` 的 **10 與 W12 N2 補完非空前提後的 10 完全一致**。
+
+⛔ **第 27 個是 `bench.int.spec.ts`**，我沒預測到。它在 `:217` 有
+`expect(await auditRowCount()).toBe(beforeAudited + 1)` —— benchmark 自己的健全性檢查，
+清單一空就失守。**它紅是正確的。**
+
+⛔ **遺漏的根因是我只列了兩個 suite。** 一個 `grep AUDITED_MODELS` 會回答這件事 ——
+事後跑出來是 **4 個檔案**（module + 兩個 int spec + bench）。
+⚠️ 諷刺的是 Day 0 的覆蓋聲明**明確寫了「未掃 `bench.int.spec.ts`」** ——
+措辭沒錯（它確實沒有範疇斷言），但我沒有回頭問「那它有沒有**別的**依賴」。
+⇒ **覆蓋聲明記錄了盲點，卻沒有觸發任何動作。**
+
+#### N2 — 恰好 2 紅 ⭐ **驗收核心，通過**
+
+```
+● audit coverage (integration) › Issue
+● audit coverage (integration) › the allowlist still matches the write surface
+Tests: 2 failed, 201 passed, 203 total
+```
+
+**其餘 14 條覆蓋測試一條都沒動。** ⇒ 覆蓋是**逐模型成立**的，不是一塊宣稱。
+⛔ 這是本片唯一能區分「真覆蓋」與「宣稱覆蓋」的證據，而它給的是預測的那個形狀。
+
+#### N3 — 三個量測全中，但紅的測試比預測多 3 個
+
+**量測（`AD-EstimateAsMeasurement-1` 要求的那種數字）**：
+
+| 要量的 | 預期 | 實測 |
+|---|---|---|
+| 一次 create 的稽核列數 | 2 | **2** ✅ |
+| counter 那列的 `resource_id` / `after` | null / null | **`{"t":"RefCodeCounter","id":null,"after":null}`** ✅ |
+| 多實體 scope 下 create | throw | **`UnattributableWriteError: refusing RefCodeCounter.upsert: no org_entity_id in the payload and the scope names 2 entities, so the audit row would guess`** ✅ |
+
+⇒ **D-refcode-b 從「讀過 code」升級為「量到」**，plan §3.2 的要求達成。
+
+**⭐ 而第五個紅的測試給了一個我沒想到、且比預測更硬的理由**：
+
+`audit trail › leaves no audit row behind when the domain write fails` —— 我預測它綠，
+理由是「整個交易 rollback」。**錯了。**
+`issueRefCode` 跑在**自己的交易**裡、在領域 insert **之前**
+（`policy.repository.ts:107-112` 早就寫明「The counter and the insert are two statements,
+**not one transaction**」）⇒ 領域寫入被拒時，counter 的稽核列**已經 commit 了**。
+
+⛔ **接上 `RefCodeCounter` 會讓稽核軌跡記錄一件沒有發生的事。**
+對稽核員而言這比缺一列更糟。這條已寫進 `audit.module.ts` 的常數旁，作為第 3 個理由。
+
+未預測到的另外兩個：`bench`（N1 已知的同一原因，我沒回頭套用）與 N3 探針自身
+（它的斷言是故意寫成會紅的，用來把實際值印出來）。
+
+#### N4 — 0 紅 ✅
+
+拿掉 `asset:282` 的兩行前提斷言、**同時**保持 V3 的中性化（對造查 `FICTIONAL`）
+⇒ **203 全綠**。
+⇒ V3 的紅**唯一**來自那兩行前提。Day 1 補的東西確實在守，不是裝飾。
+
+#### 還原驗證
+
+每個 N 跑完立即 `git checkout --` 並確認 `git status --short` 為空；
+最終控制組重跑 **203 / 16 全綠**。四次還原 + 一次控制組，各驗一次。
+
+### 3.3 `RefCodeCounter` 的處置 —— 判定不變，理由從 2 條變 3 條
+
+plan §3.2 寫的是「訊噪比 + 無治理語義」。實測後 `audit.module.ts` 的常數旁記的是：
+**兩列且第二列全空** · **多實體 scope 會 throw** · ⭐ **失敗的寫入會留下稽核列**。
+⇒ 判定（不接）不變，但它現在**由三個實測結果支持**，而不是由一段推理支持。
+
 ### Day 0 時數
 
 | 項目 | Actual |
