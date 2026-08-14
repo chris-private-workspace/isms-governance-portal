@@ -80,11 +80,7 @@ describe('soa module (integration)', () => {
       await resolver.resolve({ subjectId: 'int-test', assignedEntityCodes: codes, rollUp }),
     );
 
-  const create = async (
-    code: 'SG1' | 'HK1',
-    over: Record<string, unknown> = {},
-    track = true,
-  ) => {
+  const create = async (code: 'SG1' | 'HK1', over: Record<string, unknown> = {}, track = true) => {
     seq += 1;
     const row = await repo.create(await clientFor([code]), {
       orgEntityId: code === 'HK1' ? HK1 : SG1,
@@ -281,11 +277,18 @@ describe('soa module (integration)', () => {
   });
 
   it('12. a row cannot be moved out of the entity that owns it', async () => {
-    // ⭐ WRITTEN BECAUSE N4 FOUND NOTHING. Neutralising the UPDATE policy's
-    // WITH CHECK left all 11 tests green: nothing here had ever tried to change a
-    // row's org_entity_id, so the migration's claim — that without WITH CHECK a
-    // caller could move its own row into another entity's scope — was a guard
-    // shipped with no test proving it. AD-BorrowedRefusal-1, sixth time.
+    // ⭐ WRITTEN BECAUSE N4 FOUND NOTHING, then kept because what it found next
+    // was more interesting. Neutralising the UPDATE policy's WITH CHECK left all
+    // 11 tests green — nothing here had ever tried to change a row's
+    // org_entity_id. This test is the repair.
+    //
+    // ⛔ BUT THE REPAIR STAYED GREEN UNDER N4 TOO, so the guard was isolated by
+    // permitting one policy at a time (W11 Day 3): _update WITH CHECK -> true is
+    // still refused, + _insert WITH CHECK -> true is still refused, + _read USING
+    // -> true and the row leaves. What refuses a cross-entity move is the SELECT
+    // policy, checked against the NEW row. This test pins the BEHAVIOUR — a row
+    // cannot leave its entity — and deliberately does not claim which layer does
+    // it; the migration records that, because only a neutralisation can show it.
     //
     // ⛔ RAW UPDATE, NO RETURNING, and that is not stylistic. Prisma's update()
     // emits RETURNING; once org_entity_id says HK1 the SELECT policy refuses to

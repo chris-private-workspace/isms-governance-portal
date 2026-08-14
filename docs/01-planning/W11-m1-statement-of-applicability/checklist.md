@@ -164,17 +164,28 @@ _(本 phase 無 user-facing surface。報告一律寫 **gate-only verified**，�
 
 ### 3.2 執行 + 逐項對照
 
-- [ ] **四個中性化各自執行、還原、記錄**
+- [x] **四個中性化各自執行、還原、記錄**
   - DoD: 每個 case 跑完立即還原並驗證還原成功；控制組與最終還原各驗一次
   - ⛔ **零轉紅先查再下結論**；**方向不符預期時先懷疑元驗證本身**（`AD-MetaVerificationBug-1`）
   - Verify: 結果表逐列對照預測表
+  - → 控制組 **11 passed**；每次 `git checkout apps/api/prisma/migrations/` 後確認該目錄為空
+  - → 原定四項 **4 / 4 方向全中**：N1（5 · 9 紅）· N2（7 紅、6 綠）· N3（10 紅）· N4（零轉紅）
+  - → ⛔ **追加的 N4d / N4c 兩項預測全錯（0 / 2）** —— 而錯的那兩個逼出了隔離實驗
+  - → 🚩 **真相：擋住跨實體搬移的是 SELECT policy，不是 `_update` 的 `WITH CHECK`**。
+    逐條放行到 `_read` 才放行成功（`UPDATE 1`）。migration 第 117-120 行的因果**已更正**。
+    ⚠️ 改的是**尚未被任何 DB 套用**的 migration —— 先查過 `isms_dev` 的 `_prisma_migrations` 才動
+  - → 補 **測試 12**（raw UPDATE、無 `RETURNING`）：它釘住**行為**，且**刻意不宣稱是哪一層做的**
 
 ### 3.3 D3 的實測（`AD-UniqueKeyOracle-1` 第 2 個資料點）
 
-- [ ] **量測唯一鍵是否為 existence oracle**
+- [x] **量測唯一鍵是否為 existence oracle**
   - DoD: N3 狀態下，撞別實體的 `(framework, clause_ref)` 與不撞的**回不同 SQLSTATE**；
     修補後兩者收斂。⭐ **這是量測不是宣稱**
   - Verify: int 測試逐一斷言 SQLSTATE
+  - → **量到了**：撞 HK1 持有的 clause → `DuplicateKeyError`（**23505**）；撞沒人持有的 → **成功**。
+    鍵含 `org_entity_id` 時**兩者都成功**
+  - → ⭐ 判準**可移轉到沒有 parent 的表**，但**失敗模式不同**：W10 是 23505 vs 23503
+    （兩個都是錯誤）；這裡是 **23505 vs 成功** —— 沒有 FK 可掉下去，oracle **更響亮**
 
 ---
 
