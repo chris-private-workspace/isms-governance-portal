@@ -57,6 +57,68 @@ D-vacuous 掃的是 **13 個 `*.int.spec.ts`**（11 modules + `entity-scope` + `
 D-refcode-b 讓 §3.2 的理由更硬且改變 N3 的預期方向；D-write-ops 讓 §3.y 的
 「覆蓋」一詞需要在 CH-030 附一句限定。
 
+---
+
+## Day 1 — 2026-08-14 — 空集合回頭檢查（US-1）
+
+### 1.1 逐檔結果表（掃描於 Day 0，此處是完整版 —— Day 0 只列了命中的）
+
+**掃了 13 個 `*.int.spec.ts`，~30 個範疇測試。缺非空前提 4 個，本來就對 ~26 個。**
+
+| 檔案 | 範疇測試 | 判定 |
+|---|---|---|
+| `entity-scope.int.spec.ts` | `:83` 自己的實體 · `:92` 404-not-403 · `:107` 跨實體寫 · `:125` 搬移 · `:139` 正向 · `:162` 全區滾升 · `:189` no-records vs no-scope | ✅ 7 個本來就對 |
+| `entity-scope.int.spec.ts` | **`:155` 滾升子樹** · **`:168` 無滾升看不到** | ⛔ **2 個缺** |
+| `audit.int.spec.ts` | `:199` 約束8(1) · `:219` (2) · `:240` (3) · `:258` (4) | ✅ 4 個對（**(1) 由 W12 修好，`:212-213`**）|
+| `asset.int.spec.ts` | `:113` 跨實體讀 · `:289` 滾升 | ✅ 2 個對 |
+| `asset.int.spec.ts` | **`:282` test 7 RLS** | ⛔ **1 個缺** |
+| `risk.int.spec.ts` | `:248` 跨實體讀 · `:362` 滾升 | ✅ 2 個對 |
+| `risk.int.spec.ts` | **`:353` test 14 RLS** | ⛔ **1 個缺** |
+| `policy.int.spec.ts` | `:88` 跨實體讀 · `:139` 滾升 · `:316` 併發（`:331` 有 `toBeGreaterThan(0)`）| ✅ 3 個對 |
+| `control.int.spec.ts` | `:123` 群組共享讀 · `:135` RLS（`toEqual([SG1_GROUP])`）· `:340` 滾升 | ✅ 3 個對 |
+| `control-test.int.spec.ts` | `:206` 跨實體讀 · `:275` 滾升 | ✅ 2 個對 |
+| `evidence.int.spec.ts` | `:182` 跨實體讀 · `:245` 滾升 | ✅ 2 個對 |
+| `issue.int.spec.ts` | `:118` 跨實體讀 · `:188` 滾升 | ✅ 2 個對 |
+| `action.int.spec.ts` | `:186` 跨實體讀 · `:245` 滾升 | ✅ 2 個對 |
+| `assessment.int.spec.ts` | `:346` 跨實體讀 · `:421` 滾升 | ✅ 2 個對（⚠️ `:346` 標題說 3 張表只測 2 張 → BACKLOG）|
+| `rm-report.int.spec.ts` | `:239` 跨實體讀（**`toHaveLength(1)` 對造**）· `:256` RLS（自建 fixture）· `:269` 滾升 | ✅ 3 個對 |
+| `soa.int.spec.ts` | `:153` 跨實體讀 · `:227` 滾升 | ✅ 2 個對 |
+| `bench.int.spec.ts` | — | ⚪ **未掃**（benchmark，無範疇斷言）|
+
+⭐ **~26 個本來就對，而且修過的地方都留了註解** —— `AD-VacuousScopeTest-1` 的真相是
+「**掃描沒做完**」而不是「沒有做法」。做法早在 **W05 的 seed 註解**（`int-global-setup.js:132-134`）
+就寫下了：「One-sided fixtures are how an isolation suite passes while proving nothing」。
+
+### 1.2 補非空前提（4 處，commit `70db22e`）
+
+| 位置 | 前提來源 | 做法 |
+|---|---|---|
+| `entity-scope.int.spec.ts:155` | seed（`policies` 兩邊都有）| 讀回 `SG1_POLICY` 在滾升結果中、`HK1_POLICY` 在 HK1 scope 中 |
+| `entity-scope.int.spec.ts:168` | seed | 先用**滾升**讀回 `SG1_POLICY`，證明「不滾升看不到」是拒絕不是空表 |
+| `asset.int.spec.ts:282` | seed（`assetGroups` / `assets` 兩邊都有）| 用 HK1 scope 讀回 `length > 0` |
+| `risk.int.spec.ts:353` | ⛔ **無** —— seed 沒有 `risks` | **自己建一筆 HK1 risk** |
+
+⛔ **這四處的前提來源不同，是 Day 0 讀 seed 才知道的** —— 若假設「seed 兩邊都有」，
+risk 那一處會補成一個仍然恆真的斷言。
+
+### 1.3 中性化：讓對造集合為空，證明補的東西會紅
+
+**⛔ 預期寫在執行之前**（此段先 commit，再跑）：
+
+| # | 中性化 | 預期 |
+|---|---|---|
+| V1 | `:155` 的 `clientFor(['HK1'])` → `clientFor(['SG'])`（SG 自己無 policy）| 該測試轉紅 |
+| V2 | `:168` 的 `clientFor(['SG'], true)` → `clientFor(['SG'])`（不滾升 ⇒ 空）| 該測試轉紅 |
+| V3 | `asset:282` 前提兩行的 `orgEntityId: HK1` → `FICTIONAL` | test 7 轉紅 |
+| V4 | `risk:353` 前提行的 `orgEntityId: HK1` → 不存在的 UUID | test 14 轉紅 |
+
+**整體預期**：**187 → 4 failed / 183 passed**，且紅的**恰好**是上述四個。
+
+⚠️ **一個已預見的干擾，寫在前面**：V4 若改成「拿掉那筆 `create`」則**不會轉紅** ——
+同檔 `:248` test 10 已經建過 HK1 risk，jest 檔案內循序執行。所以 V4 改的是**查詢目標**
+而不是移除寫入。⭐ 這也順帶說明我補的 `create` 在**當前執行順序下是冗餘的** ——
+保留它是因為測試不該依賴另一個測試先跑（`AD-JestFileOrder-1`）。
+
 ### Day 0 時數
 
 | 項目 | Actual |
