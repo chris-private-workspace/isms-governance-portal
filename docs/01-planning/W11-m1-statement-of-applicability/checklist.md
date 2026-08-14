@@ -152,10 +152,15 @@ _(本 phase 無 user-facing surface。報告一律寫 **gate-only verified**，�
 
 ### 3.1 中性化預測（⛔ 寫下並 **commit** 之後才執行）
 
-- [ ] **四個中性化的預期方向寫進 progress.md 並 commit**
+- [x] **四個中性化的預期方向寫進 progress.md 並 commit**
   - DoD: N1 SELECT policy · N2 INSERT `WITH CHECK` · N3 唯一鍵中的 `org_entity_id` ·
     N4 複合 FK —— 每個寫明**預期哪些測試轉紅、哪些不動**
   - ⚠️ **N2 預期可能零轉紅**（`AD-BorrowedRefusal-1` 已 5 次）—— 預測要寫出來，不是事後解釋
+  - → 預測表已寫進 progress §3.1 並**先 commit**。基準 `soa.int.spec.ts` **11 passed**
+  - → ⛔ **N4 改標的**：plan 寫「複合 FK」，但 D10 已確認本表**沒有**複合 FK。改指
+    `..._update` 的 `WITH CHECK` 半邊 —— 那是本表唯一沒被任何測試量過的 guard。plan §3.y 原文保留
+  - → ⚠️ **N2 這次預期「會」轉紅**（測試 7 是照 `AD-BorrowedRefusal-1` 的教訓寫的）；
+    改成 **N4 預期零轉紅**。預測寫在前面，不是事後解釋
 
 ### 3.2 執行 + 逐項對照
 
