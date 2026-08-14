@@ -109,6 +109,8 @@ model OrgEntity {
   riskManagementReports RiskManagementReport[]
   rmReportVersions      RMReportVersion[]
 
+  statementsOfApplicability StatementOfApplicability[]
+
   version   Int       @default(1)
   createdAt DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
   updatedAt DateTime  @updatedAt @map("updated_at") @db.Timestamptz(6)
@@ -183,6 +185,8 @@ model User {
   /// governance bodies (ITSC, ISC) and forbids coercing a committee into a user
   /// record — a relation here would be exactly that coercion.
   ownedRiskManagementReports RiskManagementReport[] @relation("RmReportOwner")
+
+  ownedStatementsOfApplicability StatementOfApplicability[] @relation("SoaOwner")
 
   @@map("users")
 }
@@ -1708,4 +1712,116 @@ model RMReportVersion {
   @@index([orgEntityId, retiredAt])
   @@index([reportId, effectiveDate])
   @@map("rm_report_versions")
+}
+
+/// How far a control named by the SoA has actually been put in place.
+///
+/// ⚠️ SELF-DECLARED VALUES. 02a:215 names the column and gives no values, so
+/// these are a choice being recorded rather than a specification being followed
+/// (the W04 D3 ruling: record the choice where the reader will be, not in a
+/// registry nobody asked for).
+///
+/// ⛔ DELIBERATELY NO `not_applicable`. `applicable` is already a boolean on the
+/// same row, and two columns stating one fact have no reconciliation rule — the
+/// judgement that removed ControlTest.result (02a:225) and RMReportVersion.state
+/// (02a:260). A row with applicable=false answers "why not" in `justification`;
+/// its implementation status is simply not asked.
+enum SoaImplementationStatus {
+  implemented
+  partially_implemented
+  not_implemented
+  planned
+
+  @@map("soa_implementation_status")
+}
+
+/// Statement of Applicability (02a:215) — the mandatory ISO 27001 artifact, one
+/// row per framework clause per entity.
+///
+/// ⭐ `framework` IS A STRING, NOT A FOREIGN KEY, and the column is named
+/// `framework` rather than the spec's `framework_id` because the name should not
+/// claim an edge that does not exist. `Framework` is on no section of the 02a §0
+/// index — whose first sentence is that nothing off it is buildable — and a
+/// search of the whole document finds the word nowhere: the spec has never said
+/// what a Framework would contain. Building one here would mean inventing the
+/// entity before implementing it.
+///
+/// This is the identical ruling W06 made for Control.framework_refs
+/// (schema.prisma:942-946), and that docstring already named the exit: when
+/// Framework arrives, these columns become the migration's INPUT rather than a
+/// second source of truth kept beside it. Two places now say the same thing, and
+/// they say it the same way on purpose.
+///
+/// ⚠️ NO `control_id`, though 02a:215 describes the SoA as "derived from which
+/// controls were selected during risk treatment". The spec gives the derivation
+/// and not the column — half an edge, the shape recorded as AD-IssueBareEnum-1.
+/// Inventing one would be inventing a field (confirmed parameter #9). Today the
+/// link is `clause_ref` matching a string inside Control.framework_refs, which is
+/// a correspondence a human can see and a query cannot follow.
+///
+/// ⚠️ NO `status`. §1.1 lists one for every domain entity, but §4 defines no
+/// lifecycle for the SoA, and Control ships without one for the same reason.
+/// `implementation_status` is the only state this row has.
+model StatementOfApplicability {
+  id String @id @default(uuid()) @db.Uuid
+
+  /// `SOA-<ENTITY_CODE>-<seq>`. Self-declared, as every prefix in this layer is —
+  /// 02a:91 fixes the rule (prefix by type and entity) and names one only for Risk.
+  refCode String @unique @map("ref_code")
+
+  orgEntityId String @map("org_entity_id") @db.Uuid
+
+  /// e.g. `ISO 27001`. Free text — see the model header for why this is not a FK.
+  framework String
+
+  /// e.g. `A.5.9` (02a:215).
+  clauseRef String @map("clause_ref")
+
+  applicable Boolean
+
+  /// Why the clause was included or excluded. The auditable half of `applicable`;
+  /// nullable because the spec does not require it and an empty justification is
+  /// more honest than a placeholder.
+  justification String?
+
+  implementationStatus SoaImplementationStatus @map("implementation_status")
+
+  /// ⚠️ TEXT, NOT A FOREIGN KEY TO User — the same reading W10 applied to
+  /// RMReportVersion.prepared_by / approved_by. 02a:215 says `approved_by` without
+  /// saying it is a user id, and the approver of an SoA is frequently a committee.
+  /// ⛔ The cost is on the record: what this row cannot prove is WHO approved it.
+  /// That is the audit-trail gap (ADR-0003, open), not something a column fixes.
+  approvedBy String? @map("approved_by")
+  approvedAt DateTime? @map("approved_at") @db.Timestamptz(6)
+
+  ownerUserId String? @map("owner_user_id") @db.Uuid
+  createdBy   String? @map("created_by") @db.Uuid
+  updatedBy   String? @map("updated_by") @db.Uuid
+
+  version    Int  @default(1)
+  extensions Json @default("{}") @db.JsonB
+
+  orgEntity OrgEntity @relation(fields: [orgEntityId], references: [id])
+  owner     User?     @relation("SoaOwner", fields: [ownerUserId], references: [id])
+
+  createdAt DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt DateTime  @updatedAt @map("updated_at") @db.Timestamptz(6)
+  retiredAt DateTime? @map("retired_at") @db.Timestamptz(6)
+
+  /// One row per clause per framework per entity — with org_entity_id FIRST, and
+  /// not only for the reason W10 put it in RMReportVersion's key.
+  ///
+  /// ⛔ Both other halves come from the request body, which is exactly the
+  /// AD-UniqueKeyOracle-1 criterion: a unique tuple the caller chooses is an
+  /// existence oracle, because unique-index enforcement does not respect RLS. W10
+  /// measured that on rm_report_versions and had to add a migration to close it.
+  /// Here it is in the first version, and W11 Day 3 measures whether the oracle is
+  /// actually shut rather than assuming the fix transfers.
+  ///
+  /// ⚠️ Entity leads rather than trails because scope is the first predicate of
+  /// every query (multi-tenant-data.md:50). W10's key opens with report_id only
+  /// because a parent id precedes it; the SoA has no parent.
+  @@unique([orgEntityId, framework, clauseRef])
+  @@index([orgEntityId, retiredAt])
+  @@map("statements_of_applicability")
 }
