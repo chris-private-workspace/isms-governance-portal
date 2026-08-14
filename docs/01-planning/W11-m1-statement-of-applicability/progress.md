@@ -234,3 +234,38 @@ branches **90.81 → 91.01**（+0.20）· funcs **97.4 → 97.5**（+0.10）。
 DI wiring 只有 int suite 會走，而 int 跑在另一個 jest config，不計入這份報告。
 ⇒ **每新增一個模組資料夾就稀釋一次 stmts/lines**，前 7 個 slice 都發生過。
 這不是本 phase 的退步，但 plan §5 第 7 條寫的是「不低於 baseline」，所以照實記，不改口徑。
+
+---
+
+## Day 3 — 2026-08-14 — 元驗證
+
+### 3.1 預期方向（**寫於執行任何一項中性化之前**，本節與其 commit 早於下方實測）
+
+中性化一律改 **migration 來源**（`AD-NeutraliseRebuiltState-1`）—— int setup 每次重建資料庫，
+改 live DB 的手術不算數。基準：`soa.int.spec.ts` **11 passed**。
+
+⚠️ **中性化 = 放行，不是刪除。** SELECT policy 若整個刪掉，RLS + FORCE 之下變成全拒，
+**每個測試都會紅但全都是為了錯的理由**。要量的是「這條 guard 承重嗎」，所以改成恆真。
+
+| N | 中性化的東西 | 預期轉紅 | 預期**不動** | 理由 |
+|---|---|---|---|---|
+| **N1** | `statements_of_applicability_read` 的 `USING` → `(true)` | **測試 5**（跨實體讀）· **測試 9**（roll-up 子樹）| 其餘 9 個 | `repo.list()` 的 WHERE 只有 `retiredAt: null` —— entity 過濾**完全**由 RLS 做。放行後 HK1 的 list 會含 SG1 的列，SG 的 roll-up 會含 HK1 的列 |
+| **N2** | `statements_of_applicability_insert` 的 `WITH CHECK` → `(true)` | **測試 7**，且**兩個斷言都紅**（raw INSERT 會成功，`landed` 由 0 變 1）| ⚠️ **測試 6 仍綠** —— 它走 `repo.create`，先呼叫 `issueRefCode`，而 counter 是 entity-scoped，**在到達本表之前就被拒** | ⭐ `AD-BorrowedRefusal-1` 的檢查點。測試 7 是**照著那個教訓寫的**（繞開發號器 + 無 `RETURNING`），所以這次預期它**會**轉紅 —— 若沒有，代表還有第三個東西在擋，**先查是什麼再下結論** |
+| **N3** | 唯一鍵去掉 `org_entity_id` → `("framework", "clause_ref")` | **測試 10** —— `collides` 變 `DuplicateKeyError`（23505）而 `doesNot` 仍成功，兩者**不再相同** | 測試 11（自己實體的重複仍是 23505）| ⭐ **D3 的實測** = `AD-UniqueKeyOracle-1` 的第 2 個資料點 |
+| **N4**（⛔ **已改標的**）| `statements_of_applicability_update` 移除 `WITH CHECK` 半邊，保留 `USING` | ⚠️ **預期零轉紅** | **全部 11 個仍綠** | 本表**沒有任何測試**會把一列的 `org_entity_id` 改成別的實體 |
+
+#### ⛔ N4 為什麼換了標的（plan §3.y 原文保留不改）
+
+plan §3.y 的 N4 是「移除**複合 FK**」，而 Day 1 的 **D10** 已經確認**本表沒有複合 FK** ——
+SoA 不是任何表的子表，沒有可複合的對象。原意是「跨實體的 `org_entity_id` 是否被拒」。
+
+在一張沒有 parent 的表上，回答那個問題的活著的 guard 只有兩個 `WITH CHECK`：
+INSERT 的那個由 **N2** 涵蓋；**UPDATE 的那個今天一個測試都沒有**。
+⇒ N4 改指 UPDATE 的 `WITH CHECK`。這比宣告 N/A 更貼近原意，也剛好指向唯一沒被量過的地方。
+
+⛔ **N4 的預期是「不動」，而那不是好消息。** migration 第 117-120 行寫著
+「只有 `USING` 的話，呼叫端可以把自己擁有的一列搬進別的實體的範疇」——
+若 N4 真的零轉紅，那句話就是一個**沒有任何測試在證明的宣稱**，
+與 W05 / W09 / W10 量到的是同一個形狀。屆時要補的是一個**跨實體 UPDATE** 測試，
+不是把 N4 改成別的東西。⚠️ 補完之後**必須再跑一次 N4**（W10 的教訓：第一版補的測試
+用了 `create()`，`RETURNING` 讓 SELECT policy 代答，重跑才發現它仍然全綠）。
