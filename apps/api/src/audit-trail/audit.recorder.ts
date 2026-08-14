@@ -58,6 +58,22 @@ import {
   type AuditLogWriter,
   type AuditWrite,
 } from '../contracts/audit-hook';
+import { GENESIS_HASH, contentHash, type AuditRowContent } from './chain';
+
+/**
+ * Which strategy fills the hash columns — the choice ADR-0003 exists to make.
+ *
+ * `db-trigger` (A) leaves them to audit_log_chain(), which takes a per-entity
+ * advisory lock, reads the previous row and hashes in PL/pgSQL.
+ *
+ * `app-chain` (B) computes the content hash here and writes it with the row, so
+ * the database does no extra work — at the cost of no per-row link, which is
+ * what the periodic anchors exist to make up for.
+ *
+ * ⚠️ Both are REAL write paths, not benchmark scaffolding. Measuring B by
+ * simulating it in a test would measure the simulation.
+ */
+export type ChainMode = 'db-trigger' | 'app-chain';
 
 /**
  * The operations that change something. Reads are absent rather than filtered
@@ -106,7 +122,11 @@ export class AuditLogRecorder implements AuditHook {
    *   is a wiring change, not a redesign. The list is passed in rather than
    *   hard-coded here so the neutralisation in Day 3 can empty it.
    */
-  constructor(private readonly auditedModels: ReadonlySet<string>) {}
+  constructor(
+    private readonly auditedModels: ReadonlySet<string>,
+    private readonly mode: ChainMode = 'db-trigger',
+    private readonly clock: () => Date = () => new Date(),
+  ) {}
 
   intercept(writer: AuditLogWriter, write: AuditWrite, context: AuditContext): unknown | null {
     // ⚠️ A raw query has no model and is therefore NOT audited. That is a real
@@ -121,8 +141,22 @@ export class AuditLogRecorder implements AuditHook {
     const data = asRecord(args?.['data']);
     const where = asRecord(args?.['where']);
 
+    const row = {
+      orgEntityId: this.resolveEntity(data, context, write),
+      actorId: null,
+      actorScope: context.entityIds.join(','),
+      operation: `${write.model}.${write.operation}`,
+      resourceType: write.model,
+      resourceId: this.resolveResource(data, where),
+      accessAllowed: true,
+      attemptedEntity: null,
+      before: null,
+      after: data,
+    };
+
     return writer.auditLog.create({
       data: {
+        ...this.chainColumns(row),
         // ⛔ `before` and `after` are OMITTED rather than set to null, and this
         // is not a style preference — it is what makes the row verifiable.
         // Passing null to a Json? field stores JSON null, which is a VALUE:
@@ -137,27 +171,51 @@ export class AuditLogRecorder implements AuditHook {
         // null in the migration — so this is belt and braces on purpose: one
         // writer forgetting would otherwise silently un-verify a chain.
         ...(data === null ? {} : { after: data }),
-        orgEntityId: this.resolveEntity(data, context, write),
+        orgEntityId: row.orgEntityId,
         // Null until M4 supplies an identity model. A placeholder user id here
         // would answer "who did this" with a lie, which is worse than an
         // unanswered question on a table auditors read.
-        actorId: null,
+        actorId: row.actorId,
         // What the caller was authorised to reach at the time — the part of
         // "source context" that is available, and the part roll-up
         // accountability needs (multi-tenant-data.md:161).
-        actorScope: context.entityIds.join(','),
-        operation: `${write.model}.${write.operation}`,
-        resourceType: write.model,
-        resourceId: this.resolveResource(data, where),
+        actorScope: row.actorScope,
+        operation: row.operation,
+        resourceType: row.resourceType,
+        resourceId: row.resourceId,
         // Always true here: this hook only ever runs on a write the scope
         // resolver already admitted. Refusals are recorded by a path that does
         // not exist yet — see the model docstring.
-        accessAllowed: true,
-        attemptedEntity: null,
+        accessAllowed: row.accessAllowed,
+        attemptedEntity: row.attemptedEntity,
         // `before` is absent from this object entirely — see the note above. This
         // layer cannot read prior state, so the column stays SQL NULL.
       },
     });
+  }
+
+  /**
+   * The columns that differ between the two strategies, and nothing else.
+   *
+   * ⚠️ `app-chain` has to send `occurred_at` as well, because the hash covers it
+   * and the value must be the one that lands in the row — the column default
+   * would be assigned by PostgreSQL after this hash was computed. That makes the
+   * timestamp the APPLICATION's clock rather than the database's, which is a
+   * real difference and not an implementation detail: several app instances have
+   * several clocks, and skew between them becomes skew in the audit trail's
+   * ordering. Strategy A has one clock by construction. ADR-0003 says so.
+   */
+  private chainColumns(row: Omit<AuditRowContent, 'occurredAt'>): Record<string, unknown> {
+    // A: the BEFORE INSERT trigger fills both columns. Sending values here would
+    // be pointless — it overwrites them — and misleading to read.
+    if (this.mode === 'db-trigger') return {};
+
+    const occurredAt = this.clock();
+    return {
+      occurredAt,
+      prevHash: GENESIS_HASH,
+      rowHash: contentHash({ ...row, occurredAt }),
+    };
   }
 
   /**
