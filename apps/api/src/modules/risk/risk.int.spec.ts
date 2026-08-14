@@ -27,9 +27,10 @@
  *       RLS to threats would break the methodology with every gate green.
  *
  * Created: 2026-08-11 (Phase W05)
- * Last Modified: 2026-08-11
+ * Last Modified: 2026-08-14
  *
  * Modification History (newest-first):
+ *   - 2026-08-14: Add a non-empty premise to test 14 (W13) — AD-VacuousScopeTest-1
  *   - 2026-08-11: Initial creation (Phase W05)
  */
 import { Test, type TestingModule } from '@nestjs/testing';
@@ -351,6 +352,18 @@ describe('risk module (integration)', () => {
   });
 
   it('14. RLS holds at the client, independently of the repository', async () => {
+    // ⛔ THE PREMISE, AND HERE IT HAS TO BE BUILT. int-global-setup.js seeds an
+    // asset for both entities but NO risks, so unlike the asset suite this one
+    // cannot read its premise back from the seed — without the write below,
+    // "SG1 sees no HK1 risk" would hold on an empty table and prove nothing.
+    await create(['HK1'], {
+      orgEntityId: HK1,
+      assetId: HK1_ASSET,
+      title: 'HK1 risk that has to exist for the refusal to mean anything',
+    });
+    const hk1 = await clientFor(['HK1']);
+    expect((await hk1.risk.findMany({ where: { orgEntityId: HK1 } })).length).toBeGreaterThan(0);
+
     const sg1 = await clientFor(['SG1']);
     const rows = await sg1.risk.findMany({ where: { orgEntityId: HK1 } });
 

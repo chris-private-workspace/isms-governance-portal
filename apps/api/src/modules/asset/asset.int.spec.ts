@@ -18,9 +18,10 @@
  *       found afterwards
  *
  * Created: 2026-08-12 (Phase W06)
- * Last Modified: 2026-08-12
+ * Last Modified: 2026-08-14
  *
  * Modification History (newest-first):
+ *   - 2026-08-14: Add a non-empty premise to test 7 (W13) — AD-VacuousScopeTest-1
  *   - 2026-08-12: Initial creation (Phase W06)
  */
 import { Test, type TestingModule } from '@nestjs/testing';
@@ -280,6 +281,18 @@ describe('asset module (integration)', () => {
   });
 
   it('7. RLS holds at the client, independently of the repository', async () => {
+    // ⛔ THE PREMISE FIRST. Asking for HK1's rows and getting none proves the
+    // filter only if HK1 HAS rows; otherwise this test passes against an empty
+    // table. int-global-setup.js:132 seeds both sides for exactly this reason
+    // ("with only SG1 data, 'HK1 cannot see SG1's asset' and 'HK1 has no
+    // assets' are the same observation") — this reads that guarantee back
+    // rather than trusting it, because a seed can be edited.
+    const hk1 = await clientFor(['HK1']);
+    expect((await hk1.assetGroup.findMany({ where: { orgEntityId: HK1 } })).length).toBeGreaterThan(
+      0,
+    );
+    expect((await hk1.asset.findMany({ where: { orgEntityId: HK1 } })).length).toBeGreaterThan(0);
+
     const sg1 = await clientFor(['SG1']);
 
     expect(await sg1.assetGroup.findMany({ where: { orgEntityId: HK1 } })).toHaveLength(0);

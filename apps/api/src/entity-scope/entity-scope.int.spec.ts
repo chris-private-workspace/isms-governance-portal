@@ -20,9 +20,10 @@
  *   a caller that the id it guessed is real.
  *
  * Created: 2026-08-09 (Phase W02)
- * Last Modified: 2026-08-09
+ * Last Modified: 2026-08-14
  *
  * Modification History (newest-first):
+ *   - 2026-08-14: Add non-empty premises to two roll-up tests (W13) — AD-VacuousScopeTest-1
  *   - 2026-08-10: Assert isolation, not an exact row list (W03) — order-dependent on CI
  *   - 2026-08-09: Initial creation (Phase W02)
  */
@@ -155,6 +156,17 @@ describe('entity scoping (integration)', () => {
   it('rolls up the authorised subtree and stops at the sibling branch', async () => {
     const rows = await (await clientFor(['SG'], true)).policy.findMany();
 
+    // ⛔ THE PREMISE, WITHOUT WHICH THE TWO ASSERTIONS BELOW ARE VACUOUS. On an
+    // empty array `every` is true and `some` is false, so "SG's roll-up holds
+    // no HK1 row" and "SG's roll-up returned nothing" would be the same
+    // observation — AD-VacuousScopeTest-1, whose subject was audit_log's copy
+    // of this shape. Membership, not an exact list: an exact list also asserts
+    // "no other row exists", which is the fixture bookkeeping the docstring
+    // above explains this file already got wrong once.
+    expect(rows.map((r) => r.id)).toContain(SG1_POLICY);
+    const hk = await (await clientFor(['HK1'])).policy.findMany();
+    expect(hk.map((r) => r.id)).toContain(HK1_POLICY);
+
     expect(rows.every((r) => r.orgEntityId === SG1)).toBe(true);
     expect(rows.some((r) => r.orgEntityId === HK1)).toBe(false);
   });
@@ -169,6 +181,14 @@ describe('entity scoping (integration)', () => {
     // SG holds no policies of its own; its child does. Without roll-up the
     // grant must not inherit downwards — otherwise "roll-up" would be a label
     // on behaviour that happens regardless.
+    //
+    // ⛔ And the child's row has to be SHOWN to exist, not assumed. This
+    // assertion's whole content is an empty result, which an empty database
+    // would also produce; the roll-up read below is what makes the emptiness
+    // mean "refused" rather than "nothing was there".
+    const reachable = await (await clientFor(['SG'], true)).policy.findMany();
+    expect(reachable.map((r) => r.id)).toContain(SG1_POLICY);
+
     const rows = await (await clientFor(['SG'])).policy.findMany();
 
     expect(rows).toEqual([]);
