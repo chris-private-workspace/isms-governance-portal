@@ -60,6 +60,23 @@ CREATE TABLE "audit_log" (
 -- means the trigger did not run, which is exactly what W12's N1 neutralisation
 -- produces and exactly what verify must report as a break.
 
+-- ⛔ A jsonb COLUMN HAS TWO EMPTY STATES AND JAVASCRIPT ONLY HAS ONE. SQL NULL
+-- means "no snapshot"; the jsonb value `null` is a snapshot whose content is
+-- null, and it renders as the four characters `null`, which the hash covers.
+-- Read back through Prisma both arrive as JavaScript `null`, so a verifier
+-- outside the database cannot tell which one the row holds and recomputes the
+-- wrong bytes for one of them.
+--
+-- Measured, W12 Day 2: the first integration run reported every audit row
+-- broken at the first row, because the writer passed null to a Json? field and
+-- Prisma stored JSON null. The writer now omits the key — and this constraint
+-- makes the ambiguous state impossible, so the chain's verifiability does not
+-- depend on every future writer remembering.
+ALTER TABLE "audit_log" ADD CONSTRAINT "audit_log_before_not_json_null"
+  CHECK ("before" IS NULL OR jsonb_typeof("before") <> 'null');
+ALTER TABLE "audit_log" ADD CONSTRAINT "audit_log_after_not_json_null"
+  CHECK ("after" IS NULL OR jsonb_typeof("after") <> 'null');
+
 -- CreateIndex
 -- "the last row for this entity" (the chain read) and the order verify walks.
 -- Entity leads because scope is the first predicate of every query
