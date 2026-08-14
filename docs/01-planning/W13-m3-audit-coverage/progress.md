@@ -211,6 +211,73 @@ D-reach 時讀的），但沒有把它連到 plan §3.0 的做法上。**讀過 
 | `run_all` | **8 / 8** |
 | `check_entity_index` | **21 / 35** ✅ **未變動** —— 本片不建表，變了就是有東西不對 |
 
+---
+
+## Day 3 — 2026-08-14 — 中性化元驗證（純後端 ⇒ 無 drive-through）(US-4)
+
+_(本 phase 無 user-facing surface。以下一律 **gate-only verified**，絕不暗示可用性。)_
+
+### 3.1 四個中性化的預期方向 —— ⛔ 本節先 commit，再執行
+
+**兩個 suite 會受影響，先把它們的測試數釘住**：
+`audit.int.spec.ts` **12 個** · `audit-coverage.int.spec.ts` **16 個**（15 覆蓋 + 1 漂移守衛）。
+其餘 11 個模組 spec + `entity-scope` 走 module-local 圖，**Day 2 已量到它們沒有 hook**
+⇒ 四個中性化都**不應**動到它們。基線 **203 / 16**。
+
+⚠️ **逐測試預測，不是總數預測**（W12 的 N4 在這裡掛錯過測試）。
+
+#### N1 — `AUDITED_MODELS` 清空
+
+| Suite | 預期紅 | 逐項理由 |
+|---|---|---|
+| `audit-coverage` | **16 / 16** | 15 條覆蓋查不到列（`toHaveLength(1)` → 0）；漂移守衛的 `unaudited` 變成 15 個 |
+| `audit.int.spec` | **10 / 12** | 1 `writes exactly one` · 2 `records nothing`（`before > 0` 失守）· 3 `leaves no row`（同）· 4 `chains`（`rowsChecked > 1`）· 5 `separate chain`（`hk[0]!` undefined）· 6 `約束 8 (1)`（`sg.length > 0`）· 8 `約束 8 (3)`（`DISTINCT` 回 `[]`）· 10 `strategy B`（`at(-1)!` undefined）· 11 + 12 tamper（同）|
+| | **綠 2** | 7 `約束 8 (2)` —— 它的鑑別力來自 `rejects.toThrow()`（RLS 擋），與有沒有列無關 · 9 `約束 8 (4)` —— 42501 是 GRANT 的答案 |
+| 其餘 13 suite | **0** | module-local 圖，本來就沒有 hook |
+
+**N1 總預期：26 紅 / 177 綠**
+⭐ 其中 `audit.int.spec` 的 **10** 應與 **W12 N2 補完非空前提後的 10 紅一致** —— 若不是 10，兩次之間有東西變了。
+
+#### N2 — 只移除 `Issue` 一個名字 ⭐ **本片的驗收核心**
+
+| 預期紅 | 理由 |
+|---|---|
+| `audit-coverage › Issue` | 唯一寫 `Issue` 的覆蓋測試 |
+| `audit-coverage › the allowlist still matches the write surface` | `unaudited = ['Issue']` —— ⭐ **這條紅是設計上正確的**，它的職責就是抓「可達但沒接」|
+
+**N2 總預期：恰好 2 紅 / 201 綠**，其餘 14 條覆蓋測試**一條都不能動**。
+
+⛔ **若是「全紅」或「只有 1 紅」都算失敗**：全紅代表覆蓋不是逐模型成立；
+只有 1 紅代表漂移守衛沒在守。**這是本片唯一能區分「真覆蓋」與「宣稱覆蓋」的證據。**
+
+#### N3 — 把 `RefCodeCounter` 補回清單（量 plan §3.2 的宣稱）
+
+| 預期紅 | 理由 |
+|---|---|
+| `audit.int.spec › writes exactly one audit row for one domain write` | 每個 create 現在寫 **2** 列，`before + 1` 失守 |
+| `audit-coverage › the allowlist still matches the write surface` | `RefCodeCounter` 同時在 `DELIBERATELY_UNAUDITED` 與 `AUDITED_MODELS` ⇒ 第三條斷言（兩集合相等）失守；`unaudited` / `unreachable` 兩條**仍應為空** |
+
+**N3 總預期：2 紅**。
+⚠️ **15 條覆蓋測試預期仍綠** —— 它們依 `refCode` 查，而 counter 那列的 `resourceId` 是 null
+（upsert 的 args 是 `{where, create, update}`，`resolveResource` 三個來源都取不到）。
+
+**另外要量三件事（checklist 3.3），不靠推測**：
+1. 一次領域 create 之後的 `audit_log` 列數 —— **預期 2**
+2. counter 那列的 `after` 內容 —— **預期 SQL NULL**（args 無 `data` key）
+3. ⭐ **多實體 scope 下做一次 create** —— **預期 throw `UnattributableWriteError`**
+   （Day-0 `D-refcode-b` 的宣稱，至今**只讀過 code 沒量過**）
+
+#### N4 — 證明 Day 1 補的前提**是**唯一讓它紅的東西
+
+⚠️ **Day 1 的 V1–V4 已經證明「前提在 + 集合空 → 紅」。單獨重跑一次沒有新資訊。**
+N4 要證明的是反面，所以**兩件事同時做**：
+
+- (a) 保持 V3 的中性化（`asset:282` 的前提查詢指向 `FICTIONAL`，對造集合為空）
+- (b) **拿掉**那兩行前提斷言
+
+**N4 預期：該測試轉綠，全域 203 綠 / 0 紅。**
+⇒ 若仍紅，代表讓它紅的是別的東西，Day 1 的因果寫錯了。
+
 ### Day 0 時數
 
 | 項目 | Actual |
