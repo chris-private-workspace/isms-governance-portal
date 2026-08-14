@@ -1,5 +1,5 @@
 ---
-status: approved   # proposed | approved | active | done | cancelled —— 機器可讀的唯一權威
+status: done   # proposed | approved | active | done | cancelled —— 機器可讀的唯一權威
 affects_components: []
 ---
 
@@ -8,8 +8,8 @@ affects_components: []
 **Date**: 2026-08-13
 **Phase**: 無 —— 獨立 Change（W10 已 `closed` 並 merged；W11 尚未開）
 **Scope**: 工具鏈（`scripts/lint`）+ planning 文件 — **NO migration** · **NO 新依賴** · 不動 `apps/`
-**Status**: 進行中（laitim2001 於 2026-08-14 核可 scope + acceptance；裁決「改獨立 CH」於 2026-08-13）
-**PR**: TBD
+**Status**: 已完成（laitim2001 於 2026-08-14 核可 scope + acceptance；裁決「改獨立 CH」於 2026-08-13）
+**PR**: #54 —— **MERGED** `5a676f9`（2026-08-14T01:48:34Z，rebase merge）
 
 ---
 

@@ -1,5 +1,5 @@
 ---
-status: approved
+status: done
 ---
 
 # CH-027 — Checklist
@@ -83,5 +83,11 @@ status: approved
 - [x] **14. `progress.md` 完成摘要**
   - → ⏳ **`spec.md` 的 `status:` 仍是 `approved`，刻意的** —— 依 R9「只 commit code 不算收尾」，
     翻 `done` 與項目 15 的 merge 驗證綁在一起（W10 的做法）
-- [ ] **15. Commit + PR**（push 是 outward-facing -> 需使用者確認）；
+- [x] **15. Commit + PR**（push 是 outward-facing -> 需使用者確認）；
       merge 經 `gh pr view` 驗證後翻 `status:` 標籤
+  - → **PR #54 MERGED** `5a676f9`（laitim2001，2026-08-14T01:48:34Z）；六個 check 全 SUCCESS，
+    且**查了 CI log 而非假設**：`run_all: 8/8` 含 `backlog-counts`、`Ran 13 tests` 逐項列名
+  - → 內容在 main 用 `git cherry`（patch-id）驗過，**不用 ancestry**（`AD-RebaseMergeBranchCheck-1`）
+  - → ⛔ **rebase 又殺掉一個「工作就是可查證性」的 SHA**：`56822e4` → `7c8d46f`。
+    已改指並補 author date（`09:31:41+08:00`，兩側逐秒相同）。⚠️ PR #54 描述與 `a75e02e`
+    的 message 仍引用舊值，**兩者都已發布不可改** —— 這正是 `AD-DesignNoteAnchor-1` 要抓的形狀

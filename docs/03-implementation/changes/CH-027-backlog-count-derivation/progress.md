@@ -1,5 +1,5 @@
 ---
-status: approved
+status: done
 ---
 
 # CH-027 — Progress
@@ -144,8 +144,15 @@ header declares P2=32  but the §Open table has 33
 
 ### 中性化結果 —— 5/6 命中，1 個推翻了我自己
 
-執行於 `56822e4`（預測與該 commit 同批）。每個 case 跑完立即 `git checkout --` 還原，
+執行於 **`7c8d46f`**，預測與該 commit 同批。每個 case 跑完立即 `git checkout --` 還原，
 控制組與最終還原各驗一次（皆 `OK red=0`）。
+
+> ⛔ **這個 SHA 被 rebase merge 改寫過（原 `56822e4`），而本 CH 自己剛寫過這個形狀。**
+> PR #54 的描述與 `a75e02e` 的 commit message 都引用了舊值，它們**在 main 上指向不存在的物件**
+> —— 與 W10 `74f0774`（標題就是 "repoint a SHA the rebase killed"）同一件事，隔一個 CH 再犯。
+> ⭐ **穩定的錨點是 author date：`2026-08-14T09:31:41+08:00`，改寫前後逐秒相同**
+> （commit date 變成 rebase 時刻 `09:48:34`）。本 repo 第二次量到 rebase 不動 author date。
+> ⇒ 「預測寫在執行之前」這句話的證明力，靠的是 author date，不是 SHA。
 
 | N | 預測 | 實測 | 判定 |
 |---|---|---|---|
