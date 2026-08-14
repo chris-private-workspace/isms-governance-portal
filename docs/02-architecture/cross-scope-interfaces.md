@@ -4,10 +4,11 @@
 
 **Category / Scope**: Architecture / cross-cutting
 **Created**: 2026-08-07
-**Last Modified**: 2026-08-07
+**Last Modified**: 2026-08-14
 **Status**: Active
 
 > **Modification History**
+> - 2026-08-14: Register the first three contracts (W12) — the audit hook inversion
 > - 2026-08-07: Initial creation from template
 
 ---
@@ -45,7 +46,21 @@ bug 出現在**兩者的邊界上** —— 而且兩邊各自看起來都對，�
 
 | # | 契約 | 類型 | Owner 範疇 | 定義位置 | Consumers | 狀態 |
 |---|------|------|-----------|---------|-----------|------|
-| 1 | `<Name>` | 型別 / 介面 / 事件 | `<scope>` | `<file>` | `<scope>`, `<scope>` | Active |
+| 1 | `AuditHook` —— `intercept(writer, write, context): unknown \| null` | 介面 | `api` | `apps/api/src/contracts/audit-hook.ts:76` | `entity-scope`（呼叫）· `audit-trail`（實作）· `bootstrap`（接線）| Active |
+| 2 | `AuditLogWriter` · `AuditWrite` · `AuditContext` | 型別 | `api` | 同上 `:54` · `:61` · `:71` | 同上 | Active |
+| 3 | `AUDIT_HOOK` | DI token（symbol）| `api` | 同上 `:99` | 同上 | Active |
+
+> **這三個是本 repo 第一批真正的跨範疇契約，而它們存在的原因是機械強制的**（W12 / ADR-0003）：
+> `eslint.config.mjs:74` 禁止 `entity-scope → audit-trail`、`:78` 禁止 `audit-trail → core-model`，
+> **兩個方向都不通** ⇒ 只能反轉到雙方都可 import 的 `api`。
+>
+> ⚠️ **`api` 在矩陣中是葉節點（`api -> ['api']`），所以這個檔零 import** ——
+> 連一個 Prisma 型別都不能命名。`AuditLogWriter` 因此是**結構型別**（W03 的 `AD-ScopedClientDI-1`，
+> 套用到隔壁一個範疇）。
+>
+> ⛔ **`intercept` 的回傳型別是 `unknown` 而且那是承重的**：runtime 上它是尚未啟動的
+> `PrismaPromise`，標成 `Promise` 會失去整個設計倚賴的性質 —— `Promise` 已經開始跑了。
+> 改這個簽名前先讀 `docs/02-architecture/design-notes/W12-audit-trail.md` §3。
 
 **類型說明**：
 
