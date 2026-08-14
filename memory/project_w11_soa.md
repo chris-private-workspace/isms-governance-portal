@@ -1,6 +1,6 @@
 # W11 — Statement of Applicability (M1 slice 8)
 
-**Closed**: 2026-08-14 · **PR**: pending · **Retro**:
+**Closed**: 2026-08-14 · **PR**: #56 MERGED (`dcc680f`) · **Retro**:
 `docs/01-planning/W11-m1-statement-of-applicability/retrospective.md` ·
 **CH**: `docs/03-implementation/changes/CH-028-w11-soa.md`
 
@@ -84,7 +84,15 @@ _update USING -> true, WITH CHECK 拿掉      仍拒
 
 ## Calibration
 
-`pattern-reuse-feature` 第 5 點，ratio **1.13 IN** —— **本欄第一個 IN-band 點**，
-也是第一個**事先宣告量法**的點（含 Day 0）。⚠️ 但它暴露量法的第三個模糊處：
-起草發生在第一個 commit **之前**，不在窗口內 ⇒「含 Day 0」有兩種讀法。
-⛔ 符合「同一種量法」的點數是 **1**，離 3-phase 證據還很遠 → KEEP 0.50。
+`pattern-reuse-feature` 第 5 點，ratio **1.24 OVER**（僅超 0.036），第一個**事先宣告量法**的點。
+
+⛔ **這個數字我先寫錯過一次，而錯的版本會改變結論**：merge 前用**估的**收尾時間（「~12:00」）
+算得 **1.13 IN**，並寫成「本欄第一個 IN-band 點」。author date 逐秒重算是 **12:12:26**，
+ratio **1.236 → OVER**。⇒ `AD-EstimateAsMeasurement-1` 再犯。
+
+⭐ **抓到它的是 rebase merge** —— 七個 SHA 全被改寫，我因此**必須**回頭改每一處引用，
+順手重算才發現。**若不是 rebase merge，錯的數字會留在 main 上而所有 gate 都是綠的。**
+
+⚠️ 另暴露量法的第三個模糊處：起草在第一個 commit **之前**不在窗口內 ⇒「含 Day 0」有兩種讀法。
+`actual/bottom-up = 0.618` 遠高於 0.4 下限 ⇒ 估算方法沒問題；吃掉時間的是
+**中性化失敗之後的追查**，而 bottom-up 沒有這一項。單次離群依規則忽略 → KEEP 0.50。

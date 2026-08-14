@@ -446,9 +446,35 @@ Day-3 的中性化過程中改了 `soa.int.spec.ts`（`create` helper 加 `track
 
 ⛔ **gate-only verified** —— 全 phase 無 UI，未做任何 drive-through。
 
-### 🚧 未完成：push / PR
+### Merge 與 post-merge 修補（2026-08-14）
 
-**push 是 outward-facing，阻塞於使用者確認**（Developer Preferences）。
-⚠️ rebase merge 會改寫 SHA，而本 phase 的 closeout 引用了 **`0e4b1c6`**
-（「四個預測寫在執行之前」的唯一證據）—— merge 後必須改指 main 側並補 author date
-（`AD-DesignNoteAnchor-1`；CH-027 量到 author date 逐秒不變）。
+**MERGED PR #56，`dcc680f`**，05:24:17Z by laitim2001 —— ⛔ **經 `gh pr view` 驗證才寫**
+（上一次使用者說「PR merged」時 #55 實為 OPEN）。CI 六項全過，且**逐項核對 `gates` 的 log**
+而非採信摘要：`run_all` 8/8 · entity-index 20/35 · unit 376/35 · int 172/13 ·
+coverage 91.83/91.01/97.5/93.29 —— **與本機完全一致**。
+
+rebase merge **改寫全部 7 個 SHA**。已改指 main 側的兩處**引用**（不是提及）：
+
+| 原 | main 側 | 那句話靠它證明什麼 |
+|---|---|---|
+| `0e4b1c6` | **`e969ed7`** | 四個預測寫在執行之前（CH-028）|
+| `52465f0` | **`e74efd0`** | calibration 窗口的起點 |
+
+⭐ **author date 逐秒不變**：`2026-08-14T11:10:53+08:00` 兩側相同 ——
+CH-027 之後的**第 3 個資料點**。穩定錨點是 author date 不是 SHA。
+
+### ⛔ 改 SHA 引用時，順手發現 calibration 的 band 判定是錯的
+
+拿 author date 逐秒重算 actual：`e74efd0` 10:21:12 → `dcc680f` 12:12:26 = **111.23 min
+= 1.854 hr** ⇒ ratio **1.236**，**OVER band**。
+
+而我 merge 前寫的是 **1.13 IN**，並在四份文件裡稱它是「本欄第一個 IN-band 點」——
+那個 1.13 用的是**估的**收尾時間（原文寫「closeout commit ~12:00」）。差 12 分鐘，
+**跨過 1.2 的邊界**。⇒ `AD-EstimateAsMeasurement-1`（W07 記錄）**再犯**。
+
+⭐ **抓到它的機制值得記下來：是 rebase merge 本身。** 七個 SHA 全被改寫，我因此**必須**
+回頭改每一處引用，重算才發現。若這次是 squash 或 merge commit，
+**錯的數字會留在 main 上，而所有 gate 都是綠的**。
+
+已更正五處：`retrospective.md` §Q2 · `CALIBRATION-MATRIX.md` · `CALIBRATION-LOG.md` ·
+`MEMORY.md` · `memory/project_w11_soa.md`。
