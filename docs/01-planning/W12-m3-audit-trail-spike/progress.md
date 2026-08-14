@@ -520,3 +520,94 @@ coverage **92.27 / 91.66 / 98.95 / 93.64** · `run_all` **8 / 8** ·
 ⚠️ 第一次想一口氣跑十一項的指令**逾時被砍**（10 分鐘），已改成三批分跑。
 逾時那次印出的 `format:check=1` / `type-check=2` 是**真的紅**（我新寫的 spec 有格式與
 `exactOptionalPropertyTypes` 問題），已修 —— 不是逾時造成的假訊號。
+
+---
+
+## Day 3 — 2026-08-14 — 中性化元驗證
+
+### 📌 §3.1 四個中性化的**預期方向**（⛔ 本節先 commit，之後才執行）
+
+⚠️ **中性化 = 放行，不是刪除**（checklist §3.1；W11 在 N4 用了刪除，量到的是 no-op 而非 guard）。
+⛔ **零轉紅先查再下結論**；方向不符先懷疑元驗證本身（`AD-MetaVerificationBug-1`）。
+
+---
+
+#### **N1 — 拿掉 `prev_hash` 的串接**（trigger 改成永遠用 genesis，只存 content hash）
+
+作法：`CREATE OR REPLACE FUNCTION audit_log_chain()`，把「讀上一列」拿掉、`prev_hash` 恆為 32 個零。
+**放行而非刪除** —— trigger 仍在、仍算 hash，只是不再連結。
+
+| 預期 | 測試 |
+|---|---|
+| 🔴 紅 | `audit.int` — `chains the rows it writes, and verify walks them intact`（第 2 列的 `prevHash` 是 genesis，但前一列的 `rowHash` 不是 ⇒ `link` 斷點）|
+| 🔴 紅 | `audit.int` — `keeps a separate chain per entity, both starting at genesis`（同上，`verifyChain` 不再 intact）|
+| 🔴 紅 | `audit.int` — 兩個 tamper 測試（開頭就先斷言 intact）|
+| 🟢 不動 | 所有 unit（`chain.spec` / `verify.spec` / `audit.recorder.spec`）—— 它們不碰 DB |
+| 🟢 不動 | `audit.int` — `strategy B writes a hash that checks out`（該測試自己把 trigger 卸下）|
+
+⭐ **要證明的命題**：竄改偵測**真的靠鏈**，不只是靠每列自己的 content hash。
+content hash 抓得到「改內容沒重算」；**刪列 / 換位 / 改完重算**只有鏈抓得到。
+
+---
+
+#### **N2 — 拿掉攔截點**（`app.module.ts` 移除 `AuditModule`）
+
+| 預期 | 測試 |
+|---|---|
+| 🔴 紅 | `audit.int` — `writes exactly one audit row for one domain write` |
+| 🔴 紅 | `audit.int` — `chains the rows it writes...`（`rowsChecked > 1` 失敗）|
+| 🔴 紅 | `audit.int` — `約束 8 (3)`（`SELECT DISTINCT org_entity_id` 回空陣列 ≠ `[SG1]`）|
+| 🔴 紅 | `audit.int` — 兩個 tamper 測試（`rows.at(-1)!` 是 undefined）|
+| 🔴 紅 | `audit.int` — `strategy B writes a hash that checks out` |
+| 🔴 紅 | `bench.int` — 儀器檢查 `auditRowCount() === before + 1` |
+| 🟢 不動 | 所有 unit |
+
+⚠️ **預測一件我認為會很難看的事** —— 下列測試會**假性通過**（vacuously green）：
+
+- `records nothing for a read`（before = after = 0）
+- `leaves no audit row behind when the domain write fails`（本來就沒有列）
+- `約束 8 (1) cross-entity read is refused`（**空陣列上 `every` 為真、`some` 為假**）
+- `約束 8 (2) cross-entity write is refused`（走 client 直接寫，與 hook 無關）
+
+⭐ 若確認，那代表**四個範疇測試裡有兩個在稽核完全關閉時仍然全綠** ——
+它們斷言的是「看不到別人的列」，而「一列都沒有」也滿足。
+這正是 W11 記過的形狀：**「HK1 看不到 SG1 的資料」與「HK1 沒有資料」是同一個觀察**。
+⇒ 若成立，要補**非空前提**，而不是把它當成好消息。
+
+---
+
+#### **N3 — 補上 UPDATE GRANT**（`GRANT UPDATE ON audit_log TO isms_app`）
+
+⭐ **這是本 phase 最想知道的一件事**，W10 與 W11 各在同一個問題上宣稱錯過一次。
+
+**預測（可能違反直覺）**：PostgreSQL 對「RLS 開啟但該命令沒有任何 policy」的處理是
+**預設拒絕 = 沒有任何列可見/可改**，而**不是報錯**。
+⇒ 拿掉 GRANT 這一層之後，UPDATE 應該**回報 `UPDATE 0` 而不是 42501**。
+
+| 預期 | 測試 |
+|---|---|
+| 🔴 紅 | `audit.int` — `約束 8 (4)`：`expect(update).toBe('42501')` 會拿到 **`'NO ERROR'`** |
+| 🟢 不動 | 同一測試的 DELETE 半邊仍是 **42501**（沒有補 DELETE GRANT）|
+| 🟢 不動 | 其餘全部 |
+
+⇒ **若成立，兩層 append-only 的可觀測行為不同**：
+**GRANT 產生「明確的錯誤」，缺席的 policy 產生「安靜的 0 列」**。
+兩者都擋得住，但**只有一個會說話** —— 對稽核軌跡而言那是重要差別，要寫進 ADR-0014 的脈絡與 migration 註解。
+⛔ 若量到的是「UPDATE 真的改到了列」，那 append-only **只剩一層**，必須立刻記為安全發現。
+
+---
+
+#### **N4 — 放行 SELECT policy**（`ALTER POLICY audit_log_read ... USING (true)`）
+
+| 預期 | 測試 |
+|---|---|
+| 🔴 紅 | `audit.int` — `約束 8 (1) cross-entity read is refused`（HK1 會看到 SG1 的列）|
+| 🔴 紅 | `audit.int` — `約束 8 (3)`（raw 連線的 `DISTINCT` 會回兩個實體）|
+| 🔴 紅 | `audit.int` — `chains the rows it writes...` ⇒ ⭐ 預期斷點種類是 **`foreign`** 不是 `link`（`auditRows('SG1')` 會混入 HK1 的列）|
+| 🔴 紅 | `audit.int` — 兩個 tamper 測試（同上，`kind` 會是 `foreign`）|
+| 🟢 不動 | `約束 8 (4)` append-only —— UPDATE 沒有 GRANT，42501 先擋，輪不到 policy |
+| 🟢 不動 | 所有 unit |
+
+⚠️ **與 W11 的差異要先講明**：W11 量到「擋住跨實體 UPDATE 的是 SELECT policy 不是 `WITH CHECK`」。
+本表**不會**重現那個結果，因為這張表**根本沒有 UPDATE 權限** —— 42501 排在更前面。
+⇒ 我**不會**從 N4 推論任何關於 UPDATE 的事。
