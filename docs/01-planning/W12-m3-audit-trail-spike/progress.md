@@ -735,3 +735,65 @@ coverage **92.27 / 91.66 / 98.95 / 93.64** · `run_all` **8 / 8** · `check_enti
 
 ⭐ **與 Day 2 完全相同的數字** —— 那本身就是四次中性化全部還原乾淨的證據，
 比「我還原了」這句話強。
+
+---
+
+## Day 4 — 2026-08-14 — Closeout
+
+### ⛔⭐⭐ D21 — 寫 R4 的覆蓋率時，機械導出當場推翻了我剛寫進三份文件的數字
+
+R4 要更新成「首次有 mitigation，覆蓋 N 分之 1」。我從 plan §0 的「18 張表」推出 **19**
+（+`audit_log`），並且**已經把「1 / 19」寫進 CH-029、design note 與 ADR-0003** 才去導分母。
+
+| 來源 | 值 |
+|---|---|
+| R4 逐 phase **手寫累加** | **18** |
+| `schema.prisma` 的 `^model` 減去 `audit_log` 自己 | **21** |
+| 逐個 migration 的 `CREATE TABLE` 加總 | **21** |
+
+第三條是交叉驗證，逐 phase 攤開後缺口**指名得出來**：
+
+```
+W02 org_entities, policies                                        2
+W03 extension_fields                                              1   ⛔ R4 的鏈完全沒有 W03
+W04 users, ref_code_counters                                      2
+W05 asset_groups, assets, threats, vulnerabilities, risks         5   ⛔ R4 記 +3（漏兩個全域庫）
+W06 controls · W07 ×2 · W08 ×2 · W09 ×3 · W10 ×2 · W11 ×1        11
+                                                              ─────
+                                                                 21
+```
+
+⇒ **`AD-RiskTableCountManual-1` 第一次被實地擊中**，而它的原文早就寫著
+「數字今天是對的，**所以這條不急** —— 但它對的原因是每個 phase 都有人記得改」。
+今天那個「記得」失效了，而且失效點在**兩個 phase 之前**（W03 / W05），不是最近一次。
+
+⛔ **五處全部更正**（CH-029 · design note §4 · **ADR-0003 兩處** · R4 · retro），
+R4 的原文保留不刪 —— 錯的是計數方式不是某一次筆誤。優先度 🟢 P2 → **🟡 P1**。
+
+⚠️ **自我檢討**：本 phase 前三天四次「先懷疑儀器」都做到了（D13 / D15 / D19），
+而 closeout 一開始就直接引用了一個手寫計數器 —— **紀律在寫 code 時在線，寫文件時掉線了**。
+
+### 🚩 D22 — `run_all` 第一次跑是紅的，而它抓到的正是 R9
+
+`check_status_markers` **[FAIL E2]**：`plan.md` 的 frontmatter 已翻成 `closed`，
+而**內文的 `**Status**:` 仍是 `Approved-to-execute`**（coarse: closed vs open）。
+
+⭐ 這正是 R9（「只 commit code 不算收尾」）的機械形式，而**我兩處只改了一處**。
+修法保留原文：`Status: Closed（…）—— 原為 Approved-to-execute（…）`，不是把歷史蓋掉。
+
+### ✅ Day 4 final gate（十一項，逐項 exit code）
+
+format `apps/api` **0** · format `apps/web` **0** · lint **0** · type-check **0** · build **0** ·
+`lint:negative` **PASS**（兩個 detector 各自印出 PASS：boundaries 拒絕 `audit-trail -> core-model` ·
+no-scope-bypass 掃 57 檔 0 旁路）· api unit **451 / 38** · api int **187 / 15** · web **10 / 1** ·
+coverage **92.27 / 91.66 / 98.95 / 93.64** · `run_all` **8 / 8**（⛔ **第一次是 7/8**，見 D22）·
+`check_entity_index` **21 / 35**。
+
+⚠️ **本機全綠，CI 未驗** —— 分支尚未 push（push 是 outward-facing，需使用者確認）。
+
+### 📌 Calibration 刻意留白
+
+retro §Q2 的 **actual / ratio / band 三格留白**，理由寫在該處：`AD-EstimateAsMeasurement-1`
+被記過 2 次，第 2 次（W11）錯的正是 band 判定本身 —— closeout 當下 closeout commit 還不存在。
+⇒ **closeout 是兩個 commit**：第一個交付文件，第二個只回填 calibration（matrix · log ·
+retro Q2 · design note §0 四處一次寫齊），而窗口的右端點是**量到的**不是宣告的。

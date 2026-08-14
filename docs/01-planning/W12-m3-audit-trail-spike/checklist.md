@@ -238,30 +238,58 @@ _(本 phase 無 user-facing surface。報告一律寫 **gate-only verified**，�
 
 ### 4.1 Change record + design note
 
-- [ ] **`docs/03-implementation/changes/CH-029-w12-audit-trail.md`**（Problem / Root Cause /
+- [x] **`docs/03-implementation/changes/CH-029-w12-audit-trail.md`**（Problem / Root Cause /
       Solution / Verification / Impact —— 含量測表 + **gate-only verified** 聲明）
-- [ ] **`docs/02-architecture/design-notes/W12-audit-trail.md`** —— ⛔ **spike 強制**，
+  - ✅ 五個「改之前先重讀」的決定 + 量測表 + 四個中性化表；**Verdict ⚪ N/A（純後端）**
+- [x] **`docs/02-architecture/design-notes/W12-audit-trail.md`** —— ⛔ **spike 強制**，
       對照 `docs/rules-on-demand/spike-design-note-gate.md` 的 **8-point gate** 逐項自查
       （必須有實作 + `file:line` + 可重現驗證；**extract 不是 pre-write**）
-- [ ] **`docs/14-adr/0003-audit-trail-hash-chain.md`** 採納 + `decision-form.md` OQ-4 → 已拍板
+  - ✅ 8-point 自查表在 retro；**verified ratio 31/33 ≈ 94% 🟡**
+  - ⛔ **低於 95% 而我不用「刪掉那兩條」湊門檻** —— 兩條是真實知識（N4 下的斷點種類 ·
+    Azure extension 機制），刪了會讓 note 更乾淨而讓讀者更少知道一件事 ⇒ **標為推導並保留**
+  - ✅ 8-point #8：3 個新契約已登記到 `02-architecture/cross-scope-interfaces.md`（#1-#3）——
+    ⭐ 那張表在此之前**還是模板的 `<Name>` 佔位列**，本 phase 是它第一次有內容
+- [x] **`docs/14-adr/0003-audit-trail-hash-chain.md`** 採納 + `decision-form.md` OQ-4 → 已拍板
+  - ✅ Day 3 完成；⛔ Day 4 **更正了它兩處的覆蓋率分母**（1/19 → **1/21**，見 4.2 的 R4 段）
 
 ### 4.2 Closeout
 
-- [ ] `retrospective.md` Q1-Q7 + calibration（`spike` 0.65，**第 6 個資料點**；
+- [x] `retrospective.md` Q1-Q7 + calibration（`spike` 0.65，**第 6 個資料點**；
       ⚠️ 自報量法 = **含 Day 0，窗口為 branch 首個 commit → closeout commit**）
   - ⛔ **actual 等 closeout commit 真的存在之後再算** —— 不得用預估收尾時間
     （`AD-EstimateAsMeasurement-1` 已被記 2 次，第 2 次就是算錯了 band 判定）
-- [ ] `calibration-matrix.md` 那一行 —— **≤ 1 行 ~250 字元**（lint 上限 400）
-- [ ] Final gate sweep（十一項全跑，逐項寫實際數字）
-- [ ] 導航檔: `CLAUDE.md` Current-Phase + Last-Updated + **Tech Stack 那格的 ADR 清單**（0003 已採納）·
+  - ✅ Q1-Q7 + 8-point 自查 + closeout self-check 全部寫完；**Q2 的 actual / ratio / band
+    三格刻意留白**並寫明理由 ⇒ 這是該 AD 提議的修法**第一次被執行**
+- [x] `calibration-matrix.md` 那一行 —— **≤ 1 行 ~250 字元**（lint 上限 400）
+  - ✅ 隨 actual 一起於**第二個 closeout commit** 回填（matrix + `CALIBRATION-LOG.md` + retro Q2
+    + design note §0 四處一次寫齊）
+- [x] Final gate sweep（十一項全跑，逐項寫實際數字）
+  - ✅ format ×2 **0 / 0** · lint **0** · type **0** · build **0** · `lint:negative` **PASS** ·
+    api unit **451 / 38** · api int **187 / 15** · web **10 / 1** ·
+    coverage **92.27 / 91.66 / 98.95 / 93.64** · `run_all` **8 / 8** · `check_entity_index` **21 / 35**
+  - 🚩 **`run_all` 第一次是 7/8** —— `check_status_markers` [FAIL E2]：frontmatter 已翻 `closed`
+    而**內文的 Status 那一行仍是 `Approved-to-execute`**。⭐ 那正是 R9 的機械形式，**我兩處只改了一處**
+  - ⚠️ **本機全綠，CI 未驗**（分支未 push）
+- [x] 導航檔: `CLAUDE.md` Current-Phase + Last-Updated + **Tech Stack 那格的 ADR 清單**（0003 已採納）·
       `MEMORY.md` pointer + subfile · `BACKLOG.md`（新增 AD + §Shipped 加 1 行）·
       `ROADMAP.md` · `RISK_REGISTER.md`
   - ⛔ **R4 的措辭**：本 phase 交付的是**機制**，18 張表裡只接了 1 張 ——
     **不得寫成「已解決」**，要寫「首次有 mitigation，覆蓋 1 / 19」
+  - ⛔⭐ **上面那行的「18」與「1 / 19」是錯的，原文保留不刪** —— 為了寫 R4 而**機械導出**分母時
+    當場推翻：`schema.prisma` 22 個 `^model` 減 `audit_log` 自己 = **21**，逐個 migration 的
+    `CREATE TABLE` 加總交叉驗證相符（2·**1**·2·**5**·1·2·2·3·2·1）。R4 的手寫鏈**跳過 W03 的
+    `extension_fields`**、且 **W05 記 +3 而實際建了 5 張**。⚠️ 而錯的 19 **已經寫進 CH-029 /
+    design note / ADR-0003 三份文件**才被抓到，五處全部更正 → `AD-RiskTableCountManual-1`
+    首次實地擊中，P2 → **P1**
+  - ✅ R4 **「開放」→ 🟡 部分緩解**，措辭「**首次有 mitigation，覆蓋 1 / 21**」+ ⛔ 不得讀成已解決
   - ⛔ **BACKLOG 計數在最後一次編輯之後跑** `python scripts/lint/check_backlog_counts.py`
-- [ ] Anti-pattern 自檢（retro Q5）：AP-1..AP-7 → 違規數
+  - ✅ **detector 說 OK**：100 條 / P0 **8** / P1 **56** / P2 **36**（宣告值與 §Open 逐列解析相符）
+- [x] Anti-pattern 自檢（retro Q5）：AP-1..AP-7 → 違規數
       ⚠️ 含 **AP-1**：A 與 B 之中被 ADR 否決的那一個，留在 repo 裡是不是 side-track？
       判準是 **ADR 有沒有引用它的量測數字**；若沒有，它應該被刪而不是留著
+  - ✅ **3 項**：AP-1 **1（已處置**：ADR 確實引用 B 的數字當 FC1/FC2 基準線，且附 Wave 1 期限
+    → `AD-StrategyBSunset-1`）· AP-3 **1 找到 1 修好 0 出貨**（策略 B 的正確性從未被斷言）·
+    AP-7 **1 刻意保留**（`AFTER INSERT` 原文不刪，更正寫在相鄰處）。其餘 4 項為 0 / N/A
 - [ ] **Commit** → ⏳ PR push + open → CI → merge: **PENDING USER CONFIRMATION**
       （push 是 outward-facing）→ merge 經 `gh pr view` 驗證後翻 `status:` 標籤
   - ⚠️ **rebase merge 會改寫 SHA** —— 引用「預測寫在前面」的 commit 要改指 main 側並補

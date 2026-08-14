@@ -125,7 +125,8 @@ does not show up in the numbers is AP-5.
 - **Raw queries are not audited.** `$queryRaw` has no model name and is invisible to the hook. A
   named hole, not an oversight; closing it needs statement parsing.
 - **One module is connected.** `AUDITED_MODELS` holds exactly one name. Connecting the other ten is
-  a change to that line.
+  a change to that line — and the table-level coverage that buys is **1 of 21**, not 1 of 19 as an
+  earlier draft of this ADR said (see Security & compliance impact).
 
 ### 這個決定約束了什麼
 
@@ -172,8 +173,11 @@ switch needs a cut-over marker row — not built, and a reason to decide once ra
 
 ## Security & compliance impact
 
-- **guardrail 5** gains its first mechanism. ⚠️ **Coverage is 1 of 19 tables** — the mechanism
+- **guardrail 5** gains its first mechanism. ⚠️ **Coverage is 1 of 21 tables** — the mechanism
   exists; the coverage does not. R4 must be read as "first mitigation", never as "resolved".
+  ⛔ 21 is derived (`schema.prisma`'s `^model` count minus `audit_log` itself, cross-checked
+  against `CREATE TABLE` summed over every migration). **R4's own hand-maintained counter said
+  18** and was wrong by three — `AD-RiskTableCountManual-1`, landing on the failure it predicted.
 - **guardrail 2 (self-governance)** — the platform can now demonstrate its own log's integrity on
   demand, and name the first row that fails rather than answering with a boolean.
 - **02a:311's reconciliation of the erasure right holds**: `actor_id` is pseudonymous with no

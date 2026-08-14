@@ -1,5 +1,5 @@
 ---
-status: active   # draft | active | closed | closed_partial —— 機器可讀的唯一權威
+status: closed   # draft | active | closed | closed_partial —— 機器可讀的唯一權威
 ---
 
 # Phase W12 Plan — Audit-trail hash chain spike, to settle ADR-0003
@@ -13,7 +13,9 @@ status: active   # draft | active | closed | closed_partial —— 機器可讀�
 無 user-facing surface ⇒ **gate-only verified，不做 drive-through**。
 **spike ⇒ 必須產出 design note**（Day 4，`task-workflow.md` §Step 5.5）。
 
-**Status**: Approved-to-execute（laitim2001 於 2026-08-14 核可；軌別同日由使用者選定「先拍板 ADR-0003」，
+**Status**: Closed（2026-08-14 Day 4 收尾；六個 US 全數交付、checklist 25 項全勾、無 🚧。
+⏳ **calibration 的 actual 於第二個 closeout commit 回填** —— `AD-EstimateAsMeasurement-1`）
+—— 原為 Approved-to-execute（laitim2001 於 2026-08-14 核可；軌別同日由使用者選定「先拍板 ADR-0003」，
 **但改判為 Phase 軌（spike）而非「不走軌」** —— `14-adr/README.md:106` 的判準是「需先 spike」，
 且 ADR-0004 / 0005 各由 W02 / W03 spike 拍板，本 repo 對此有兩個先例。
 ⚠️ **Day-0 後修訂並經 laitim2001 於 2026-08-14 再確認**：範圍由三個策略縮為 **A vs B**，
@@ -281,12 +283,13 @@ coverage 不低於 baseline 的 **branch / funcs**（⚠️ stmts / lines 見 `A
 
 ## 6. Deliverables
 
-- [ ] US-1 `audit_log` 表 + migration（append-only 由 GRANT 與缺席的 policy 兩層）
-- [ ] US-2 **A（DB trigger）+ B（應用層錨定）** + verify-integrity routine + 竄改偵測測試
-- [ ] US-3 量測表（**A vs B** × 寫入 / 驗證成本 + 對照組；C 由推導）
-- [ ] US-4 **contracts 介面** + 攔截點 + 1 個接上的模組 + 繞不過的證明
-- [ ] US-5 四個中性化，預期方向先 commit，結果逐項對照
-- [ ] US-6 **ADR-0003 採納** + design note + CH-029 + 導航檔 + calibration 回填
+- [x] US-1 `audit_log` 表 + migration（append-only 由 GRANT 與缺席的 policy 兩層）
+- [x] US-2 **A（DB trigger）+ B（應用層錨定）** + verify-integrity routine + 竄改偵測測試
+- [x] US-3 量測表（**A vs B** × 寫入 / 驗證成本 + 對照組；C 由推導）
+- [x] US-4 **contracts 介面** + 攔截點 + 1 個接上的模組 + 繞不過的證明
+- [x] US-5 四個中性化，預期方向先 commit，結果逐項對照
+- [x] US-6 **ADR-0003 採納** + design note + CH-029 + 導航檔 + calibration 回填
+      （⏳ **calibration 的 actual 於 closeout commit 之後回填** —— `AD-EstimateAsMeasurement-1`）
 
 ## 7. Workload Calibration
 
