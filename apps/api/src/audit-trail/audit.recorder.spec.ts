@@ -20,6 +20,7 @@
  */
 import type { AuditLogWriter } from '../contracts/audit-hook';
 import { AuditLogRecorder, UnattributableWriteError } from './audit.recorder';
+import { GENESIS_HASH, contentHash } from './chain';
 
 const SG1 = '00000000-0000-0000-0000-0000000000c0';
 const HK1 = '00000000-0000-0000-0000-0000000000c1';
@@ -122,6 +123,79 @@ describe('AuditLogRecorder — what it records', () => {
     });
 
     expect(rec.created[0]).not.toHaveProperty('after');
+  });
+});
+
+describe('AuditLogRecorder — app-chain mode (strategy B)', () => {
+  // ⛔ These exist because a coverage report said the app-chain branch had no
+  // unit test at all. The benchmark exercises it, but a benchmark asserts
+  // TIMINGS — so strategy B's write path was about to be compared on cost
+  // without anything having checked that it writes a correct hash.
+  const AT = new Date('2026-08-14T00:00:00.000Z');
+  const appChain = new AuditLogRecorder(new Set([AUDITED]), 'app-chain', () => AT);
+
+  it('leaves both hash columns to the trigger in db-trigger mode', () => {
+    const rec = recordingWriter();
+
+    recorder.intercept(rec.writer, write(), { entityIds: [SG1] });
+
+    expect(rec.created[0]).not.toHaveProperty('rowHash');
+    expect(rec.created[0]).not.toHaveProperty('prevHash');
+    // Also no timestamp: the column default is the database's clock, which is
+    // the one A hashes over.
+    expect(rec.created[0]).not.toHaveProperty('occurredAt');
+  });
+
+  it('writes the hash itself, unlinked, with its own timestamp', () => {
+    const rec = recordingWriter();
+
+    appChain.intercept(rec.writer, write(), { entityIds: [SG1] });
+
+    const row = rec.created[0]!;
+    expect(row.occurredAt).toBe(AT);
+    expect(row.prevHash).toEqual(GENESIS_HASH);
+    // ⭐ Recomputed here from the same content the row claims to describe, so
+    // this fails if the recorder ever hashes a different set of fields than it
+    // stores — the exact drift that would make a chain unverifiable.
+    expect(row.rowHash).toEqual(
+      contentHash({
+        orgEntityId: SG1,
+        actorId: null,
+        actorScope: SG1,
+        operation: `${AUDITED}.create`,
+        resourceType: AUDITED,
+        resourceId: 'SOA-SG1-1',
+        accessAllowed: true,
+        attemptedEntity: null,
+        before: null,
+        after: { orgEntityId: SG1, refCode: 'SOA-SG1-1', clauseRef: 'A.5.9' },
+        occurredAt: AT,
+      }),
+    );
+  });
+
+  it('uses a real clock when none is injected', () => {
+    // The default parameter is a function, and until this existed it was the one
+    // thing in the file no test had ever called — invisible in a line-coverage
+    // report, which said 100%, and visible in the function count, which did not.
+    const rec = recordingWriter();
+    const withDefaultClock = new AuditLogRecorder(new Set([AUDITED]), 'app-chain');
+
+    const before = Date.now();
+    withDefaultClock.intercept(rec.writer, write(), { entityIds: [SG1] });
+    const stamped = (rec.created[0]?.occurredAt as Date).getTime();
+
+    expect(stamped).toBeGreaterThanOrEqual(before);
+    expect(stamped).toBeLessThanOrEqual(Date.now());
+  });
+
+  it('still refuses an unattributable write — the mode does not relax that', () => {
+    const rec = recordingWriter();
+    const noEntity = write({ operation: 'update', args: { where: { id: 'abc' }, data: {} } });
+
+    expect(() => appChain.intercept(rec.writer, noEntity, { entityIds: [SG1, HK1] })).toThrow(
+      UnattributableWriteError,
+    );
   });
 });
 

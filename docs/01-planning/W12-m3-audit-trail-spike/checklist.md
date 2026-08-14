@@ -138,19 +138,39 @@
 
 ### 2.3 量測
 
-- [ ] **`bench.int.spec.ts`：A vs B × 寫入 / 驗證成本 + 對照組**
+- [x] **`bench.int.spec.ts`：A vs B × 寫入 / 驗證成本 + 對照組**
   - DoD: p50 / p95 寫入延遲（真實 endpoint 路徑，**非孤立 INSERT**）；
     驗證耗時（鏈長 1k / 10k）；**對照組 = 未接稽核的同一路徑**（D-throughput 的基準）
   - ⛔ **這是跨層比較**（PL/pgSQL vs TypeScript）—— 結果表要標明，不得假裝兩個數字同質
   - Verify: 結果表寫進 progress.md
   - ⚠️ **預期方向先寫下來再跑**（同 W10 / W11 的中性化紀律）
+  - ✅ **預測先 commit（`5956711`）再跑**。判定 **2 ✅ · 2 ⛔ · 1 ⚠️** —— 見 progress §五個預測
+  - ⭐ **對照組是同一個 repository、同一張表、同一組 policy**，只差 hook 不在 DI 圖裡
+    （`SoaModule` 單獨組圖）—— 不是另一條「看起來像」的路徑
+  - 🚩 **第一版量出「稽核讓寫入變快」** ⇒ 順序偏差大於效應。改成**交錯**並加兩個儀器檢查：
+    (1) 斷言對照組寫入後 `audit_log` 列數**不變**、稽核組**+1**；(2) 印出兩個 phase 的 **control drift**
+  - ⭐ **追加了 plan 沒要求的併發量測**，因為 A 的核心成本是 per-entity 鎖，
+    而**單執行緒 benchmark 結構上量不到它**。8 寫入者同一實體：**A/B = 1.63 / 1.59（兩次可重現）**
+  - ⛔ 序列組**分不出 A 與 B**（兩次順序翻轉、差距 ≈ control drift）—— 已如實記錄，未當成結論用
 
 ### 2.x Full gate
 
-- [ ] format ×2 · lint 0 · type 0 · build clean ×2 · `lint:negative` · api unit · api int ·
+- [x] format ×2 · lint 0 · type 0 · build clean ×2 · `lint:negative` · api unit · api int ·
       web · coverage（**branch / funcs 不低於 baseline**）· `run_all` 8/8 ·
       `check_entity_index` **21 / 35**
   - ⛔ **十一項全跑才能說「gate 全綠」**
+  - ✅ **十一項逐項取 exit code**：format 0 · lint 0 · type 0 · build 0 · `lint:negative` **PASS** ·
+    api unit **451 / 38** · api int **187 / 15** · web **10 / 1** ·
+    coverage **92.27 / 91.66 / 98.95 / 93.64** · `run_all` **8 / 8** · `check_entity_index` **21 / 35**
+  - ⭐ **coverage 四項全部高於 baseline**（91.83 / 91.01 / 97.5 / 93.29），funcs **+1.45** ——
+    這是連續多個 phase 以來第一次四項全升
+  - 🚩 **但它一開始是紅的，而那個紅揭出一個真正的洞**：`audit.recorder.ts` funcs 88.88%，
+    未覆蓋的是 **`app-chain` 分支** ⇒ **策略 B 的寫入路徑從未被任何測試斷言過正確性**。
+    bench 量的是時間，時間不在乎寫入者是壞的。⇒ 補了 unit（含 round-trip 重算）+ int
+    （寫入 → 讀回 → 用**儲存後**的列重算 hash，穿過 jsonb 正規化與時戳捨入）
+  - 🚩 第二個紅：`scoped-prisma.provider.ts` funcs 62.5% —— 舊 double 把 `$extends` 整個 stub 掉，
+    所以「Prisma 給的 model / operation 有沒有真的傳到 recorder」**從來沒被問過**。
+    加了會真正呼叫 handler 的 capturing double
 
 ---
 

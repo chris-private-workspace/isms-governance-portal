@@ -33,9 +33,13 @@
 import { Test, type TestingModule } from '@nestjs/testing';
 import { Client } from 'pg';
 import { AppModule } from '../bootstrap/app.module';
+import { AUDIT_HOOK } from '../contracts/audit-hook';
 import { SoaRepository } from '../core-model/soa.repository';
 import { EntityScopeResolver } from '../entity-scope/entity-scope.resolver';
 import { ScopedPrismaFactory } from '../entity-scope/scoped-prisma.provider';
+import { AUDITED_MODELS } from './audit.module';
+import { AuditLogRecorder } from './audit.recorder';
+import { contentHash } from './chain';
 import { verifyChain, type StoredAuditRow } from './verify';
 
 const SG1 = '00000000-0000-0000-0000-0000000000c0';
@@ -248,6 +252,65 @@ describe('audit trail (integration)', () => {
       await client.end();
     }
   });
+
+  // === US-3: strategy B writes rows that verify, not just rows that are fast =
+
+  it('strategy B writes a hash that checks out against the row it describes', async () => {
+    // ⛔ Without this, W12 would be comparing the COST of two strategies while
+    // only one of them had ever been checked for CORRECTNESS. The benchmark
+    // asserts timings; timings are happy to be produced by a broken writer.
+    const appChain = await Test.createTestingModule({ imports: [AppModule] })
+      .overrideProvider(AUDIT_HOOK)
+      .useValue(new AuditLogRecorder(AUDITED_MODELS, 'app-chain'))
+      .compile();
+    await appChain.init();
+
+    const owner = await rawAs(process.env.DATABASE_URL_MIGRATE);
+    try {
+      // The trigger would overwrite what the application computed, so B can only
+      // be observed with it out of the way. Dropped, measured, restored — and
+      // the restoration is asserted, not assumed.
+      await owner.query('DROP TRIGGER "audit_log_chain" ON "audit_log"');
+
+      const resolverB = appChain.get(EntityScopeResolver);
+      const factoryB = appChain.get(ScopedPrismaFactory);
+      const repoB = appChain.get(SoaRepository);
+      seq += 1;
+      await repoB.create(
+        factoryB.forScope(
+          await resolverB.resolve({
+            subjectId: 'int-audit-b',
+            assignedEntityCodes: ['HK1'],
+            rollUp: false,
+          }),
+        ),
+        {
+          orgEntityId: HK1,
+          framework: FRAMEWORK,
+          clauseRef: `W12.b.${seq}`,
+          applicable: true,
+          implementationStatus: 'implemented',
+        } as Parameters<SoaRepository['create']>[1],
+      );
+
+      const written = (await auditRows('HK1')).at(-1)!;
+      expect(Buffer.from(written.prevHash).equals(Buffer.alloc(32))).toBe(true);
+      // Recomputed from the row as STORED — which is the check that matters,
+      // because it closes the loop through PostgreSQL's jsonb normalisation and
+      // its timestamp rounding rather than around them.
+      expect(Buffer.from(written.rowHash).equals(contentHash(written))).toBe(true);
+    } finally {
+      await owner.query(
+        'CREATE TRIGGER "audit_log_chain" BEFORE INSERT ON "audit_log" FOR EACH ROW EXECUTE FUNCTION audit_log_chain()',
+      );
+      const { rows } = await owner.query(
+        "SELECT count(*)::int AS n FROM pg_trigger WHERE tgname = 'audit_log_chain' AND NOT tgisinternal",
+      );
+      expect(rows[0].n).toBe(1);
+      await owner.end();
+      await appChain.close();
+    }
+  }, 60_000);
 
   // === US-2: tamper detection, with the privileges to actually tamper ======
 
