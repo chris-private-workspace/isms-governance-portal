@@ -102,14 +102,26 @@ ALTER TABLE "audit_log" ADD CONSTRAINT "audit_log_org_entity_id_fkey" FOREIGN KE
 -- Privileges
 -- ===========================================================================
 -- ⛔ SELECT AND INSERT ONLY. No UPDATE, no DELETE, no exceptions — this is half
--- of append-only and the half that W10 measured to be the half that actually
--- refuses (its rm_report_versions comment claimed the policy did it and was
--- wrong). The other half is the absence of the matching policies below.
+-- of append-only. The other half is the absence of the matching policies below.
 --
--- ⚠️ NO CAUSAL CLAIM IS MADE HERE ABOUT WHICH OF THE TWO REFUSES FIRST. W10
--- asserted one and was wrong; W11 asserted another and was wrong. W12's N3
--- measures it by restoring the UPDATE grant alone and observing what happens.
--- Whatever it finds gets written back here.
+-- ⭐ WHICH HALF REFUSES, AND HOW, IS NOW MEASURED RATHER THAN ASSERTED. W10
+-- claimed the policy did it and was wrong; W11 claimed a WITH CHECK did and was
+-- wrong. W12's N3 restored the UPDATE grant alone and watched:
+--
+--   grant present, zero FOR UPDATE policies, 7 rows readable by the caller
+--   UPDATE audit_log SET operation = 'TAMPERED-BY-N3'   ->   UPDATE 0
+--   rows actually changed: 0        operation afterwards: unchanged
+--
+-- So BOTH layers hold, and they do NOT behave the same way:
+--
+--   the GRANT          raises 42501, an explicit error
+--   the absent policy  silently affects zero rows, no error at all
+--
+-- ⚠️ The consequence worth carrying: append-only survives someone running
+-- `GRANT ALL ON ALL TABLES`, but it goes MUTE when that happens. A defence that
+-- still holds while no longer saying anything is the hardest kind to notice has
+-- become the only one left. That is the concrete form of ADR-0014's "an absent
+-- policy is stricter than a narrow one" — stricter, and quieter.
 GRANT SELECT, INSERT ON "audit_log" TO isms_app;
 
 -- BIGSERIAL means a sequence, and a sequence carries its own privileges: INSERT
