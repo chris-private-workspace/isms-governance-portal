@@ -80,7 +80,11 @@ describe('soa module (integration)', () => {
       await resolver.resolve({ subjectId: 'int-test', assignedEntityCodes: codes, rollUp }),
     );
 
-  const create = async (code: 'SG1' | 'HK1', over: Record<string, unknown> = {}) => {
+  const create = async (
+    code: 'SG1' | 'HK1',
+    over: Record<string, unknown> = {},
+    track = true,
+  ) => {
     seq += 1;
     const row = await repo.create(await clientFor([code]), {
       orgEntityId: code === 'HK1' ? HK1 : SG1,
@@ -90,7 +94,9 @@ describe('soa module (integration)', () => {
       implementationStatus: 'implemented',
       ...over,
     } as Parameters<SoaRepository['create']>[1]);
-    created.push({ id: row.id, entity: code });
+    if (track) {
+      created.push({ id: row.id, entity: code });
+    }
     return row;
   };
 
@@ -272,5 +278,48 @@ describe('soa module (integration)', () => {
     // reasoning for 23514 -> 422, applied to 23505 -> 409).
     expect(error).toBeInstanceOf(DuplicateKeyError);
     expect((error as Error).message).toBe('framework + clauseRef already exists');
+  });
+
+  it('12. a row cannot be moved out of the entity that owns it', async () => {
+    // ⭐ WRITTEN BECAUSE N4 FOUND NOTHING. Neutralising the UPDATE policy's
+    // WITH CHECK left all 11 tests green: nothing here had ever tried to change a
+    // row's org_entity_id, so the migration's claim — that without WITH CHECK a
+    // caller could move its own row into another entity's scope — was a guard
+    // shipped with no test proving it. AD-BorrowedRefusal-1, sixth time.
+    //
+    // ⛔ RAW UPDATE, NO RETURNING, and that is not stylistic. Prisma's update()
+    // emits RETURNING; once org_entity_id says HK1 the SELECT policy refuses to
+    // read the row back and runScoped's transaction rolls the write away — which
+    // is indistinguishable from a WITH CHECK refusal. That is
+    // AD-ReturningMasksCheck-1, the trap W10 fell into while repairing this exact
+    // finding, so the repair is written the way the lesson says from the start.
+    //
+    // Not tracked for teardown: this test's whole subject is whether the row can
+    // leave SG1, so registering it for SG1-scoped retirement would assume the
+    // answer.
+    const row = await create('SG1', { clauseRef: 'A.6.3' }, false);
+    const sg1 = await clientFor(['SG1']);
+
+    await expect(
+      sg1.$executeRawUnsafe(
+        `UPDATE statements_of_applicability
+            SET org_entity_id = '${HK1}'
+          WHERE id = '${row.id}'`,
+      ),
+    ).rejects.toThrow(/row-level security/i);
+
+    // USING let the statement see the row; WITH CHECK refused what it would have
+    // become. The row is still SG1's, and HK1 still cannot see it.
+    const stillHere = await sg1.statementOfApplicability.findMany({ where: { id: row.id } });
+    expect(stillHere).toHaveLength(1);
+    expect(stillHere[0]?.orgEntityId).toBe(SG1);
+
+    const hk1 = await clientFor(['HK1']);
+    expect(await hk1.statementOfApplicability.findMany({ where: { id: row.id } })).toHaveLength(0);
+
+    await sg1.statementOfApplicability.update({
+      where: { id: row.id },
+      data: { retiredAt: new Date() },
+    });
   });
 });
