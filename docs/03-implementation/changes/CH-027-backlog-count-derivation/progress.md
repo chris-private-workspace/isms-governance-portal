@@ -20,6 +20,10 @@ status: approved
 
 掃描對象：`docs/01-planning/BACKLOG.md`（全檔 279 行）。方法：Grep `-o` 逐項抽取後交叉比對。
 
+> ⚠️ **本節的行號是枚舉當下（`56822e4` 之前）的值。** 本 CH 的收尾在 BACKLOG 開頭增了 9 行，
+> §Open 表格因此整體下移 —— 這正是 `AD-MdAnchorLineShift-1` 講的形狀，由本 CH 自己觸發。
+> **穩定的識別符是 AD 名稱**，下方各處都同時寫了；行號只用來重現當時的量測，不要拿去導航。
+
 ### E1 — §Open 的邊界，以及區段內不只有 AD 表
 
 `## §Open Carryover ADs`（`:82`）到 `## §Shipped Phases Pointer Index`（`:199`）。
@@ -138,4 +142,97 @@ header declares P2=32  but the §Open table has 33
 | **N4b** | 「恰好一次」放寬為「取第一個」| **2** —— `test_duplicate_...` 與 `test_missing_...` | 其餘 10 |
 | **N5** | 改用固定欄位索引 `cells[3]` | **10** —— baseline 與 live 都因 `:145` 形狀的裸 `\|` 錯位而紅 | `test_all_three_live_spellings` · `test_priority_named_inside_a_notes_cell` |
 
-（結果待填）
+### 中性化結果 —— 5/6 命中，1 個推翻了我自己
+
+執行於 `56822e4`（預測與該 commit 同批）。每個 case 跑完立即 `git checkout --` 還原，
+控制組與最終還原各驗一次（皆 `OK red=0`）。
+
+| N | 預測 | 實測 | 判定 |
+|---|---|---|---|
+| N1 | 9 紅，⭐ `test_live_backlog_passes` **不**紅 | **9 紅**，live 不在清單 | ✅ 完全命中 |
+| N2 | 11 紅，因「2 parsable cells」而非計數不符 | **11 紅**，訊息正是該形狀 | ✅ |
+| N3 | **1 紅** —— 那個測試是唯一守衛 | **1 紅** | ✅ |
+| N4a | **0 紅**（預測零轉紅）| **0 紅** | ✅ 命中，且暴露一個缺口 |
+| N4b | 2 紅（duplicate + missing）| **1 紅**（只有 duplicate）| ⛔ **預測錯誤** |
+| N5 | 10 紅 | **10 紅** | ✅ |
+
+#### ⛔ N4b：錯的是預測，不是 detector
+
+中性化寫的是 `!= 1` → `< 1`，而**那只放寬了「≥2」那一半** —— 零個匹配時 `< 1` 仍為真，
+所以 missing 那一半從未被打開。1 紅是正確行為。
+
+⇒ 依 `AD-MetaVerificationBug-1`「轉紅方向不符預期時**先懷疑元驗證本身**」，
+懷疑的結果是：**這個中性化沒有做到它宣稱的事**。補 **N4c**（`!= 1` → `> 1`，真正打開零個那一半）
+→ **1 紅（errors=1）**，唯一轉紅的是 `test_missing_declaration_marker_is_detected` ✅
+兩半各有專屬守衛，各自被證明。
+
+#### ⭐ N4a 零轉紅的正確歸因（差一點記成「缺一個測試」）
+
+放寬 marker（拿掉「現為」）**沒有任何測試轉紅**。第一直覺是「缺測試」，但那個歸因是錯的：
+
+「現為」擋的**不是**錯誤計數 —— 那由「恰好匹配一次」擋著（N4b/N4c 已各自證明）。
+它擋的是**誤報**：一個用當前形狀書寫的**歷史**數字會成為第二個宣告，
+使一份完全正確的 BACKLOG 被判 FAIL。而**今天的檔案沒有那種行**，所以現有測試全部碰不到它。
+
+補 `test_a_history_line_carrying_the_full_shape_is_still_excluded`（在 fixture 的歷史行補上
+`—— P0 3 / P1 4 / P2 2` 尾段，斷言仍 PASS）→ **N4a 重跑轉紅 1，且唯一轉紅的就是它** ✅
+
+### 收束
+
+- 測試 **12 -> 13**，全綠（0.006s）· `run_all` **8/8** · 工作樹只餘測試檔改動（detector 已還原）
+- 六個中性化方向覆蓋：區段邊界 · 整格匹配 · 不可解析即 FAIL · marker 唯一性（兩半）· 欄位定位
+
+## 2026-08-14 — 項目 10-14：收尾
+
+### ⭐ Detector 第一次真實使用，就擋住了一次
+
+收尾要動 BACKLOG（關 1 條、新增 1 條、改寫數法說明）。**所有編輯做完之後**才跑 detector：
+
+```
+backlog-counts: 2 violation(s):
+  :23: header declares P1=52 but the §Open table has 51 (delta -1)
+  :23: header declares P2=33 but the §Open table has 34 (delta +1)
+```
+
+**這不是 fixture，是真實的漂移**，而且形狀正是 `AD-CountBeforeLastEdit-1` 描述的那一種 ——
+一出一進、總數不變，**手數最容易看漏的就是這種**（總數對了就以為沒事）。
+BACKLOG 開頭那一行現在是照 detector 的輸出改的，不是照我數的。
+
+⇒ `AD-NegativeGate-1` 要求的「被它擋住的案例」，本 CH 交付當天就有一個真實的。
+
+### Gate（最終）
+
+`run_all` **8/8** · detector 測試 **13/13**（0.006s）· 中性化 6 個方向、控制組與還原各驗一次
+⛔ **gate-only verified** —— 純工具鏈無 UI，不得讀成任何關於可用性的陳述。
+
+### Anti-pattern 自檢
+
+| AP | 判定 | 依據 |
+|---|---|---|
+| AP-1 side-track | ✅ | 註冊進 `run_all`，CI 每次跑；不是旁支 |
+| AP-2 跨目錄散落 | ✅ | 全部在 `scripts/lint/` |
+| AP-3 Potemkin | ✅ | **關掉會壞什麼有六個量到的答案**（N1..N5），外加一次真實攔截 |
+| AP-4 PoC 堆積 | N/A | 不是 PoC |
+| AP-5 預留抽象 | ✅ | `derive_counts()` 的抽出有當前使用案例（測試要斷言真值）|
+| AP-6 mock vs real | N/A | 無 mock；fixture 在檔頭明寫自己是 fixture |
+| AP-7 orphan claim | ⛔ **1 個，已修** | 見下方紅旗 3 |
+
+### 🚩 本 CH 我自己的錯誤（全部自己發現，全部已修）
+
+1. ⛔ **tool-discipline 同形違反第 3 次**（W09、W10 各一次）—— 用 heredoc + Python 一次改 9 處
+   checklist，那該是 9 次 `Edit`。**規則不是不知道，是做到一半忘了**。
+2. ⛔ **N4b 的預測是錯的** —— 我宣稱它打開「取第一個」，實際只打開了「≥2」那一半。
+   依 `AD-MetaVerificationBug-1` 先懷疑元驗證本身，結果正是元驗證沒做到它宣稱的事。補 N4c。
+3. ⛔ **AP-7 orphan claim，而且是我自己製造的** —— spec 三處引用 `BACKLOG.md:117`，
+   然後我在收尾把那一列移走了。⚠️ 更廣的一層：收尾在 BACKLOG 開頭**增了 9 行**，
+   §Open 表格整體下移，**progress 全部的行號引用一起失效** ——
+   `AD-MdAnchorLineShift-1` 由本 CH 自己觸發。已改用 AD 名稱當識別符 + 加警語。
+4. ⛔ **E8：差點把未驗證的方法寫進 detector** —— 「取每列第一個 emoji」人工數得四個數字全中，
+   而那個方法從未在三個異格式列上被驗證。抓到它的是差額比對（88 vs 91），不是那個「全中」。
+5. ⛔ **改 BACKLOG 那一列時只替換到優先度欄**，留下兩個備註欄（6 欄）—— Read 回檢時當場發現。
+   ⚠️ 值得注意的是 **detector 不會抓到這個**（它只找優先度儲存格，多一個備註欄不影響）。
+
+### 順帶發現（已記 BACKLOG，不當場修）
+
+`AD-TemplateStatusValue-1` 🟢 P2 —— `_templates/change/spec.md.tpl:26` 建議的四個中文狀態值裡，
+「提案中」「已核准」**不在** `check_status_markers.py` 的 `OPEN_STATES` 內，照抄會觸發 E2。

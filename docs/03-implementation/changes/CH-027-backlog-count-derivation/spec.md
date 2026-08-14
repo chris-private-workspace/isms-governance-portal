@@ -49,8 +49,8 @@ affects_components: []
 
 > 這正是 `AD-5`（有解封條件的項目必須出現在一份**會被讀**的清單上）的又一個實例，
 > 也是使用者 2026-08-13 改判「獨立 CH」的理由 —— **第三次排同樣的落點，大概率是同樣的結果**。
-> 本 CH 因此推翻 `BACKLOG.md:117` 的「⚠️ 不要為此單開 CH」與 `ROADMAP.md:81` 的「不另開 CH」，
-> 兩處都要在本 CH 收尾時更新，**理由寫在原處**而不是靜靜改掉。
+> 本 CH 因此推翻 `AD-CountBeforeLastEdit-1` 條目的「⚠️ 不要為此單開 CH」與 `ROADMAP` 第 10 列
+> 的「不另開 CH」，兩處都在本 CH 收尾時更新，**理由寫在原處**而不是靜靜改掉。
 
 ---
 
@@ -90,9 +90,10 @@ affects_components: []
   detector 就會在一份完全正確的文件上 fail。
   → 只認一個明確的 marker，且**必須恰好匹配一次**：**0 次或 ≥2 次都是 FAIL**，不是靜默跳過。
 
-- **無法解析的優先度儲存格必須 FAIL，不可跳過。** `BACKLOG.md:117` 記載 `AD-NegativeGate-1`
-  曾使用異格式的優先度標記。「跳過看不懂的」就是 `lint-detector-authoring.md` 明載的
-  **「detector 綠了，但它綠是因為它看不見」**。
+- **無法解析的優先度儲存格必須 FAIL，不可跳過。** `AD-CountBeforeLastEdit-1` 的原始記載提到
+  `AD-NegativeGate-1` 用過異格式的優先度標記。「跳過看不懂的」就是 `lint-detector-authoring.md`
+  明載的**「detector 綠了，但它綠是因為它看不見」**。
+  → ⛔ **實測推翻了那份記載的完整性**：異格式有 **3 列**不是 1 列（progress §E3）。
 
 - **只解析 §Open 區段**（`## §Open Carryover ADs` 到下一個 `## `）。
   §Shipped Pointer Index 也含 AD 名稱，全檔 grep 會把它們算進去 —— 那正是實例 2 的形狀。
@@ -163,8 +164,11 @@ affects_components: []
 
 ## 相關
 
-- **關掉的 AD**: `AD-CountBeforeLastEdit-1`（`BACKLOG.md:117`）
-- **更新的**: `ROADMAP.md:81` 第 10 列（落點改判）· `BACKLOG.md:23` 開頭數法說明
+- **關掉的 AD**: `AD-CountBeforeLastEdit-1` —— 已移出 §Open，現於 §Shipped Phases Pointer Index
+- **新增的 AD**: `AD-TemplateStatusValue-1`（🟢 P2 —— 下方順帶發現）
+- **更新的**: `ROADMAP` 第 10 列（落點改判，理由留在原處）· `BACKLOG` 開頭的數法說明與計數
+- ⚠️ **本檔起草時引用的 `BACKLOG.md:117` 是那條 AD 當時的位置**；本 CH 把它移走了，
+  行號引用已全部改為 AD 名稱（AP-7：註解引用已移除的東西就是誤導人的 orphan claim）
 - **先例**: `scripts/lint/check_entity_index.py`（W08，關掉 `AD-EntityCountDerivation-1` /
   `AD-EntityIndexIncomplete-1` 兩條同族手寫計數器）
 - **規則**: `docs/rules-on-demand/lint-detector-authoring.md`
