@@ -395,3 +395,60 @@ Day-3 的中性化過程中改了 `soa.int.spec.ts`（`create` helper 加 `track
 | coverage | **91.83 / 91.01 / 97.5 / 93.29**（與 Day 2 相同；測試 12 是 int，不計入）|
 
 ⛔ **gate-only verified** —— 無 UI，未做 drive-through，本 phase 不得宣稱可用性。
+
+---
+
+## Day 4 — 2026-08-14 — Closeout
+
+交付：`CH-028` · `retrospective.md` · calibration（matrix + log）· `BACKLOG` · `ROADMAP` ·
+`RISK_REGISTER` · `CLAUDE.md` · `MEMORY.md` + subfile · plan `status: closed`。
+
+### ⭐ 兩個 detector 各抓到一件事，而它們抓的是不同種類的東西
+
+1. **`check_backlog_counts.py`（CH-027 交付）** —— 我沒有手數。編輯完 §Open 之後跑它，
+   它印出 `total=91 但表格有 95（delta +4）· P0 +1 · P1 +2 · P2 +1`，四個數字**照抄**。
+   ⭐ 這是它第 2 次在真實情境擋住東西（第 1 次是 CH-027 自己那天）。
+2. **`check_status_markers.py`** —— 我把 plan 的 frontmatter 翻成 `closed`，
+   **內文的 `Status: Approved-to-execute` 忘了跟上**，它報 `E2 ... coarse: closed vs open`。
+   ⛔ **這正是 R9 說的「只 commit code 不算收尾」的機械形式** —— 兩個地方各自是對的，
+   而它們互相矛盾；沒有這條檢查，plan 會以「已核可執行」的樣子留在 main 上。
+
+⇒ 差別值得記：第 1 條抓的是**我不該用手做的事**，第 2 條抓的是**我做了一半的事**。
+
+### Anti-pattern 自檢（retro Q5 的來源）
+
+**AP-7 違規 1 條** —— migration 第 117-120 行宣稱了一個從未量過的因果。
+不是命名問題，是**註解宣稱了它沒有證據的東西**。抓到它的不是 review 也不是 lint，
+是「中性化零轉紅 → 補測試 → 仍零轉紅 → 去查」。
+
+⭐ **`02a` 行數未動（514 → 514）**，所以本 phase 沒有製造任何失效的行號引用 ——
+這是 Day 2 選 inline 形式的直接回報。
+
+### Gate（Day 4 最終掃描，逐項取 exit code）
+
+| Gate | 結果 |
+|---|---|
+| `format:check` ×2 | **0** |
+| `lint` ×2 | **0** |
+| `type-check` ×2 | **0** |
+| `build` ×2 | **0** |
+| `lint:negative` | **0** |
+| api unit | **376 / 35 suites**（baseline 351 / 33 → **+25 / +2**）|
+| api int | **172 / 13 suites**（baseline 160 / 12 → **+12 / +1**）|
+| web | **10 / 1**（無變化）|
+| coverage | **91.83 / 91.01 / 97.5 / 93.29** |
+| `run_all` | **8 / 8**（⛔ 修正 status marker 前是 **7/8**）|
+| `check_entity_index` | **20 / 35** |
+| `check_backlog_counts` | **OK** —— 95 條（P0 7 / P1 53 / P2 35）|
+
+⚠️ coverage 的 stmts / lines 仍低於 baseline **0.18 / 0.15** —— 成因與處置見 Day 2 §Gate
+與 `AD-ModuleFileZeroCoverage-1`，**不改口徑**。
+
+⛔ **gate-only verified** —— 全 phase 無 UI，未做任何 drive-through。
+
+### 🚧 未完成：push / PR
+
+**push 是 outward-facing，阻塞於使用者確認**（Developer Preferences）。
+⚠️ rebase merge 會改寫 SHA，而本 phase 的 closeout 引用了 **`0e4b1c6`**
+（「四個預測寫在執行之前」的唯一證據）—— merge 後必須改指 main 側並補 author date
+（`AD-DesignNoteAnchor-1`；CH-027 量到 author date 逐秒不變）。
