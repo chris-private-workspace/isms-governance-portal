@@ -64,9 +64,14 @@
 
 ### 1.2 兩個 chain 策略（⚠️ Day-0 D3 後由三個縮為兩個，使用者核可）
 
-- [ ] **A = migration 內的 `AFTER INSERT` trigger（PL/pgSQL）· B = `chain.ts` 應用層錨定**
+- [x] **A = migration 內的 `AFTER INSERT` trigger（PL/pgSQL）· B = `chain.ts` 應用層錨定**
   - DoD: 兩者各有「竄改一列 → verify 指出**第一個**斷點」的測試；共用同一個 hash 定義
   - Verify: `npm run test -w apps/api -- chain`
+  - ✅ **25 / 25 passed**。⭐ 「共用同一個 hash 定義」**不是宣稱而是量到的**：
+    期望值是從 postgres `audit_log_canonical()` 直接取出的 hex 向量（payload 756 字元 + 3 個 hash），
+    TS 逐位元組相符。⚠️ 向量用**機械方式**切行 —— 第一版手抄掉了 2 個 byte
+  - ⚠️ **A 的 DB 端竄改測試在 Day 2 的 int spec**（本檔是純函式層）；今天量到的是 A 的鏈在
+    真 DB 上成立（progress §A 的實測表），兩者不可互相代替
   - ⛔ **起手先確認 `pgcrypto` 可用** —— A 是本 repo 第一段做 hash 的 PL/pgSQL，
     寫完才發現沒有 digest 函式的代價是重寫
     - ✅ **已做，答案推翻了問題**：PG18 核心就有 `pg_catalog.sha256`（對照 NIST 向量驗過），
@@ -79,13 +84,22 @@
 
 ### 1.3 verify-integrity routine
 
-- [ ] **`audit-trail/verify.ts` + spec**
+- [x] **`audit-trail/verify.ts` + spec**
   - DoD: 回報**第一個**斷點的位置，不是布林值；空鏈與單列鏈各有測試
   - Verify: `npm run test -w apps/api -- verify`
+  - ✅ **17 / 17 passed**。回報 `{index, id, kind, detail}`，`kind` 四種可分辨：
+    `content`（改了沒重算）· `link`（改了且重算，後繼揭發）· `unchained`（根本沒被 hash 覆蓋）·
+    `foreign`（拼了兩個實體的列 —— 不報成竄改，否則會派人去找不存在的攻擊）
+  - ✅ 空鏈 intact / 單列鏈 / 50 列鏈 / 多處損壞取**最早** / 刪列 / 換位 各有測試
+  - ⭐ **B 的限制被寫成測試而不是形容詞**：同一個竄改，A 指出**那一列**，B 只能指出**那一段**
 
 ### 1.x partial gate
 
-- [ ] format ×2 · lint · type-check · api unit —— **逐項取 exit code，只報跑過的**
+- [x] format ×2 · lint · type-check · api unit —— **逐項取 exit code，只報跑過的**
+  - ✅ format 0 · lint 0 · type-check 0 · api unit **418 / 37**（baseline 376 / 35；
+    +42 = chain 25 + verify 17，逐項對得上）
+  - ⚠️ 未跑：build · `lint:negative` · api int · web · coverage · `run_all` · `check_entity_index`
+    —— **這是 partial gate，不得寫成「gate 全綠」**（`AD-PartialGateReportedAsFull-1` 已 3 次）
 
 ---
 

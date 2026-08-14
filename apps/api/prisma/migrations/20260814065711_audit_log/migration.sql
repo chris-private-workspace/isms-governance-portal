@@ -27,10 +27,29 @@ CREATE TABLE "audit_log" (
     "after" JSONB,
     "prev_hash" BYTEA NOT NULL DEFAULT '\x'::bytea,
     "row_hash" BYTEA NOT NULL DEFAULT '\x'::bytea,
-    "occurred_at" TIMESTAMPTZ(6) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "occurred_at" TIMESTAMPTZ(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
     CONSTRAINT "audit_log_pkey" PRIMARY KEY ("id")
 );
+
+-- ⭐ TIMESTAMPTZ(3), AND EVERY OTHER TIMESTAMP IN THIS SCHEMA IS (6). The
+-- difference is what makes strategy A's chain verifiable from outside the
+-- database at all.
+--
+-- The hash covers occurred_at, so verifying a row means re-rendering that
+-- timestamp byte for byte. At microsecond precision only PostgreSQL can: a
+-- JavaScript Date holds milliseconds, so a row stored as .476152 reads back as
+-- .476000 and recomputes to a different hash. Measured on this table before the
+-- change — every row would have looked tampered with, from the application side,
+-- while being perfectly intact.
+--
+-- (3) is a rounding cast, not a truncating one (.476952 -> .477000, .476152 ->
+-- .476000, measured), so both writers land on a millisecond boundary and the
+-- value round-trips through a Date without loss in either direction.
+--
+-- ⚠️ What this costs: two audit rows can now share a timestamp. Nothing depends
+-- on them not doing so — order comes from the sequence and identity from the
+-- hash, never from occurred_at.
 
 -- ⚠️ THE TWO HASH COLUMNS DEFAULT TO EMPTY, WHICH IS NOT A VALID HASH, and that
 -- is deliberate. The BEFORE INSERT trigger below fills them, but Prisma's client
