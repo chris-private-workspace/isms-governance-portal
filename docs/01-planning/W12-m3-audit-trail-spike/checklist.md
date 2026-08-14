@@ -292,5 +292,8 @@ _(本 phase 無 user-facing surface。報告一律寫 **gate-only verified**，�
     AP-7 **1 刻意保留**（`AFTER INSERT` 原文不刪，更正寫在相鄰處）。其餘 4 項為 0 / N/A
 - [ ] **Commit** → ⏳ PR push + open → CI → merge: **PENDING USER CONFIRMATION**
       （push 是 outward-facing）→ merge 經 `gh pr view` 驗證後翻 `status:` 標籤
+  - ✅ **commit 已完成，兩個**：`544f052`（closeout —— 文件 + 導航檔）·
+    `e237d4b`（calibration 回填）。⛔ 分成兩個是刻意的，理由見 4.2 的 calibration 段
+  - ⏳ **未做**：push · 開 PR · CI · merge · 翻 `status:` 為 merged 態 —— **等使用者確認**
   - ⚠️ **rebase merge 會改寫 SHA** —— 引用「預測寫在前面」的 commit 要改指 main 側並補
     **author date**（W11 量到它逐秒不變，第 3 個資料點）
