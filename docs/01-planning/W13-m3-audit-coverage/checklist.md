@@ -142,33 +142,50 @@ _(本 phase 無 user-facing surface。報告一律寫 **gate-only verified**，�
 
 ### 3.1 中性化預測（⛔ 寫下並 **commit** 之後才執行）
 
-- [ ] **四個中性化的預期方向寫進 progress.md 並 commit**
+- [x] **四個中性化的預期方向寫進 progress.md 並 commit**
   - DoD: N1 清空清單 · N2 **只移除 `Issue` 一個名字** · N3 補回 `RefCodeCounter` ·
     N4 拿掉某個 Day 1 補的非空前提 —— 每個寫明**預期哪些測試轉紅、哪些不動**
-  - ⚠️ **中性化 = 放行，不是刪除**
+    ✅ commit `8a0cd04`，**逐測試**預測（不是總數）
+  - ⚠️ **中性化 = 放行，不是刪除** ✅ N1 註解掉清單內容、N2 只移一個名字、N3 加一個名字
   - ⚠️ **預測「哪個測試會紅」之前先看該 spec 的執行順序**（W12 的 N4 在這裡掛錯了測試）
+    ✅ 先數了 `audit.int.spec` 12 個 / `audit-coverage` 16 個並逐條標理由
+    ⛔ **但仍漏了一個 suite** —— 我只列「會受影響的兩個」，沒 grep 誰 import `AUDITED_MODELS`
+    （實為 **4 個**檔案，含 `bench.int.spec.ts`）→ N1 / N3 各因此少算
 
 ### 3.2 執行 + 逐項對照
 
-- [ ] **四個中性化各自執行、還原、記錄**
+- [x] **四個中性化各自執行、還原、記錄**
   - DoD: 每次跑完立即還原並驗證（`git status --short` 為空）；控制組與最終還原各驗一次
+        ✅ 四次還原各驗一次 + 最終控制組 **203 / 16 全綠**
   - ⛔ **零轉紅先查再下結論**；⛔ **方向不符預期時先懷疑元驗證本身**（`AD-MetaVerificationBug-1`，
     W12 已驗到 3/3 可回流）
-  - ⛔ **補完測試後必須重跑該中性化**（W10 / W11 各漏過一次，W12 做對了）
+    ✅ **第 4 個資料點**（Day 2 的實驗 B：`await import()` 在 jest CJS 下失敗，
+    誤讀會導出完全相反的設計）
+  - ⛔ **補完測試後必須重跑該中性化**（W10 / W11 各漏過一次，W12 做對了）—— N/A，本片無補測試環節
   - ⭐ **N2 是本片的驗收核心**：預期**恰好** `issue` 模組的覆蓋測試轉紅、其餘 14 個不動。
     若是「全部紅」或「全部綠」，代表覆蓋不是逐模型成立的
+    ✅ **恰好 2 紅**（`Issue` 覆蓋 + 漂移守衛，後者紅是設計上正確）· 201 綠 · 其餘 14 條**未動**
+  - **結果**：N1 27 紅（預期 26）· **N2 恰好 2** ✅ · N3 5 紅（預期 2，量測 3/3 全中）· N4 0 紅 ✅
 
 ### 3.3 `RefCodeCounter` 的實測（N3）
 
-- [ ] **量到接上它的實際後果**
+- [x] **量到接上它的實際後果**
   - DoD: 一次領域 create 之後的 `audit_log` 列數（預期 2 而非 1）+ counter 那列的 `after` 內容
-  - Verify: 結果寫進 progress.md
+        ✅ **2 列**；counter 那列 `{"t":"RefCodeCounter","id":null,"after":null}`
+        ✅ 多實體 scope **實測 throw** `UnattributableWriteError`（逐字記在 progress.md）
+  - Verify: 結果寫進 progress.md ✅
   - ⛔ **plan §3.2 的判定必須由這個數字支持，不是由推測支持**
+    ✅ 判定不變，理由由 2 條變 **3 條**，且 ⭐ **第 3 條是實測撞出來的**：
+    `issueRefCode` 在自己的交易裡先跑，所以**失敗的寫入會留下一列稽核** ——
+    稽核軌跡會記錄一件沒發生的事。三條全部寫進 `audit.module.ts` 常數旁
 
 ### 3.x Full gate（⛔ 逐項複製 Day 2 §2.x 的清單 —— 中性化本身會改 code）
 
-- [ ] format ×2 · lint 0 · type 0 · build clean ×2 · `lint:negative` · api unit · api int ·
+- [x] format ×2 · lint 0 · type 0 · build clean ×2 · `lint:negative` · api unit · api int ·
       web · coverage · `run_all` 8/8 · `check_entity_index` 21/35
+  - ✅ **十一項全跑**：format **0 / 0** · lint **0** · type **0** · build **0 / 0** ·
+    `lint:negative` **PASS** · unit **451 / 38** · **int 203 / 16**（控制組）· web **10 / 1** ·
+    coverage **92.27 / 91.66 / 98.95 / 93.64** · `run_all` **8 / 8** · `check_entity_index` **21 / 35**
 
 ---
 

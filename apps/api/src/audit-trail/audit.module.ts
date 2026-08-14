@@ -52,13 +52,24 @@ import { AuditLogRecorder } from './audit.recorder';
  * (AP-3). They join when they get a write path, and the consistency test in
  * audit.int.spec.ts is what will say so.
  *
- * ⛔ REFCODECOUNTER IS EXCLUDED ON PURPOSE, and the reason is stronger than
- * noise. ref-code.ts:97 upserts it inside every create, so auditing it would
- * double every domain write's footprint with rows whose `after` is an
- * incrementing integer. Worse, an upsert passes {where, create, update} and no
- * `data` key, so audit.recorder.ts:141 reads null, resolveEntity falls back to
- * the scope, and a MULTI-ENTITY scope THROWS — wiring it would break every
- * create a roll-up principal makes. Measured in W13 Day 3's N3, not assumed.
+ * ⛔ REFCODECOUNTER IS EXCLUDED ON PURPOSE. W13 Day 3's N3 wired it back and
+ * measured what happens, so these are results rather than arguments:
+ *
+ *   1. Two audit rows per domain create instead of one, and the second carries
+ *      nothing: `resource_id` null, `after` null. An upsert passes
+ *      {where, create, update} and no `data` key, so audit.recorder.ts:141 reads
+ *      null and there is no payload to record.
+ *   2. A MULTI-ENTITY scope THROWS. With no org_entity_id in the payload,
+ *      resolveEntity falls back to the scope and refuses to guess between two
+ *      entities — measured verbatim as `UnattributableWriteError: refusing
+ *      RefCodeCounter.upsert ... the scope names 2 entities`. Every create a
+ *      roll-up principal makes would fail.
+ *   3. ⭐ A FAILED WRITE WOULD LEAVE AN AUDIT ROW BEHIND. issueRefCode runs in
+ *      its OWN transaction, before the domain insert (policy.repository.ts:107
+ *      says so and explains why), so when the insert is then rejected the
+ *      counter's audit row has already committed. The trail would record
+ *      something that did not happen — which is worse for an auditor than a
+ *      missing row, and is the reason this exclusion is not a close call.
  *
  * ⚠️ AuditLog itself is absent and needs no exclusion: the recorder writes
  * through the UNEXTENDED client (scoped-prisma.provider.ts:127), so its own
