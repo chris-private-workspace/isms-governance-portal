@@ -1,7 +1,7 @@
 // File: apps/api/prisma/schema.prisma
-// Purpose: The entity graph, 20 models in. Every table here is on 02a §0's index.
+// Purpose: The entity graph, 22 models in. Every table here is on 02a §0's index.
 // Category: core-model
-// Scope: Phase W01 (M0) → W10 (M1 slice 7)
+// Scope: Phase W01 (M0) → W12 (M3 spike)
 // Owner: docs/02-architecture/02a-data-model-spec.md §0 (entity index)
 //
 // Description:
@@ -27,9 +27,11 @@
 //   (rules-on-demand/multi-tenant-data.md).
 //
 // Created: 2026-08-08 (Phase W01)
-// Last Modified: 2026-08-13
+// Last Modified: 2026-08-14
 //
 // Modification History (newest-first):
+//   - 2026-08-14: Phase W12 — audit_log; the first table with no column that can redact
+//   - 2026-08-14: Phase W11 — Statement of Applicability; `framework` is a string, not an FK
 //   - 2026-08-13: Phase W10 — RM report + versions; first table with no UPDATE path
 //   - 2026-08-12: Phase W07 — ControlTest + Evidence; trigger-guarded references
 //   - 2026-08-10: Phase W04 — User (ADR-0012), ref_code counters, Policy base fields
@@ -110,6 +112,8 @@ model OrgEntity {
   rmReportVersions      RMReportVersion[]
 
   statementsOfApplicability StatementOfApplicability[]
+
+  auditLog AuditLog[]
 
   version   Int       @default(1)
   createdAt DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
@@ -1824,4 +1828,133 @@ model StatementOfApplicability {
   @@unique([orgEntityId, framework, clauseRef])
   @@index([orgEntityId, retiredAt])
   @@map("statements_of_applicability")
+}
+
+/// The evidence-grade audit trail (05:18-24). Field list from
+/// multi-tenant-data.md §稽核軌跡; the two properties 02a:309-312 settles ahead of
+/// ADR-0003 are append-only and a pseudonymous actor.
+///
+/// ⭐ THIS TABLE BREAKS FOUR HOUSE CONVENTIONS. Each one is the same refusal
+/// stated four ways: nothing on this table may be a way to change a row.
+///
+/// 1. `id` IS A SEQUENCE, NOT A UUID. Every other model here opens with
+///    `@default(uuid())`. A hash chain needs a deterministic order to say which
+///    row is "previous", and UUIDv4 has none. multi-tenant-data.md §稽核軌跡
+///    specifies `BIGSERIAL PRIMARY KEY` outright, so this follows the source
+///    rather than the neighbours (confirmed parameter #9).
+///    ⚠️ A sequence orders ALLOCATION, not COMMIT — two concurrent inserts can
+///    commit out of order. The chain therefore cannot rely on the id alone; what
+///    makes "previous" well-defined is the per-entity serialisation in the
+///    trigger, and that serialisation is part of what W12 measures.
+///
+/// 2. NO `ref_code`. Every business record carries a server-issued one so a human
+///    can cite it. Audit rows are read as a chain, never cited individually, and
+///    a ref_code counter is one more write on the hottest path in the system.
+///
+/// 3. NO `version`, `updated_at`, `updated_by`, `retired_at` or `deleted_at`.
+///    RMReportVersion keeps them frozen at their insert values for §1.1
+///    consistency; here they would be worse than inert. ⛔ A `retired_at` on an
+///    audit trail IS A REDACTION MECHANISM — a supported way to make an entry
+///    stop showing up. guardrail 5 says append-only, so the columns that record
+///    change are not present to be misused.
+///
+/// 4. `actor_id` HAS NO FOREIGN KEY TO User, and that is the whole reconciliation
+///    of the erasure right with guardrail 5 (02a:311). A foreign key would bind
+///    every audit row to a person record that a data-subject request can empty;
+///    the chain would then be provably intact over content that no longer says
+///    what it said. The actor is a pseudonym this table cannot resolve, and
+///    resolving it is the identity model's job (M4).
+///
+/// ⚠️ WHAT HAS NO PRODUCER YET, STATED PLAINLY. W12 wires exactly one module
+/// (soa) and only its successful writes, so `access_allowed` is `true` on every
+/// row this codebase can currently create, and `attempted_entity` is always NULL.
+/// They are built because the field list specifies them and the refusal path is a
+/// wiring change rather than a migration; until that path exists, a query
+/// counting refused attempts returns zero for want of a writer, not for want of
+/// attempts. Same shape as RMReportVersion.sheet: the storage guarantee stands on
+/// its own and is testable on its own.
+model AuditLog {
+  /// See house-convention note 1 above. BigInt, because BIGSERIAL is what the
+  /// field list specifies and a 32-bit counter on an every-write table is a
+  /// horizon, not a type choice.
+  id BigInt @id @default(autoincrement())
+
+  /// The owning entity of the data the event concerns (約束 8 iron law 1). Named
+  /// `org_entity_id` and not the field list's `entity_id`: six design documents
+  /// use the former and CLAUDE.md's authority ordering settles it (schema:61-64).
+  orgEntityId String @map("org_entity_id") @db.Uuid
+
+  /// Pseudonymous. ⛔ NEVER personal data — no name, no email, no address. See
+  /// house-convention note 4 for why this is not a foreign key. Nullable because
+  /// system-initiated events (retention sweeps, scheduled jobs) have no actor,
+  /// and inventing a placeholder user would answer M3's question with a lie.
+  actorId String? @map("actor_id") @db.Uuid
+
+  /// The authorised subtree the actor held AT THE TIME, which is what makes a
+  /// roll-up read auditable (multi-tenant-data.md:161) — "who saw across which
+  /// entities" is unanswerable from actor_id alone once role assignments change.
+  actorScope String @map("actor_scope")
+
+  /// What happened, e.g. `soa.create`. Free text: the set of operations is open
+  /// by construction, and an enum would have to be migrated by every module that
+  /// ever adds a write.
+  operation String @db.VarChar(128)
+
+  /// Target reference (05:22). Nullable pair — a security event such as a login
+  /// has an actor and no resource.
+  resourceType String? @map("resource_type") @db.VarChar(64)
+  resourceId   String? @map("resource_id") @db.VarChar(256)
+
+  /// Refused attempts are the more interesting rows: they are both an intrusion
+  /// signal and the platform's own evidence that entity-scoping works
+  /// (guardrail 2). ⚠️ No producer yet — see the model header.
+  accessAllowed Boolean @default(true) @map("access_allowed")
+
+  /// What entity the actor tried to reach on a refused cross-entity attempt.
+  /// ⛔ DELIBERATELY NO FOREIGN KEY, unlike org_entity_id. An attempt naming an
+  /// entity id that does not exist is precisely the attempt worth recording, and
+  /// a foreign key would refuse to record it — the log would fall silent exactly
+  /// when someone is guessing identifiers.
+  attemptedEntity String? @map("attempted_entity") @db.Uuid
+
+  /// Before/after snapshot (05:22). ⭐ These two are NOT in
+  /// multi-tenant-data.md's DDL — W12 Day 1 compared its column list against
+  /// 05:22's six content requirements field by field, and this is the one that
+  /// was missing. Stored whole rather than as a diff: plan §3.x rules that
+  /// compression waits for a measurement showing it is needed (AP-5).
+  ///
+  /// ⚠️ Whatever the caller passes lands here verbatim, so a module that puts
+  /// personal data in a domain column puts it in the audit trail too — where
+  /// guardrail 5 forbids ever editing it out. That constraint belongs to the
+  /// modules; this column cannot enforce it.
+  before Json? @db.JsonB
+  after  Json? @db.JsonB
+
+  /// The chain (ADR-0003). `row_hash` covers this row's content together with
+  /// `prev_hash`, so altering any earlier row invalidates every later one.
+  /// Bytea rather than hex text: 32 bytes instead of 64, on the widest table in
+  /// the system, and comparisons cannot be defeated by letter case.
+  ///
+  /// ⚠️ THE DEFAULT IS AN EMPTY BYTEA, WHICH IS NOT A VALID HASH. Without a
+  /// default, Prisma's generated types would demand both on every create, which
+  /// pushes the chain into the call site of every module that ever writes. The
+  /// BEFORE INSERT trigger fills them; the default only keeps the field optional
+  /// in TypeScript. A stored zero-length row_hash therefore means the trigger did
+  /// not run — which is what N1 produces and what verify must report as a break.
+  prevHash Bytes @default(dbgenerated("'\\x'::bytea")) @map("prev_hash")
+  rowHash  Bytes @default(dbgenerated("'\\x'::bytea")) @map("row_hash")
+
+  /// The only timestamp. `created_at` would be a second name for the same
+  /// instant, and an audit row has no other lifecycle event to date.
+  occurredAt DateTime @default(now()) @map("occurred_at") @db.Timestamptz(6)
+
+  orgEntity OrgEntity @relation(fields: [orgEntityId], references: [id])
+
+  /// The chain lookup — "the last row for this entity" — and the ordering the
+  /// verify routine walks. Entity leads because scope is the first predicate of
+  /// every query (multi-tenant-data.md:50); here it is also the chain's own
+  /// partition key, since a SECURITY INVOKER trigger can only see rows the
+  /// caller's policies admit.
+  @@index([orgEntityId, id])
+  @@map("audit_log")
 }
