@@ -151,3 +151,86 @@ Day 1.x 的 partial gate 跑出 `FORMAT_EXIT=1`（三個新檔不符 prettier）
 
 ⛔ **這七項是實際跑過的全部** —— build 與 coverage 留到 Day 2 的 full gate，
 本段不宣稱它們的狀態。
+
+---
+
+## Day 2 — 2026-08-14 — Endpoints
+
+交付：`modules/soa/` 四檔（controller · controller.spec · int.spec · module）· `app.module.ts` +1 ·
+`02a:215` 的三段 recorded deviation。**19 → 20 / 35** 實體（Day 1 已達成，Day 2 維持）。
+
+### ⭐ B3 — `applicable` 是第一個「必填但不是字串」的欄位
+
+各 controller 開頭都是同一個迴圈：`for (const key of [...]) if (typeof body[key] !== 'string') 400`。
+`applicable` 進不了那個迴圈，而**任何「falsy 當缺值」形狀的檢查都會接受每一個 inclusion、
+拒絕每一個 exclusion** —— 偏偏「判定不適用 + 理由」才是稽核員真正會追問的那一半。
+
+⇒ 它自己一條 `typeof !== 'boolean'`。測試同時釘住兩側：`false` 要能通過並以 `false` 送達，
+而 `'false'` / `0` / `null` 要被拒。⚠️ **只刪 key 的那條測試證不到這件事** ——
+刪 key 的情況下 `undefined !== 'boolean'` 本來就會擋，兩種寫法都會綠。
+
+### ⭐ B4 — coverage 抓到一個型別檢查抓不到的缺口
+
+`soa.controller.ts` 的 branch 覆蓋率是 **85.71%**，未覆蓋處是 139 / 140 / 142 三行：
+
+```
+justification: typeof body.justification === 'string' ? body.justification : undefined,
+approvedBy:    typeof body.approvedBy    === 'string' ? body.approvedBy    : undefined,
+ownerUserId:   typeof body.ownerUserId   === 'string' ? body.ownerUserId   : undefined,
+```
+
+三個連續、同型、同為 `string | undefined` 的三元運算式 —— **兩個對調型別檢查完全看不出來**，
+而我原本的 spec 每一條都把這三個欄位送成**缺席**，所以三個 present 分支一次都沒執行過。
+「justification 被靜靜存進 approved_by」會是一筆指名錯誤對象的稽核紀錄。
+
+⇒ 補一條測試 → controller branch **92.85%**，全域 branch **90.56 → 91.01（高於 baseline）**。
+⭐ 這條缺口是 **coverage 數字本身**指出來的，不是我讀 code 讀出來的。
+
+### ⭐ B5 — deviation 寫成 inline 而不是 blockquote，是為了不製造 AP-7
+
+`02a` 既有兩種 deviation 形式：blockquote（`:219` `:260`）與 inline（`:225` `:227`）。
+blockquote 讀起來比較清楚，**但它會把 `02a` 之後的每一行往下推** ——
+而 repo 內散布著大量 `02a:NNN` 形式的引用（schema docstring / repository / BACKLOG / ROADMAP /
+RISK_REGISTER）。位移之後那些行號**全部指向錯的行，而且沒有任何 gate 會發現**
+（`AD-MdAnchorLineShift-1` 就是這個形狀，W11 checklist 的 Day 4 也預先警告過）。
+
+⇒ 選 inline，附加在第 215 行**本身**。實測 **514 → 514 行**、`1 insertion(+) 1 deletion(-)`，
+零位移、零失效引用。三段 deviation 各自引了所沿用的先例（`:217` / `:225` / `:260`）。
+
+### 範疇測試（`soa.int.spec.ts`，11 / 11）
+
+| # | 斷言 | 約束 8 的哪一條 |
+|---|---|---|
+| 5 | 跨實體讀回不到對方的列（兩側都有列，否則「看不到」與「沒有」同義）| 跨實體讀拒 |
+| 6 | 跨實體寫被 `ScopeRefusedError` 拒，且 HK1 的列數不變 | 跨實體寫拒**且資料未變** |
+| 7 | raw INSERT（無 `RETURNING`、繞開發號器）仍被 RLS 拒 | RLS 層**獨立**成立 |
+| 10 | 撞別實體持有的 clause 與撞沒人持有的 clause **同樣成功** | 唯一鍵不洩漏存在性 |
+
+⚠️ **test 10 今天只證明「兩者相同」，不證明「是唯一鍵讓它們相同」** —— 那是 Day 3 的 N3。
+本段不把它寫成已證實。
+
+### Gate（Day 2 full gate，逐項實測、逐項取 exit code）
+
+| Gate | 結果 |
+|---|---|
+| `format:check` ×2 | **0** |
+| `lint` ×2 | **0** |
+| `type-check` ×2 | **0** |
+| `build` ×2 | **0** |
+| `lint:negative` | **0** |
+| api unit | **376 / 35 suites**（Day 1 為 360 / 34）|
+| api int | **171 / 13 suites**（Day 1 為 160 / 12）|
+| web | **10 / 1** |
+| `run_all` | **8 / 8** |
+| `check_entity_index` | **20 / 35** |
+| coverage | exit **0**（門檻 80/70/80/80）|
+
+⚠️ **coverage 有兩項低於 baseline，不寫成「不低於 baseline」**：
+stmts **92.01 → 91.83**（−0.18）· lines **93.44 → 93.29**（−0.15）;
+branches **90.81 → 91.01**（+0.20）· funcs **97.4 → 97.5**（+0.10）。
+
+機械成因查明：`soa.module.ts` 覆蓋率 **0%**，而**既有 10 個 `*.module.ts` 全部也是 0%**
+（action / assessment / asset / control / control-test / evidence / issue / policy / risk / rm-report）——
+DI wiring 只有 int suite 會走，而 int 跑在另一個 jest config，不計入這份報告。
+⇒ **每新增一個模組資料夾就稀釋一次 stmts/lines**，前 7 個 slice 都發生過。
+這不是本 phase 的退步，但 plan §5 第 7 條寫的是「不低於 baseline」，所以照實記，不改口徑。

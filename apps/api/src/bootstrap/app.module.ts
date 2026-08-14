@@ -17,6 +17,7 @@
  * Last Modified: 2026-08-13
  *
  * Modification History (newest-first):
+ *   - 2026-08-14: Import SoaModule (W11) — the mandatory ISO 27001 artifact
  *   - 2026-08-13: Import RmReportModule (W10) — the versioned snapshot pair
  *   - 2026-08-13: Import AssessmentModule (W09) — one module, three tables
  *   - 2026-08-12: Import IssueModule + ActionModule (W08) — slice 5's endpoints
@@ -42,6 +43,7 @@ import { IssueModule } from '../modules/issue/issue.module';
 import { PolicyModule } from '../modules/policy/policy.module';
 import { RiskModule } from '../modules/risk/risk.module';
 import { RmReportModule } from '../modules/rm-report/rm-report.module';
+import { SoaModule } from '../modules/soa/soa.module';
 
 // One .env at the monorepo root. `npm run dev -w apps/api` sets cwd to
 // apps/api, so the root file has to be named explicitly — the default lookup
@@ -63,6 +65,7 @@ const ENV_FILES = [resolve(process.cwd(), '.env'), resolve(process.cwd(), '../..
     ActionModule,
     AssessmentModule,
     RmReportModule,
+    SoaModule,
   ],
 })
 export class AppModule {}
