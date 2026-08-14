@@ -96,27 +96,53 @@
 
 ### 2.1 Module + controller
 
-- [ ] **`modules/soa/` 四檔 + `app.module.ts` 註冊**
+- [x] **`modules/soa/` 四檔 + `app.module.ts` 註冊**
   - DoD: **2 個端點**（`GET /soa` · `POST /soa`）；⛔ 無 GET-by-id（無先例，不開新形狀）
   - Verify: `npm run test -w apps/api -- soa.controller`
+  - → **16 / 16 通過**。藍本 `issue.controller.ts`（單表形狀）。⭐ **兩件事是新的**：
+    (a) `applicable` 是**第一個必填的非字串** —— 各 controller 開頭那個 `typeof !== 'string'`
+    迴圈會把 `false` 擋掉，而 `false` 正是「判定不適用」那一半，所以它自己一條檢查；
+    (b) **409 不併入 404 家族**（W10 之後第 2 個）
+  - → ⛔ **coverage 抓到一個真實缺口**：`justification` / `approvedBy` / `ownerUserId` 三個
+    連續的同型三元運算式，**present 分支全部沒被執行過**（controller branch 85.71%）。
+    補一條測試後 **92.85%**，全域 branch 由 90.56 → **91.01（高於 baseline 90.81）**
 
 ### 2.2 整合 + 範疇測試
 
-- [ ] **`soa.int.spec.ts`：4 個範疇測試**
+- [x] **`soa.int.spec.ts`：4 個範疇測試**
   - DoD: 跨實體讀拒 / 跨實體寫拒**且資料未變** / RLS 層獨立成立 / **唯一鍵不洩漏存在性**
   - Verify: `npm run test:int -w apps/api -- soa`
+  - → **11 / 11 通過**（test 5 讀 · 6 寫且未變 · 7 INSERT policy 獨立 · 10 唯一鍵不洩漏；
+    另 8 刪除被 privilege 擋 · 9 roll-up 子樹）
+  - → ⚠️ **不 seed 任何 SoA 列** —— 每個 isolation 斷言所需的兩側都由該測試自己建。
+    ⛔ **clause_ref 必須全程唯一**：`retired_at` 不在唯一鍵裡，退休不釋放鍵
+  - → ⚠️ test 10 目前只證明「兩者相同」，**不證明是唯一鍵造成的** —— 那要 Day 3 的 N3
 
 ### 2.3 `02a` deviation 註記
 
-- [ ] **`02a:215` 加 D1 / D2 / D4 的 recorded deviation**
+- [x] **`02a:215` 加 D1 / D2 / D4 的 recorded deviation**
   - DoD: 形式沿用 `:219` / `:225` / `:260`（既有三個 deviation 的寫法）
   - Verify: 讀回該段，確認三個 deviation 各自說明「規格說什麼 / 建了什麼 / 為什麼」
+  - → ⭐ **選 inline（`:225` / `:227` 的形式）而非 blockquote（`:219` / `:260`）**，
+    理由是 **AP-7 orphan claim**：blockquote 會讓 `02a` 之後每一行位移，而 repo 內有大量
+    `02a:NNN` 引用。實測 **514 → 514 行、`1 insertion(+) 1 deletion(-)`**，零位移零失效引用
+  - → 三個 deviation 各自引了它所沿用的先例（`:217` `Control.framework_refs` ·
+    `:225` `ControlTest.result` · `:260` `RMReportVersion.state`）
 
 ### 2.x Full gate
 
-- [ ] lint 0 · format check ×2 · type 0 · build clean ×2 · api unit · api int · web ·
+- [x] lint 0 · format check ×2 · type 0 · build clean ×2 · api unit · api int · web ·
       coverage 不低於 baseline · `run_all` 8/8 · `check_entity_index` **20/35** · `lint:negative`
   - ⛔ **九項全跑才能說「gate 全綠」**
+  - → **十一項全跑，逐項取 exit code**（不共用管線後的 `$?`）：format **0** · lint **0** ·
+    type **0** · build **0** · `lint:negative` **0** · api unit **376 / 35** · api int **171 / 13** ·
+    web **10 / 1** · `run_all` **8/8** · `check_entity_index` **20 / 35** · coverage exit 0
+  - → ⚠️ **coverage 有兩項低於 baseline，不宣稱「不低於」**：
+    stmts **92.01 → 91.83**（−0.18）· lines **93.44 → 93.29**（−0.15）；
+    branches **90.81 → 91.01**（+0.20）· funcs **97.4 → 97.5**（+0.10）。
+    機械成因：`soa.module.ts` 覆蓋率 **0%**（第 17-27 行），而**既有 10 個 `*.module.ts` 全部是 0%**
+    —— DI wiring 只被 int suite 走過，而 int 跑在另一個 jest config。每加一個模組資料夾都會稀釋一次，
+    前 7 個 slice 皆然。門檻 80/70/80/80 全部通過（`test:cov` exit 0）
 
 ---
 
