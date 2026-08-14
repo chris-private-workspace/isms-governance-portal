@@ -27,6 +27,7 @@ Created: 2026-08-07
 Last Modified: 2026-08-12
 
 Modification History (newest-first):
+    - 2026-08-14: Register backlog-counts detector (CH-027) — 7 -> 8
     - 2026-08-12: Register entity-index detector (Phase W08) — 6 -> 7
     - 2026-08-07: Register workflow-placeholders detector (CH-007)
     - 2026-08-07: Initial creation from claude-code-dev-template v2.6.1
@@ -63,6 +64,9 @@ DETECTORS: list[tuple[str, str, list[str]]] = [
     # Derives the Wave-1 entity count from schema.prisma ∩ 02a §0 instead of
     # letting each document carry its own hand-written figure (W08).
     ("entity-index", "check_entity_index.py", []),
+    # Derives BACKLOG's §Open counts from its own table instead of trusting the
+    # figure copied into the header by hand (CH-027).
+    ("backlog-counts", "check_backlog_counts.py", []),
     # ("your-detector", "check_your_pattern.py", ["--root", "src"]),
 ]
 
