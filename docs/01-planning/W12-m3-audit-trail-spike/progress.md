@@ -63,6 +63,28 @@ migration 三次 ⇒ **第 4-5 次**。依 `.claude/rules/README.md` 強度階�
 same-session 內違反屬**第 4 級**（`UserPromptSubmit` hook）。⚠️ hook 每回合付 context 成本
 → 由使用者排序，不當場實作（節流閘 Step 0.0）→ 記 BACKLOG。
 
+**實際代價（量到的，不是推測的）**：`git add` 印出 CRLF 警告，
+`git ls-files --eol` 顯示該檔 **worktree 是 `w/crlf`**（另兩個檔是 `w/lf`）。
+已用 `rm` + `git checkout --` 還原，三個檔現在都是 `w/lf`。
+⚠️ **index 從頭到尾都是 `i/lf`** —— `.gitattributes` 有生效，**commit 內容不受影響**，
+與 `AD-WriteTextCRLF-1` 記的一致。
+
+### 🚩 D7 — 追 D6 的代價時，我用壞掉的量法連續下錯兩個結論
+
+`AD-NarrowPatternWideClaim-1` 在同一個 Day 0 內第 2 次現形，而這次**沒有在說出口前攔下**：
+
+| # | 我宣稱 | 用什麼量的 | 實際 |
+|---|---|---|---|
+| 1 | 「CRLF 是 heredoc 的第二個具體代價」| `grep -c $'\r'` 於工作區檔案 | ⛔ **錯** —— W11 的檔案（非 heredoc 寫的）量出來也是 CRLF |
+| 2 | 「`.gitattributes` 沒有生效」| `git cat-file blob \| grep -c $'\r'` | ⛔ **錯** —— `git ls-files --eol` 說 index 全部 `i/lf` |
+
+⭐ **抓到第 1 個的是對照組**（拿 W11 當控制組），**抓到第 2 個的是換一個儀器**
+（`git ls-files --eol` 是 git 專門為此設計的報告，而不是我自己拼的 grep）。
+
+⇒ 教訓比「別用 grep 數 CR」更一般：**當一個便宜的量法給出一個「意外」的答案時，
+第一個要懷疑的是量法本身，不是被量的東西**。我兩次都先懷疑了被量的東西。
+本 phase 後續每個量測都必須先問「這個儀器對嗎」。
+
 ### 🚩 Go / No-Go — **NO-GO（暫停，等使用者裁決）**
 
 **範圍變動判定：20-50%** ⇒ 依 `day0-plan-verify.md` 與本 phase checklist §0.1 的預先指示，
