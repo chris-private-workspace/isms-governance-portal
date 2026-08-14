@@ -236,3 +236,57 @@ AFTER trigger 不能改 `NEW`，要存 hash 就得下 `UPDATE` ——
 ⭐ **差別在於這次我先懷疑儀器，而不是先懷疑資料** —— 修正比較式後三列全部如預期。
 D7 寫的是「便宜的量法給出意外答案時，第一個要懷疑的是量法本身」；這是它第一次被**用上**
 而不是事後才發現。
+
+### ⛔ D14 — A 的鏈原本在應用層**無法驗證**，而且不會有人發現
+
+`verify.ts` 要重算 hash，就得重現 `occurred_at` 的逐位元組呈現。量到的儲存值是
+**微秒**（`2026-08-14T07:03:21.476152Z`），而 JavaScript 的 `Date` 只有毫秒
+⇒ 讀回來變 `.476000`，重算的 hash 與存的不符 ⇒ **每一列都會被報成「已竄改」**。
+
+⛔ 這是最惡劣的一種失敗：verify 會是一個**永遠在響的警報**，而稽核員無從分辨。
+且它不會被任何 gate 抓到 —— A 的鏈在 DB 內部自洽，測試也會過。
+
+**改法**：`occurred_at` 用 `TIMESTAMPTZ(3)`，是本 schema **唯一**不是 (6) 的時間欄。
+量過它是**四捨五入**不是截斷（`.476952 → .477000`、`.476152 → .476000`），
+兩邊寫入都落在毫秒邊界，Date 雙向 round-trip 無損。
+代價：兩列稽核可能同一個時戳 —— 不影響任何東西，順序來自序號、身分來自 hash。
+
+⚠️ migration 只套用過 throwaway DB（`isms_test` 每次重建、scratch 已刪），**不造成 checksum 漂移**。
+
+### ✅ B 與 verify（1.2 / 1.3）
+
+**「A 與 B 共用同一個 hash 定義」是量到的，不是宣稱的。** 期望值直接取自 postgres
+`audit_log_canonical()`：payload hex **756 字元** + 3 個 hash 向量，TS 逐位元組相符。
+
+| 量測 | 結果 |
+|---|---|
+| TS canonical payload ≡ postgres | **相符**（756 hex chars） |
+| v1 hash（全欄位）| `87aa13ba…` **相符** |
+| v2 hash（NULL-heavy genesis）| `c13528c9…` **相符** |
+| v3 hash（`resource_id = ''`）| `cb409588…` **相符**，且 **≠ v2** ⇒ NULL 與空字串不碰撞 |
+| jsonb key 排序 / 跳脫 / 控制字元 / 數字 | 8 組對照全部相符 |
+
+⭐ **payload 向量第一版是紅的，而那次失敗比通過更有價值**：三個 hash 向量**都過**，
+payload 卻不符 —— hash 相符即 bytes 相符，所以錯的必然是**我手抄的字面值**。
+改用機械切行後全綠。這是「先懷疑儀器」的第 2 次應用。
+
+**verify 的四種斷點是可分辨的**，不是一個 `broken`：
+`content`（改了沒重算）· `link`（改了且重算 —— 由後繼揭發）· `unchained`（從未被覆蓋）·
+`foreign`（拼了兩個實體的列）。最後一種特別重要：**不報成竄改**，否則會派人去查不存在的攻擊。
+
+⭐ **B 的限制被寫成測試**：同一個竄改，A 指出**那一列**（index 1），B 只能指出**那一段**（anchor at index 3）。
+ADR-0003 要把這條擺在 B 的寫入成本優勢旁邊。
+
+### 1.x partial gate（逐項取 exit code）
+
+format **0** · lint **0** · type-check **0** · api unit **418 / 37**（baseline 376 / 35，
++42 = chain 25 + verify 17）。
+⛔ **未跑**：build · `lint:negative` · api int · web · coverage · `run_all` · `check_entity_index`
+—— 這是 **partial gate**，不是「gate 全綠」。
+
+### 🚩 D15 — 我又用截斷的輸出下了一個結論
+
+type-check 第一次紅時我用 `tail -25` 讀 log，看到錯誤全在 `verify.ts`，
+於是判斷「spec 檔沒有被 type-check」。**錯** —— spec 的錯誤在被截掉的那一段。
+`AD-NarrowPatternWideClaim-1` 的近親，也是 `verification-discipline.md`
+證據層變體表裡列的「**撞上限當搜完**」。⇒ 讀 gate log 一律用 `grep -E "^src/"` 取全部，不用 `tail`。
