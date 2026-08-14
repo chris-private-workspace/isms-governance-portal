@@ -71,6 +71,8 @@
   Keywords: 快照不可偽造 · 父表 delegate 的三選一 · evidence 首次回頭補錨點 · 第一個跨欄位 CHECK（SoD）· 宣告式約束免費涵蓋 UPDATE · 中性化改來源不改狀態 · AD-NeutraliseRebuiltState-1 · AD-AssessmentProcessSubject-1 · AD-BorrowedRefusal-1 首次事先預測 · AD-TestNameWiderThanProof-1 首次被元驗證抓到 · 新估法預測 64 vs 實測 58.5
 - W10 [RM report snapshot](memory/project_w10_rm_report_snapshot.md) — MERGED #52 (`afa667a`) 2026-08-13, **`closed`**; **19/35**。⭐ `02a` 給了兩個互斥的「哪一版現行」欄位，只建父表指標，換到版本表**一條 `FOR UPDATE` policy 都沒有**。⛔ **唯一索引是 existence oracle**（不受 RLS 管且早於 FK；23505 vs 23503 可列舉別實體的版本標籤）—— 量到才發現，修法是把 entity 放進鍵。元驗證 **6/6**，其中 N4 零轉紅如預測；⛔ 補的測試第一版被 `RETURNING` 遮蔽而**再次踩進已記錄的陷阱**。
   Keywords: 不可變表 = 缺席的 policy · GRANT 先於 policy（測試推翻我的註解）· AD-UniqueKeyOracle-1 · 呼叫端可選的唯一 tuple · promote 進 DB 因 runScoped 每 op 一個交易 · 循環複合 FK + MATCH SIMPLE · AD-CalibrationDay0InOrOut-1 · 0.23/0.24 不含 Day 0 而 0.50/0.84 含 · AD-BorrowedRefusal-1 第 5 次 · AD-ReturningMasksCheck-1 再次被踩
+- W11 [Statement of Applicability](memory/project_w11_soa.md) — PR-pending 2026-08-14, **`closed`**; **20/35**。⭐ `Framework` 在 `02a` **全檔零命中** → 建 FK 等於先發明一個實體。⛔ **N4 零轉紅逼出一次自我推翻**：補的測試重跑仍全綠，逐條放行才量到擋住跨實體搬移的是 **SELECT policy**（新列會被它檢查）而非 `WITH CHECK` —— 我 Day 1 寫的因果是錯的。元驗證 **4/4**，追加兩項 **0/2**。
+  Keywords: SoA · AD-PolicyClaimUnmeasured-1 · SELECT policy 檢查 UPDATE 的新列 · AD-BorrowedRefusal-1 第 6 次且判準不可滿足 · AD-UniqueKeyOracle-1 第 2 點「錯誤 vs 成功」比兩個 SQLSTATE 更響 · 中性化=放行不是刪除 · INSERT policy 首次真的轉紅 · 02a deviation 用 inline 保 514→514 行 · migrate diff Prisma 7 靜默輸出 0 bytes · calibration 首個 IN-band 點 1.13
 
 ---
 

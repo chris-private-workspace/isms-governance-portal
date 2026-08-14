@@ -76,7 +76,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 | Attribute | Value |
 |-----------|-------|
 | **Stage** | Wave 1 backbone — 建立共用骨幹，並用 Policy + Risk/Control 兩個最小模組端到端證明它 |
-| **Current Phase** | **W10 MERGED**（PR #52, `afa667a`）`closed` — M1 slice 7；`02a` §3.1 的版本化快照兩張表 + 四個端點。⭐ 規格給了兩個互斥的「哪一版現行」欄位，只建父表指標，換到版本表**一條 `FOR UPDATE` policy 都沒有**。⛔ **唯一索引被量出是 existence oracle**（不受 RLS 管且早於複合 FK）→ entity 進鍵。元驗證 **6/6**。**19/35 實體**（機械導出）|
+| **Current Phase** | **W11 PR-pending** `closed` — M1 slice 8；`02a:215` 的 SoA（ISO 27001 強制產出）+ 兩個端點。⭐ `Framework` 在規格全檔零命中 → `framework` 存字串且不叫 `framework_id`。⛔ **N4 零轉紅逼出一次自我推翻**：擋住跨實體搬移的是 **SELECT policy** 不是 `WITH CHECK`，migration 註解已更正。元驗證 **4/4**（追加兩項 0/2）。**20/35 實體**（機械導出）|
 | **History** | See [`MEMORY.md`](./MEMORY.md) + 各 phase 的 `retrospective.md` |  <!-- doc-links: ignore — MEMORY.md 由 bootstrap 複製到專案根 -->
 | **Pending / Next** | See [`docs/01-planning/BACKLOG.md`](./docs/01-planning/BACKLOG.md)（**有什麼**）· [`ROADMAP.md`](./docs/01-planning/ROADMAP.md)（**先做哪個**）|
 | **跨來源狀態** | See [`docs/01-planning/STATUS_AUDIT.md`](./docs/01-planning/STATUS_AUDIT.md) —— 問「現在全項目怎樣」時跑 `/status-audit`，**不要只讀 BACKLOG** |
@@ -490,6 +490,6 @@ python scripts/lint/run_all.py
 
 ---
 
-**Last Updated**: 2026-08-13（W10 closeout）
+**Last Updated**: 2026-08-14（W11 closeout）
 **Project Start**: 2026-08-07
 **Template Version**: 2.6.1 (claude-code-dev-template)

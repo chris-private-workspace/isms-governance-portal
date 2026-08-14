@@ -1,5 +1,5 @@
 ---
-status: active   # draft | active | closed | closed_partial —— 機器可讀的唯一權威
+status: closed   # draft | active | closed | closed_partial —— 機器可讀的唯一權威
 ---
 
 # Phase W11 Plan — Statement of Applicability (M1 slice 8)
@@ -10,8 +10,8 @@ status: active   # draft | active | closed | closed_partial —— 機器可讀�
 無 user-facing surface → **gate-only verified，不做 drive-through**。
 feature continuation（複用 W06-W10 的 pattern）→ **不產出 design note**。
 
-**Status**: Approved-to-execute（laitim2001 於 2026-08-14 核可；
-`framework` 表示法同日裁決為選項 B；D2 / D4 依 plan 所提建議執行）
+**Status**: Closed（2026-08-14 —— 五個 US 全數交付；核可紀錄：laitim2001 於 2026-08-14
+核可執行，`framework` 表示法同日裁決為選項 B，D2 / D4 依 plan 所提建議執行）
 
 **Branch**: `feature/W11-soa`
 **Base**: `main` HEAD `f171049`（CH-027 完全收尾 —— PR #54 + #55 皆 MERGED，`run_all` 8/8）

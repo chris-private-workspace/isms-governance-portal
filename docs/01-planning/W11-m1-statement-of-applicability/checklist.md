@@ -193,23 +193,31 @@ _(本 phase 無 user-facing surface。報告一律寫 **gate-only verified**，�
 
 ### 4.1 Change record
 
-- [ ] **`docs/03-implementation/changes/CH-028-w11-soa.md`**（Problem / Root Cause / Solution /
+- [x] **`docs/03-implementation/changes/CH-028-w11-soa.md`**（Problem / Root Cause / Solution /
       Verification / Impact —— 含四個 deviation 的理由 + **gate-only verified** 聲明）
 
 ### 4.2 Closeout
 
-- [ ] `retrospective.md` Q1-Q7 + calibration（`pattern-reuse-feature` 0.50，**第 5 個資料點**；
+- [x] `retrospective.md` Q1-Q7 + calibration（`pattern-reuse-feature` 0.50，**第 5 個資料點**；
       ⚠️ **必須自報量法** —— 本 phase 宣告為**含 Day 0**（`AD-CalibrationDay0InOrOut-1`））
-- [ ] `calibration-matrix.md` 那一行 —— **≤ 1 行 ~250 字元**（lint 上限 400）
-- [ ] Final gate sweep（九項全跑，逐項寫實際數字）
-- [ ] 導航檔: `CLAUDE.md` Current-Phase + Last-Updated · `MEMORY.md` pointer + subfile ·
+  - → ratio **1.13 IN** —— ⭐ **本欄第一個 IN-band 點**，也是第一個事先宣告量法的點。
+    ⛔ 但暴露量法**第三個**模糊處：起草在首個 commit 之前，不在窗口內 ⇒「含 Day 0」有兩種讀法
+- [x] `calibration-matrix.md` 那一行 —— **≤ 1 行 ~250 字元**（lint 上限 400）
+- [x] Final gate sweep（九項全跑，逐項寫實際數字）→ progress §Day 4
+- [x] 導航檔: `CLAUDE.md` Current-Phase + Last-Updated · `MEMORY.md` pointer + subfile ·
       `BACKLOG.md`（新增 AD + §Shipped 加 1 行）· `ROADMAP.md` 第 4 列推進 ·
       `RISK_REGISTER.md`（**R4 17 → 18 張表無稽核**）
   - ⛔ **BACKLOG 計數在最後一次編輯之後跑** `python scripts/lint/check_backlog_counts.py`
     （CH-027 交付；它已經抓到過一次真實漂移）
-- [ ] Anti-pattern 自檢（retro Q5）：AP-1..AP-7 → 違規數
+  - → **95 條（P0 7 / P1 53 / P2 35）** —— ⭐ 四個數字**全部由 detector 印出**
+    （它報 total +4 / P0 +1 / P1 +2 / P2 +1），我沒有手數。新增 4 · 更新 5 · 關閉 0
+- [x] Anti-pattern 自檢（retro Q5）：AP-1..AP-7 → 違規數
       ⚠️ 含 **AP-7 orphan claim**：本 phase 若動 `02a` 行數，檢查誰引用了那些行號
+  - → **AP-7 違規 1 條**：migration 第 117-120 行宣稱了一個沒量過的因果（Day 3 已更正）。
+    ⭐ `02a` 行數**未動**（514 → 514），所以沒有任何行號引用失效
 - [ ] **Commit** → ⏳ PR push + open → CI → merge: **PENDING USER CONFIRMATION**
       （push 是 outward-facing）→ merge 經 `gh pr view` 驗證後翻 `status:` 標籤
   - ⚠️ **rebase merge 會改寫 SHA** —— 若 closeout 引用了「預測寫在前面」的 commit，
     改指 main 側並補 **author date**（CH-027 量到它逐秒不變）
+  - 🚧 **阻塞於使用者確認** —— push 是 outward-facing，依 Developer Preferences 必問。
+    ⚠️ 本 phase 的 closeout 引用了 `0e4b1c6`（預測寫在執行之前的證據），rebase merge 後要改指
