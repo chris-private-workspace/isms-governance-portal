@@ -34,8 +34,53 @@ import { Global, Module } from '@nestjs/common';
 import { AUDIT_HOOK } from '../contracts/audit-hook';
 import { AuditLogRecorder } from './audit.recorder';
 
-/** The Prisma model names audited today. W12 connects exactly one. */
-export const AUDITED_MODELS: ReadonlySet<string> = new Set(['StatementOfApplicability']);
+/**
+ * The Prisma model names audited today: every model that has a repository write
+ * path, minus one deliberate exclusion.
+ *
+ * ⭐ DERIVED, NOT TRANSCRIBED — rerun the derivation rather than trusting these
+ * fifteen strings. Two independent passes, which must agree:
+ *
+ *   forward   grep -rn 'client\.\w*\.\(create\|update\|upsert\)' src --include='*.ts'
+ *             (excluding *.spec.ts) -> 16 delegates
+ *   reverse   grep -c '^model' prisma/schema.prisma -> 22, minus the forward set
+ *             -> 6 with no write path
+ *
+ * ⛔ FIVE MODELS ARE ABSENT BECAUSE NOTHING CAN WRITE THEM YET: OrgEntity, User,
+ * ExtensionField, Threat, Vulnerability. Listing a name that can never fire
+ * would raise the coverage number without auditing anything — a Potemkin entry
+ * (AP-3). They join when they get a write path, and the consistency test in
+ * audit.int.spec.ts is what will say so.
+ *
+ * ⛔ REFCODECOUNTER IS EXCLUDED ON PURPOSE, and the reason is stronger than
+ * noise. ref-code.ts:97 upserts it inside every create, so auditing it would
+ * double every domain write's footprint with rows whose `after` is an
+ * incrementing integer. Worse, an upsert passes {where, create, update} and no
+ * `data` key, so audit.recorder.ts:141 reads null, resolveEntity falls back to
+ * the scope, and a MULTI-ENTITY scope THROWS — wiring it would break every
+ * create a roll-up principal makes. Measured in W13 Day 3's N3, not assumed.
+ *
+ * ⚠️ AuditLog itself is absent and needs no exclusion: the recorder writes
+ * through the UNEXTENDED client (scoped-prisma.provider.ts:127), so its own
+ * insert never re-enters the hook.
+ */
+export const AUDITED_MODELS: ReadonlySet<string> = new Set([
+  'Policy',
+  'AssetGroup',
+  'Asset',
+  'Risk',
+  'Control',
+  'ControlTest',
+  'Evidence',
+  'Issue',
+  'Action',
+  'AssessmentTemplate',
+  'AssessmentInstance',
+  'AssessmentResponse',
+  'RiskManagementReport',
+  'RMReportVersion',
+  'StatementOfApplicability',
+]);
 
 @Global()
 @Module({

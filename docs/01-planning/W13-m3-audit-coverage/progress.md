@@ -144,6 +144,73 @@ Tests:       4 failed, 183 passed, 187 total
 而不是移除寫入。⭐ 這也順帶說明我補的 `create` 在**當前執行順序下是冗餘的** ——
 保留它是因為測試不該依賴另一個測試先跑（`AD-JestFileOrder-1`）。
 
+---
+
+## Day 2 — 2026-08-14 — 覆蓋 + 每個模型的守衛（US-2, US-3）
+
+### ⛔ 2.0 plan §4 的做法行不通，而這是**量出來的**不是推論出來的
+
+寫第一條覆蓋測試之前先問了一句：**11 個模組 spec 的圖裡有 audit hook 嗎？**
+
+| 實驗 | 圖 | 同一個 `AssetGroup` create | 結果 |
+|---|---|---|---|
+| **A** | `Test.createTestingModule({imports:[AssetModule]})` | `before=9 after=9` | ⛔ **不寫稽核列** |
+| **B** | `Test.createTestingModule({imports:[AppModule]})` | `before → before+1` | ✅ **寫一列** |
+
+**機制**：`AuditModule` 是 `@Global`，但 global provider **只在被拉進圖裡才生效**；
+`ScopedPrismaFactory` 對 hook 是 `@Optional`（`scoped-prisma.provider.ts:151-165` 解釋了為何必須如此）。
+`AssetModule` 的 imports 只有 `EntityScopeModule`。
+
+⇒ 原做法會讓那 11 條測試**要嘛永遠紅、要嘛寫成 `≥ 0` 而正是 AP-3**。
+⇒ **改為新建 `audit-coverage.int.spec.ts`（composes AppModule）** —— plan §4 DEVIATION 已記錄。
+
+⚠️ **Day 0 沒抓到這條**。我在 Day 0 讀過那段 docstring（它就在 `scoped-prisma.provider.ts` 裡，
+D-reach 時讀的），但沒有把它連到 plan §3.0 的做法上。**讀過 ≠ 用上**。
+
+⭐ **實驗 B 的第一版失敗，而失敗的是實驗自己** —— `await import()` 在 jest CJS 下拋
+`A dynamic import callback was invoked without --experimental-vm-modules`。
+若當時就下結論「AppModule 圖也不寫」，會得到完全相反的設計。
+⇒ `AD-MetaVerificationBug-1` **第 4 個資料點**，判準「方向不符預期時先懷疑元驗證本身」再次成立。
+
+### 2.1 允許清單 1 → 15（`audit.module.ts`）
+
+15 個名字 + **枚舉方法寫在常數旁**（正向 grep + 反向 `^model` 差集，兩條路徑各給一行指令）。
+⛔ 兩個排除都**顯式寫下理由**，不靜默跳過：
+
+- **5 個無寫入路徑的模型不加**（`OrgEntity` / `User` / `ExtensionField` / `Threat` / `Vulnerability`）
+- **`RefCodeCounter` 不加** —— 理由升級為 Day-0 的 `D-refcode-b`（多實體 scope 下會 throw）
+- **`AuditLog` 不需排除** —— 走未擴充 client，構造上不重入
+
+### 2.2 + 2.3 十五條覆蓋測試 + 一條漂移守衛
+
+**⛔ 斷言形狀是「依本次寫入的 `refCode` 查，恰好一列」，不是 count delta。**
+兩個 suite 現在都 composes AppModule，jest 平行 worker 共用一個 DB ⇒ `before/after` 是 race。
+`refCode` 每次寫入唯一 ⇒「恰好一列」是關於**這一次寫入**的主張。
+
+**漂移守衛**（`the allowlist still matches the write surface`）：
+掃 `core-model/*.ts` 導出 `client.<delegate>.<write>` 的 delegate 集合 → 轉 model 名 →
+與 `AUDITED_MODELS ∪ {RefCodeCounter}` 比對，三個方向各一條斷言
+（**未稽核的**、**清單裡不可達的**、**兩者相等**）+ 一條非空前提（`size > 10`）。
+
+⇒ **這是本片唯一能防止「下一張表又忘了接」的東西** —— 沒有它，R4 的失效模式會原封不動回來。
+
+### 2.x Full gate（十一項全跑）
+
+| Gate | 結果 |
+|---|---|
+| `format:check` apps/api | **0**（⚠️ 第一次 **1** —— 新檔一行超長，prettier --write 後過）|
+| `format:check` apps/web | **0** |
+| `lint` | **0** |
+| `type-check` | **0** |
+| `build` apps/api / apps/web | **0** / **0** |
+| `lint:negative` | **PASS** —— `rejected audit-trail -> core-model, as it must` · `skipped 54 test`（53 → 54）|
+| api unit | **451 / 38**（不變）|
+| **api int** | **203 / 16** —— **+16**（15 覆蓋 + 1 守衛），既有 187 全數不動 |
+| web test | **10 / 1**（不變）|
+| coverage | **92.27 / 91.66 / 98.95 / 93.64** —— **與 baseline 逐位相同**（新增的是 int spec，不計入 unit coverage）|
+| `run_all` | **8 / 8** |
+| `check_entity_index` | **21 / 35** ✅ **未變動** —— 本片不建表，變了就是有東西不對 |
+
 ### Day 0 時數
 
 | 項目 | Actual |
