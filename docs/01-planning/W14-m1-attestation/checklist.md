@@ -10,31 +10,45 @@
 
 > 完整程序：`docs/rules-on-demand/day0-plan-verify.md`
 
-- [ ] **Prong 1 — path verify**：12 個編輯目標存在如預期（7 個 NEW 不存在；5 個 EDIT 存在）；
+- [x] **Prong 1 — path verify**：12 個編輯目標存在如預期（7 個 NEW 不存在；5 個 EDIT 存在）；
       `CH-031` 編號未被佔用（`ls docs/03-implementation/changes/ | sort -V | tail -1` 應為 `CH-030`）
-- [ ] **Prong 2 — content verify**（drift → progress.md）：
-  - [ ] **D-trigger-signature** — grep `assert_parent_in_scope` **全部**呼叫端（⛔ 不只 migrations/，
+      ✅ 7/7 absent · 5/5 exists · 最大號 `CH-030`
+- [x] **Prong 2 — content verify**（drift → progress.md）：
+  - [x] **D-trigger-signature** — grep `assert_parent_in_scope` **全部**呼叫端（⛔ 不只 migrations/，
         也要掃 `*.spec.ts` 與 `__fixtures__`）。預期 2 個 trigger；> 2 就改用新增
         polymorphic 變體，**並把 plan §3.3 的做法移進 §Risks 而不是默默改掉**
-  - [ ] **D-audit-guard** — 讀 `audit-coverage.int.spec.ts` 的漂移守衛，確認它導出寫入面的方式
+        ✅ **預期 2、實際 2**（`:227` · `:236`）。⛔ **但抓到 plan 的機制缺口** ——
+        函式讀 `TG_ARGV`，那是建 trigger 時寫死的字面值，換不掉 → **D1** 進 §Risks
+  - [x] **D-audit-guard** — 讀 `audit-coverage.int.spec.ts` 的漂移守衛，確認它導出寫入面的方式
         **會**看見一個新的 repository。若它只掃硬編碼清單，那條守衛本身就是 Potemkin
-  - [ ] **D-policy-column** — 讀 `policies` 的 RLS policy，確認加 bool 欄位不需重寫 policy
-  - [ ] **D-issue-source-stale** — 確認 `schema.prisma:573` 的過時註解不影響本片判斷（本片不修）
-  - [ ] **D-subject-both-built** — ⭐ 確認 `policies` 與 `controls` **都**能提供 scope 查詢，
+        ✅ **守衛為真**（`:486-517` readdirSync + regex + 雙向比對）⇒ 1.1 的順序有意義
+  - [x] **D-policy-column** — 讀 `policies` 的 RLS policy，確認加 bool 欄位不需重寫 policy
+        ✅ `FOR ALL`，運算式只引用 `org_entity_id`
+  - [x] **D-issue-source-stale** — 確認 `schema.prisma:573` 的過時註解不影響本片判斷（本片不修）
+        ✅ 談的是 `IssueSource` 缺值，與 attestation 無關
+  - [x] **D-subject-both-built** — ⭐ 確認 `policies` 與 `controls` **都**能提供 scope 查詢，
         這是 attestation 與 evidence 的關鍵差異（evidence 只有一個父表可查）
-- [ ] **Prong 2.5 — child component tree** — **N/A**（無前端）
-- [ ] **Prong 3 — schema verify**：`attestations` 不存在；`Policy.requires_attestation` 不存在；
+        ⛔⭐ **本次 Day 0 最高價值的發現** —— `controls_read` 含 `applies_to_scope = 'group' OR …`，
+        group control 對任何實體合法可讀 ⇒ **acceptance 3 與 N1 的測試設計會變成恆真** → **D5**
+- [x] **Prong 2.5 — child component tree** — **N/A**（無前端）
+- [x] **Prong 3 — schema verify**：`attestations` 不存在；`Policy.requires_attestation` 不存在；
       `EvidenceLinkedType` 恰好一個值；migration head 與 `_prisma_migrations` 一致
-- [ ] **D-baselines** — api unit 451/38 · api int 203/16 · web 10/1 ·
+      ✅ 前三項確認。⚠️ **第四項改用等價證據** —— `_prisma_migrations` 查詢用錯 role 而失敗，
+      改以 int suite 的 `rebuilt, migrated and seeded` 為證；**兩者不等價**（它驗的是
+      `isms_test` 不是 dev DB），已記在 progress.md
+- [x] **D-baselines** — api unit 451/38 · api int 203/16 · web 10/1 ·
       coverage 92.27/91.66/98.95/93.64 · run_all 8/8 · entity-index 21/35 · lint/type/build 全 0
-- [ ] **Catalog drift** — progress.md Day-0 表格
-- [ ] **Go/no-go** — 範圍變動 ≤ 20% 繼續；20-50% 修訂 §Acceptance + §Workload 並再確認；> 50% 中止
+      ✅ **九項逐位對上**。⚠️ `lint:negative` 是 **root** script，`-w apps/api` 會 Missing script
+- [x] **Catalog drift** — progress.md Day-0 表格 ✅ **D1–D8 八條**
+- [x] **Go/no-go** — 範圍變動 ≤ 20% 繼續；20-50% 修訂 §Acceptance + §Workload 並再確認；> 50% 中止
+      ✅ **GO** —— 估 ~15%，全部落在「怎麼做」而非「做什麼」；D1 / D5 / D6 / D8 已進 §Risks
 
 ### 0.2 Branch
 
-- [ ] ⛔ **先確認 PR #62 已 merge**（`gh pr view 62 --json state`）—— 未 merge 就從
+- [x] ⛔ **先確認 PR #62 已 merge**（`gh pr view 62 --json state`）—— 未 merge 就從
       `chore/w13-post-merge-repoint` 開，並在 progress.md 記下這個選擇
-- [ ] `git checkout -b feature/W14-attestation`
+      ✅ 已 merge（`cd2cc3e` → **`9ae6166`**，又是 rebase）⇒ 從 `main` 開
+- [x] `git checkout -b feature/W14-attestation` ✅ pre-doc commit `7bea684`
 
 ---
 

@@ -229,6 +229,9 @@ coverage 不低於 baseline · `run_all` **8/8** · `check_entity_index` **21 �
 2. `EvidenceLinkedType` 有兩個值，且 attestation 證據**能**插入。
 3. ⭐ **跨實體** attestation 證據**被拒**，且拒絕發生在**資料庫層**（trigger），
    不是應用層檢查。
+   ⚠️ **Day 0 D5 加上一個限定**（原文保留不改）：group-shared control 對任何實體合法可讀，
+   所以這條判準只在 `subject_type = policy` 或 `applies_to_scope <> 'group'` 時成立。
+   見 §8 的 D5 列。
 4. 未知 `linked_type` 仍 **fail-closed**（測試證明，不是宣稱）。
 5. `Policy.requires_attestation` 存在且預設 `false`。
 6. **四個中性化的預期方向先 commit 再執行**，逐項對照，數字不符要寫明少算什麼。
@@ -270,6 +273,10 @@ coverage 不低於 baseline · `run_all` **8/8** · `check_entity_index` **21 �
 | Risk Class A（模組級 singleton 汙染）| 覆蓋斷言依 `refCode` 查、不用 count delta（W13 已踩過：兩個 AppModule suite 平行跑是 race）|
 | Risk Class C（陳舊 dev server 掩蓋 migration）| 驗證前 `prisma migrate reset` + 乾淨重啟；擷取 startup log |
 | polymorphic 連結變成存在性 oracle（W07 / W10 都量到過）| 中性化 3 專測此點：「撞別實體的 id」與「不存在的 id」必須**不可分辨** |
+| **D1（Day 0）** —— §3.3 只寫了方向沒寫機制：`assert_parent_in_scope` 讀 `TG_ARGV`，那是**建 trigger 時寫死的字面值**，換不掉 | Day 1 在三個做法中**先量再選**：(a) 加第三個 `TG_ARGV` 傳型別欄位名 + 函式內查映射；(b) 新建 polymorphic 變體函式；(c) 呼叫端傳映射表。⛔ 不得沿用 §3.3 的措辭當作已定案 |
+| ⛔⭐ **D5（Day 0）** —— `controls_read` 有 `applies_to_scope = 'group' OR …`，**group-shared control 對任何實體都 reachable** ⇒ §5 acceptance 3 與中性化 N1 若拿 group control 當標的，**修法前後都會通過** | N1 必須用 `subject_type = policy`（`policies` 無 group 逃生口）或 `applies_to_scope <> 'group'` 的 control，**並把該限定寫進測試名稱**。⚠️ 這正是 `AD-VacuousScopeTest-1` 的形狀 |
+| **D6（Day 0）** —— plan 全篇未寫出錯誤碼；實際是 **`23503`** 不是 42501，且有一整個 migration 只為修正 COMMENT 說錯這件事 | 所有拒絕斷言用 `23503`；⛔ 不可從 W07 的 checklist 抄 —— 那裡兩個值都出現過 |
+| **D8（Day 0）** —— checklist 1.2 的「**四條** per-command policy…無 `FOR DELETE`」自相矛盾 | 依 `rm_report_versions` 先例定為 **2 條**（`INSERT` / `SELECT`）：§3.x 已明說不做 update 端點，建一條沒有路徑會走的 UPDATE policy 是 AP-3 邊緣（ADR-0014「缺席即最嚴格」）|
 
 ## 9. Out of Scope（這個 phase 不做 → 另開 slice / AD）
 
