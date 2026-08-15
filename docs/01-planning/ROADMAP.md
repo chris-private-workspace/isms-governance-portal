@@ -8,6 +8,7 @@
 **Status**: Active
 
 > **Modification History**
+> - 2026-08-15: Close the only dated deadline (CH-032) — the deadline table is now empty
 > - 2026-08-15: Add item 4d and name the unranked P0s (audit #6 AD-21) — two had no home here
 > - 2026-08-15: Advance item 4 to M1 slice 9 (W14) — 22/35, the drift guard's first live catch
 > - 2026-08-14: Add items 4b (OQ-4 → ADR-0003, W12) and 4c — audit coverage is 1/21, and blocks M1
@@ -98,7 +99,15 @@
 
 | 死線 | 項目 | 不做的後果 | 細節 |
 |---|---|---|---|
-| **2026-09-07** | `AD-TrivyExempt-1` —— distroless base 的 `libssl3` 六條 trivy 豁免到期 | 到期即自動變紅（trivy `expired_at`，不需要有人記得）。⚠️ **CH-015 讓後果升級**：`容器映像 — trivy` 從 2026-08-10 起是 **required check**，所以到期不再只是「CI 有個叉」，而是**所有 PR 停止可 merge**。到期時二選一：重拉已重建的 base → 刪 `.trivyignore.yaml`；或**逐條重新分流**（不可靜靜延期）| [`BACKLOG.md`](./BACKLOG.md) |
+| ~~**2026-09-07**~~ | ~~`AD-TrivyExempt-1`~~ ✅ **已關閉 2026-08-15（CH-032）** —— runtime base 移到 `nodejs22-debian13`，六條 `libssl3` 豁免的標的不再存在於出貨映像中（trivy 實測 **0** HIGH/CRITICAL，豁免清單為空） | ~~到期即所有 PR 停止可 merge~~ | [`CH-032`](../03-implementation/changes/CH-032-trivy-base-image-refresh.md) |
+
+> ⭐ **本表現在是空的，而這是本專案第一次沒有任何有日期的死線。**
+> ⛔ **不要刪掉上面那一列** —— 「表是空的」與「從來沒有東西進過這張表」在三個月後看起來一模一樣。
+>
+> ⚠️ **CH-032 留下一條給下一個寫豁免的人的教訓**（完整敘述在 `.trivyignore.yaml` 的 header）：
+> 一個解除條件是「**等上游重建**」的豁免**自己沒有退路**。debian12 線在到期前七天仍未重建，
+> 而到期當天唯一會發生的事，是整個 repo 停止可 merge。
+> ⇒ **再寫這種豁免時，要配一條不需要上游配合的出路。**
 
 ---
 
