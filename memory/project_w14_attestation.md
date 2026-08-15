@@ -2,7 +2,7 @@
 
 **Phase**: W14 — Attestation, and the second polymorphic link
 **Period**: 2026-08-15（單日）
-**PR**: PR-pending
+**PR**: #63（**MERGED** 2026-08-15，`e9ab83a`）
 **Retrospective**: `docs/01-planning/W14-m1-attestation/retrospective.md`
 **Change record**: `docs/03-implementation/changes/CH-031-w14-attestation.md`
 
@@ -62,7 +62,7 @@ Tests: 1 failed, 202 passed, 203 total
 
 ## 中性化：3 個完全命中，1 個一半
 
-預測 commit `c10be0c` 在執行之前。N1 **3**（測試 5·6·8）✅ · N2 **恰好 2** ✅（驗收核心）·
+預測 commit `50ea93a` 在執行之前。N1 **3**（測試 5·6·8）✅ · N2 **恰好 2** ✅（驗收核心）·
 N3a type-check **1 錯**、連行號命中 ✅ · **N3b ⛔ 錯** · N4 **5**（含跨 suite 那條）✅。
 
 ### ⛔ N3b 的錯比預測本身有用

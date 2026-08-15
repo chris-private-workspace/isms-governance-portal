@@ -48,7 +48,7 @@
 - [x] ⛔ **先確認 PR #62 已 merge**（`gh pr view 62 --json state`）—— 未 merge 就從
       `chore/w13-post-merge-repoint` 開，並在 progress.md 記下這個選擇
       ✅ 已 merge（`cd2cc3e` → **`9ae6166`**，又是 rebase）⇒ 從 `main` 開
-- [x] `git checkout -b feature/W14-attestation` ✅ pre-doc commit `7bea684`
+- [x] `git checkout -b feature/W14-attestation` ✅ pre-doc commit `736b1f1`
 
 ---
 
@@ -213,8 +213,20 @@
       ⛔ **AP-7 = 1（我造成的）** —— Day 2 改 `AUDITED_MODELS` 15→16 沒改 `audit.module.ts` 的
       docstring，而那段的第一句正是「rerun the derivation」。Day 4 重跑導出（**17 delegates /
       23 models / 6 無寫入路徑**）並修正三句。其餘 AP 皆 0 或 N/A；**AP-3 攔下 1 次**（US-3）
-- [ ] **Commit** → ⏳ PR push + open → CI → merge: **PENDING USER CONFIRMATION**
+- [x] **Commit** → ⏳ PR push + open → CI → merge: **PENDING USER CONFIRMATION**
       （push 是 outward-facing）→ merge 經 `gh` 驗證後翻狀態標籤
-- [ ] ⏳ **post-merge**：若又是 rebase merge，全 repo 掃描重指被改寫的 SHA
+      ✅ 使用者確認後 push → **PR #63**，六個 required check **全 SUCCESS**，
+      `mergeStateStatus` BLOCKED → **CLEAN**。使用者 merge，`gh pr view` 驗證
+      `state=MERGED` / `mergedBy=laitim2001` / `mergeCommit=e9ab83a`（⛔ 不採信宣稱）。
+      **10 處 `PR-pending` / `TBD` 已翻**
+- [x] ⏳ **post-merge**：若又是 rebase merge，全 repo 掃描重指被改寫的 SHA
       （`AD-DesignNoteAnchor-1` 已連續 5 次）；`git cherry` 驗證後刪分支
       （⛔ `git branch -d` 對 rebase merge 會拒絕，那是預期不是錯誤）
+      ⛔ **又是 rebase merge —— 連續第 6 次**。九個 SHA 全改寫，**重指 27 處 / 7 個檔**，零殘留；
+      舊 SHA 逐一 `NOT-ON-MAIN`、新 SHA 逐一 `ANCESTOR-OF-MAIN`。
+      ⭐ **author date 第 4 次確認逐秒不變（9/9）** —— calibration 由它導出，**數字撐過了 rebase**。
+      ⚠️ 重指腳本的 `assert` 擋下的是**我的預期值**（Grep 給的是**行數** 17，實際出現 **27** 次）。
+      ⛔⭐ **`git branch -d` 這次沒有拒絕，而放行的理由與「有沒有進 main」無關** ——
+      GitHub 已刪遠端分支但本機 tracking ref 未 prune，`-d` 於是拿分支比對**它自己的陳舊副本**，
+      訊息自己說了 `but not yet merged to HEAD`。⇒ 本項的括號註記（「`-d` 會拒絕」）**只涵蓋一半**：
+      拒絕與放行**都不構成證據**，權威只有 `git cherry` 的 `+` 數 = 0 → `AD-RebaseMergeBranchCheck-1` 已更新

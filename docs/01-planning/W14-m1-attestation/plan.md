@@ -13,7 +13,7 @@ status: closed_partial   # draft | active | closed | closed_partial —— 機�
 非 spike（複用 W07 pattern）⇒ **不產 design note**。
 
 **Status**: **closed_partial**（2026-08-15）—— 六個 US 交付五個，**US-3 移出 → M6**
-（`AD-PolicyAttestationFlag-1`）。⏳ PR push 待使用者確認。
+（`AD-PolicyAttestationFlag-1`）。✅ **PR #63 MERGED** 2026-08-15（`e9ab83a`）。
 原始核可紀錄保留：**Approved-to-execute**（laitim2001，2026-08-15 —— 範圍先由使用者在三個候選中
 裁定為「`Attestation` 單張」，plan 起草後核可開始 Day 0）
 
@@ -254,7 +254,7 @@ coverage 不低於 baseline · `run_all` **8/8** · `check_entity_index` **21 �
 - [ ] 🚧 US-3 `Policy.requires_attestation` —— **移出本片 → M6**（使用者裁定 2026-08-15）
       ⛔ **維持未勾** —— 它不是做完了，是被移出了。追蹤：`AD-PolicyAttestationFlag-1`
 - [x] US-4 `AUDITED_MODELS` 16 + 覆蓋測試 +1
-- [x] US-5 四個中性化，預期先 commit（`c10be0c`）—— 3 個完全命中、**N3b 預測錯**
+- [x] US-5 四個中性化，預期先 commit（`50ea93a`）—— 3 個完全命中、**N3b 預測錯**
 - [x] US-6 closeout 六件
 
 ## 7. Workload Calibration

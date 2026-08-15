@@ -4,7 +4,7 @@
 **Phase**: W14
 **Scope**: core-model（+ modules / audit-trail / prisma）
 **Components**: —
-**PR**: TBD
+**PR**: #63（**MERGED** 2026-08-15，`e9ab83a` —— rebase merge，九個 SHA 全被改寫）
 
 ---
 
@@ -88,7 +88,7 @@ coverage **92.14 / 91.77 / 98.98 / 93.56** · `run_all` **8/8** · `check_entity
 **新增測試**: `attestation.int.spec.ts`（14）+ `attestation.repository.spec.ts` /
 `attestation.controller.spec.ts`（29 unit）+ `audit-coverage` +1。
 
-**負面測試 —— 四個中性化，預期方向先 commit（`c10be0c`）再執行**：
+**負面測試 —— 四個中性化，預期方向先 commit（`50ea93a`）再執行**：
 
 | N | 中性化 | 預期 | 實際 |
 |---|---|---|---|

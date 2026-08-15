@@ -373,7 +373,7 @@ migrated and seeded`），所以 Risk Class C 描述的「陳舊程序掩蓋 wir
 拿掉前提只會讓斷言變弱，不會讓它紅。有意義的方向是**移除前提所依賴的資料**：
 若測試因此紅，前提就不是裝飾。原措辭保留於 checklist，此處記錄修正。
 
-### 3.3 執行結果 —— 逐項對照（預測 commit `c10be0c`）
+### 3.3 執行結果 —— 逐項對照（預測 commit `50ea93a`）
 
 | N | 預期 | 實際 | |
 |---|---|---|---|
@@ -396,7 +396,7 @@ migrated and seeded`），所以 Risk Class C 描述的「陳舊程序掩蓋 wir
 而中間那份會擋。⭐ 這對本專案有實際後果：`ALTER TYPE ... ADD VALUE` 的 migration
 **必須**配 `prisma generate`，否則 DB 接受而應用層拒絕 —— 一個只在部署時出現的分歧。
 
-⚠️ 記在這裡而不是把預測改成對的。預測是 `c10be0c` 的內容，已經發布。
+⚠️ 記在這裡而不是把預測改成對的。預測是 `50ea93a` 的內容，已經發布。
 
 ### ⛔ 3.x 我在 Day 3 又犯了一次同形錯誤
 
@@ -483,4 +483,71 @@ W13 的跨 session 失效模式在本 phase **結構上不可能重現**，故 `
 `ROADMAP.md`（item 4 → slice 9 + MHist）· `BACKLOG.md`（+2 AD，4 條更新）·
 `CALIBRATION-MATRIX.md`（325 字元）· `calibration-log.md` · `RISK_REGISTER.md`（**R3 / R4** 兩列）
 
-⏳ **PR push 待使用者確認** —— push 是 outward-facing。
+---
+
+## Day 4（續）— 2026-08-15 · PR #63 + post-merge
+
+### 4.x PR #63 —— CI 是這個分支第一次被檢驗
+
+使用者確認後 push + `gh pr create`。**六個 required check 全 SUCCESS**
+（`gates` · 映像 build + 啟動探測 · gitleaks 全歷史 · SCA · SAST · trivy），
+`mergeStateStatus` 由 `BLOCKED` → **`CLEAN`**。
+
+⇒ **「本機全綠但 CI 未驗」那面紅旗結清了** —— 本機十三項與 CI 六項給出一致的答案，
+沒有 W13 那種只在 CI 上才現形的落差。
+
+使用者於 **10:51:18Z** merge（`gh pr view` 驗證：`state=MERGED`，`mergedBy=laitim2001`，
+`mergeCommit=e9ab83a`）。⛔ **不採信宣稱** —— `feedback_verify_pr_merged_via_tool_not_claim`。
+
+### ⛔ 4.x 又是 rebase merge —— `AD-DesignNoteAnchor-1` **連續第 6 次**
+
+九個 SHA **全部**被改寫，逐一驗證舊 SHA `NOT-ON-MAIN` / 新 SHA `ANCESTOR-OF-MAIN`：
+
+| 舊 | 新 | | 舊 | 新 |
+|---|---|---|---|---|
+| `7bea684` | `736b1f1` | | `50ea93a`* | ⭐ 見下 |
+| `652fb64` | `6701305` | | `3d94133` | `706d94d` |
+| `88bf634` | `f0cc0a7` | | `6513f47` | `1628e31` |
+| `a928972` | `5d37a77` | | `c35968d` | `e9ab83a` |
+| `d65f535` | `9c71f50` | | `c10be0c` | **`50ea93a`** |
+
+⭐ **`c10be0c` → `50ea93a` 是最要緊的一個** —— 它的**全部價值就是可查證性**
+（「預測寫在執行之前」）。SHA 一改寫，那句證據就指向 main 上不存在的物件，**而所有 gate 仍然全綠**。
+它在文件裡有 **7 處引用**，是九個裡最多的。
+
+**重指 27 處 / 7 個檔**，零殘留（`git ls-files` 全掃 + 逐檔 assert）。
+
+### ⭐ 4.x author date 第 4 次確認逐秒不變 —— 而這次它有直接後果
+
+九個 commit 的 `%aI` 與 subject **全部相同**（9/9）。
+⇒ **calibration 的數字全部由 author date 導出，所以數字撐過了 rebase，即使 SHA 沒有。**
+穩定錨點是 author date，不是 SHA。
+
+### ⛔ 4.x closeout 當下報的是區間，post-merge 才精確 —— 而下界系統性低估
+
+closeout 時 Day 4 只能量到「最後一個產物寫入」= **28.3 min**（下界），因為 closeout commit 還不存在。
+merge 後真值 **34.68 min**（`706d94d` → `e9ab83a`），落在我當時所報區間 **[1.08, 1.13] 的上緣**。
+
+| | closeout 當下 | post-merge |
+|---|---|---|
+| 逐段相加 / 窗口法 | 100.88 / 100.88（六個間隙）| **135.57 / 135.57**（八個間隙）|
+| actual | 2.15–2.27 hr | **2.26 hr** |
+| ratio | 1.08–1.13 | **1.13**（IN）|
+
+⇒ 低估 **6.4 min（約 19%）**。W13 的 28.0 min 用同一個慣例，**所以那也是下界不是值**。
+⭐ 兩個 phase 的 band 判定都不受影響 ⇒ 修法不是「別用下界」，是「**下界要標成下界**」。
+
+⚠️ 附帶：plan §7 把 closeout 估成 30 min，實測 **34.68** —— **七個點裡最準的一項**（+16%）。
+用 W13 的下界對照會讓 30 min 看起來是高估，**方向剛好相反**。
+
+### ⛔ 4.x 重指腳本的 assert 擋下了東西，但擋下的是我的預期值
+
+我寫了 `assert total == 17`（來自先前 Grep 的輸出），實際替換 **27** 處。
+
+**腳本沒錯，我的預期值錯了** —— Grep 回報的是**行數**，我拿它當**出現次數**。
+`| 7bea684 → 652fb64 |` 是一行兩個 SHA；`CALIBRATION-LOG.md` 的 9 行裡有 15 個 SHA。
+
+⭐ **這是 `AD-NarrowPatternWideClaim-1` 的微縮版**（拿便宜的代理指標回答需要精確計數的問題），
+而抓到它的正是 `AD-TextEditStructuralScope-1` **今天才提議的那條 assert**。
+⇒ 該提議在被寫下的同一天就攔下了一次真實錯誤 —— 只是攔的方向與預期不同：
+**它保護的不只是操作，也是操作者對操作的理解。**
