@@ -154,9 +154,42 @@ web **10 / 1** —— ⭐ **與 baseline 逐位相同**，符合「純 Dockerfil
 > ⛔ **我沒有驗過 trivy 對空清單的 schema 解析** —— 這正是預測 1 出錯的同一類假設，
 > 所以這次先寫下來。若它仍 FATAL，修法改為 A，且本檔記為第 2 次同類失誤。
 
+### 執行結果 — 第 2 輪（PR #66，2026-08-15T15:43Z）—— **六個 required check 全 PASS**
+
+**預測 3 ✅ 命中**：trivy 接受 `vulnerabilities: []`，掃描正常執行（**31s** vs 第 1 輪的 13s FATAL）。
+
+⛔ **綠燈不是證據，數字才是** —— 逐處讀了 job log：
+
+```
+##[group]目前生效的容器掃描豁免（含到期日）        ← 空的（grep 零輸出）
+##[group]./apps/web/Dockerfile -> gcr.io/distroless/nodejs22-debian13:nonroot
+│ gcr.io/distroless/nodejs22-debian13:nonroot (debian 13.6) │ debian │ 0 │
+##[group]./apps/api/Dockerfile -> gcr.io/distroless/nodejs22-debian13:nonroot
+│ gcr.io/distroless/nodejs22-debian13:nonroot (debian 13.6) │ debian │ 0 │
+```
+
+三件事各自被看到，而不是從綠燈推出來的：
+**(a)** 豁免 group **空的** ⇒ 綠不是任何豁免促成的 ·
+**(b)** 兩個 Dockerfile 各**真的掃了一次**（有 Report Summary，18s 掃描時間）·
+**(c)** `Vulnerabilities` = **0**（HIGH/CRITICAL + `--ignore-unfixed`）。
+
+⭐ **本 CH 開頭明寫「我沒有驗過」的那一項，現在有答案了**：
+那六條 CVE **對 `libssl3t64` 3.5.6 不適用** —— 由 CI 上沒有 TLS 攔截的 trivy 回答，
+而不是由我從版本號推論。
+
+| 驗收 | 結果 |
+|---|---|
+| **1** trivy PASS 且不靠豁免 | ✅ **0 個 HIGH/CRITICAL**，豁免清單為空（⚠️ 字面改判為實質，見上方修法節） |
+| **2** 映像 build + 啟動探測 | ✅ **PASS**（1m55s）—— Prisma engine 在 OpenSSL 3.5.x 上起得來 |
+| **3** 其餘四個 required check 不變 | ✅ `gates` 2m17s · SCA · gitleaks · SAST **全 pass** |
+| **4** 紅則回滾 | ⚪ **未觸發** |
+
+⚠️ **順帶看到但不是新發現**：job log 尾端的
+`Node.js 20 is deprecated ... actions/checkout@v4` 是 `AD-ActionsNode-1`，已在 §Open 上。
+
 **Drive-through**: ⚪ N/A —— CI / 容器設定，無 user-facing surface。
-**Verdict**: ⏳ **第 1 輪部分回答** —— 驗收 **2 ✅ PASS** · 驗收 **1 尚未被回答**（掃描未執行）·
-驗收 3 ✅（其餘四個 required check 全 pass）。⛔ **不得寫成通過。**
+**Verdict**: ✅ **PASS** —— 四項驗收全數滿足，**每一項都有 log 實據**，非採信綠燈。
+⚪ 純 CI / 容器設定，**gate-only verified**，不暗示任何 user-facing 可用性。
 
 ---
 
