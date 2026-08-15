@@ -416,11 +416,19 @@ closeout policy 寫的是 **~250-300**，13 個 phase 漲了 **+116%**。
 | Day 1 | → `1fd9b34` 23:28:48 | **20.0 min** |
 | Day 2 | → `52982ae` 23:53:04 | **24.3 min** |
 | Day 3 | → `543bd53` 00:19:24 | **26.3 min** |
-| Day 4 | → closeout commit | **<PENDING>** |
-| **Total** | `9427e42` → closeout | **<PENDING>** |
+| Day 4 | `CH-030` mtime 12:00:27 → `b1d7b3c` 12:28:27 | **28.0 min** |
+| **Total（下界，純量測）** | 91.35 + 28.0 | **119.35 min = 1.99 hr** |
+| Total（含起點推估 ~5 min）| Day 4 在 CH-030 之前另有機械導出 + 讀模板 | ~124 min = 2.07 hr |
 
-⛔ **actual 等 closeout commit 真的存在之後再算**（`AD-EstimateAsMeasurement-1`，第 2 次執行該修法）。
-⚠️ **Day 0 的自估 ~65 min 與量到的 20.7 min 差 3 倍** —— 那份自估是逐項相加的印象值，
+⇒ **ratio 0.884 – 0.921，兩端同在 IN band（0.7–1.2）** —— 判定不依賴那 5 分鐘。
+
+⛔⭐ **但自報的窗口法本次失效，而失效方式很明顯**：
+`543bd53` → `b1d7b3c` 之間有 **729 分鐘**，因為 phase 跨夜、Day 4 是使用者隔天啟動的。
+直接套窗口會得到 **13.67 hr / ratio 6.08**。
+W11 / W12 能用是因為它們**都在一個 session 內完成** ——
+**那不是方法成立的證明，是條件恰好滿足。** → `AD-CalibrationWindowCrossSession-1`
+
+⚠️ **Day 0 的自估 ~65 min 與 commit 量到的 20.7 min 差 3 倍** —— 那份自估是逐項相加的印象值，
 不是時間戳。⇒ progress.md 裡的「Day N 時數」若不是從 commit 導出的，就不該被 retro 引用。
 
 ### Day 0 時數

@@ -25,7 +25,7 @@
 > **本檔回答「有什麼工作」，不回答「先做哪個」。**
 > 順序層 [`ROADMAP.md`](./ROADMAP.md) **已於 2026-08-10 啟用**（CH-016）——
 > 啟用當時本檔 §Open 達 48 條，超過「讀完仍不知道下一步」的門檻
-> （**現為 104 條 —— P0 7 / P1 58 / P2 39**，⛔ **不要手數也不要 grep** ——
+> （**現為 105 條 —— P0 7 / P1 59 / P2 39**，⛔ **不要手數也不要 grep** ——
 > 跑 `python scripts/lint/check_backlog_counts.py`，不符即 fail 並印出兩邊的值與差額。
 > 2026-08-14 W12 closeout：新增 5 條（`AD-AuditCoverageOneTable-1` 🔴 · `AD-DeferralUnwatched-1` ·
 > `AD-VacuousScopeTest-1` · `AD-BenchOrderBias-1` · `AD-StrategyBSunset-1`）、關閉 0 條、
@@ -112,6 +112,7 @@
 
 | AD ID | 症狀 / 缺口 | 來源 phase | 優先度 | 備註 |
 |-------|------------|------------|--------|------|
+| AD-CalibrationWindowCrossSession-1 | ⛔ **calibration 的 commit 窗口法在跨 session 的 phase 上失效** —— W13 的窗口（首個 commit → closeout commit）給出 **13.67 hr / ratio 6.08**，因為 `543bd53` → `b1d7b3c` 之間有 **729 分鐘**是隔天等使用者說「開始 Day 4」。W11 / W12 能用是因為它們**都在一個 session 內完成** —— 那不是方法成立的證明，是條件恰好滿足 | W13 Day 4 | 🟡 P1 | ⚠️ `AD-CalibrationDay0InOrOut-1` 要求「量法要事先宣告」，W13 照做了，**而宣告的量法本身是錯的** ⇒ 宣告解決的是「回溯歸類」不是「方法適用性」。本次改用兩段（Day 0-3 commit 逐段相加 + Day 4 產物 mtime → commit），並把不確定性報成**區間**再檢查它會不會改變 band —— 兩端同 band 故判定穩健。候選規則：plan §7 宣告量法時**同時宣告「若出現 > 60 min 的 commit 間隙該怎麼辦」**；或改用「逐段相加並排除 > 60 min 的間隙」當預設。⭐ 與 `AD-EstimateAsMeasurement-1` 同族：那條是「別把估當量」，這條是「**別把量錯的東西當量到**」 |
 | AD-MemoryEntryRatchet-1 | ⭐ **`MEMORY.md` 的 phase 條目長度 13 個 phase 從 186 漲到 401 字元（+116%），而 closeout policy 寫的是 ~250-300** —— W01 186 · W03 237 · W07 283 · W08 319 · W10 360 · W12 363 · W13 **401**。曲線單調上升，因為每個 closeout 都拿前一個當範本 | W13 Day 4 | 🟢 P2 | ⛔ **這正是 `task-workflow.md` §Phase Closeout 描述的相對錨點棘輪，而它自己沒有機械守門** —— `check_rules_hygiene.py` 只管 always-loaded 檔案，`MEMORY.md` 不在預算內。⚠️ W13 發現時已自行壓回 ~280，但**下一個 phase 會再看到 280 並超過它**。候選：把 `MEMORY.md` 的 `- W\d+ [` 行納入 hygiene 檢查（每行 ≤ 400 字元，與 calibration matrix 同一個機制）。⭐ 診斷價值高於修法：這是**規則寫了但沒有東西在數**的第 N 次 |
 | AD-Day0ReadNotApplied-1 | ⭐ **Day 0 讀到了關鍵事實，卻沒有把它套用到 plan 的做法上** —— `scoped-prisma.provider.ts:151-165` 明寫「eleven integration suites build their graph from one module」，我在 W13 Day 0 的 D-reach 讀過那段；而 plan §3.0 正是要在那十一個 suite 裡加覆蓋測試。兩者直接矛盾，Day 0 三-prong 沒有發現 | W13 Day 4 | 🟡 P1 | ⚠️ **讀過 ≠ 用上。** Day 2 靠一次對照實驗才抓到（module-local 圖 `before=9 after=9` vs AppModule 寫一列），若直接開寫會得到 11 條永遠紅的測試，或寫成 `>= 0` 而**成為本片正要消滅的 Potemkin**。候選修法：Day 0 Prong 2 加一步 —— **每讀到一段解釋「為什麼現狀是這樣」的 docstring，回頭對照 plan §3 的做法一次**，判準是「該段話若成立，plan 的哪一步會失敗？」 |
 | AD-NeutralisationConsumerGrep-1 | **中性化預測漏算 suite** —— W13 Day 3 的 N1 預測 26 紅實際 27、N3 預測 2 紅實際 5。兩次的缺口都是 `bench.int.spec.ts`，因為我列的是「預期會受影響的檔案」而不是「**誰 import 這個符號**」 | W13 Day 4 | 🟡 P1 | 候選修法：中性化預測**必須以一次 `grep <被改的符號>` 開場**，命中的每個檔案逐一判定（受影響 / 不受影響 + 理由）。實測 `grep AUDITED_MODELS` 回 **4 個**檔案，而我列了 2 個。⚠️ 這比「想一想還有誰」便宜且完整。⭐ 與 `AD-NarrowPatternWideClaim-1` 同族但方向相反：那條是 pattern 太窄導致漏，這條是**根本沒下 pattern** |
