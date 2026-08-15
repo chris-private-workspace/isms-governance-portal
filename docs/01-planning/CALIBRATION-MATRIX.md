@@ -51,7 +51,7 @@ Bottom-up ~X hr → class-calibrated ~Y hr (mult Z) → agent-adjusted ~Y' hr (a
 | Scope class | Mult | 3-phase mean | Status（1 行）|
 |-------------|------|---------------|--------------|
 | `greenfield-scaffold` | 0.60 | n/a (1 pt) | KEEP (W01 ratio ~0.35 UNDER band; 工時未逐項記錄，數字由 commit 時間戳回推故品質打折; if 2nd <0.70 → 0.40; → calibration-log) |
-| `pattern-reuse-feature` | 0.50 | n/a (6 pt, 跨 0.23~1.24) | KEEP (W13 **0.88–0.92 IN**, 第 6 點; ⛔ **commit 窗口法本次失效** —— phase 跨夜等使用者, 原始窗口給 13.7 hr/ratio 6.08 荒謬值 → 改「Day 0-3 commit 導出 91.4 min + Day 4 產物 mtime→commit 28.0 min」= 119.4 min 下界; 區間兩端同 band 故判定穩健 → `AD-CalibrationWindowCrossSession-1`; W11 1.24 單次離群依規則忽略; → calibration-log) |
+| `pattern-reuse-feature` | 0.50 | n/a (7 pt, 跨 0.23~1.24) | KEEP (W14 **1.08–1.13 IN**, 第 7 點; ⭐ **兩種量法首次實測同值** —— plan §7 事先宣告「逐段相加排除 > 60 min 間隙」, Day 0-3 六個間隙最大 34.9 min ⇒ 與窗口法**同為 100.9 min**; ⛔ 只證明不擾動舊法答對的那類, 未重現 W13 的跨 session 失效 ⇒ `AD-CalibrationWindowCrossSession-1` **不關閉**; W11 1.24 單次離群依規則忽略; → calibration-log) |
 | `spike` | 0.65 | n/a (6 pt, 跨 0.30~1.03) | KEEP (W12 ratio **1.025 IN —— 本欄第一個 IN 點**; ⭐ `actual/bottom-up` **0.667** 首次高於 0.4 下限，但 bottom-up 是 Day-0 後**重估**的故非事前證據; 無等待間隙; 單點不調乘數; → calibration-log) |
 
 ### 常見 scope class 起始建議值

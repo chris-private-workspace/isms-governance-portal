@@ -416,3 +416,71 @@ N4 第一次執行時，我用 `t.index('  ],', i)` 找 `attestations` 陣列的
 - `git status` **空**
 - api int **218 / 17**（回到 Day 2 的數字）
 - type-check **0 錯**
+
+---
+
+## Day 4 — 2026-08-15 · Closeout
+
+### ⛔ 4.0 先修一個我自己造成的 stale（AP-7）
+
+Day 2 把 `AUDITED_MODELS` 15 → 16 時，`audit.module.ts` 的 docstring **沒跟著改**。
+⚠️ 而那段 docstring 的第一句正是 **`⭐ DERIVED, NOT TRANSCRIBED — rerun the derivation`** ——
+它叫讀者重跑導出，我改了清單卻沒重跑它。
+
+**重跑之後的真值**（不是推算的）：
+
+```
+forward   client.<delegate>.(create|update|upsert)  排除 *.spec.ts  →  17 delegates
+reverse   grep -c '^model' prisma/schema.prisma      →  23 models
+          23 − 17 = 6 無寫入路徑 = 5 個 absent + AuditLog   ✅ 與 docstring 的敘述自洽
+```
+
+修了三句錯的宣稱（`fifteen strings` → sixteen · `16 delegates` → 17 · `22` → 23），
+並順帶修掉 W13 留下的同類 stale（「plan §3.3 connects **ONE** module」/「the other **ten**」/
+「**before** ADR-0003 chooses a strategy」—— ADR-0003 已採納、清單已是 16）。
+補上 W14 的 MHist 一行。
+
+### 4.x Final gate sweep —— **十三項，各自 exit code 分開取，全部 0**
+
+| # | Gate | exit | 數字 |
+|---|---|---|---|
+| 01 | `format:check` api | **0** | |
+| 02 | `format:check` web | **0** | |
+| 03 | `lint` api+web | **0** | |
+| 04 | `type-check` api+web | **0** | |
+| 05 | `build` api | **0** | |
+| 06 | `build` web | **0** | |
+| 07 | `lint:negative` | **0** | PASS —— 60 掃描 / 0 bypass / 3 allowlisted / skipped 57 test + 2 fixture |
+| 08 | api unit | **0** | **480 / 480**，suites **40 / 40** |
+| 09 | **api int** | **0** | **218 / 218**，suites **17 / 17** |
+| 10 | web | **0** | **10 / 10**，files 1 / 1 |
+| 11 | coverage | **0** | **92.14 / 91.77 / 98.98 / 93.56**（與 Day 2 逐位相同 —— docstring 改動不影響）|
+| 12 | `run_all` | **0** | **8 / 8** |
+| 13 | `check_entity_index` | **0** | **22 / 35** |
+
+⚠️ **gate script 自己踩了一個小坑**：它用 `tail -25` 收斂輸出，把 jest coverage 的 `All files`
+摘要行切掉了（那一行在表格**最前面**）。**判定沒錯** —— 退出碼取自 `PIPESTATUS[0]` 而不是 `tail` 的 ——
+但**數字得重跑一次才拿到**。⇒ 這是 `AD-GrepAssertion-1` 的鄰居而非它本身：
+那條講「退出碼被 `tail` 吃掉」，這次退出碼是對的，被吃掉的是**證據**。
+
+### 4.x Calibration ⭐ 兩種量法首次實測同值
+
+| 量法 | Day 0–3 |
+|---|---|
+| 逐段相加（排除 > 60 min）| **100.88 min** |
+| 原始窗口法 | **100.88 min** |
+
+六個間隙**最大 34.87 min**，全部低於門檻 ⇒ 逐位相同。Day 4 另計 **28.3 min**（至 retro 寫入，下界）。
+合計 **2.15–2.27 hr** / committed 2.0 hr ⇒ ratio **1.08–1.13**，**IN**，兩端同 band。
+
+⛔ **只證明了一半** —— 見 retrospective Q2 與 `calibration-log.md`。
+W13 的跨 session 失效模式在本 phase **結構上不可能重現**，故 `AD-CalibrationWindowCrossSession-1` **不關閉**。
+
+### 4.x Closeout 產出
+
+`CH-031` · `retrospective.md` · `memory/project_w14_attestation.md` ·
+`MEMORY.md`（**293 字元** ≤ 300）· `CLAUDE.md`（Current Phase + Last Updated 各 1 行）·
+`ROADMAP.md`（item 4 → slice 9 + MHist）· `BACKLOG.md`（+2 AD，4 條更新）·
+`CALIBRATION-MATRIX.md`（325 字元）· `calibration-log.md` · `RISK_REGISTER.md`（**R3 / R4** 兩列）
+
+⏳ **PR push 待使用者確認** —— push 是 outward-facing。
