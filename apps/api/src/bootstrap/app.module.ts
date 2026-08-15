@@ -38,6 +38,7 @@ import { HealthModule } from '../health/health.module';
 import { ActionModule } from '../modules/action/action.module';
 import { AssessmentModule } from '../modules/assessment/assessment.module';
 import { AssetModule } from '../modules/asset/asset.module';
+import { AttestationModule } from '../modules/attestation/attestation.module';
 import { ControlModule } from '../modules/control/control.module';
 import { ControlTestModule } from '../modules/control-test/control-test.module';
 import { EvidenceModule } from '../modules/evidence/evidence.module';
@@ -74,6 +75,7 @@ const ENV_FILES = [resolve(process.cwd(), '.env'), resolve(process.cwd(), '../..
     AssessmentModule,
     RmReportModule,
     SoaModule,
+    AttestationModule,
   ],
 })
 export class AppModule {}

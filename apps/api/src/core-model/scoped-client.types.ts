@@ -369,8 +369,7 @@ export interface ScopedSoaClient extends ScopedRefCodeClient, ScopedExtensionCat
  * ⚠️ No `update`, matching the migration: there is no UPDATE policy and no UPDATE
  * grant on this table. A correction is a new attestation.
  */
-export interface ScopedAttestationClient
-  extends ScopedRefCodeClient, ScopedExtensionCatalogClient {
+export interface ScopedAttestationClient extends ScopedRefCodeClient, ScopedExtensionCatalogClient {
   readonly attestation: {
     findMany(args?: Prisma.AttestationFindManyArgs): Promise<Attestation[]>;
     create(args: Prisma.AttestationCreateArgs): Promise<Attestation>;

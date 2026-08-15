@@ -48,14 +48,27 @@ import { ExtensionValidationError } from '../../core-model/extension-validator';
 import { ScopeRefusedError, UnknownReferenceError } from '../../core-model/scope-refusal';
 import { EntityScopeResolver } from '../../entity-scope/entity-scope.resolver';
 import { ScopedPrismaFactory } from '../../entity-scope/scoped-prisma.provider';
+import type { EvidenceLinkedType } from '../../generated/prisma';
 import { DEV_PRINCIPAL_MARKER, devPrincipal } from '../policy/dev-principal';
 import { readTimestamp } from '../shared/read-timestamp';
+
+/**
+ * ⭐ W14: the enum has two values now, so this is a runtime check rather than a
+ * constant. Restated here because the Prisma enum is erased at compile time and a
+ * body arrives as unknown — see attestation.controller.ts for the same note.
+ *
+ * ⚠️ A value present in the database enum but missing from this list is a 400,
+ * not a silent accept. That is the desirable direction: the trigger refuses an
+ * unmapped type too, so the two refusals agree instead of racing.
+ */
+const LINKED_TYPES = ['control_test', 'attestation'] as const;
 
 interface CreateEvidenceBody {
   orgEntityId?: unknown;
   kind?: unknown;
   uriOrBlobRef?: unknown;
   hash?: unknown;
+  linkedType?: unknown;
   linkedId?: unknown;
   collectedAt?: unknown;
   extensions?: unknown;
@@ -88,6 +101,9 @@ export class EvidenceController {
         throw new BadRequestException(`${key} is required and must be a non-empty string`);
       }
     }
+    if (!LINKED_TYPES.includes(body.linkedType as (typeof LINKED_TYPES)[number])) {
+      throw new BadRequestException(`linkedType must be one of: ${LINKED_TYPES.join(', ')}`);
+    }
     if (body.extensions !== undefined && typeof body.extensions !== 'object') {
       throw new BadRequestException('extensions must be an object when present');
     }
@@ -98,6 +114,7 @@ export class EvidenceController {
         kind: body.kind as string,
         uriOrBlobRef: body.uriOrBlobRef as string,
         hash: body.hash as string,
+        linkedType: body.linkedType as EvidenceLinkedType,
         linkedId: body.linkedId as string,
         collectedAt: readTimestamp(body.collectedAt, 'collectedAt'),
         extensions: (body.extensions ?? {}) as Record<string, unknown>,

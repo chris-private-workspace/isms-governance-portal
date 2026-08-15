@@ -250,6 +250,34 @@ const SEED = {
       '00000000-0000-0000-0000-000000000a61',
     ],
   ],
+  // W14. One sign-off per entity, each on that entity's OWN policy.
+  //
+  // ⚠️ Seeded through the OWNER connection for the same reason control_tests is:
+  // attestations carries a BEFORE INSERT trigger whose lookup runs under the
+  // caller's policies, and this connection never sets app.entity_scope.
+  //
+  // ⭐ Both sides, and here it buys something specific beyond the usual reason:
+  // evidence.int.spec.ts needs a real attestation id to prove EvidenceLinkedType's
+  // second value resolves against a DIFFERENT table. A fabricated uuid would be
+  // refused by the trigger and the test could not tell that apart from the branch
+  // being absent.
+  attestations: [
+    // [id, orgEntityId, refCode, subjectType, subjectId]
+    [
+      '00000000-0000-0000-0000-000000000ac0',
+      '00000000-0000-0000-0000-0000000000c0',
+      'ATT-SG1-000001',
+      'policy',
+      '00000000-0000-0000-0000-0000000000f0',
+    ],
+    [
+      '00000000-0000-0000-0000-000000000ac1',
+      '00000000-0000-0000-0000-0000000000c1',
+      'ATT-HK1-000001',
+      'policy',
+      '00000000-0000-0000-0000-0000000000f1',
+    ],
+  ],
   // W08. One finding per entity. Both sides again, for the reason the asset
   // fixtures give: with only SG1 rows, "HK1 cannot see SG1's issue" and "HK1 has
   // no issues" are the same observation.
@@ -454,6 +482,14 @@ module.exports = async function globalSetup() {
       [id, orgEntityId, refCode, linkedId],
     );
   }
+  for (const [id, orgEntityId, refCode, subjectType, subjectId] of SEED.attestations) {
+    await seed.query(
+      `INSERT INTO attestations (id, org_entity_id, ref_code, subject_type, subject_id,
+                                 attested_at, result, updated_at)
+       VALUES ($1, $2, $3, $4::attestation_subject_type, $5, now(), 'acknowledged', now())`,
+      [id, orgEntityId, refCode, subjectType, subjectId],
+    );
+  }
   for (const [id, orgEntityId, refCode, title, source, severity] of SEED.issues) {
     await seed.query(
       `INSERT INTO issues (id, org_entity_id, ref_code, title, source, severity, updated_at)
@@ -576,6 +612,10 @@ module.exports = async function globalSetup() {
   await seed.query(
     `INSERT INTO ref_code_counters (org_entity_id, entity_type, last_seq, updated_at)
      SELECT org_entity_id, 'assessment_instance', count(*), now() FROM assessment_instances GROUP BY org_entity_id`,
+  );
+  await seed.query(
+    `INSERT INTO ref_code_counters (org_entity_id, entity_type, last_seq, updated_at)
+     SELECT org_entity_id, 'attestation', count(*), now() FROM attestations GROUP BY org_entity_id`,
   );
   for (const [id, orgEntityId, entityType, key, dataType, required] of SEED.extensionFields) {
     await seed.query(

@@ -32,6 +32,10 @@ const INPUT = {
   kind: 'screenshot',
   uriOrBlobRef: 'file://evidence.png',
   hash: 'sha256:abc',
+  // ⭐ W14: an input now, not a constant the repository supplies. The enum gained
+  // its second value in the same migration that gave the trigger a branch able to
+  // resolve it — the condition evidence.repository.ts set for this change.
+  linkedType: 'control_test' as const,
   linkedId: TEST_ID,
 };
 
@@ -72,17 +76,24 @@ function build(options: { catalog?: unknown[]; createThrows?: unknown } = {}) {
 }
 
 describe('EvidenceRepository.create', () => {
-  it('sets linkedType itself and ignores anything a caller sends for it', async () => {
+  /**
+   * ⭐ INVERTED IN W14, and the original is worth quoting because it named its own
+   * expiry: "sets linkedType itself and ignores anything a caller sends for it —
+   * EvidenceLinkedType has one value, so a field for it would be a field with one
+   * legal answer."
+   *
+   * That stopped being true when migration 20260815090746 added `attestation` AND
+   * the trigger branch able to resolve it — the exact condition
+   * evidence.repository.ts stated for this change. The assertion flips rather than
+   * being deleted, so the pairing of "one legal value" with "not an input" stays
+   * visible as the reason it ever held.
+   */
+  it('⭐ passes linkedType through now — W14 gave the enum a second value', async () => {
     const { repo, client, insert } = build();
 
-    await repo.create(client, {
-      ...INPUT,
-      // Not on CreateEvidenceInput. EvidenceLinkedType has one value, so a field
-      // for it would be a field with one legal answer.
-      linkedType: 'attestation',
-    } as Parameters<EvidenceRepository['create']>[1]);
+    await repo.create(client, { ...INPUT, linkedType: 'attestation' });
 
-    expect(insert().linkedType).toBe('control_test');
+    expect(insert().linkedType).toBe('attestation');
   });
 
   it('issues the ref_code itself, with the EVID prefix and the entity code', async () => {

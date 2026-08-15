@@ -214,7 +214,7 @@ Tests:       1 failed, 202 passed, 203 total
 「沒有 trigger 時多型欄位接受什麼」可以**被量到**（W07 Day 1 的 M3/M3b 就是這樣得到的），
 而不是變成一句宣稱。
 
-### 1.x partial gate ✅
+### 1.x partial gate ✅ (Day 1)
 
 | Gate | 結果 |
 |---|---|
@@ -222,3 +222,119 @@ Tests:       1 failed, 202 passed, 203 total
 | `lint` api | **0** |
 | `check_entity_index` | ⭐ **22 / 35**（機械導出；`models in schema.prisma: 23`）|
 | api int | ⚠️ **202 / 1 failed** —— **預期中**，就是 1.1 那條。Day 2 修 |
+
+---
+
+## Day 2 — 2026-08-15 · Trigger 分支 + endpoints + 稽核
+
+### ⭐ 2.0 先量：無守衛的多型欄位接受什麼
+
+Day 1 刻意把 parent guard 留在 migration 外，就是為了這次測量。整份
+`attestation.int.spec.ts` 先寫成**最終狀態**再跑，於是失敗訊息本身就是量測值：
+
+```
+● 6. the trigger supplies the integrity the missing foreign key would have
+    Received promise resolved instead of rejected
+    Resolved to value: { subjectId: "00000000-0000-0000-0000-0000dead0000",
+                         refCode: "ATT-HK1-000005", ... }
+● 8. an ENTITY-local control of another entity is refused
+    Resolved to value: { subjectId: "...000000000a50", refCode: "ATT-HK1-000007", ... }
+
+Tests: 3 failed, 11 passed, 14 total
+```
+
+⇒ **W07 的 M3 / M3b 在第二張多型表上原樣重現**：一個不存在的 id 落地了，
+另一個實體的 entity-local control 也落地了。
+
+⭐⭐ **而測試 7（group control 跨實體）在這一輪就是綠的** —— 加了 trigger 之後**仍然綠**。
+這是 D5 的價值被實測釘住的地方：**若只寫測試 7 而沒有測試 8，我會得到一條修法前後
+都通過、什麼都不證明的測試**。測試 8 紅→綠，它才是真正在測 trigger 的那條。
+
+### 2.1 D1 定案：新建 polymorphic 變體函式（選項 b）
+
+三個候選在 plan §Risks，判準由測量導出：**需要的不是一個多型守衛而是兩個，且映射不重疊**。
+
+| 多型欄位 | 映射 |
+|---|---|
+| `evidence.linked_id` | `control_test → control_tests` · `attestation → attestations` |
+| `attestations.subject_id` | `policy → policies` · `control → controls` |
+
+⇒ 選項 (a)「第三個 `TG_ARGV`」撐不住兩份映射 —— 它最終仍要把整份映射塞進參數，
+那時它已經是另一個函式穿著舊名字。
+
+**做法**：`assert_polymorphic_parent_in_scope()`，`TG_ARGV = (type_col, id_col, 然後 (值, 表) 對)`。
+既有的 `assert_parent_in_scope()` **一行未動**，仍服務 `control_tests_control_in_scope`
+⇒ 三個 phase 依賴的守衛零回歸面。
+
+⛔ **這不是 AP-5**：新函式**當下就有兩個呼叫端**，與 W07 給 `assert_parent_in_scope` 收參數
+的理由完全相同（W07 retro §AP-5：「收參數是因為當下就有兩個呼叫點，不是為了未來」）。
+
+⭐ **fail-closed 被保留且升級**：未映射的型別值 **RAISE 23503**，不是 fall through。
+W07 說 fail-closed 是「the right default until that branch is written」——
+現在第二個分支寫好了，那個預設仍在：enum 加值而沒有加映射對，會被大聲拒絕。
+
+### 2.2 契約反轉 —— W07 為本片預先寫好的驗收條件
+
+`evidence.repository.ts:26` 原文：*"When attestation or assessment arrive, this becomes an
+input **in the same change that gives the trigger its second branch**, and not before."*
+
+⇒ 本片同時做了三件事，因為它們是同一件事：enum 加 `attestation` · trigger 得到第二個分支 ·
+`linkedType` 從硬編碼變成輸入。
+
+**三個釘住舊契約的測試因此反轉**（⛔ 全部保留原文，不刪）：
+
+| 檔案 | 原標題 | 現在 |
+|---|---|---|
+| `evidence.repository.spec.ts` | `sets linkedType itself and ignores anything a caller sends for it` | 改為 passes through，**原文引在 docstring 裡** |
+| `evidence.controller.spec.ts` | `has no route from the body to linkedType` | 改為 routes it，且加測「不認識的值是 400」 |
+| `evidence.int.spec.ts` | `linked_type is set here, never accepted` | 改為 ACCEPTED，並斷言第二個值解析到**另一張表** |
+
+⚠️ 這不是「測試壞了要修」，是**契約按它自己寫下的條件到期了**，測試跟著反轉。
+
+### ⛔ 2.3 我自己造成的一個 bug，形狀值得記
+
+加 seed attestation 時我先用了 `...ab0` / `...ab1`，發現與 `SG1_INSTANCE` 撞號後，跑了一段
+全域 replace 把三個檔案的 `ab0/ab1` 換成 `ac0/ac1`。
+
+**`int-global-setup.js` 裡 `ab0` 出現兩次** —— 一次是我新加的 attestation，
+**另一次是 assessment_instances 的 seed**。兩個都被換掉了。
+
+結果：`assessment.int.spec.ts` **7 個測試紅**，訊息是 `SG1_INSTANCE` 找不到。
+
+⭐ **形狀**：`AD-NarrowPatternWideClaim-1` 的近親 —— 我用一個**窄的意圖**（改我剛加的那兩行）
+配上一個**寬的操作**（全檔 replace），中間沒有任何一步確認範圍。
+⚠️ 而它**被 int suite 抓到了**，不是被我抓到的。修法是逐處定位（`ASIN-` ref code 是判別依據）。
+
+### 2.4 稽核 + coverage
+
+- `AUDITED_MODELS` **15 → 16**，Day 1 觀察到的那一條紅**恰好因此轉綠**
+- 覆蓋測試 +1（⚠️ **無 teardown** —— 這張表沒有 UPDATE grant，其餘 15 條做的 retire
+  在這裡會 `permission denied`。那是 Day 1 決定在運作，不是本測試的缺口）
+- ⛔ **coverage 一度掉到 87.33 / 85.56 / 95.93 / 88.59**（baseline 92.27 / …）——
+  因為 `attestation.repository.ts` 與 `attestation.controller.ts` **沒有 unit spec**，
+  而其他每個模組都有。這正是 `AD-ModuleCoverageDilution-1` 的形狀。
+  ⇒ 補兩份 unit spec（29 個測試），回到 **92.14 / 91.77 / 98.98 / 93.56**。
+  ⚠️ plan §4 列了 `attestation.repository.spec.ts` 但**漏了 controller.spec** —— 記在這裡。
+
+### 2.x Full gate ✅ —— 十一項，各自 exit code 分開取
+
+| Gate | 結果 | baseline |
+|---|---|---|
+| `format:check` api / web | **0 / 0** | ⚠️ 第一次 api 是 1；`grep "^\[warn\]"` **零命中**（prettier 的 ANSI 色碼），exit code 才是真相 —— `AD-GrepAssertion-1` 現場 |
+| `lint` · `type-check` | **0 · 0** | 0 · 0 |
+| `build` api / web | **0 / 0** | 0 / 0 |
+| `lint:negative` | **PASS** — 60 掃描 / 0 bypass / skipped 57 test | 57 掃描 / skipped 54 |
+| api unit | ⭐ **480 / 40** | 451 / 38（**+29 / +2**）|
+| **api int** | ⭐ **218 / 17** | 203 / 16（**+15 / +1**）|
+| web | **10 / 1** | 10 / 1 |
+| coverage | **92.14 / 91.77 / 98.98 / 93.56** | 92.27 / 91.66 / 98.95 / 93.64（兩高兩低）|
+| `run_all` | **8 / 8** | 8 / 8 |
+| `check_entity_index` | ⭐ **22 / 35** | 21 / 35 |
+
+⚪ **Verdict: gate-only verified** —— 純後端，無 user-facing surface，**不得暗示可用性**。
+
+## Remaining for Day 3
+
+- 四個中性化，**預期方向逐測試先 commit 再執行**
+- ⛔ **先 grep `AUDITED_MODELS` / `assert_polymorphic_parent_in_scope` 的消費者再預測** ——
+  W13 的 N1/N3 少算就是因為列了「我以為會受影響的 suite」（`AD-NeutralisationConsumerGrep-1`）
