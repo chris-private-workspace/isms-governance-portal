@@ -59,6 +59,7 @@ import type {
   AssessmentTemplate,
   Asset,
   AssetGroup,
+  Attestation,
   Control,
   ControlTest,
   Evidence,
@@ -344,6 +345,35 @@ export interface ScopedSoaClient extends ScopedRefCodeClient, ScopedExtensionCat
       args?: Prisma.StatementOfApplicabilityFindManyArgs,
     ): Promise<StatementOfApplicability[]>;
     create(args: Prisma.StatementOfApplicabilityCreateArgs): Promise<StatementOfApplicability>;
+  };
+}
+
+/**
+ * Sign-offs on a policy or control (W14).
+ *
+ * ⚠️ Deliberately exposes NEITHER `policy` NOR `control`, and this is the first
+ * interface in the file that withholds TWO parents of DIFFERENT tables — the
+ * assessment-response client withholds two, but both by composite key. Here
+ * `subject_id` has no foreign key at all (02a:235 is polymorphic), so everything
+ * standing between this repository and an arbitrary uuid is the trigger, exactly
+ * as ScopedEvidenceClient records.
+ *
+ * ⛔ AND ONE DIFFERENCE FROM EVERY OMISSION ABOVE, measured in W14 Day 0 rather
+ * than inherited: the collapsing this protects is NOT total. `controls_read`
+ * widens for `applies_to_scope = 'group'` (ADR-0014), so for a group-shared
+ * control the trigger answers "reachable" from any entity — by design (02a:434).
+ * The omission still matters for `policy` subjects and for entity-local
+ * controls; it simply does not buy the same guarantee across the whole column,
+ * and a test that assumes otherwise proves nothing (AD-VacuousScopeTest-1).
+ *
+ * ⚠️ No `update`, matching the migration: there is no UPDATE policy and no UPDATE
+ * grant on this table. A correction is a new attestation.
+ */
+export interface ScopedAttestationClient
+  extends ScopedRefCodeClient, ScopedExtensionCatalogClient {
+  readonly attestation: {
+    findMany(args?: Prisma.AttestationFindManyArgs): Promise<Attestation[]>;
+    create(args: Prisma.AttestationCreateArgs): Promise<Attestation>;
   };
 }
 
