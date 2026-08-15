@@ -3,7 +3,7 @@
 **Phase**: W13 — Connect the audit trail to every reachable write path
 **Period**: 2026-08-14 ~ 2026-08-15
 **Plan**: [plan.md](./plan.md)
-**PR**: #61（PR-pending）
+**PR**: #61（**MERGED** 2026-08-15，`91bd789`）
 **Change record**: `docs/03-implementation/changes/CH-030-w13-audit-coverage.md`
 
 ---

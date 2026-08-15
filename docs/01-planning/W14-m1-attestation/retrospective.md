@@ -3,7 +3,8 @@
 **Phase**: W14 — Attestation, and the second polymorphic link
 **Period**: 2026-08-15 ~ 2026-08-15（單日，四個 Day 在同一個工作區段內完成）
 **Plan**: [plan.md](./plan.md)
-**PR**: PR-pending（⛔ push 是 outward-facing，**待使用者確認**）
+**PR**: #63（**MERGED** 2026-08-15 10:51:18Z，`e9ab83a`）—— 六個 required check 全 SUCCESS，
+⛔ **又是 rebase merge，九個 SHA 全被改寫**（`AD-DesignNoteAnchor-1` **連續第 6 次**）
 **Change record**: `docs/03-implementation/changes/CH-031-w14-attestation.md`
 
 ---
@@ -37,21 +38,28 @@ UNTOUCHED 所以 create 不接受它 · 無 M5 workflow · 無 UI ⇒ **永遠�
 - **Agent-delegated**: **no**（plan 時宣告，自己直接做）⇒ `agent_factor` 1.0 ⇒ 三段式
 - **Bottom-up est**: **4.0 hr**（schema+migration 1.5 · trigger 1.0 · endpoints+tests 1.0 · closeout 0.5）
 - **Committed (calibrated)**: **2.0 hr**（mult 0.50）
-- **Actual**: **2.15–2.27 hr**（129.2–136 min）
-- **Ratio**: **1.08–1.13**
-- **Band 判定**: **IN**（0.7–1.2），**區間兩端同 band**
+- **Actual**: **2.26 hr**（135.57 min）—— ⚠️ **post-merge 修正**，見下
+- **Ratio**: **1.13**
+- **Band 判定**: **IN**（0.7–1.2）
 
 ### ⭐ 量法對照 —— 本片是 `AD-CalibrationWindowCrossSession-1` 的第一個實測資料點
 
 plan §7 **事先宣告**採候選新規則：「含 Day 0，**逐段相加並排除任何 > 60 min 的 commit 間隙**」。
 
-| 量法 | Day 0–3 |
+| 量法 | 全 phase（九個 commit）|
 |---|---|
-| 逐段相加（排除 > 60 min）| **100.88 min** |
-| 原始窗口法（末 − 首）| **100.88 min** |
+| 逐段相加（排除 > 60 min）| **135.57 min** |
+| 原始窗口法（末 − 首）| **135.57 min** |
 
-六個間隙**最大 34.87 min**（`a928972` → `d65f535`，polymorphic guard + 契約反轉那一段），
-全部低於 60 min 門檻 ⇒ 兩法**逐位相同**。Day 4 另計 **28.3 min**（至本檔寫入；closeout commit 未計入 ⇒ 下界）。
+八個間隙**最大 34.87 min**（`5d37a77` → `9c71f50`，polymorphic guard + 契約反轉那一段），
+全部低於 60 min 門檻 ⇒ 兩法**逐位相同**。
+
+⚠️ **本節的數字在 closeout 當下是區間 1.08–1.13，post-merge 才變精確 —— 而修正的方向值得記。**
+closeout 時 Day 4 只能量到「最後一個產物寫入」（28.3 min）當**下界**，因為 closeout commit 還不存在。
+merge 之後真值是 **34.68 min**，落在我當時所報區間的**上緣**。
+⇒ **這個下界慣例系統性低估 closeout —— 本次 6.4 min（約 19%）。**
+W13 的 28.0 min 用的是同一個慣例，**所以那也是下界不是值**。
+⭐ 兩個 phase 的 band 判定都不受影響，所以修法不是「別用下界」，是「**下界要標成下界**」。
 
 ⛔ **這只證明了一半，而那一半不是它要解決的問題。**
 plan §7 預期「單一 session 完成則兩法同值」—— 實測如預期。但那證明的是**新量法不擾動舊量法本來就答對的那一類**。
@@ -77,7 +85,7 @@ W13 的失效模式（跨夜等使用者 ⇒ 窗口給 13.7 hr / ratio 6.08）�
   Prong 2（content）**D1 / D5 / D6 / D8** ｜ Prong 3（schema）前三項確認，
   ⚠️ 第四項（migration head）**改用等價證據** —— `_prisma_migrations` 查詢用錯 role 而失敗，
   改以 int suite 的 `rebuilt, migrated and seeded` 為證，**兩者不等價**（它驗的是 `isms_test` 不是 dev DB），已記在 progress.md
-- **Day-0 成本**：**16.2 min**（`7bea684` → `652fb64`）
+- **Day-0 成本**：**16.2 min**（`736b1f1` → `6701305`）
 - **預防的返工**：~**1.5–2 hr**
 - **ROI**: ~**6–7×**
 
@@ -139,7 +147,7 @@ W13 的失效模式（跨夜等使用者 ⇒ 窗口給 13.7 hr / ratio 6.08）�
 ### ⛔ AP-7 的那一次：我自己造成的 stale docstring
 
 Day 2 把 `AUDITED_MODELS` 從 15 改成 16，但 `audit.module.ts` 的 docstring **沒跟著改**，
-於是 `88bf634`–`3d94133` 這幾個 commit 裡住著三句錯的宣稱：
+於是 `f0cc0a7`–`706d94d` 這幾個 commit 裡住著三句錯的宣稱：
 「rerun the derivation rather than trusting these **fifteen** strings」·
 「forward … → **16** delegates」·「reverse … → **22**」。
 
