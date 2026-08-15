@@ -15,6 +15,7 @@
 #   ⚠️ Pinned by tag, NOT yet by digest — same follow-up as apps/api/Dockerfile.
 #
 # Modification History (newest-first):
+#   - 2026-08-15: Move runtime base to debian13 (CH-032) — libssl3 exemptions expiring
 #   - 2026-08-08: Move runtime to distroless (Phase W01) — 45 base-image CVEs
 #   - 2026-08-08: Initial creation (Phase W01)
 
@@ -37,8 +38,8 @@ RUN npm run build -w apps/web
 # Distroless: no npm, no shell, no package manager. Next's standalone output
 # already carries the server plus only the dependencies it traced, so this image
 # needs nothing a package manager would provide. See apps/api/Dockerfile for the
-# scan numbers that drove the move.
-FROM gcr.io/distroless/nodejs22-debian12:nonroot AS runtime
+# scan numbers that drove the move, and for why this line says debian13 (CH-032).
+FROM gcr.io/distroless/nodejs22-debian13:nonroot AS runtime
 ENV NODE_ENV=production
 ENV HOSTNAME=0.0.0.0
 ENV PORT=3200

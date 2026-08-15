@@ -44,6 +44,7 @@
 #   file and runs trivy against it.
 #
 # Modification History (newest-first):
+#   - 2026-08-15: Move runtime base to debian13 (CH-032) — libssl3 exemptions expiring
 #   - 2026-08-09: Add --ignore-scripts to the build stage (CH-013) — schema absent
 #   - 2026-08-08: Move runtime to distroless (Phase W01) — 45 base-image CVEs
 #   - 2026-08-08: Initial creation (Phase W01)
@@ -90,7 +91,15 @@ RUN npm ci --omit=dev --ignore-scripts --workspace @isms/api --include-workspace
 
 # --- runtime -----------------------------------------------------------------
 # `:nonroot` runs as uid 65532 and has no shell, no npm, no package manager.
-FROM gcr.io/distroless/nodejs22-debian12:nonroot AS runtime
+#
+# ⚠️ debian13, NOT debian12 (CH-032). The debian12 line ships libssl3
+# 3.0.18-1~deb12u2, whose six HIGH/CRITICAL advisories were time-boxed in
+# .trivyignore.yaml to 2026-09-07 while waiting for an upstream rebuild that did
+# not come — measured on 2026-08-15, all three debian12 variants (:nonroot,
+# :latest, nodejs24) still carried that exact version. debian13 carries
+# libssl3t64 3.5.6-1~deb13u2, a different package on a different series.
+# The exemption file is gone; trivy is the check that keeps it that way.
+FROM gcr.io/distroless/nodejs22-debian13:nonroot AS runtime
 ENV NODE_ENV=production
 # Containers must bind all interfaces; the local default is loopback (main.ts).
 ENV API_HOST=0.0.0.0
