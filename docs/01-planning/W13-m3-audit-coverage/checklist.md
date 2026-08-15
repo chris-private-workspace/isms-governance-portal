@@ -193,10 +193,12 @@ _(本 phase 無 user-facing surface。報告一律寫 **gate-only verified**，�
 
 ### 4.1 Change record
 
-- [ ] **`docs/03-implementation/changes/CH-030-w13-audit-coverage.md`**（Problem / Root Cause /
+- [x] **`docs/03-implementation/changes/CH-030-w13-audit-coverage.md`**（Problem / Root Cause /
       Solution / Verification / Impact —— 含覆蓋率表 + 中性化表 + **gate-only verified** 聲明）
-  - ⛔ **非 spike ⇒ 不產出 design note**（機制由 W12 的 note 承載，本片是複用）
+  - ✅ 另含 ⛔ **「覆蓋」一詞的限定**（15 個寫入全是 create）+ `RefCodeCounter` 的**三條實測理由**
+  - ⛔ **非 spike ⇒ 不產出 design note**（機制由 W12 的 note 承載，本片是複用）✅ 未產出
   - ⛔ **無架構級決定 ⇒ 不產出 ADR**。若 Day 1-3 出現需要 ADR 的決定 → **STOP and ask**
+    ✅ 未出現 —— plan §4 的做法變更是**測試放哪裡**，不是架構決定；已依 R3 記錄在 plan §4 DEVIATION
 
 ### 4.2 Closeout
 
@@ -206,10 +208,15 @@ _(本 phase 無 user-facing surface。報告一律寫 **gate-only verified**，�
   - ⭐ **同時驗證兩個估法**：舊 bottom-up 4.5 hr vs 新法「有藍本改差異 5 項 × ≈8 min ≈ 40 min
     + 無藍本 1 項」（`AD-BottomUpBlueprint-1` 的第 2 個對照點）
 - [ ] `calibration-matrix.md` 那一行 —— **≤ 1 行 ~250 字元**（lint 上限 400）
-- [ ] Final gate sweep（十一項全跑，逐項寫實際數字）
-- [ ] 導航檔: `CLAUDE.md` Current-Phase + Last-Updated · `MEMORY.md` pointer + subfile ·
+- [x] Final gate sweep（十一項全跑，逐項寫實際數字）
+  - ✅ format **0/0** · lint **0** · type **0** · build **0/0** · `lint:negative` **PASS** ·
+    unit **451/38** · int **203/16** · web **10/1** · coverage **92.27/91.66/98.95/93.64** ·
+    `run_all` **8/8** · `check_entity_index` **21/35** —— 逐項表在 progress.md Day 4
+- [x] 導航檔: `CLAUDE.md` Current-Phase + Last-Updated · `MEMORY.md` pointer + subfile ·
       `BACKLOG.md`（**CLOSE `AD-AuditCoverageOneTable-1`** + §Shipped 加 1 行）·
       `ROADMAP.md`（4c → ✅）· `RISK_REGISTER.md`
+  - ✅ 全數完成。**額外關閉** `AD-VacuousScopeTest-1`（通則）；新增 **6** 條（含 Day 4 自己發現的
+    `AD-MemoryEntryRatchet-1`）⇒ BACKLOG 100 → **104**，P0 **8 → 7**
   - ⛔ **R4 的新數字必須機械導出**（`AUDITED_MODELS.size` vs `^model` 數），
     導出方法寫進 CH-030 —— `AD-RiskTableCountManual-1` 剛在 W12 被實地擊中
   - ⛔ **R4 措辭**：接上 15 / 21 不等於「已解決」——
@@ -218,8 +225,10 @@ _(本 phase 無 user-facing surface。報告一律寫 **gate-only verified**，�
   - ⚠️ **Day 0 的順路發現要落地**：`assessment.int.spec.ts:346` 標題說「on all three tables」
     而 body 只測 2 張（`responses` 未測）—— 新增一條 AD，**本片不修**（`CH-017` 配額）
   - ⚠️ **D-roadmap 若成立**：`ROADMAP` 4c 與 BACKLOG 的「其餘 20 張表」措辭一併更正
-- [ ] Anti-pattern 自檢（retro Q5）：AP-1..AP-7 → 違規數
+- [x] Anti-pattern 自檢（retro Q5）：AP-1..AP-7 → 違規數 ✅ **總計 0**
       ⚠️ 含 **AP-3**：允許清單加了名字算不算 Potemkin？**判準是 N2 有沒有讓恰好一個模組轉紅**
+      ✅ **N2 恰好 2 紅（該模型 + 漂移守衛）、其餘 14 條未動** ⇒ AP-3 = **0**。
+      ⛔ 若照原 plan 把測試寫進 module-local 圖，這一格會是 **15**
 - [ ] **Commit** → ⏳ PR push + open → CI → merge: **PENDING USER CONFIRMATION**
       （push 是 outward-facing）→ merge 經 `gh pr view` 驗證後翻 `status:` 標籤
   - ⚠️ **rebase merge 會改寫 SHA** —— 引用「預測寫在前面」的 commit 要改指 main 側。

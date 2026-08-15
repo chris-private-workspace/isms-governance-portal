@@ -357,6 +357,72 @@ plan §3.2 寫的是「訊噪比 + 無治理語義」。實測後 `audit.module.
 **兩列且第二列全空** · **多實體 scope 會 throw** · ⭐ **失敗的寫入會留下稽核列**。
 ⇒ 判定（不接）不變，但它現在**由三個實測結果支持**，而不是由一段推理支持。
 
+---
+
+## Day 4 — 2026-08-15 — Closeout
+
+### Today's Accomplishments
+
+- `CH-030-w13-audit-coverage.md` —— 含**機械導出的覆蓋率表**、四個中性化表、
+  `RefCodeCounter` 的三條實測理由、⛔ **「覆蓋」一詞的限定**（15 個寫入全是 create）
+- `retrospective.md` Q1–Q7
+- 導航檔：`CLAUDE.md`（Current Phase 1 行 + Last Updated）· `MEMORY.md`（指標 + subfile）·
+  `BACKLOG.md`（**關 2 條 / 新增 6 條** → 100 → **104**，P0 **8 → 7**）· `ROADMAP.md` 4c ✅ ·
+  `RISK_REGISTER.md` **R4 覆蓋 1/21 → 15/21**
+
+### Issues / Discoveries
+
+⭐ **`MEMORY.md` 的 phase 條目長度是一條單調上升的曲線**，而寫這一條的時候我正要再推高它：
+
+```
+W01 186 · W02 192 · W03 237 · W04 236 · W05 241 · W06 274 · W07 283
+W08 319 · W09 318 · W10 360 · W11 306 · W12 363 · W13 401（我的第一版）
+```
+
+closeout policy 寫的是 **~250-300**，13 個 phase 漲了 **+116%**。
+⛔ 這正是 `task-workflow.md` §Phase Closeout 描述的**相對錨點棘輪** ——
+每個 closeout 拿前一個當範本 —— **而它自己沒有機械守門**
+（`check_rules_hygiene.py` 只管 always-loaded 檔案，`MEMORY.md` 不在預算內）。
+
+⇒ 本片條目壓回 **279**，並記 `AD-MemoryEntryRatchet-1`。
+⚠️ 但**壓回不解決問題** —— 下一個 phase 會看到 279 並超過它。修法必須是機械的。
+
+### Final Gate Sweep（十一項，各自取 exit code）
+
+| Gate | 結果 |
+|------|------|
+| `format:check` apps/api | ✅ **0** |
+| `format:check` apps/web | ✅ **0** |
+| `lint` | ✅ **0** |
+| `type-check` | ✅ **0** |
+| `build` apps/api | ✅ **0** |
+| `build` apps/web | ✅ **0** |
+| `lint:negative` | ✅ **PASS** —— `rejected audit-trail -> core-model, as it must` · `57 file(s) scanned, 0 bypasses; skipped 54 test + 2 fixture` |
+| api unit | ✅ **451 / 38** |
+| **api int** | ✅ **203 / 16**（baseline 187 → **+16**）|
+| web test | ✅ **10 / 1** |
+| coverage | ✅ **92.27 / 91.66 / 98.95 / 93.64** —— 與 baseline **逐位相同** |
+| `run_all` | ✅ **8 / 8** |
+| `check_entity_index` | ✅ **21 / 35** —— **未變動**（本片不建表）|
+
+⚪ **Verdict: gate-only verified** —— 本 phase 無 user-facing surface，不做 drive-through，
+**且不得暗示可用性**。
+
+### Phase 總時數（commit 時間戳導出，⛔ 不是估的）
+
+| Day | 窗口 | Actual |
+|-----|------|--------|
+| Day 0 | `9427e42` 22:48:06 → `6a95dda` 23:08:49 | **20.7 min** |
+| Day 1 | → `1fd9b34` 23:28:48 | **20.0 min** |
+| Day 2 | → `52982ae` 23:53:04 | **24.3 min** |
+| Day 3 | → `543bd53` 00:19:24 | **26.3 min** |
+| Day 4 | → closeout commit | **<PENDING>** |
+| **Total** | `9427e42` → closeout | **<PENDING>** |
+
+⛔ **actual 等 closeout commit 真的存在之後再算**（`AD-EstimateAsMeasurement-1`，第 2 次執行該修法）。
+⚠️ **Day 0 的自估 ~65 min 與量到的 20.7 min 差 3 倍** —— 那份自估是逐項相加的印象值，
+不是時間戳。⇒ progress.md 裡的「Day N 時數」若不是從 commit 導出的，就不該被 retro 引用。
+
 ### Day 0 時數
 
 | 項目 | Actual |

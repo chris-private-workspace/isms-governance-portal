@@ -76,7 +76,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 | Attribute | Value |
 |-----------|-------|
 | **Stage** | Wave 1 backbone — 建立共用骨幹，並用 Policy + Risk/Control 兩個最小模組端到端證明它 |
-| **Current Phase** | **W12 MERGED**（PR #58, `ea58fdb`）`closed` — M3 spike：`audit_log` + 應用層攔截點 + `verifyChain`，**ADR-0003 拍板**（OQ-4 關閉）。⭐ 決定**不靠成本** —— 序列下 A/B 量不出差別，併發下 A 貴 1.6 倍**仍選 A**：分勝負的是斷點定位與誰算 hash。⛔ **覆蓋 1/21 —— 機制在、覆蓋不在**（R4 🟡 partial）。元驗證 **4/4**。**21/35 實體**（機械導出）|
+| **Current Phase** | **W13**（PR #61 pending）`closed` — M3 slice 2：稽核覆蓋 **1/21 → 15/21**（機械導出），每個模型一條**移除即轉紅**的測試 + **漂移守衛**（從原始碼導出寫入面雙向比對）⇒ R4 的失效模式有機械守門。⭐ **N2 恰好 2 紅**（驗收核心）。⛔ 15 個寫入**全是 create** —— 覆蓋率須連此限定一起讀。**21/35 實體**（未變）|
 | **History** | See [`MEMORY.md`](./MEMORY.md) + 各 phase 的 `retrospective.md` |  <!-- doc-links: ignore — MEMORY.md 由 bootstrap 複製到專案根 -->
 | **Pending / Next** | See [`docs/01-planning/BACKLOG.md`](./docs/01-planning/BACKLOG.md)（**有什麼**）· [`ROADMAP.md`](./docs/01-planning/ROADMAP.md)（**先做哪個**）|
 | **跨來源狀態** | See [`docs/01-planning/STATUS_AUDIT.md`](./docs/01-planning/STATUS_AUDIT.md) —— 問「現在全項目怎樣」時跑 `/status-audit`，**不要只讀 BACKLOG** |
@@ -490,6 +490,6 @@ python scripts/lint/run_all.py
 
 ---
 
-**Last Updated**: 2026-08-14（W12 closeout）
+**Last Updated**: 2026-08-15（W13 closeout）
 **Project Start**: 2026-08-07
 **Template Version**: 2.6.1 (claude-code-dev-template)
