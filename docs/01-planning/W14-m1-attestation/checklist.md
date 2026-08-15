@@ -180,23 +180,39 @@
 
 ### 4.1 Change record
 
-- [ ] **`docs/03-implementation/changes/CH-031-w14-attestation.md`**
+- [x] **`docs/03-implementation/changes/CH-031-w14-attestation.md`**
       （Problem / Root Cause / Solution / Verification / Impact）
       ⚪ **Verdict 必須寫「gate-only verified」** —— 純後端，不得暗示可用性
       [非 spike ⇒ **不產 design note**]
+      ✅ 建立。Verdict 寫 ⚪ **gate-only verified**；Impact 記下**兩項不對稱的 rollback**
+      （`ALTER TYPE ADD VALUE` 不可逆 · `evidence_linked_in_scope` 是 DROP 後重建）
 
 ### 4.2 Closeout
 
-- [ ] `retrospective.md` Q1-Q7 + calibration（`pattern-reuse-feature` 0.50，**第 7 個資料點**；
+- [x] `retrospective.md` Q1-Q7 + calibration（`pattern-reuse-feature` 0.50，**第 7 個資料點**；
       ratio 出 band 就標記 re-point）
-- [ ] ⭐ **量法對照**：plan §7 宣告的「逐段相加並排除 > 60 min 間隙」vs 原始窗口法，
+      ✅ ratio **1.08–1.13 IN**（committed 2.0 hr / actual 2.15–2.27 hr）⇒ **KEEP**，不 re-point
+- [x] ⭐ **量法對照**：plan §7 宣告的「逐段相加並排除 > 60 min 間隙」vs 原始窗口法，
       兩者若不同即為 `AD-CalibrationWindowCrossSession-1` 的第一個實測資料點
-- [ ] `calibration-matrix.md` 那一行 —— **≤ 1 行 ~250 字元**（lint 上限 400；完整敘述 → `calibration-log.md`）
-- [ ] Final gate sweep：十一項**各自的 exit code 分開記**（不是「都過了」）
-- [ ] 導航檔: `CLAUDE.md` Current-Phase + Last-Updated · `MEMORY.md` pointer + subfile
+      ✅ **兩者相同**（逐位 **100.88 min**，六個間隙最大 34.87 min）。
+      ⛔ **這只證明新量法不擾動舊量法答對的那一類** —— W13 的跨 session 失效模式在本 phase
+      **結構上不可能重現**，故未被驗證修復。該 AD **不關閉**，解封條件已寫上去
+- [x] `calibration-matrix.md` 那一行 —— **≤ 1 行 ~250 字元**（lint 上限 400；完整敘述 → `calibration-log.md`）
+      ✅ **325 字元**（⚠️ 超過 ~250 的目標值但在 lint 上限內；`rules-hygiene` 8/8 綠）
+- [x] Final gate sweep：十一項**各自的 exit code 分開記**（不是「都過了」）
+      ✅ 實際跑了 **13 項**（十一項 + `format:check` 拆 api/web、`build` 拆 api/web），**全部 exit 0**。
+      ⚠️ script 的 `tail -25` 把 coverage 的 `All files` 摘要切掉 —— 判定沒錯
+      （退出碼取自 `PIPESTATUS[0]`），但**數字重跑一次才拿到**
+- [x] 導航檔: `CLAUDE.md` Current-Phase + Last-Updated · `MEMORY.md` pointer + subfile
       （⛔ **≤ 300 字元** —— `AD-MemoryEntryRatchet-1`：13 個 phase 從 186 漲到 401，
       每次都拿前一個當範本；**不要看前一條的長度**）· `BACKLOG.md` · `ROADMAP.md`（**兩處都改**）
-- [ ] Anti-pattern 自檢（retro Q5）：AP-1..AP-7 → 違規數
+      ✅ MEMORY.md 條目 **293 字元**（先寫再量，未參照前一條）· ROADMAP **item 4 + MHist 兩處** ·
+      BACKLOG **+2 AD / 4 更新 / Shipped index +1**，計數 106 → **108** 照抄 detector 輸出 ·
+      順帶修掉 MEMORY.md 上「PR #61 pending」的 stale（#61 已 merge 為 `91bd789`）
+- [x] Anti-pattern 自檢（retro Q5）：AP-1..AP-7 → 違規數
+      ⛔ **AP-7 = 1（我造成的）** —— Day 2 改 `AUDITED_MODELS` 15→16 沒改 `audit.module.ts` 的
+      docstring，而那段的第一句正是「rerun the derivation」。Day 4 重跑導出（**17 delegates /
+      23 models / 6 無寫入路徑**）並修正三句。其餘 AP 皆 0 或 N/A；**AP-3 攔下 1 次**（US-3）
 - [ ] **Commit** → ⏳ PR push + open → CI → merge: **PENDING USER CONFIRMATION**
       （push 是 outward-facing）→ merge 經 `gh` 驗證後翻狀態標籤
 - [ ] ⏳ **post-merge**：若又是 rebase merge，全 repo 掃描重指被改寫的 SHA
