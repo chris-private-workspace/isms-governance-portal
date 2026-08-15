@@ -1,0 +1,55 @@
+# File: .trivyignore.yaml
+# Purpose: Container base-image scan exemptions. Currently EMPTY, deliberately.
+# Category: Security / CI
+# Scope: Phase W01 (M0) · emptied by CH-032
+# Owner: .github/workflows/security-scan.yml §container-scan
+#
+# ⚠️ THIS FILE IS EMPTY ON PURPOSE, AND IT MUST NOT BE DELETED.
+#
+# Two separate reasons, both measured rather than assumed:
+#
+#   ① **Nothing is exempt today.** CH-032 moved the runtime base from
+#      debian12 (libssl3 3.0.18-1~deb12u2) to debian13 (libssl3t64
+#      3.5.6-1~deb13u2), which removed the six OpenSSL advisories this file
+#      was created to time-box. An empty list is a statement in version
+#      control — "we exempt nothing" — whereas a missing file is silence.
+#
+#   ② **trivy FATALs on a missing --ignorefile.** security-scan.yml:325 passes
+#      `--ignorefile .trivyignore.yaml` UNCONDITIONALLY (unlike :303 in the
+#      same step, which is guarded by `[ -f ]`). CH-032 deleted this file and
+#      measured the result on PR #66:
+#
+#        FATAL  flag error: unable to convert flags to options:
+#               ignore file not found: .trivyignore.yaml
+#
+#      Both images FATALed in 13 seconds — the scan never ran at all, and the
+#      job was red for a reason that had nothing to do with any CVE. ⛔ That is
+#      the worst kind of red: it looks like the scanner spoke when it did not.
+#      Keeping the file present keeps that flag honest.
+#
+# ⚠️ READ THIS BEFORE ADDING A LINE BACK.
+#
+# security-scan.yml records three rules for exemptions, all still in force:
+#   ① exempt per advisory with a reason — never lower the severity threshold,
+#      because that also waves through advisories that do not exist yet
+#   ② every exemption carries an expiry, and something must fail when it passes.
+#      trivy's `expired_at` is that something: past the date the finding returns
+#      on its own, so nobody has to remember
+#   ③ "upstream has no fix" and "we decided not to fix" are different reasons
+#      and must be written differently
+#
+# ⭐ And one lesson this file paid for, added by CH-032: an exemption whose
+#    release condition is "wait for an upstream rebuild" has no fallback of its
+#    own. The debian12 line had not rebuilt seven days before expiry, and the
+#    only thing that would have happened on 2026-09-07 is that every PR in the
+#    repo would have stopped being mergeable. If you write that kind of
+#    exemption again, pair it with a way out that does not need upstream.
+#
+# Created: 2026-08-08 (Phase W01)
+# Last Modified: 2026-08-15
+#
+# Modification History (newest-first):
+#   - 2026-08-15: Empty the list (CH-032) — base moved to debian13; file kept, see ②
+#   - 2026-08-08: Initial creation (Phase W01) — libssl3 in distroless nodejs22
+
+vulnerabilities: []
