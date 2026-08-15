@@ -115,6 +115,8 @@ model OrgEntity {
 
   auditLog AuditLog[]
 
+  attestations Attestation[]
+
   version   Int       @default(1)
   createdAt DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
   updatedAt DateTime  @updatedAt @map("updated_at") @db.Timestamptz(6)
@@ -191,6 +193,11 @@ model User {
   ownedRiskManagementReports RiskManagementReport[] @relation("RmReportOwner")
 
   ownedStatementsOfApplicability StatementOfApplicability[] @relation("SoaOwner")
+
+  /// ⚠️ The relation exists, but nothing can populate `Attestation.user_id` until
+  /// M4 — see that model's note. A row here today means someone wrote a uuid, not
+  /// that a person signed anything.
+  attestations Attestation[] @relation("AttestationUser")
 
   @@map("users")
 }
@@ -1973,4 +1980,114 @@ model AuditLog {
   /// caller's policies admit.
   @@index([orgEntityId, id])
   @@map("audit_log")
+}
+
+/// What an attestation is ABOUT (02a:235 — "polymorphic: policy/control").
+///
+/// ⚠️ NOT AssessmentSubjectType, which already exists at :1276 with
+/// risk/control/process/entity. The two overlap on `control` and agree nowhere
+/// else, so sharing one enum would offer `policy` to an assessment and `risk` to
+/// an attestation — two columns' worth of illegal states, bought to avoid one
+/// declaration. 02a gives each line its own list; this keeps them separate.
+enum AttestationSubjectType {
+  policy
+  control
+
+  @@map("attestation_subject_type")
+}
+
+/// A person's sign-off on a policy or control (02a:235).
+///
+/// ⭐ THIS TABLE IS WHAT TWO EARLIER PHASES WROTE THEMSELVES A NOTE ABOUT.
+/// evidence.repository.ts:26 says `linkedType` becomes an input "in the same
+/// change that gives the trigger its second branch, and not before"; the W07
+/// migration says an attestation id "would not be found in control_tests and
+/// would be refused". Both are describing this phase.
+///
+/// ⚠️ `subject_id` HAS NO FOREIGN KEY, for the reason Evidence records at :1057 —
+/// a column cannot reference two tables. The BEFORE INSERT trigger supplies both
+/// the referential integrity and the scope guard, exactly as it does there.
+///
+/// ⛔ BUT THE GUARANTEE IS WEAKER HERE THAN ON EVIDENCE, and the difference was
+/// measured in W14 Day 0 rather than assumed. `controls_read` widens for
+/// `applies_to_scope = 'group'` (ADR-0014), and the trigger resolves its parent
+/// with a plain SELECT under the caller's own policies. So an attestation naming
+/// a GROUP-SHARED control in another entity is reachable and will be accepted —
+/// by design (02a:434 lets a group control link anywhere), but it means "the
+/// trigger refuses cross-entity subjects" is true for `policy` and only
+/// conditionally true for `control`. Any test asserting the refusal must pin
+/// `subject_type = policy` or an `applies_to_scope <> 'group'` control, or it
+/// asserts nothing (AD-VacuousScopeTest-1).
+///
+/// ⚠️ NO `status` COLUMN, and that is a recorded deviation from 02a §1.1's base
+/// fields rather than an oversight. §4 gives a lifecycle to Policy, Risk, Issue
+/// and ControlTest, and :417 names three more (Action, Assessment, Event) —
+/// Attestation appears on neither list, so there is no value domain to draw a
+/// status enum from. W07 removed `ControlTest.result` because §4's terminal
+/// states already carried it; here the mirror image applies — there are no
+/// terminal states, so `result` is the only carrier and a status enum with no
+/// domain would be a setting nobody can exercise (AP-3).
+model Attestation {
+  id String @id @default(uuid()) @db.Uuid
+
+  /// `ATT-<ENTITY_CODE>-<seq>`. Self-declared, same rule as every other prefix
+  /// in this layer (02a:91 fixes it). Never caller-supplied — see Policy:252 for
+  /// why a chosen ref_code is an existence oracle.
+  refCode String @unique @map("ref_code")
+
+  orgEntityId String @map("org_entity_id") @db.Uuid
+
+  subjectType AttestationSubjectType @map("subject_type")
+
+  /// The policy or control being attested. Bare uuid, no constraint — see the
+  /// model header. Whether it is reachable is the trigger's decision, never this
+  /// layer's, and an id that exists nowhere gives the identical 23503 as one
+  /// belonging to another entity (the ordering argument at
+  /// 20260812055744_control_test_and_evidence/migration.sql:170-175).
+  subjectId String @map("subject_id") @db.Uuid
+
+  /// WHO ATTESTED. Nullable for the reason Policy:270 gives about its three user
+  /// columns: M4 owns the only path that could fill this, and a NOT NULL today
+  /// would mean inventing a user to satisfy a constraint.
+  ///
+  /// ⚠️ Read the nullability as a gap, not as a design: an attestation whose
+  /// attester is unknown is not evidence of anything. The column becomes NOT NULL
+  /// in the same change that gives it a credential source, and until then this
+  /// table records intent rather than proof.
+  userId String? @map("user_id") @db.Uuid
+
+  attestedAt DateTime @map("attested_at") @db.Timestamptz(6)
+
+  /// ⚠️ FREE TEXT, and the choice is between two of this schema's own precedents.
+  /// 02a:235 names the column and gives no values, exactly as :227 does for
+  /// `Evidence.kind` — which is a String, because "inventing a closed list here
+  /// would be inventing a field" (已確認參數 #9). W11 went the other way for
+  /// `implementation_status`, declaring an enum in the docstring under the W04 D3
+  /// ruling. The difference that decides it: ISO 27001 fixes the SoA status
+  /// vocabulary externally, so W11 was recording a known list rather than
+  /// authoring one. Nothing fixes an attestation result, so this follows
+  /// `Evidence.kind`. Narrowing it later is one migration; un-inventing a
+  /// vocabulary the business never agreed to is a conversation.
+  result String
+
+  createdBy String? @map("created_by") @db.Uuid
+  updatedBy String? @map("updated_by") @db.Uuid
+
+  version    Int  @default(1)
+  extensions Json @default("{}") @db.JsonB
+
+  orgEntity   OrgEntity @relation(fields: [orgEntityId], references: [id])
+  attestedBy  User?     @relation("AttestationUser", fields: [userId], references: [id])
+
+  /// ⛔ NO relation for `subject_id`, deliberately — Evidence:1107 states the
+  /// whole argument: Prisma would emit a real foreign key to ONE table, and that
+  /// key would reject every id belonging to the other.
+
+  createdAt DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt DateTime  @updatedAt @map("updated_at") @db.Timestamptz(6)
+  retiredAt DateTime? @map("retired_at") @db.Timestamptz(6)
+
+  @@index([orgEntityId, retiredAt])
+  @@index([subjectType, subjectId])
+  @@map("attestations")
 }

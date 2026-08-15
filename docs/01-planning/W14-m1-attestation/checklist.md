@@ -56,27 +56,44 @@
 
 ### 1.1 ⭐ 先證明 W13 漂移守衛會紅（US-4 的前置）
 
-- [ ] **在改 `AUDITED_MODELS` 之前**先建表 + repository，跑一次 int suite
+- [x] **在改 `AUDITED_MODELS` 之前**先建表 + repository，跑一次 int suite
   - DoD: **觀察到**漂移守衛轉紅，並記下它的錯誤訊息原文
   - ⛔ 順序不可顛倒 —— 先修再跑等於沒驗證過那條守衛
   - Verify: `npm run test:int -w apps/api`
+  - ✅ **恰好 1 紅 / 202 綠**，訊息 `+ Array [ + "Attestation", ]` 落在 `unaudited`
+    （`:514`）。15 條覆蓋測試**一條未動** ⇒ 守衛的偵測獨立於它們。原文記於 progress.md
 
 ### 1.2 `Attestation` model + migration
 
-- [ ] **`schema.prisma` 的 `Attestation` + migration.sql 建表**
+- [x] **`schema.prisma` 的 `Attestation` + migration.sql 建表**
   - DoD: `02a:235` 六個欄位 + §1.1 base fields；`subject_id` 無 FK；
         RLS 四條 per-command policy（沿用 ADR-0014 形狀，無 `FOR DELETE`）
   - Verify: `npm run prisma:migrate -w apps/api`
-- [ ] **`result` 建 / `status` 不建的理由寫進 schema docstring**
+  - ✅ 建成。⛔ **DoD 的「四條」依 Day 0 D8 修正為 2 條**（`INSERT` / `SELECT`）——
+    原文保留：四條與「無 `FOR DELETE`」本來就不可能同時成立。理由見 progress.md Day 1
+  - ⚠️ Verify 指令**未照抄執行** —— `prisma migrate dev` 在 dev DB 有 W10 留下的 checksum
+    衝突（W11 遇過同一件事）。改以 int suite 的 `rebuilt, migrated and seeded` 為證
+- [x] **`result` 建 / `status` 不建的理由寫進 schema docstring**
   - DoD: 引用 `02a:417`（其他 lifecycle 清單獨缺 Attestation）+ W07 對 `ControlTest.result`
         的相反方向判斷；**是有記錄的偏離，不是疏漏**
   - Verify: Read 該段
+  - ✅ 另外記了 `result` 用 String 的理由 —— 本 schema 兩個先例分歧
+    （`Evidence.kind` String vs `SoA.implementation_status` enum），分野是**值域有沒有外部來源**
 
 ### 1.3 `Policy.requires_attestation`
 
-- [ ] **`bool NOT NULL DEFAULT false`**
+- [ ] 🚧 **阻塞：AP-3 —— 這個欄位今天沒有讀者也沒有寫者**
+  - **`bool NOT NULL DEFAULT false`**
   - DoD: 既有 policy 列全部拿到 `false`，不需要 backfill 腳本
   - Verify: `npm run test:int -w apps/api` policy suite 不變
+  - ⛔ **理由**：attestation 的 create **不可能**讀它（`ScopedAttestationClient` 刻意不暴露
+    `policy` —— 那是 oracle 防線）· plan §4 把 `policy.controller.ts` 標為 **UNTOUCHED**
+    ⇒ create 不接受它 · 無 workflow（M5）· 無 UI ⇒ **永遠為 `false`，關掉不會壞任何東西**。
+    這正是 W07 拒絕在 `EvidenceLinkedType` 建第二個值時用的那把尺
+    （"a setting nobody can exercise"）
+  - **解封條件（三選一，待使用者裁定）**：(a) 移出本片 → M6；
+    (b) 擴大範圍讓 `policy.controller.ts` 的 create 接受它（plan §4 需改）；
+    (c) 明示接受並在 retro AP-3 自檢記為 1 次違規
 
 ### 1.x partial gate
 

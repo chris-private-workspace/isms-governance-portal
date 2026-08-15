@@ -156,3 +156,69 @@ ADR-0014 之後的慣例是 **3 條**，四條就必然含 DELETE。
 - 三個 trigger 做法擇一（D1）—— 先量再選
 - ⭐ **先建表 + repository、不改 `AUDITED_MODELS`、跑 int suite 觀察守衛轉紅**（checklist 1.1）
 - policy 條數依 D8 定為 2 條，理由寫進 migration 註解
+
+---
+
+## Day 1 — 2026-08-15 · Schema + migration
+
+### ⭐ 1.1 W13 漂移守衛的第一次實戰 —— **它是真的**
+
+在**完全沒有碰 `AUDITED_MODELS`** 的狀態下建了 `attestations` 表 + `attestation.repository.ts`，
+跑 int suite。原文：
+
+```
+● audit coverage (integration) › the allowlist still matches the write surface
+
+    expect(received).toEqual(expected) // deep equality
+    - Array []
+    + Array [
+    +   "Attestation",
+    + ]
+
+    at audit-coverage.int.spec.ts:514:23   ← expect(unaudited).toEqual([])
+
+Test Suites: 1 failed, 15 passed, 16 total
+Tests:       1 failed, 202 passed, 203 total
+```
+
+| 觀察 | 意義 |
+|---|---|
+| **恰好 1 紅** | 15 條逐模型覆蓋測試**一條都沒動** ⇒ 守衛的偵測**獨立於**它們，不是同一個宣稱穿十六件衣服 |
+| 訊息**自己指名 `Attestation`** | 它是從 `core-model` 原始碼導出的，不是比對一份硬編碼清單 |
+| 落在 `unaudited` 而非 `unreachable` | 雙向比對的**正確那一側** —— 新寫入面存在而清單沒跟上 |
+
+⇒ **W13 的成果不是紙上的。** R4 十個 phase 的失效模式（「下一張表忘了接而沒有任何 gate 會叫」）
+在第 22 張表上被機械攔下。
+
+⛔ **順序是這條檢查唯一的價值來源** —— 先改 `AUDITED_MODELS` 再跑，得到的是綠色，
+而綠色**不能區分**「守衛有效」與「守衛從不看新表」。
+
+### 1.2 Schema + migration ✅
+
+- `AttestationSubjectType`（`policy` / `control`）—— ⛔ **不複用** `AssessmentSubjectType`
+  （`:1276`，risk/control/process/entity）：兩者只在 `control` 重疊，共用會把 `policy` 開放給
+  assessment、把 `risk` 開放給 attestation
+- `Attestation` model —— `02a:235` 六欄 + §1.1 base fields；`subject_id` **無 FK**
+- migration **手寫、UTC 時間戳** `20260815083338`（`AD-MigrationTimestampTz-1`；且 dev DB 仍有
+  W10 留下的 checksum 衝突使 `--create-only` 跑不起來，與 W11 當時相同）
+
+**三個設計決定，各自有先例支撐：**
+
+| 決定 | 理由 |
+|---|---|
+| **`status` 不建** | §4 給了 Policy/Risk/Issue/ControlTest 狀態機，`:417` 另列 Action/Assessment/Event —— **Attestation 兩處皆無** ⇒ 沒有值域來源。W07 移除 `ControlTest.result` 是因為 §4 終態已承載它；這裡是鏡像：**沒有終態，所以 `result` 是唯一承載者** |
+| **`result` 用 String 不用 enum** | ⚠️ **本 schema 的兩個先例在此分歧**：`Evidence.kind` 是 String（「inventing a closed list would be inventing a field」），`SoA.implementation_status` 是自宣告 enum（W04 D3 ruling）。**分野是 ISO 27001 從外部固定了 SoA 的值域** —— W11 記錄的是既有清單，不是創作一份。attestation 的結果沒有任何外部來源固定 ⇒ 從 `Evidence.kind`。收窄是一次 migration，取消一個業務從未同意的詞彙表是一場對話 |
+| **RLS 只有 2 條**（D8）| 依 `rm_report_versions` 先例：attestation 是「某人在某刻簽了」的記錄，事後編輯不是更正事實而是**替換證據**（`02a:260` 對版本列、guardrail 5 對稽核軌跡的同一個論證）。更正 = 新的一列，撤回 = `retired_at`。⛔ **連 `GRANT UPDATE` 都沒有** —— 缺席比窄的 policy 更嚴格（ADR-0014）|
+
+⛔ **本 migration 刻意不含 parent guard trigger** —— 那是 Day 2。分開是為了讓
+「沒有 trigger 時多型欄位接受什麼」可以**被量到**（W07 Day 1 的 M3/M3b 就是這樣得到的），
+而不是變成一句宣稱。
+
+### 1.x partial gate ✅
+
+| Gate | 結果 |
+|---|---|
+| `type-check` api | **0** |
+| `lint` api | **0** |
+| `check_entity_index` | ⭐ **22 / 35**（機械導出；`models in schema.prisma: 23`）|
+| api int | ⚠️ **202 / 1 failed** —— **預期中**，就是 1.1 那條。Day 2 修 |
