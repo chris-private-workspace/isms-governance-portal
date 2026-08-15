@@ -1,5 +1,5 @@
 ---
-status: active   # draft | active | closed | closed_partial —— 機器可讀的唯一權威
+status: closed   # draft | active | closed | closed_partial —— 機器可讀的唯一權威
 ---
 
 # Phase W13 Plan — Connect the audit trail to every reachable write path
@@ -11,7 +11,8 @@ status: active   # draft | active | closed | closed_partial —— 機器可讀�
 其中幾項只在空集合上為真。⚪ 無 user-facing surface ⇒ **gate-only verified，不做 drive-through**。
 **非 spike（複用 W12 已驗證的機制）⇒ 不產出 design note。**
 
-**Status**: Active（laitim2001 於 2026-08-14 選定方向「走 4c」並**核可本檔**。
+**Status**: Closed（2026-08-15 —— 五個 US 全數交付；兩項 🚧 已標並附解封條件，見 retrospective Q1。
+laitim2001 於 2026-08-14 選定方向「走 4c」並**核可本檔**。
 軌別為 Phase 軌 —— 它是 `ROADMAP` 主線第 4c 項、對應一條 🔴 P0 的 AD，且跨多天有多個 deliverable，
 不是 < 3 天的 Change）
 
