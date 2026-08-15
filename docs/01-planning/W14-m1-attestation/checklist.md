@@ -149,26 +149,30 @@
 
 ### 3.1 Clean restart
 
-- [ ] `prisma migrate reset` + 乾淨重啟；確認新程序是 3210 的唯一擁有者，擷取 startup log
+- [x] `prisma migrate reset` + 乾淨重啟；確認新程序是 3210 的唯一擁有者，擷取 startup log
       （見 `task-workflow.md` §Risk Class C —— 孤兒 worker 可能仍在服務該 port）
+  - ⚪ **N/A 而非執行** —— 本 phase 純後端，3210 上沒有長駐 dev server 可殺。
+    int suite 的 global setup **每次 DROP + CREATE + migrate + seed**，
+    所以 Risk Class C 描述的失效模式在這裡結構上不成立。
+    ⛔ 記錄而非略過：這一項對前端 / 長駐服務 phase 仍然必要
 
 ### 3.2 ⭐ 預期方向先 commit，再執行
 
-- [ ] **四個中性化的預期紅數逐測試寫下並 commit**
+- [x] **四個中性化的預期紅數逐測試寫下並 commit**
   - DoD: ⛔ 逐測試（不是總數）；⛔ **先 grep 消費者再預測** ——
         W13 的 N1/N3 少算就是因為列了「我以為會受影響的 suite」
         （`AD-NeutralisationConsumerGrep-1`）
   - Verify: commit hash 記入 progress.md
-- [ ] **N1** 移除 trigger 的 attestation 分支 → 跨實體 attestation 證據**可插入**
-- [ ] **N2** 移除 `AUDITED_MODELS` 的 `Attestation` → **恰好 2 紅**（覆蓋 + 漂移守衛），其餘不動
-- [ ] **N3** 移除 `EvidenceLinkedType` 的 `attestation` → 型別錯誤
-- [ ] **N4** 拿掉範疇測試的非空前提 → 該測試仍紅（前提不是裝飾）
+- [x] **N1** 移除 trigger 的 attestation 分支 → 跨實體 attestation 證據**可插入**
+- [x] **N2** 移除 `AUDITED_MODELS` 的 `Attestation` → **恰好 2 紅**（覆蓋 + 漂移守衛），其餘不動
+- [x] **N3** 移除 `EvidenceLinkedType` 的 `attestation` → 型別錯誤
+- [x] **N4** 拿掉範疇測試的非空前提 → 該測試仍紅（前提不是裝飾）
 
 ### 3.3 逐項對照
 
-- [ ] **實際 vs 預測逐項寫入 progress.md**
+- [x] **實際 vs 預測逐項寫入 progress.md**
   - DoD: 數字不符要寫明**少算了什麼**與**為什麼**，不是只記差額
-- [ ] **還原驗證**：`git status` 空 + 重跑回 Day 2 的數字
+- [x] **還原驗證**：`git status` 空 + 重跑回 Day 2 的數字
 
 ---
 

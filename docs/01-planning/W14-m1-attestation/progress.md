@@ -372,3 +372,47 @@ migrated and seeded`），所以 Risk Class C 描述的「陳舊程序掩蓋 wir
 ⚠️ **N4 的 checklist 措辭是錯的**（「拿掉非空前提 → 該測試仍紅」）——
 拿掉前提只會讓斷言變弱，不會讓它紅。有意義的方向是**移除前提所依賴的資料**：
 若測試因此紅，前提就不是裝飾。原措辭保留於 checklist，此處記錄修正。
+
+### 3.3 執行結果 —— 逐項對照（預測 commit `c10be0c`）
+
+| N | 預期 | 實際 | |
+|---|---|---|---|
+| **N1** DROP `attestations_subject_in_scope` | 3（測試 5·6·8）| **3** —— 5 · 6 · 8 | ✅ **逐條命中**。⭐ **測試 7 不在紅名單** ⇒ group control 的接受確實來自 `controls_read` 的放寬，不是 trigger 缺席 |
+| **N2** `AUDITED_MODELS` 移除 `'Attestation'` | **恰好 2** | **恰好 2** —— `Attestation` 覆蓋 + 漂移守衛 | ✅ **驗收核心命中**。`bench.int` / `audit.int` 一條未動，證實 grep 的判讀（它們只把整個集合交給 recorder）|
+| **N3a** schema enum 移除 + regenerate → type-check | 1 錯，在 `evidence.repository.spec.ts` | **1 錯**，`evidence.repository.spec.ts(94,43)` `Type '"attestation"' is not assignable to type '"control_test"'` | ✅ 連檔案與行都命中 |
+| **N3b** 同上 → int suite | **全綠**（DB enum 未變）| ⛔ **1 紅** —— `evidence.int` 測試 2 | ❌ **預測錯了** |
+| **N4** 移除 seed 的兩筆 attestation | 5 | **5** —— attestation 9·12·13·14 + `evidence.int` 2 | ✅ 逐條命中，含跨 suite 的那一條 |
+
+**3 個完全命中 + 1 個一半命中。**
+
+### ⛔ N3b 為什麼錯，以及為什麼這個錯比預測有用
+
+我推論「`schema.prisma` 的 enum 只是 TypeScript 型別，runtime 會把字串直接交給 DB，
+而 DB 的 enum 由已套用的 migration 建立 ⇒ int 仍全綠」。
+
+**實際上 Prisma 的 generated client 在 runtime 也驗證 enum 值。**
+
+⇒ 不是「schema 與 DB 兩份真相」，是**三份**：`schema.prisma` · **generated client** · DB catalog。
+而中間那份會擋。⭐ 這對本專案有實際後果：`ALTER TYPE ... ADD VALUE` 的 migration
+**必須**配 `prisma generate`，否則 DB 接受而應用層拒絕 —— 一個只在部署時出現的分歧。
+
+⚠️ 記在這裡而不是把預測改成對的。預測是 `c10be0c` 的內容，已經發布。
+
+### ⛔ 3.x 我在 Day 3 又犯了一次同形錯誤
+
+N4 第一次執行時，我用 `t.index('  ],', i)` 找 `attestations` 陣列的結尾 ——
+它匹配到了**第一筆資料的** `    ],`（四空格縮排包含兩空格模式），於是切在陣列中間，
+`int-global-setup.js` 變成語法錯誤（`SyntaxError: Unexpected token ','`）。
+
+⭐ **與 Day 2 的 ab0/ab1 全域替換是同一個形狀，同一天第二次**：
+**用一個便宜的字串操作，去做一件需要理解結構的工作**。
+修法都一樣 —— 錨定到結構邊界（這次是 `\n  ],\n`，Day 2 是 `ASIN-` ref code），
+並加一條 `assert` 確認切出來的東西是預期的（`seg.count('ATT-') == 2`）。
+
+⚠️ 兩次都**不是被我發現的**：Day 2 是 int suite 報 7 紅，Day 3 是 node 拒絕載入。
+
+### 3.4 還原驗證 ✅
+
+- `git status` **空**
+- api int **218 / 17**（回到 Day 2 的數字）
+- type-check **0 錯**
