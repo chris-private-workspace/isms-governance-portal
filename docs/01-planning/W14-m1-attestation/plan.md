@@ -122,6 +122,8 @@ lint / type-check / build 全 0。Day-0 重新驗證。
   以便 polymorphic 連結不會變成 W10 量到的那種 oracle。
 - **US-3**（policy）: 作為政策擁有者，我希望能標記一份政策是否需要簽核，以便 M6 的
   lifecycle 有下一步可走。
+  🚧 **Day 1 移出本片，使用者裁定 2026-08-15**（原文保留不刪）—— 該欄位今天沒有讀者也沒有
+  寫者，是 AP-3。詳見 §9 與 checklist 1.3。
 - **US-4**（audit）: 作為合規負責人，我希望新表的寫入**自動**進稽核軌跡，
   以便 `02a:438` 的「no exceptions」在第 22 張表上仍然成立。
 - **US-5**（負面驗證）: 作為 reviewer，我希望四個中性化的**預期方向先 commit 再執行**，
@@ -233,7 +235,9 @@ coverage 不低於 baseline · `run_all` **8/8** · `check_entity_index` **21 �
    所以這條判準只在 `subject_type = policy` 或 `applies_to_scope <> 'group'` 時成立。
    見 §8 的 D5 列。
 4. 未知 `linked_type` 仍 **fail-closed**（測試證明，不是宣稱）。
-5. `Policy.requires_attestation` 存在且預設 `false`。
+5. ~~`Policy.requires_attestation` 存在且預設 `false`。~~
+   🚧 **撤銷（使用者裁定 2026-08-15）** —— 判準改為：**該欄位不存在**，且移出的理由
+   （無讀者、無寫者 ⇒ AP-3）記在 CH-031 與 BACKLOG。原文刪除線保留，不移除。
 6. **四個中性化的預期方向先 commit 再執行**，逐項對照，數字不符要寫明少算什麼。
 7. ⭐ **W13 漂移守衛在 `AUDITED_MODELS` 未更新時確實轉紅**（先觀察到紅，再修）。
 8. Gate 全綠；coverage 不低於 baseline；`run_all` 8/8。
@@ -245,7 +249,7 @@ coverage 不低於 baseline · `run_all` **8/8** · `check_entity_index` **21 �
 
 - [ ] US-1 `Attestation` model + migration，`result`/`status` 取捨記在 docstring
 - [ ] US-2 trigger 依 `linked_type` 分支，fail-closed 保留，跨實體被拒
-- [ ] US-3 `Policy.requires_attestation`
+- [ ] 🚧 US-3 `Policy.requires_attestation` —— **移出本片 → M6**（使用者裁定 2026-08-15）
 - [ ] US-4 `AUDITED_MODELS` 16 + 覆蓋測試 +1
 - [ ] US-5 四個中性化，預期先 commit
 - [ ] US-6 closeout 六件
@@ -280,6 +284,12 @@ coverage 不低於 baseline · `run_all` **8/8** · `check_entity_index` **21 �
 
 ## 9. Out of Scope（這個 phase 不做 → 另開 slice / AD）
 
+- ⭐ **`Policy.requires_attestation`** — **M6**（使用者裁定 2026-08-15，Day 1 移出）。
+  本片建了 `attestations` 表，但那個 bool **今天沒有讀者也沒有寫者**：attestation 的 create
+  不可能讀它（`ScopedAttestationClient` 刻意不暴露 `policy` —— oracle 防線），
+  `policy.controller.ts` 是 UNTOUCHED 所以 create 不接受它，M5 workflow 與 UI 都不存在。
+  ⇒ 關掉它不會壞任何東西，這正是 W07 拒絕在 `EvidenceLinkedType` 建第二個值時的那把尺。
+  **解封條件**：Policy 模組真的要讀它的那一片（M6）。追蹤見 `BACKLOG.md`
 - `Jurisdiction` · `Event` · ISMS Profile 四表 — M1 slice 10+
 - `EvidenceLinkedType` 的 `assessment` 值 — 獨立 slice（`AssessmentInstance` 已建，等待點成立）
 - `schema.prisma:573` 過時註解 — 記進 BACKLOG（盤點 2026-08-15 發現）

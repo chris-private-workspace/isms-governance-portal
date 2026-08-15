@@ -91,9 +91,13 @@
     ⇒ create 不接受它 · 無 workflow（M5）· 無 UI ⇒ **永遠為 `false`，關掉不會壞任何東西**。
     這正是 W07 拒絕在 `EvidenceLinkedType` 建第二個值時用的那把尺
     （"a setting nobody can exercise"）
-  - **解封條件（三選一，待使用者裁定）**：(a) 移出本片 → M6；
-    (b) 擴大範圍讓 `policy.controller.ts` 的 create 接受它（plan §4 需改）；
-    (c) 明示接受並在 retro AP-3 自檢記為 1 次違規
+  - ✅ **已裁定 2026-08-15（使用者）：(a) 移出本片 → M6。**
+    三個選項原文保留：(a) 移出本片 → M6；(b) 擴大範圍讓 `policy.controller.ts` 的 create
+    接受它（plan §4 需改）；(c) 明示接受並在 retro AP-3 自檢記為 1 次違規
+  - **解封條件**：Policy 模組真的要讀這個欄位的那一片（M6）。
+    ⛔ 本項**維持未勾** —— 它不是做完了，是被移出了。追蹤登記在
+    `BACKLOG.md` 的 `AD-PolicyAttestationFlag-1`，因為 ROADMAP 第 9 列的教訓是
+    **有解封條件的東西必須出現在一份會被讀的清單上**，而 checklist 在 phase 收尾後沒有人會回頭掃
 
 ### 1.x partial gate
 
