@@ -338,3 +338,37 @@ input **in the same change that gives the trigger its second branch**, and not b
 - 四個中性化，**預期方向逐測試先 commit 再執行**
 - ⛔ **先 grep `AUDITED_MODELS` / `assert_polymorphic_parent_in_scope` 的消費者再預測** ——
   W13 的 N1/N3 少算就是因為列了「我以為會受影響的 suite」（`AD-NeutralisationConsumerGrep-1`）
+
+---
+
+## Day 3 — 2026-08-15 · 中性化驗證
+
+### 3.1 Clean restart
+
+⚪ **無長駐程序可殺** —— 本 phase 純後端，沒有 dev server 在 3210 上跑。
+int suite 的 global setup **每次 DROP + CREATE + migrate + seed**（`[int] isms_test rebuilt,
+migrated and seeded`），所以 Risk Class C 描述的「陳舊程序掩蓋 wiring 修正」在這裡結構上不成立。
+⛔ **記下來而不是打勾略過** —— checklist 這一項對前端 / 長駐服務 phase 仍然必要。
+
+### 3.2 ⭐ 先 grep 消費者，再寫預測，再執行
+
+`AD-NeutralisationConsumerGrep-1`（W13 的 N1/N3 少算，因為列的是「我以為會受影響的 suite」）。
+本次先 grep，而 **grep 推翻了兩個直覺**：
+
+| 符號 | 我以為 | grep 實況 |
+|---|---|---|
+| `AUDITED_MODELS` | 只有 `audit-coverage` | **四個檔**：`audit.module` · `audit-coverage` · `audit.int` · ⭐ **`bench.int`** —— 正是 W13 漏掉的那個。但 `bench:117` 與 `audit.int:283` 都只是把**整個集合**交給 `AuditLogRecorder`，不檢查任何名稱 ⇒ 移除單一名稱不影響它們 |
+| `linkedType` | 程式碼消費者一票 | `attestation.repository.ts:27,68` · `attestation.repository.spec.ts:12` · `attestation.controller.ts:13` **全部是註解**。⛔ 命中數不是證據 —— 要逐處讀 |
+
+### 預測（⛔ 本節先 commit，再執行）
+
+| N | 中性化 | 預期紅 | 逐測試 |
+|---|---|---|---|
+| **N1** | `DROP TRIGGER attestations_subject_in_scope` | **3** | `attestation.int` 5（跨實體 policy + absent 不可分辨）· 6（integrity）· 8（entity-local control）。⭐ **7 必須仍綠** —— group control 的接受不來自 trigger 的缺席，而來自 `controls_read` 的放寬 |
+| **N2** | `AUDITED_MODELS` 移除 `'Attestation'` | **2** | `audit-coverage`「Attestation」覆蓋 + 「the allowlist still matches the write surface」漂移守衛。其餘 15 條覆蓋測試與 `bench` / `audit.int` **不動** |
+| **N3** | `schema.prisma` 的 `EvidenceLinkedType` 移除 `attestation` + regenerate | **type-check 1 錯** | `evidence.repository.spec.ts` 的 `{ ...INPUT, linkedType: 'attestation' }`。⚠️ **int suite 預期仍全綠** —— DB 的 enum 由已套用的 migration 建立，改 schema 不改 DB ⇒ 這一條暴露的是「schema.prisma 與 DB 是兩份真相」 |
+| **N4** | 移除 seed 的兩筆 attestation | **5** | `attestation.int` 9（非空前提）· 12（delete 前提）· 13（update 前提）· 14（roll-up 前提）+ ⭐ **`evidence.int` 2** —— 它用 `SG1_ATT` 當 evidence 的 `linkedId`，seed 一走那個 id 就不可達 |
+
+⚠️ **N4 的 checklist 措辭是錯的**（「拿掉非空前提 → 該測試仍紅」）——
+拿掉前提只會讓斷言變弱，不會讓它紅。有意義的方向是**移除前提所依賴的資料**：
+若測試因此紅，前提就不是裝飾。原措辭保留於 checklist，此處記錄修正。
