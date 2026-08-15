@@ -202,12 +202,15 @@ _(本 phase 無 user-facing surface。報告一律寫 **gate-only verified**，�
 
 ### 4.2 Closeout
 
-- [ ] `retrospective.md` Q1-Q7 + calibration（`pattern-reuse-feature` 0.50，**第 6 個資料點**；
+- [x] `retrospective.md` Q1-Q7 + calibration（`pattern-reuse-feature` 0.50，**第 6 個資料點**；
+      ✅ **ratio 0.884–0.921 IN**，⛔ 但**自報的窗口法本次失效**（跨夜 729 min 間隙 → 13.67 hr 荒謬值），
+      改用兩段量法並把不確定性報成**區間**，兩端同 band → `AD-CalibrationWindowCrossSession-1`
       ⚠️ 自報量法 = **含 Day 0，窗口為 branch 首個 commit → closeout commit**）
   - ⛔ **actual 等 closeout commit 真的存在之後再算** —— W12 首次執行該修法，本片是**第 2 次**
   - ⭐ **同時驗證兩個估法**：舊 bottom-up 4.5 hr vs 新法「有藍本改差異 5 項 × ≈8 min ≈ 40 min
     + 無藍本 1 項」（`AD-BottomUpBlueprint-1` 的第 2 個對照點）
-- [ ] `calibration-matrix.md` 那一行 —— **≤ 1 行 ~250 字元**（lint 上限 400）
+- [x] `calibration-matrix.md` 那一行 —— **≤ 1 行 ~250 字元**（lint 上限 400）✅ **340 字元**，
+      `check_rules_hygiene` OK；完整敘述在 `CALIBRATION-LOG.md` §1
 - [x] Final gate sweep（十一項全跑，逐項寫實際數字）
   - ✅ format **0/0** · lint **0** · type **0** · build **0/0** · `lint:negative` **PASS** ·
     unit **451/38** · int **203/16** · web **10/1** · coverage **92.27/91.66/98.95/93.64** ·
