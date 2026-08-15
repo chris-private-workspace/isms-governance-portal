@@ -37,6 +37,8 @@ const VALID_BODY = {
   kind: 'screenshot',
   uriOrBlobRef: 'file://evidence.png',
   hash: 'sha256:abc',
+  // ⭐ W14: part of the body now. See the inverted test below for why it was not.
+  linkedType: 'control_test',
   linkedId: TEST_ID,
 };
 
@@ -106,16 +108,25 @@ describe('EvidenceController', () => {
     expect(createCalls).toHaveLength(0);
   });
 
-  it('has no route from the body to linkedType', async () => {
+  /**
+   * ⭐ INVERTED IN W14. The original read "has no route from the body to
+   * linkedType", and cast the body because `CreateEvidenceBody` had no such field
+   * — "which is the point". The point expired on the terms the repository header
+   * set: the enum has a second value and the trigger has a branch that resolves
+   * it, in one migration.
+   */
+  it('⭐ routes linkedType from the body now, and refuses one it does not know', async () => {
     const { controller, createCalls } = build();
 
-    // Cast, because CreateEvidenceBody has no `linkedType` — which is the point.
-    await controller.create({
-      ...VALID_BODY,
-      linkedType: 'attestation',
-    } as Parameters<EvidenceController['create']>[0]);
+    await controller.create({ ...VALID_BODY, linkedType: 'attestation' });
+    expect(createCalls[0]).toHaveProperty('linkedType', 'attestation');
 
-    expect(createCalls[0]).not.toHaveProperty('linkedType');
+    // ⛔ The half that keeps this from being a widening: a value outside the list
+    // is a 400 here, not something the trigger has to catch. Both refuse it; they
+    // simply must not disagree about which values exist.
+    await expect(
+      controller.create({ ...VALID_BODY, linkedType: 'assessment' }),
+    ).rejects.toBeInstanceOf(BadRequestException);
   });
 
   it('refuses an unparseable collectedAt instead of storing NULL', async () => {

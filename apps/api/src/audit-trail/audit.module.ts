@@ -91,6 +91,7 @@ export const AUDITED_MODELS: ReadonlySet<string> = new Set([
   'RiskManagementReport',
   'RMReportVersion',
   'StatementOfApplicability',
+  'Attestation',
 ]);
 
 @Global()

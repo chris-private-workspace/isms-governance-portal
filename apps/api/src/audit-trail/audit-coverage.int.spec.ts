@@ -54,6 +54,7 @@ import { AssessmentInstanceRepository } from '../core-model/assessment-instance.
 import { AssessmentResponseRepository } from '../core-model/assessment-response.repository';
 import { AssessmentTemplateRepository } from '../core-model/assessment-template.repository';
 import { AssetRepository } from '../core-model/asset.repository';
+import { AttestationRepository } from '../core-model/attestation.repository';
 import { ControlRepository } from '../core-model/control.repository';
 import { ControlTestRepository } from '../core-model/control-test.repository';
 import { EvidenceRepository } from '../core-model/evidence.repository';
@@ -74,6 +75,8 @@ const VULN = '00000000-0000-0000-0000-000000000a40';
 const SG1_CONTROL = '00000000-0000-0000-0000-000000000a50';
 const SG1_CONTROL_TEST = '00000000-0000-0000-0000-000000000a60';
 const SG1_ISSUE = '00000000-0000-0000-0000-000000000a80';
+/** W14. A seeded policy, used as an attestation subject. */
+const SG1_POLICY = '00000000-0000-0000-0000-0000000000f0';
 const SG1_TEMPLATE = '00000000-0000-0000-0000-000000000aa0';
 const SG1_INSTANCE = '00000000-0000-0000-0000-000000000ab0';
 
@@ -120,6 +123,7 @@ describe('audit coverage (integration)', () => {
   let responses: AssessmentResponseRepository;
   let reports: RmReportRepository;
   let soa: SoaRepository;
+  let attestations: AttestationRepository;
 
   beforeAll(async () => {
     moduleRef = await Test.createTestingModule({ imports: [AppModule] }).compile();
@@ -140,6 +144,7 @@ describe('audit coverage (integration)', () => {
     responses = moduleRef.get(AssessmentResponseRepository);
     reports = moduleRef.get(RmReportRepository);
     soa = moduleRef.get(SoaRepository);
+    attestations = moduleRef.get(AttestationRepository);
   });
 
   /**
@@ -307,6 +312,7 @@ describe('audit coverage (integration)', () => {
       kind: 'screenshot',
       uriOrBlobRef: `file://int/coverage-${uniq()}.png`,
       hash: HASH,
+      linkedType: 'control_test',
       linkedId: SG1_CONTROL_TEST,
     });
     teardown.push(() =>
@@ -465,6 +471,29 @@ describe('audit coverage (integration)', () => {
     );
 
     await expectAudited(row.refCode, 'StatementOfApplicability');
+  });
+
+  /**
+   * ⭐ The sixteenth, and the first whose arrival was announced by this file's own
+   * drift guard rather than by someone remembering. W14 checklist 1.1 built the
+   * table and the repository, left AUDITED_MODELS alone, and watched the test
+   * below go red naming "Attestation".
+   *
+   * ⚠️ NO TEARDOWN, unlike every entry above. `attestations` has no UPDATE grant
+   * and no UPDATE policy (W14 Day 1) — an attestation records that a person signed
+   * something at a moment, so a correction is a new row. The retire the other
+   * fifteen perform would raise "permission denied" here, which is the decision
+   * working rather than a gap in this test.
+   */
+  it('Attestation', async () => {
+    const row = await attestations.create(await clientFor(['SG1']), {
+      orgEntityId: SG1,
+      subjectType: 'policy',
+      subjectId: SG1_POLICY,
+      result: `W14.cov.${uniq()}`,
+    });
+
+    await expectAudited(row.refCode, 'Attestation');
   });
 
   // === The drift guard =====================================================

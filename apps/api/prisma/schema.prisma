@@ -570,6 +570,17 @@ enum ControlTestStatus {
 enum EvidenceLinkedType {
   control_test
 
+  /// ⭐ W14. The second value the comment above spent a phase waiting for, added
+  /// in the same migration that gave the trigger its second branch — which is the
+  /// condition evidence.repository.ts:26 set, not a coincidence of timing.
+  ///
+  /// ⚠️ `assessment` is STILL absent even though AssessmentInstance has existed
+  /// since W09. That is deliberate scope, not an oversight: adding it here would
+  /// need its own mapping pair in the trigger and its own test, and folding it
+  /// into this phase would make the neutralisations unable to say which branch
+  /// went red. It is a one-line change when a phase wants it.
+  attestation
+
   @@map("evidence_linked_type")
 }
 

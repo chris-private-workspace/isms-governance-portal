@@ -101,8 +101,8 @@
 
 ### 1.x partial gate
 
-- [ ] `npm run type-check -w apps/api` · `npm run lint -w apps/api`
-- [ ] `python scripts/lint/check_entity_index.py` → **22 / 35**
+- [x] `npm run type-check -w apps/api` · `npm run lint -w apps/api` ✅ **0 · 0**
+- [x] `python scripts/lint/check_entity_index.py` → **22 / 35** ✅ 機械導出（`models in schema.prisma: 23`）
 
 ---
 
@@ -110,37 +110,37 @@
 
 ### 2.1 ⭐ Trigger 依 `linked_type` 分支
 
-- [ ] **`evidence_linked_in_scope` 改為依 `NEW.linked_type` 決定查哪張父表**
+- [x] **`evidence_linked_in_scope` 改為依 `NEW.linked_type` 決定查哪張父表**
   - DoD: `control_test` → 查 `control_tests`；`attestation` → 查 `attestations`；
         ⛔ **未知值仍 raise**（fail-closed 保留）；`OR UPDATE` 保留
   - Verify: `npm run test:int -w apps/api`
-- [ ] **不可分辨性**：「撞別實體的 id」與「不存在的 id」回同一個錯誤
+- [x] **不可分辨性**：「撞別實體的 id」與「不存在的 id」回同一個錯誤
   - DoD: 兩個案例的 SQLSTATE **與訊息**都相同 —— 否則是 W10 量到的那種 oracle
   - Verify: 兩條整合測試逐一斷言
 
 ### 2.2 `EvidenceLinkedType` + 端點
 
-- [ ] **enum 加 `attestation`** · **attestation create + list 端點**
+- [x] **enum 加 `attestation`** · **attestation create + list 端點**
   - DoD: create 走 `runScoped`；list 依範疇過濾；查無資料回 **404 不回 403**
   - Verify: `npm run test:int -w apps/api`
 
 ### 2.3 稽核接上
 
-- [ ] **`AUDITED_MODELS` 15 → 16 + 覆蓋測試 +1**
+- [x] **`AUDITED_MODELS` 15 → 16 + 覆蓋測試 +1**
   - DoD: 1.1 觀察到的紅**恰好因此變綠**；覆蓋斷言**依 `refCode` 查**不用 count delta
         （W13 已踩過：兩個 AppModule suite 平行跑是 race）
   - Verify: `npm run test:int -w apps/api`
 
 ### 2.4 四個範疇測試（US-2）
 
-- [ ] **跨實體讀拒 / 跨實體寫拒且資料未變 / RLS 層獨立成立 / 滾升只見授權子樹**
+- [x] **跨實體讀拒 / 跨實體寫拒且資料未變 / RLS 層獨立成立 / 滾升只見授權子樹**
   - DoD: ⛔ **每個斷言都要有非空前提**（先斷言對造實體確實有 N > 0 列）——
         W13 補過 4 處恆真斷言，同一個形狀不要再造一次
   - Verify: `npm run test:int -w apps/api`
 
 ### 2.x Full gate
 
-- [ ] format api/web · lint · type-check · build api/web · `lint:negative` ·
+- [x] format api/web · lint · type-check · build api/web · `lint:negative` ·
       api unit · **api int** · web · coverage · `run_all` 8/8 —— **各自的 exit code 分開記**
 
 ---

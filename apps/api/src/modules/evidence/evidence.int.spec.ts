@@ -43,6 +43,10 @@ const HK1_TEST = '00000000-0000-0000-0000-000000000a61';
 const SG1_EVID = '00000000-0000-0000-0000-000000000a70';
 const HK1_EVID = '00000000-0000-0000-0000-000000000a71';
 
+/** ⭐ W14. A real attestation, so test 2 can prove the second value resolves
+ *  against a different TABLE rather than merely being accepted as a string. */
+const SG1_ATTESTATION = '00000000-0000-0000-0000-000000000ac0';
+
 /** An id that exists nowhere. */
 const ABSENT = '00000000-0000-0000-0000-0000dead0000';
 
@@ -75,6 +79,7 @@ describe('evidence module (integration)', () => {
       kind: 'screenshot',
       uriOrBlobRef: 'file://int/evidence.png',
       hash: HASH,
+      linkedType: 'control_test',
       linkedId: SG1_TEST,
       ...over,
     } as Parameters<EvidenceRepository['create']>[1]);
@@ -98,13 +103,24 @@ describe('evidence module (integration)', () => {
     expect(row.refCode).toMatch(/^EVID-SG1-\d{6}$/);
   });
 
-  it('2. linked_type is set here, never accepted — it has exactly one legal value', async () => {
-    const row = await create(['SG1']);
+  it('2. ⭐ linked_type is ACCEPTED now — W14 gave the trigger its second branch', async () => {
+    // ⚠️ THIS TEST INVERTED IN W14, and the original wording is worth keeping in
+    // view: "linked_type is set here, never accepted — it has exactly one legal
+    // value". That was true while EvidenceLinkedType had one member, and the
+    // condition it named for changing — "in the same change that teaches the
+    // trigger a second branch" — is what migration 20260815090746 does.
+    const onTest = await create(['SG1']);
+    const onAttestation = await create(['SG1'], {
+      linkedType: 'attestation',
+      linkedId: SG1_ATTESTATION,
+    });
 
-    // A field with one legal answer is not a field (ControlRepository records the
-    // same reasoning for appliesToScope). It becomes an input in the same change
-    // that teaches the trigger a second branch.
-    expect(row.linkedType).toBe('control_test');
+    expect(onTest.linkedType).toBe('control_test');
+    expect(onAttestation.linkedType).toBe('attestation');
+    // ⭐ The half that matters: the SECOND value resolves against a DIFFERENT
+    // table. If the trigger still looked only in control_tests, this id would be
+    // unreachable and the create above would have thrown.
+    expect(onAttestation.linkedId).toBe(SG1_ATTESTATION);
   });
 
   it('3. collected_at defaults to now rather than to NULL', async () => {
@@ -138,6 +154,7 @@ describe('evidence module (integration)', () => {
         kind: 'export',
         uriOrBlobRef: 'file://x',
         hash: HASH,
+        linkedType: 'control_test',
         linkedId: SG1_TEST,
       })
       .catch((e: unknown) => e);
@@ -147,6 +164,7 @@ describe('evidence module (integration)', () => {
         kind: 'export',
         uriOrBlobRef: 'file://x',
         hash: HASH,
+        linkedType: 'control_test',
         linkedId: ABSENT,
       })
       .catch((e: unknown) => e);
@@ -170,6 +188,7 @@ describe('evidence module (integration)', () => {
         kind: 'log',
         uriOrBlobRef: 'file://x',
         hash: HASH,
+        linkedType: 'control_test',
         linkedId: ABSENT,
       }),
     ).rejects.toBeInstanceOf(UnknownReferenceError);
@@ -196,6 +215,7 @@ describe('evidence module (integration)', () => {
         kind: 'screenshot',
         uriOrBlobRef: 'file://planted',
         hash: HASH,
+        linkedType: 'control_test',
         linkedId: HK1_TEST,
       }),
     ).rejects.toBeInstanceOf(ScopeRefusedError);
