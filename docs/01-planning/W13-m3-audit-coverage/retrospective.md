@@ -34,14 +34,24 @@
 - **Agent-delegated**: **no**（plan 時宣告；實際自己直接做，0% 委派）
 - **Bottom-up est**: **4.5 hr**
 - **Committed (calibrated)**: **2.25 hr**（mult 0.50）
-- **Actual**: **<PENDING —— closeout commit 之後回填>**
+- **Actual**: **1.99–2.07 hr**（119.35 min 下界 / ~124 min 含起點推估）
 - **量法自報**（`AD-CalibrationDay0InOrOut-1`）：**含 Day 0**，窗口 =
-  branch 第一個 commit（`9427e42`，2026-08-14T22:48:06+08:00）→ **closeout commit**
-- **Ratio**: **<PENDING>**
-- **Band 判定**: **<PENDING>**
+  branch 第一個 commit（`9427e42`，22:48:06）→ **closeout commit**（`b1d7b3c`，12:28:27）
+- **Ratio**: **0.884 – 0.921**
+- **Band 判定**: **IN**（0.7–1.2），⭐ **區間兩端同 band ⇒ 判定不依賴推估的那 5 分鐘**
 
-⛔ **actual 等 closeout commit 真的存在之後再算**（`AD-EstimateAsMeasurement-1`；
+⛔ **而那個自報的窗口這次給出 13.67 hr / ratio 6.08** —— 一眼可見的荒謬值。
+`543bd53` → `b1d7b3c` 之間有 **729 分鐘**的間隙，因為 phase 跨夜、Day 4 是使用者隔天啟動的。
+W11 / W12 的窗口法能用是因為那兩個 phase **都在一個 session 內完成** ——
+那不是方法成立的證明，是**條件恰好滿足**。→ `AD-CalibrationWindowCrossSession-1`
+
+⇒ 改用兩段各自標明來源：**Day 0–3 由 commit 逐段相加 91.35 min** +
+**Day 4 由最早產物 mtime（`CH-030` 12:00:27）→ closeout commit 28.0 min**。
+
+⛔ **actual 等 closeout commit 真的存在之後才算**（`AD-EstimateAsMeasurement-1`；
 W12 首次執行該修法，本片是**第 2 次**）。
+⚠️ 而 **progress.md Day 0 的自估「~65 min」與 commit 量到的 20.7 min 差 3 倍** ——
+那份自估是逐項相加的印象值。**不是從 commit 導出的每日時數，不該被 retro 引用。**
 
 ⭐ **同時驗證第二個估法**（`AD-BottomUpBlueprint-1` 的**第 2 個對照點**）：
 plan §7 預測「無藍本 1 項（空集合回頭檢查）+ 有藍本改差異 5 項 × ≈8 min ≈ 40 min」。
@@ -116,6 +126,7 @@ plan §7 預測「無藍本 1 項（空集合回頭檢查）+ 有藍本改差異
 | `AD-AuditWriteOpsUntested-1` | **`update` / `delete` 的稽核路徑零測試覆蓋** —— 不是遺漏，是今天沒有那種寫入路徑。但 `WRITE_OPERATIONS` 列了它們，所以「已涵蓋」的宣稱**目前無人驗證** | 第一個 `update` 端點落地的 phase，**必須**同時加一條「update 留下稽核列且 `operation` 是 `X.update`」的測試。⚠️ 現在寫等於測一個不存在的路徑 | 候選（有解封條件）|
 | `AD-CoverageStatementNoTrigger-1` | ⚠️ **Day 0 的覆蓋聲明寫下了盲點（「未掃 `bench.int.spec.ts`」），而那個盲點在 Day 3 正好造成預測失誤。記下來了，卻沒有任何東西讓我回頭看它** | 覆蓋聲明的每一條「未掃 X」在**同一份文件內**要配一個判定：「X 若與本片相關會怎樣」。⇒ 與 `AD-DeferralUnwatched-1` 同族（條件寫得好、沒人在看），但這次的距離只有兩天 | 候選 |
 | `AD-MemoryEntryRatchet-1` | ⭐ **`MEMORY.md` 的 phase 條目 13 個 phase 從 186 漲到 401 字元（+116%）**，而 closeout policy 寫的是 ~250-300。曲線單調上升：W01 186 · W07 283 · W10 360 · W12 363 · W13 **401** | ⛔ 這正是 `task-workflow.md` §Phase Closeout 描述的**相對錨點棘輪**，而**它自己沒有機械守門** —— `check_rules_hygiene.py` 只管 always-loaded 檔案。候選：把 `- W{NN} [` 行納入同一個 400 字元檢查。⚠️ 本片已自行壓回 **279**，但下一個 phase 會看到 279 並超過它 | 候選 |
+| `AD-CalibrationWindowCrossSession-1` | ⛔ **calibration 的 commit 窗口法在跨 session 的 phase 上失效** —— W13 的窗口給出 **13.67 hr / ratio 6.08**，因為中間有 **729 分鐘**是隔天等使用者啟動 Day 4 | `AD-CalibrationDay0InOrOut-1` 要求「量法事先宣告」，W13 照做了，**而宣告的量法本身是錯的** ⇒ 宣告解決的是「回溯歸類」不是「方法適用性」。候選：plan §7 宣告量法時**同時宣告「出現 > 60 min 的 commit 間隙該怎麼辦」**。⭐ 本次的補救值得保留：把不確定性報成**區間**再檢查它會不會改變 band | 候選 |
 
 - [x] 已記入 `docs/01-planning/BACKLOG.md`
 
