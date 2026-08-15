@@ -11,10 +11,13 @@
  *   not available. A global provider reaches it through the token in
  *   contracts/audit-hook.ts without either scope naming the other.
  *
- *   ⚠️ THE ALLOWLIST IS THE SCOPE OF THIS PHASE, WRITTEN DOWN. plan §3.3 connects
- *   ONE module so the numbers come from a real write path before ADR-0003
- *   chooses a strategy. Connecting the other ten is a wiring change to this line
- *   — not a redesign — and belongs after the decision, not before it.
+ *   ⚠️ THE ALLOWLIST IS THE WRITE SURFACE, NOT A PHASE SCOPE — it stopped being
+ *   the latter in W13. W12 connected ONE model on purpose, so the numbers would
+ *   come from a real write path before ADR-0003 chose a strategy. That decision
+ *   is made, and W13 closed the rest mechanically: the set below is DERIVED from
+ *   core-model's write calls, and audit-coverage.int.spec.ts fails if the two
+ *   ever disagree in either direction. Adding a model here is no longer a
+ *   judgement call — it is what the derivation already says.
  *
  *   ⚠️ A model missing from this set is silently unaudited. That is the honest
  *   cost of scoping the phase, and it is why audit.int.spec.ts asserts the
@@ -22,9 +25,10 @@
  *   is demonstrably what decides rather than something that happens to be true.
  *
  * Created: 2026-08-14 (Phase W12)
- * Last Modified: 2026-08-14
+ * Last Modified: 2026-08-15
  *
  * Modification History (newest-first):
+ *   - 2026-08-15: Add Attestation, 15 -> 16 (Phase W14) — rerun the derivation
  *   - 2026-08-14: Initial creation (Phase W12) — one model connected
  *
  * Related:
@@ -39,11 +43,11 @@ import { AuditLogRecorder } from './audit.recorder';
  * path, minus one deliberate exclusion.
  *
  * ⭐ DERIVED, NOT TRANSCRIBED — rerun the derivation rather than trusting these
- * fifteen strings. Two independent passes, which must agree:
+ * sixteen strings. Two independent passes, which must agree:
  *
  *   forward   grep -rn 'client\.\w*\.\(create\|update\|upsert\)' src --include='*.ts'
- *             (excluding *.spec.ts) -> 16 delegates
- *   reverse   grep -c '^model' prisma/schema.prisma -> 22, minus the forward set
+ *             (excluding *.spec.ts) -> 17 delegates
+ *   reverse   grep -c '^model' prisma/schema.prisma -> 23, minus the forward set
  *             -> 6 with no write path
  *
  * ⛔ FIVE MODELS ARE ABSENT BECAUSE NOTHING CAN WRITE THEM YET: OrgEntity, User,
