@@ -37,9 +37,76 @@ const { testUrls, TEST_DB } = require('./int-db');
 
 // Stable ids so assertions can name entities instead of threading ids around.
 const SEED = {
+  // W15. The eleven in-scope jurisdictions, quoted from 15:41 — a settled group
+  // fact (已確認參數 #4), not fabricated fixture data. India/DPDP and China/PIPL
+  // are both out of scope and deliberately absent.
+  //
+  // ⚠️ All eleven are residency_policy `none`, and that is the real position
+  // rather than a placeholder: China was the only in-scope jurisdiction that was
+  // ever anything else, and it left on 2026-08-08 (CH-008 / ADR-0010 / D001).
+  //
+  // ⛔ The 01xx id range is new in W15 — verified zero hits across apps/api
+  // before use, because W14 lost seven tests to an id collision (ab0 was already
+  // an assessment instance) that a global replace had made invisible.
+  jurisdictions: [
+    // [id, code, name]
+    ['00000000-0000-0000-0000-0000000001a0', 'HK', 'Hong Kong'],
+    ['00000000-0000-0000-0000-0000000001a1', 'SG', 'Singapore'],
+    ['00000000-0000-0000-0000-0000000001a2', 'MY', 'Malaysia'],
+    ['00000000-0000-0000-0000-0000000001a3', 'TH', 'Thailand'],
+    ['00000000-0000-0000-0000-0000000001a4', 'ID', 'Indonesia'],
+    ['00000000-0000-0000-0000-0000000001a5', 'PH', 'Philippines'],
+    ['00000000-0000-0000-0000-0000000001a6', 'VN', 'Vietnam'],
+    ['00000000-0000-0000-0000-0000000001a7', 'KR', 'Korea'],
+    ['00000000-0000-0000-0000-0000000001a8', 'TW', 'Taiwan'],
+    ['00000000-0000-0000-0000-0000000001a9', 'AU', 'Australia'],
+    ['00000000-0000-0000-0000-0000000001aa', 'NZ', 'New Zealand'],
+  ],
+
+  // W15. ⛔ THE MINIMUM FIXTURE THAT MAKES THE FK CHAIN TESTABLE — this is NOT
+  // the obligation library being populated.
+  //
+  // D003 defers "regulatory content subscription" to Wave 2 on the ground that
+  // 已確認參數 #15 says build the interface, do not fill it. That defers the
+  // CONTENT — the actual body of statute. Two named regulations and one clause
+  // of placeholder text exist here so that 02a:427's two required N:1 links have
+  // something to point at in a test. If you find yourself adding a third
+  // regulation because a feature needs it, that feature is Wave 2.
+  //
+  // ⚠️ The clause text is deliberately synthetic. This repo has no licence to
+  // reproduce statute, and `reference/` is excluded from version control.
+  regulations: [
+    // [id, name, jurisdictionId]
+    ['00000000-0000-0000-0000-0000000001b0', 'PDPA', '00000000-0000-0000-0000-0000000001a1'],
+    ['00000000-0000-0000-0000-0000000001b1', 'PDPO', '00000000-0000-0000-0000-0000000001a0'],
+  ],
+  obligations: [
+    // [id, regulationId, jurisdictionId, reference, text]
+    [
+      '00000000-0000-0000-0000-0000000001c0',
+      '00000000-0000-0000-0000-0000000001b0',
+      '00000000-0000-0000-0000-0000000001a1',
+      's.placeholder',
+      'Placeholder clause text (seed). Not statute — see the comment above.',
+    ],
+  ],
+
+  // ⚠️ W15 added a 7th element, jurisdictionId. APAC's is NULL and that is the
+  // point rather than an omission: a `region` node spans all eleven, so there is
+  // no correct single value — which is why the column is nullable (02a:159 does
+  // not say, and NOT NULL could not express this row).
   entities: [
-    ['00000000-0000-0000-0000-0000000000a0', 'APAC', 'APAC', 'region', null, '/apac'],
-    ['00000000-0000-0000-0000-0000000000b0', 'SG', 'Singapore', 'country', 'APAC', '/apac/sg'],
+    // [id, code, name, type, parentCode, path, jurisdictionId]
+    ['00000000-0000-0000-0000-0000000000a0', 'APAC', 'APAC', 'region', null, '/apac', null],
+    [
+      '00000000-0000-0000-0000-0000000000b0',
+      'SG',
+      'Singapore',
+      'country',
+      'APAC',
+      '/apac/sg',
+      '00000000-0000-0000-0000-0000000001a1',
+    ],
     [
       '00000000-0000-0000-0000-0000000000c0',
       'SG1',
@@ -47,8 +114,17 @@ const SEED = {
       'legal_entity',
       'SG',
       '/apac/sg/sg1',
+      '00000000-0000-0000-0000-0000000001a1',
     ],
-    ['00000000-0000-0000-0000-0000000000b1', 'HK', 'Hong Kong', 'country', 'APAC', '/apac/hk'],
+    [
+      '00000000-0000-0000-0000-0000000000b1',
+      'HK',
+      'Hong Kong',
+      'country',
+      'APAC',
+      '/apac/hk',
+      '00000000-0000-0000-0000-0000000001a0',
+    ],
     [
       '00000000-0000-0000-0000-0000000000c1',
       'HK1',
@@ -56,6 +132,7 @@ const SEED = {
       'legal_entity',
       'HK',
       '/apac/hk/hk1',
+      '00000000-0000-0000-0000-0000000001a0',
     ],
   ],
   // W04. No real personal data and no real mailbox: example.* is reserved by
@@ -402,12 +479,34 @@ module.exports = async function globalSetup() {
 
   const seed = new Client({ connectionString: owner });
   await seed.connect();
-  for (const [id, code, name, type, parentCode, path] of SEED.entities) {
+  // W15. Jurisdictions FIRST — org_entities.jurisdiction_id references them, and
+  // the reference data has to exist before the rows that point at it.
+  for (const [id, code, name] of SEED.jurisdictions) {
     await seed.query(
-      `INSERT INTO org_entities (id, code, name, type, parent_id, path, updated_at)
+      `INSERT INTO jurisdictions (id, code, name, updated_at) VALUES ($1, $2, $3, now())`,
+      [id, code, name],
+    );
+  }
+  for (const [id, name, jurisdictionId] of SEED.regulations) {
+    await seed.query(
+      `INSERT INTO regulations (id, name, jurisdiction_id, updated_at)
+       VALUES ($1, $2, $3, now())`,
+      [id, name, jurisdictionId],
+    );
+  }
+  for (const [id, regulationId, jurisdictionId, reference, text] of SEED.obligations) {
+    await seed.query(
+      `INSERT INTO obligations (id, regulation_id, jurisdiction_id, reference, text, updated_at)
+       VALUES ($1, $2, $3, $4, $5, now())`,
+      [id, regulationId, jurisdictionId, reference, text],
+    );
+  }
+  for (const [id, code, name, type, parentCode, path, jurisdictionId] of SEED.entities) {
+    await seed.query(
+      `INSERT INTO org_entities (id, code, name, type, parent_id, path, jurisdiction_id, updated_at)
        VALUES ($1, $2, $3, $4::org_entity_type,
-               (SELECT id FROM org_entities WHERE code = $5), $6, now())`,
-      [id, code, name, type, parentCode, path],
+               (SELECT id FROM org_entities WHERE code = $5), $6, $7, now())`,
+      [id, code, name, type, parentCode, path, jurisdictionId],
     );
   }
   for (const [id, oidcSubject, email, displayName] of SEED.users) {
@@ -644,6 +743,35 @@ module.exports = async function globalSetup() {
         'assertion in this suite would pass without testing anything.',
     );
   }
+
+  // W15. Assert the reference-data seed landed at the expected COUNT, not just
+  // without error. AD-TextEditStructuralScope-1's fix is two halves — anchor the
+  // edit to a structural boundary AND assert the result — because W14 lost seven
+  // tests to an edit that "succeeded" while silently hitting a second occurrence.
+  //
+  // ⚠️ This also protects a claim the tests depend on: jurisdiction.int.spec.ts
+  // asserts an entity-scoped connection reads ALL ELEVEN jurisdictions. If the
+  // seed silently dropped to two, that assertion would still pass its own shape
+  // while proving far less — AD-VacuousScopeTest-1 arriving through the fixture
+  // rather than through the test.
+  const counted = new Client({ connectionString: owner });
+  await counted.connect();
+  for (const [table, expected] of [
+    ['jurisdictions', SEED.jurisdictions.length],
+    ['regulations', SEED.regulations.length],
+    ['obligations', SEED.obligations.length],
+    ['org_entities', SEED.entities.length],
+  ]) {
+    const { rows: c } = await counted.query(`SELECT count(*)::int AS n FROM ${table}`);
+    if (c[0].n !== expected) {
+      await counted.end();
+      throw new Error(
+        `[int] seed count mismatch for ${table}: expected ${expected}, found ${c[0].n}. ` +
+          'The seed edit did not land where it was meant to (AD-TextEditStructuralScope-1).',
+      );
+    }
+  }
+  await counted.end();
 
   console.log(
     `\n[int] ${TEST_DB} rebuilt, migrated and seeded; app role ${role.rolname} is least-privilege.`,
