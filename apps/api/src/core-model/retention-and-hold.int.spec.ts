@@ -293,6 +293,35 @@ describe('records retention and legal hold — two tables, two isolation mechani
     }
   });
 
+  it('13. an in-scope hold CAN be inserted by the application role — the positive half', async () => {
+    const client = await asApp();
+    try {
+      await client.query(`SET app.entity_scope = '${SG1}'`);
+      // ⭐ THIS TEST EXISTS BECAUSE N4 FOUND NOTHING. Dropping the
+      // legal_holds_insert policy left all 247 tests green: an absent policy
+      // refuses (ADR-0014), which is the same observable as a correct policy
+      // refusing test 8's cross-entity row. So test 8 pins that the policy is
+      // not WIDER than it should be, and nothing pinned that it exists at all —
+      // the table could have gone read-only for the application role in silence.
+      //
+      // Inside a transaction that is rolled back: test 7 asserts SG1 sees
+      // exactly two holds, and a committed row here would make that assertion
+      // depend on file order rather than on the policy.
+      await client.query('BEGIN');
+      const { rowCount } = await client.query(
+        `INSERT INTO legal_holds (id, org_entity_id, ref_code, scope_type, scope_ref, reason,
+                                  applied_by, updated_at)
+         VALUES (gen_random_uuid(), $1, 'HOLD-SG1-000097', 'entity', $2, 'in-scope write',
+                 $3, now())`,
+        [SG1, SG1, SG1_USER],
+      );
+      expect(rowCount).toBe(1);
+      await client.query('ROLLBACK');
+    } finally {
+      await client.end();
+    }
+  });
+
   // === AC-4: the grants themselves, exactly ==================================
 
   it('12. the application role holds exactly SELECT on retention_policies and SELECT+INSERT on legal_holds', async () => {
