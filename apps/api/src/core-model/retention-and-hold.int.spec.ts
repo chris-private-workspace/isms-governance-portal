@@ -212,11 +212,17 @@ describe('records retention and legal hold — two tables, two isolation mechani
       await client.query(`SET app.entity_scope = '${SG1}'`);
       await expect(
         client.query(
+          // ⚠️ org_entity_id and scope_ref carry the SAME VALUE and must still be
+          // separate placeholders. Reusing $1 for a uuid column and a text column
+          // makes PostgreSQL unable to infer one type and it raises 42P08 at
+          // PARSE time — before any policy or constraint is consulted. Measured:
+          // the first run of tests 8, 10 and 11 all failed that way, and all
+          // three would have PASSED had they asserted only `.rejects`.
           `INSERT INTO legal_holds (id, org_entity_id, ref_code, scope_type, scope_ref, reason,
                                     applied_by, updated_at)
-           VALUES (gen_random_uuid(), $1, 'HOLD-XENT-000001', 'entity', $1, 'cross-entity write',
-                   $2, now())`,
-          [HK1, SG1_USER],
+           VALUES (gen_random_uuid(), $1, 'HOLD-XENT-000001', 'entity', $2, 'cross-entity write',
+                   $3, now())`,
+          [HK1, HK1, SG1_USER],
         ),
         // 42501 HERE MEANS the opposite of test 3: the grant EXISTS and the RLS
         // WITH CHECK refused the row. Same SQLSTATE, different layer — which is
@@ -257,9 +263,9 @@ describe('records retention and legal hold — two tables, two isolation mechani
         client.query(
           `INSERT INTO legal_holds (id, org_entity_id, ref_code, scope_type, scope_ref, reason,
                                     applied_by, released_at, updated_at)
-           VALUES (gen_random_uuid(), $1, 'HOLD-SG1-000099', 'entity', $1, 'half a release',
-                   $2, now(), now())`,
-          [SG1, SG1_USER],
+           VALUES (gen_random_uuid(), $1, 'HOLD-SG1-000099', 'entity', $2, 'half a release',
+                   $3, now(), now())`,
+          [SG1, SG1, SG1_USER],
         ),
         // 23514 — the CHECK. Prisma cannot express one, so `migrate diff` is
         // blind to it: this test is the only thing standing between the
@@ -277,9 +283,9 @@ describe('records retention and legal hold — two tables, two isolation mechani
         client.query(
           `INSERT INTO legal_holds (id, org_entity_id, ref_code, scope_type, scope_ref, reason,
                                     applied_by, updated_at)
-           VALUES (gen_random_uuid(), $1, 'HOLD-SG1-000098', 'entity', $1, 'absent applier',
-                   $2, now())`,
-          [SG1, NOWHERE],
+           VALUES (gen_random_uuid(), $1, 'HOLD-SG1-000098', 'entity', $2, 'absent applier',
+                   $3, now())`,
+          [SG1, SG1, NOWHERE],
         ),
       ).rejects.toMatchObject({ code: '23503' });
     } finally {
