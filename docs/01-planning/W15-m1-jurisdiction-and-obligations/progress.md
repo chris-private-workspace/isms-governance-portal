@@ -665,3 +665,65 @@ jest **冷快取依檔案大小排序、暖快取依上次執行時間**」，
 第一次是 D10 的 `AD-MdAnchorLineShift-1`（那次是查得太晚），這次是查在寫之前。
 兩次都指向同一件事：**這個 repo 的既有知識放在 BACKLOG 的儲存格裡，
 而沒有任何機制會在你需要它的時候把它推到面前。**
+
+---
+
+# Phase W15 Progress — 2026-08-16（Day 4 — closeout）
+
+## 4.0 一次外部審查，插在 closeout 之前
+
+Day 3 結束後、closeout 之前，對本分支跑了一次**三角度平行審查**（正確性 / 實體範疇＋稽核 /
+測試證明力），每條宣稱**逐條複驗**後才採納。⚠️ 複驗抓到兩處要修正的：一份報告引用的
+`checklist:219` **不存在**（該檔只有 205 行）；另一份把兩條 finding 的嚴重度寫成「現在會壞」，
+而 `GRANT SELECT` only 意味著應用層根本寫不進去 ⇒ 應降級為「Wave 2 開寫入路徑前的前置條件」。
+
+**產出**：3 條新 AD + 4 條既有 AD 更新 + **一個真實的 schema↔migration 漂移並修掉**。
+
+## 4.1 修掉的漂移（commit `e02eb57`）
+
+`OrgEntity.jurisdiction` 是 **optional** relation 且未寫 `onDelete` ⇒ Prisma 預設 `SetNull`，
+而 `migration.sql:143` 是 `RESTRICT`。同批另三條 FK 是 **required** relation（`RESTRICT` 本就是預設），
+**只有 nullable 那條會漂**。`org_entities_jurisdiction_id_idx` 同樣只存在於 migration。
+
+⛔ **四層全空**：無測試（**全 repo 沒有任何一條測試檢驗過任何表的 `ON DELETE` 行為**）·
+CI 只跑 `migrate deploy`（`.github/` grep `migrate diff` **零命中**）· 無 lint detector · type-check 不看 DDL。
+
+**驗證方式是生成比對不是目視**：`prisma migrate diff --from-empty --to-schema` 產出 canonical SQL，
+`:812` 與 `:623` 現在與 `migration.sql:143` / `:131` 逐字相符；對照組 `:815` 的 `parent_id`
+**仍是 `ON DELETE SET NULL`**（它本來就該是）⇒ 同時反證了 Prisma 對 optional 的預設確實是 `SetNull`。
+
+⭐ 附帶測到一件修正既有認知的事：`.gitignore:96` 排除 `apps/api/src/generated/`，
+`git ls-files` 回 **0 個追蹤檔案** ⇒ **enum 三份真相的第三份不在版控**，CI 每次從 schema 重建、
+結構上漂不了。這直接回答了 `AD-PrismaEnumThreeTruths-1` 備註裡留下的未解問題，
+**其兩個候選解法砍掉一個**。
+
+## 4.2 Final gate sweep —— 十三項，各自 exit code 分開取
+
+| # | Gate | EXIT | 數字 |
+|---|------|------|------|
+| 1 | `format:check` api | **0** | — |
+| 2 | `format:check` web | **0** | — |
+| 3 | `lint` api+web | **0** | — |
+| 4 | `type-check` api+web | **0** | — |
+| 5 | `build` api | **0** | — |
+| 6 | `build` web | **0** | — |
+| 7 | `lint:negative` | **0** | — |
+| 8 | api unit + cov | **0** | **480 / 40**；coverage **92.14 / 91.77 / 98.98 / 93.56** |
+| 9 | web unit | **0** | **10 / 1** |
+| 10 | api int | **0** | **225 / 18** |
+| 11 | `run_all.py` | **0** | **8 / 8** |
+| 12 | `check_status_markers.py` | **0** | 21 pre-doc，E1/E2/E3/E4 clean |
+| 13 | `check_entity_index.py` | **0** | **25 / 35** |
+
+⭐ **coverage 四個數字逐位不變**，與 Day 2 事先寫下的預期一致（本片零 `.ts` 產品檔）。
+
+## 4.3 Calibration —— 分子只能事後反推
+
+⛔ **本檔 Day 0–3 沒有任何時間記錄**，plan §7 也**沒有宣告量法**。
+分子改由 commit author date 逐段相加：`d6d2d38 12:27:12` → `7c8c8d5 14:40:35`，
+六個間隙 **17.03 / 17.35 / 29.98 / 44.05 / 3.12 / 21.85 min**，最大 44.05 ⇒ 無 > 60 min 間隙
+⇒ 逐段法與窗口法**同值 133.38 min = 2.223 hr**。
+
+**ratio 2.223 / 1.8 = 1.235 → OVER**，⛔ **而 plan §7 預測的方向是 UNDER**。
+詳見 `retrospective.md` Q2 與 `CALIBRATION-LOG.md`。
+量法事後選 + 不含 plan 起草時間 ⇒ **1.235 是下限不是測量值** → `AD-CalibrationNoTimeRecord-1`。

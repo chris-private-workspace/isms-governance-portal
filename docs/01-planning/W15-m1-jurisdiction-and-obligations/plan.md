@@ -1,5 +1,5 @@
 ---
-status: active   # draft | active | closed | closed_partial —— 機器可讀的唯一權威
+status: closed_partial   # draft | active | closed | closed_partial —— 機器可讀的唯一權威
 ---
 
 # Phase W15 Plan — M1 slice 10: the jurisdiction spine and the obligation library
@@ -11,7 +11,12 @@ status: active   # draft | active | closed | closed_partial —— 機器可讀�
 ⚪ **無 UI** → drive-through 不適用，一律標 **gate-only verified**。
 ❌ **不需要 design note**（feature continuation，非 spike）。
 
-**Status**: **Approved-to-execute**（使用者核可 2026-08-16）—— §3.1 的 **D1–D5 五個決策點
+**Status**: **`closed_partial`**（2026-08-16 closeout；**MERGED PR #67**，`d01d505`）——
+⚠️ **partial 的理由只有一個，寫在這裡而不是四捨五入掉**：**AC-2 從未被驗證** ——
+「欄位逐個對上 `02a:161` / `:198` / `:200`，且不含 D2 的四個 base 欄位」這個比對
+**沒有被執行也沒有被寫下來**，而且今天**加一個欄位或拿掉一個欄位，全部 gate 都不會紅**
+（`AD-W15ConstraintSurfaceUntested-1`）。其餘 10 條 AC 達標。
+原核可紀錄保留於下 —— §3.1 的 **D1–D5 五個決策點
 全部照建議拍板同日**。其中 **D1（`obligations` 進全域參考清單）**是唯一**擴充既有規則**的一項，
 依 `multi-tenant-data.md:81` 的程序走：舉證寫進該檔本身 + PR 描述複述。
 其餘四個都是複製既有先例（D2 ← `Threat` 形狀 · D3 ← W13 對無寫入路徑模型的裁決 ·

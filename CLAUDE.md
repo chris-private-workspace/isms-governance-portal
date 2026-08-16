@@ -76,7 +76,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 | Attribute | Value |
 |-----------|-------|
 | **Stage** | Wave 1 backbone — 建立共用骨幹，並用 Policy + Risk/Control 兩個最小模組端到端證明它 |
-| **Current Phase** | **W14**（**MERGED PR #63**，`e9ab83a`）`closed_partial` — M1 slice 9：`Attestation` + 2 端點，**22/35 實體**。⭐ W13 漂移守衛的**第一次實戰**：建表而未接稽核 ⇒ 恰好 1 紅且訊息自己指名。⭐⭐ Day 0 的 **D5** 擋下一條恆真測試（group-shared control 跨實體**合法**可讀）。⛔ **N3b 預測錯** ⇒ enum 有**三份真相**（schema／generated client／DB），`ALTER TYPE ADD VALUE` 必配 `prisma generate`。🚧 US-3 移出 → M6 |
+| **Current Phase** | **W15**（**MERGED PR #67**，`d01d505`）`closed_partial` — M1 slice 10：三張**全域**參考表（jurisdiction／regulation／obligation）+ `residency_policy` enum，**零端點零 repository**，**25/35 實體**。⭐⭐ Day 0 的 **D7 不在 plan 的五個決策點裡** —— GRANT 從沒被問過（前九片全是 entity-scoped），而它決定了 FK 測試**不能走應用層**（42501 先於約束評估 ⇒ 照 plan 寫兩條測試會全綠而空轉）。⛔ calibration **1.235 OVER 而 plan 預測 UNDER** —— 零端點讓實作便宜（64.4 min）卻讓**驗證變貴**（65.9 min）。⚠️ **AC-2 從未被驗證** ⇒ `closed_partial` |
 | **History** | See [`MEMORY.md`](./MEMORY.md) + 各 phase 的 `retrospective.md` |  <!-- doc-links: ignore — MEMORY.md 由 bootstrap 複製到專案根 -->
 | **Pending / Next** | See [`docs/01-planning/BACKLOG.md`](./docs/01-planning/BACKLOG.md)（**有什麼**）· [`ROADMAP.md`](./docs/01-planning/ROADMAP.md)（**先做哪個**）|
 | **跨來源狀態** | See [`docs/01-planning/STATUS_AUDIT.md`](./docs/01-planning/STATUS_AUDIT.md) —— 問「現在全項目怎樣」時跑 `/status-audit`，**不要只讀 BACKLOG** |
@@ -510,6 +510,6 @@ python scripts/lint/run_all.py
 
 ---
 
-**Last Updated**: 2026-08-16（新增 §Subagent delegation policy）
+**Last Updated**: 2026-08-16（W15 closeout）
 **Project Start**: 2026-08-07
 **Template Version**: 2.6.1 (claude-code-dev-template)
