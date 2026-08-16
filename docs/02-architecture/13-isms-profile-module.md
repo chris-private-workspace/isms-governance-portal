@@ -42,7 +42,36 @@ Per-OpCo certification attributes also carried: certification state (**Certified
 
 **ApprovedOffering** *(new capability — not in the current template)* — `isms_profile_id` (FK), `name`, `business_line` (**OP** = Office Printing · **OS** = Office Services · other), `offering_type` (product / service), `approval_status` (proposed / approved / suspended / withdrawn), `approved_at`, `approved_by`, `notes`.
 
+**ISMSProfileVersion** *(added W16 — the entity `Versioning behaviour` above always implied)* — `org_entity_id`, `isms_profile_id` (FK), `version_label` (the `v`), `versioned_at` (the `date`), `actor_user_id`, `actor_role`, `note`. The parent carries `current_version_id`.
+
 > **Open design question:** the current spreadsheet has no approved-products/services column — this is a genuine addition. Minimum viable shape is the fields above (name + OP/OS classification + approval status + date). Confirm whether it also needs: applicable geography, linkage to the certification/framework that authorises it, and a validity/expiry period. Model those only if actually needed.
+
+---
+
+## Implementation record — W16 (M1 slice 11), 2026-08-16
+
+Built as five entity-scoped tables with no endpoints; consumers arrive in M6c.
+**Nothing above this line was deleted.** Where the build departs from it, the
+departure is recorded here so that "the spec said X and we did Y" stays legible.
+
+| # | Spec text | Built as | Why |
+|---|---|---|---|
+| 1 | §Data model gives `ISMSSite` / `ISMSContact` / `ApprovedOffering` **only `isms_profile_id`** | all four child tables also carry **`org_entity_id NOT NULL`**, as a **composite FK** `(isms_profile_id, org_entity_id) → isms_profiles(id, org_entity_id)` | CLAUDE.md 約束 8 iron law 1 requires it on child tables too, `02a:92` marks it Required, `02a:430` makes every domain record N:1 to OrgEntity. CLAUDE.md's authority order says a design document that conflicts with a guardrail is the thing that changes — **this table is that change**. The composite form (7 existing precedents) stops a child claiming entity B while pointing at entity A's profile |
+| 2 | `status` in `ISMSProfile` | **not built** | `02a:93` defines the base field as "per the entity's state machine (§4)" and `02a` §4 lists no lifecycle for this entity. W14 refused the same column on `Attestation`. Three documents propose three vocabularies (`superseded` here at §Versioning / `Current\|Superseded` in the design README / `Published\|Superseded` in the prototype), so there is no list to record — only one to invent |
+| 3 | `region_code` in `ISMSProfile` | **not built** | Its example value in §Structure, `RAPO`, is an **OpCo code** (the design data has it as Ricoh Asia Pacific Operations Ltd, Hong Kong), which `OrgEntity.code` already carries. "Region" is structural: `OrgEntityType` has a `region` member and `OrgEntity.path` materialises the hierarchy |
+| 4 | `posture`, in the nine per-OpCo certification attributes | **not built**; the other **eight** are | `02a:437` — "posture RAG values are **derived, not stored as source of truth**"; `02a:128` marks the vocabulary "Derived for dashboards". The user ruled to build the nine in full and this one was refused afterwards, on that basis, rather than dropped quietly |
+| 5 | §Versioning behaviour's version-history entry includes `state` | **not built**; `current_version_id` on the parent instead | `state` would have to change when a newer version arrives — the one thing an immutable version row forbids. With the parent pointer it would be a second representation of one fact with no reconciliation rule. Superseded is **derived**: a version is current iff its profile's `current_version_id` names it. Copied from `RMReportVersion` (W10) |
+| 6 | §Versioning behaviour stamps "the role they acted under" | `actor_role` is **free text**, not an FK | `02a:71` puts `Role` / `Permission` in **M4** with no field-level spec; a relation today would invent an entity |
+| 7 | `ISMSContact.role` "(ISMS lead / certificate recipient)" | **free text**, not an enum | The parenthesis is illustration and nothing external fixes the vocabulary — the criterion `Attestation` sets out in `schema.prisma`. Narrowing later is one migration |
+| 8 | §Agreed field list: certification-body comment + company reply | **built** (three nullable text columns) | User ruling 2026-08-16, closing `AD-DesignAlign-7`. The design dropped them from the **screen**; 已確認參數 #11 gives the deliverable authority over UI and the procedure authority over the domain |
+| 9 | §Agreed field list: company name · country | **not built** | `OrgEntity.name` and `OrgEntity.jurisdiction_id` carry them. The design handoff's own README asks for "one source of truth in production" |
+| 10 | §Open design question's three extensions (geography · framework linkage · validity period) | **not built** | That paragraph's own instruction: "Model those only if actually needed" |
+
+**Still open after W16** — each tracked in `docs/01-planning/BACKLOG.md`:
+
+- `iso_officer_name` (§Agreed field list) and `ISMSContact(role = 'ISMS lead')` are **two records of one person**. Both are built; which is authoritative is M6c's call.
+- §Role behaviour says the OpCo administrator **can edit**; the design handoff's permission matrix gives that role **Read** on this module, and adds an Edit for Regional ISO which §Role behaviour does not mention. Not blocking — the GRANT is a database capability and role enforcement is M6c's, and `Role` itself is blocked until M4.
+- §Dashboard view has no counterpart in `08-rollup-dashboard-spec.md` (zero mentions of this module). It is M8 work against a spec that does not exist yet.
 
 ## Year-on-year versioning
 

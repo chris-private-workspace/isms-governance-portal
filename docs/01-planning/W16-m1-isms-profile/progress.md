@@ -113,3 +113,126 @@
 - 唯一對工作量的實質影響：DR5 把 policy 數釘在 **14 條**，而 §7 的 migration 估時
   （1.6 hr）是在不知道這個數字時給的 ⇒ **已記入 §8 Risks，不調承諾**（單點不調，
   matrix §何時調整需 3 點移動證據）
+
+Day 0 commit：`af48f5a`（author date `2026-08-16T17:59:33+08:00`）
+
+---
+
+## Day 1 — 2026-08-16 — Schema + migration
+
+### Today's Accomplishments
+
+| Task | 起 | 迄 | 實際 | 備註 |
+|---|---|---|---|---|
+| 1.1a + 1.1b（漂移守衛非恆真證明）| `09:59:33Z` | `10:08:07Z` | **8.6 min** | 含兩次錯誤的 verify 指令，見下 |
+
+### Issues / Discoveries
+
+**D1-1 ⭐ checklist 1.1a 的 Verify 指令在綠燈時證明不了任何事。**
+原文是 `npm run test:int … | grep -A3 "allowlist still matches"`。jest 的預設 reporter
+**只印失敗與摘要**，通過的測試名不會出現在輸出裡 ⇒ 全綠時該 grep **必然零命中**，
+而零命中看起來跟「測試不存在」一模一樣。實測輸出檔大小 **15 bytes**（只有我自己 echo 的分隔線）。
+⇒ 改用 `npx jest --config jest.int.config.js -t "<測試名>" --verbose`，它會逐條印出名稱與狀態。
+**這與 `AD-VacuousScopeTest-1` 同族，只是發生在驗證指令而不是測試本身**：
+一條在成功時不產出證據的驗證指令，跟沒有驗證是同一回事。
+
+**D1-2 ⭐ `ISMSProfile` 的 Prisma delegate 是 `iSMSProfile`。**
+守衛 `:531` 只把首字母轉大寫（註解自己舉例 `rMReportVersion -> RMReportVersion`），
+既有 `rm-report.repository.ts:161,192` 逐字證實 `client.rMReportVersion`。
+⛔ **model 名不能為此改成 `IsmsProfile`** —— `check_entity_index.py` 要對上 `02a:60` 的字面 `ISMSProfile`。
+⇒ M6c 寫 repository 時 delegate 就是 `client.iSMSProfile`，先記下來。
+
+**D1-3 守衛完全不碰 Prisma client 或 schema**（`:516-531` 逐行讀）：
+`readdirSync(core-model)` → 排除 `.spec.` → regex `client\.(\w+)\.(WRITE_OPS)\(` → 首字母轉大寫。
+⇒ 1.1b **不需要等 model 存在**就能做，且這比 W15 的做法（先建 model 再加 stub）更能隔離變因。
+
+### 1.1a — 加表之前的基線（測量，非推論）
+
+```
+npx jest --config jest.int.config.js -t "allowlist still matches the write surface" --verbose
+→ Test Suites: 17 skipped, 1 passed, 1 of 18 total
+   Tests:       224 skipped, 1 passed, 225 total
+```
+⇒ 該測試**存在、名稱唯一、通過**。
+
+### 1.1b — 中性化：預測寫在執行之前
+
+**預測**（執行前寫下）：守衛在 `expect(unaudited).toEqual([])` 失敗，received `["ISMSProfile"]`；
+`unreachable` 與 `shouldBeAudited` 兩條斷言**到不了**；audit-coverage 內其餘 14 條逐模型守衛
+**一條不動** ⇒ **恰好 1 紅**。
+
+**實測**：
+
+| 預測 | 實際 | 命中 |
+|---|---|---|
+| 失敗點 `expect(unaudited).toEqual([])` | `audit-coverage.int.spec.ts:543:23` | ✅ |
+| received `["ISMSProfile"]` | `+ Array [ + "ISMSProfile", + ]` | ✅ |
+| 落在 `unaudited` 側而非 `unreachable` | 是（`:543` 而非 `:544`）| ✅ |
+| 恰好 1 紅 | `Tests: 1 failed, 224 skipped, 225 total` | ✅ |
+
+⭐ **附帶再次量到**：stub **無人 import、且刻意不 type-check**（`ISMSProfile` 當時還不在
+Prisma client 裡），仍被偵測 ⇒ 守衛讀的是**文字**不是 build graph（W15 同一結論，
+本次在「model 根本不存在」的更強條件下重現）。
+
+⛔ stub 已於驗證後**立即刪除**，`git status --porcelain` 空、`core-model/` 無 `isms-*` 檔。
+
+### 1.2 – 1.4 — schema · migration · 文件
+
+| Task | 起 | 迄 | 實際 |
+|---|---|---|---|
+| 1.2 schema（5 model / 4 enum / 10 欄位 / header）| `10:08:07Z` | `10:14:14Z` | **6.1 min** |
+| 1.3 migration（手寫 + generate + 套用 + 驗證）| `10:14:14Z` | `10:19:30Z` | **5.3 min** |
+| 1.4 `02a` 索引 + `13` 實作記錄 | `10:16:33Z` | `10:20:00Z` | **3.5 min**（與 1.3 的套用等待重疊）|
+| 1.x partial gate | `10:20:00Z` | `10:20:54Z` | **0.9 min** |
+| **Day 1 合計** | `09:59:33Z` | `10:20:54Z` | **21.4 min**（量測）|
+
+### 我自己的兩個疏漏（在 gate 之前被 diff 抓到，不是被 gate 抓到）
+
+**D1-5 🔴 `isms_profiles.owner_user_id` 的 `onDelete` 我寫成隱式。**
+產生的 DDL 是 `ON DELETE SET NULL` —— 因為 Prisma 對 **optional** relation 的預設是 `SetNull`，
+而這正是 W15 補 `OrgEntity.jurisdiction` 時記錄的那條教訓，且我自己的 checklist DoD 就寫著
+「`onDelete` **全部顯式**」。⇒ 已補為顯式 `SetNull`，並把**範圍講清楚**：
+只有 **optional** relation 需要顯式（required 的 Prisma 預設 `Restrict` 本來就與 migration 一致），
+那才是 W15 教訓的準確邊界。
+⚠️ **抓到它的是 `migrate diff` 的輸出，不是任何 gate** —— 本 repo 沒有任何測試斷言 ON DELETE。
+
+**D1-6 ⭐ `ISMSContact.user` 用 `Restrict` 而非 `SetNull`，理由是機械性的。**
+`SetNull` 會把 `user_id` 清空，而該列的 `name` 可能也是 NULL ⇒ 撞上我同一支 migration 加的
+`CHECK (user_id IS NOT NULL OR name IS NOT NULL)`。刪除仍會失敗，但錯誤會顯示成
+「一張沒人在動的表上的約束違反」。`Restrict` 把同一條規則寫在讀得到的地方。
+
+### D1-4 ⚠️ 這個 schema 有兩種時間慣例，而宣稱「對齊」的那句註解已經不成立
+
+`RMReportVersion:1817-1818` 寫「Timestamptz, matching Issue.dueDate and
+ControlTest.scheduledFor. **A second temporal convention for one column would be the
+invention, not the alignment.**」—— 但 `Risk.reviewDue`（W05）與 `Regulation.effectiveDate`（W15）
+**都是 `@db.Date`**。⇒ 兩種慣例並存。本片的六個日期欄位取 `@db.Date`：憑證的發證／到期是
+**日曆事實**，帶時區的瞬間是這份資料沒有的精度。理由寫進 schema docstring，**不改那句舊註解**
+（不是我的，且它記錄的是當時的判斷）→ BACKLOG。
+
+### 1.2 – 1.4 驗證（逐條，皆為實測輸出）
+
+| DoD | 證據 |
+|---|---|
+| 五個 model 合法 | `prisma validate` → `The schema at prisma\schema.prisma is valid 🚀` |
+| 10 個 agreed-field 欄位 | grep 得 11 行，**逐處讀**後確認第 11 行是 enum 的 `@@map("certification_state")` ⇒ 欄位**恰好 10** |
+| 🔴 `posture` 不存在 | 全 schema 3 個命中，**全部在註解**（MHist + RECORDED DEVIATION 段）⇒ 欄位 **0** |
+| 🔴 索引名 ≤ 63（DR12）| 實際 DB `pg_indexes`：最長 **50**；`length>=63` 的筆數 **0**。`map:` 把 69 壓到 50 |
+| header 數字可重現 | header 說 `31 models`；`grep -c '^model'` 給 **31** ⇒ 相符 |
+| 四個 enum 三份真相 | DB catalog ✅ · `schema.prisma` ✅ · generated client 含 `'proposed'`/`'suspended'`/`'withdrawn'` ✅ |
+| RLS ENABLE **+ FORCE**（DR3）| `pg_class`：五張表全部 `rls=true force=true` |
+| policy 條數（DR5 預測 14）| `pg_policies`：3+3+3+3+**2** = **14**，版本表恰為 `[INSERT,SELECT]` |
+| GRANT 三層（DR4）| `role_table_grants`：四張 `{INSERT,SELECT,UPDATE}`、版本表 `{INSERT,SELECT}` |
+| CHECK | `isms_contacts_identifies_someone :: CHECK ((user_id IS NOT NULL) OR (name IS NOT NULL))` |
+| 四條複合 FK | `pg_constraint` 逐條列出四個 `%_isms_profile_id_org_entity_id_fkey` |
+| ⭐ **不得新增漂移** | `migrate diff` 殘留**恰好是 Day-0 的兩處既有項**（`audit_log` bytea · SoA 索引名），**五張新表一處未出現** |
+| migration 套用 | int suite **225 passed / 18 suites**（與基線逐位相同，零回歸）|
+| `check_entity_index` | **30 / 36**（分子 +5、分母 +1）|
+| 1.x partial gate | `format:check` api **0** · `lint` api **0** · `type-check` api **0** · `prisma validate` **0** |
+
+⛔ **Prisma 產生的 delta 含兩處不屬於本片的變更**（`audit_log` 的 bytea 預設、SoA 索引改名）——
+依 Step 0.0 **未放進本片的 migration**。它們是 DR12，去向是 BACKLOG。
+
+### Remaining for Next Day
+
+- Day 2：seed（五張表跨兩實體）· int spec（9 組測試）· 三次中性化（N1 / N2 / N3a / N3b）

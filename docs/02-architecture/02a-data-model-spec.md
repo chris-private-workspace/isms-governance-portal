@@ -57,7 +57,7 @@ not on this list; adding an entity means adding a row here in the same change. �
 |---|---|---|
 | `IncidentHistoryEntry` · `RootCauseAnalysis` (+ `Event` extension) | 2 | [`11`](11-security-incident-module.md) §Data model |
 | `Vendor` · `VendorEvaluation` · `ExternalPartyRiskAssessment` · `VendorServiceAudit` | 2 | [`12`](12-supplier-management-module.md) §Data model |
-| `ISMSProfile` · `ISMSSite` · `ISMSContact` · `ApprovedOffering` | 1 | [`13`](13-isms-profile-module.md) §Data model |
+| `ISMSProfile` · `ISMSSite` · `ISMSContact` · `ApprovedOffering` · `ISMSProfileVersion` | 1 | [`13`](13-isms-profile-module.md) §Data model |
 | `AuditIssue` · `CorrectiveActionPlan` | 2 | [`17`](17-audit-issues-module.md) §Data model |
 
 ### Not yet specified — must not be built until they are
