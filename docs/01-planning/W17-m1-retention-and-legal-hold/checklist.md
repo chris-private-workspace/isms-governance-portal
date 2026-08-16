@@ -76,19 +76,24 @@
 
 ### 1.1 `schema.prisma`
 
-- [ ] **2 個 model + 3 個 enum**
+- [x] **2 個 model + 3 個 enum**
   - DoD: `RetentionPolicy`（無 `orgEntityId`）+ `LegalHold`（`orgEntityId` **NOT NULL**）；
     enum `retention_trigger` · `retention_disposition` · `legal_hold_scope_type`；
     header count 31 → **33** 且**自我可重現**（`grep -c '^model '` 相符）
   - Verify: `grep -c '^model ' apps/api/prisma/schema.prisma`
-- [ ] **`onDelete` 全部顯式**
+- [x] **`onDelete` 全部顯式**
   - DoD: `applied_by` / `released_by` → `users` 各自寫明 `Restrict` / `SetNull`；
     ⛔ 不依賴 Prisma 對 optional relation 的預設（W16 教訓）
   - Verify: `prisma migrate diff` 對 `onDelete` 零差異
+  - ⚠️ **偏離 DoD 且刻意**：實作為 **`Restrict` / `Restrict`**，不是 `Restrict` / `SetNull`。
+    DoD 那半是我起草時照抄 `ISMSProfile.owner` 的形狀，Day 1 想清楚後推翻：
+    **誰下的 hold、誰解的，正是這張表要產出的證據** —— 人離職就把它 null 掉，
+    等於銷毀稽核要問的那個事實。理由寫進 schema docstring 與 migration banner。
+    ⇒ 「顯式」這個 DoD 本身**達成**（兩條都明寫），被推翻的是我預設的值
 
 ### 1.2 Migration
 
-- [ ] **`<utc>_retention_and_hold/migration.sql`**（手寫，UTC 目錄名）
+- [x] **`20260816135016_retention_and_legal_hold/migration.sql`**（手寫，UTC 目錄名）
   - DoD: 2 表 · `legal_holds` 的 RLS **`ENABLE` 加 `FORCE`** · 2 policy（SELECT + INSERT，
     **無 UPDATE / 無 DELETE**）· 2 條 users FK · 1 條 org_entities FK ·
     UNIQUE `retention_policies(record_class)` · CHECK（`released_at` 與 `released_by` 同生同滅）·
@@ -100,7 +105,7 @@
   - DoD: 漂移集合**仍恰好是 Day-0 那 2 條既有的**（`audit_log.prev_hash`/`row_hash` 的
     default 表示法 · `statements_of_applicability` 的 index rename）—— **不得變大**。
     ⛔ 不能要求 EXIT=0：那 2 條先於本片存在，把門檻設成 0 會逼人去改不屬於本片的東西
-- [ ] **Migration banner 寫明三件事**
+- [x] **Migration banner 寫明三件事**
   - DoD: (a) `retention_policy` 為何全域（`multi-tenant-data.md:81` 的舉證，逐字）·
     (b) ⭐ **為何不建多型守衛**（`::uuid` cast 在 mapping walk 之前 + `class` 不是 uuid +
     `record` 泛指 31 張表）· (c) `record_class` 為何是 TEXT 不是 FK（3/6 類指向 Wave 2）
@@ -108,13 +113,13 @@
 
 ### 1.3 豁免舉證
 
-- [ ] **`multi-tenant-data.md` 併入 `risk_scales` 那一列**
+- [x] **`multi-tenant-data.md` 併入 `risk_scales` 那一列**
   - DoD: 論證寫入；⭐ **該檔行數不變**
   - Verify: `git diff --numstat docs/rules-on-demand/multi-tenant-data.md` → 新增數 = 刪除數
 
 ### 1.x Partial gate
 
-- [ ] `format:check` · `lint` · `type-check` · `build`（api）+ `npm run lint:negative`
+- [x] `format:check` · `lint` · `type-check` · `build`（api）+ `npm run lint:negative`
       （⚠️ **root script，不是 `-w apps/api`** —— Day-0 D2）—— **各自取 exit code**
   - DoD: ⛔ gate 與 commit 之間用 `&&` **不用 `;`**
     （`AD-PartialGateReportedAsFull-1` 第 4 次的形狀：gate 跑了卻不 gate 任何東西）

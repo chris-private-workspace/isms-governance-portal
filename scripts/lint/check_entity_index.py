@@ -84,6 +84,13 @@ EXCLUDED: dict[str, str] = {
 ALIASES: dict[str, str] = {
     # model ExtensionField / table extension_fields / index extension_field_catalog
     "ExtensionField": "extension_field_catalog",
+    # model RetentionPolicy / table retention_policies / index retention_policy (W17).
+    # A singular/plural mismatch, and the alias goes here rather than the index
+    # being edited to match the code: 02a is the higher authority (CLAUDE.md
+    # 權威排序), and 02a:50 names it alongside `LegalHold` in PascalCase, so the
+    # line is naming ENTITIES rather than tables. Renaming the table to singular
+    # would instead break the convention all 24 other tables follow.
+    "RetentionPolicy": "retention_policy",
 }
 
 # The four subsections of 02a §0. The first three carry a Wave column; the
