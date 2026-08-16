@@ -451,6 +451,106 @@ const SEED = {
       'physical',
     ],
   ],
+  // W16. One ISMS profile per entity plus one of each child. BOTH entities
+  // again, for the reason the asset fixtures give: with only SG1 rows, "HK1
+  // cannot read SG1's profile" and "HK1 has no profile" are the same
+  // observation, and only the second one is true.
+  //
+  // ⚠️ Every person here is an obvious fixture string (guardrail 7: no real
+  // personal data in seed or demo data, ever).
+  ismsProfiles: [
+    // [id, orgEntityId, refCode, profileYear]
+    [
+      '00000000-0000-0000-0000-000000160001',
+      '00000000-0000-0000-0000-0000000000c0',
+      'ISMS-SG1-000001',
+      2026,
+    ],
+    [
+      '00000000-0000-0000-0000-000000160002',
+      '00000000-0000-0000-0000-0000000000c1',
+      'ISMS-HK1-000001',
+      2026,
+    ],
+  ],
+  ismsSites: [
+    // [id, orgEntityId, ismsProfileId, refCode, siteName, isHeadOffice]
+    [
+      '00000000-0000-0000-0000-000000160011',
+      '00000000-0000-0000-0000-0000000000c0',
+      '00000000-0000-0000-0000-000000160001',
+      'SITE-SG1-000001',
+      'Fixture Head Office (SG1)',
+      true,
+    ],
+    [
+      '00000000-0000-0000-0000-000000160012',
+      '00000000-0000-0000-0000-0000000000c1',
+      '00000000-0000-0000-0000-000000160002',
+      'SITE-HK1-000001',
+      'Fixture Head Office (HK1)',
+      true,
+    ],
+  ],
+  ismsContacts: [
+    // [id, orgEntityId, ismsProfileId, refCode, name, role]
+    [
+      '00000000-0000-0000-0000-000000160021',
+      '00000000-0000-0000-0000-0000000000c0',
+      '00000000-0000-0000-0000-000000160001',
+      'ICON-SG1-000001',
+      'Fixture ISMS Lead (SG1)',
+      'ISMS lead',
+    ],
+    [
+      '00000000-0000-0000-0000-000000160022',
+      '00000000-0000-0000-0000-0000000000c1',
+      '00000000-0000-0000-0000-000000160002',
+      'ICON-HK1-000001',
+      'Fixture ISMS Lead (HK1)',
+      'ISMS lead',
+    ],
+  ],
+  approvedOfferings: [
+    // [id, orgEntityId, ismsProfileId, refCode, name, businessLine, offeringType, approvalStatus]
+    [
+      '00000000-0000-0000-0000-000000160031',
+      '00000000-0000-0000-0000-0000000000c0',
+      '00000000-0000-0000-0000-000000160001',
+      'OFFR-SG1-000001',
+      'Fixture Managed Print Service',
+      'os',
+      'service',
+      'approved',
+    ],
+    [
+      '00000000-0000-0000-0000-000000160032',
+      '00000000-0000-0000-0000-0000000000c1',
+      '00000000-0000-0000-0000-000000160002',
+      'OFFR-HK1-000001',
+      'Fixture Multifunction Printer',
+      'op',
+      'product',
+      'proposed',
+    ],
+  ],
+  ismsProfileVersions: [
+    // [id, orgEntityId, ismsProfileId, refCode, versionLabel]
+    [
+      '00000000-0000-0000-0000-000000160041',
+      '00000000-0000-0000-0000-0000000000c0',
+      '00000000-0000-0000-0000-000000160001',
+      'ISMV-SG1-000001',
+      'v1.0',
+    ],
+    [
+      '00000000-0000-0000-0000-000000160042',
+      '00000000-0000-0000-0000-0000000000c1',
+      '00000000-0000-0000-0000-000000160002',
+      'ISMV-HK1-000001',
+      'v1.0',
+    ],
+  ],
 };
 
 module.exports = async function globalSetup() {
@@ -656,6 +756,61 @@ module.exports = async function globalSetup() {
       [id, name, category],
     );
   }
+  // W16. isms_profiles FIRST — the four child tables carry a composite FK to
+  // (id, org_entity_id) and cannot be inserted before the row they point at.
+  //
+  // ⚠️ THIS ORDERING IS HELD BY HAND. Nothing in this file checks that inserts
+  // are topologically sorted; the only signal is a 23503 at setup time, which
+  // fails the whole suite rather than naming the mistake.
+  for (const [id, orgEntityId, refCode, profileYear] of SEED.ismsProfiles) {
+    await seed.query(
+      `INSERT INTO isms_profiles (id, org_entity_id, ref_code, profile_year, updated_at)
+       VALUES ($1, $2, $3, $4, now())`,
+      [id, orgEntityId, refCode, profileYear],
+    );
+  }
+  for (const [id, orgEntityId, profileId, refCode, siteName, isHeadOffice] of SEED.ismsSites) {
+    await seed.query(
+      `INSERT INTO isms_sites (id, org_entity_id, isms_profile_id, ref_code, site_name,
+                               is_head_office, updated_at)
+       VALUES ($1, $2, $3, $4, $5, $6, now())`,
+      [id, orgEntityId, profileId, refCode, siteName, isHeadOffice],
+    );
+  }
+  for (const [id, orgEntityId, profileId, refCode, name, role] of SEED.ismsContacts) {
+    await seed.query(
+      `INSERT INTO isms_contacts (id, org_entity_id, isms_profile_id, ref_code, name, role,
+                                  updated_at)
+       VALUES ($1, $2, $3, $4, $5, $6, now())`,
+      [id, orgEntityId, profileId, refCode, name, role],
+    );
+  }
+  for (const [
+    id,
+    orgEntityId,
+    profileId,
+    refCode,
+    name,
+    businessLine,
+    offeringType,
+    approvalStatus,
+  ] of SEED.approvedOfferings) {
+    await seed.query(
+      `INSERT INTO approved_offerings (id, org_entity_id, isms_profile_id, ref_code, name,
+                                       business_line, offering_type, approval_status, updated_at)
+       VALUES ($1, $2, $3, $4, $5, $6::offering_business_line, $7::offering_type,
+               $8::offering_approval_status, now())`,
+      [id, orgEntityId, profileId, refCode, name, businessLine, offeringType, approvalStatus],
+    );
+  }
+  for (const [id, orgEntityId, profileId, refCode, versionLabel] of SEED.ismsProfileVersions) {
+    await seed.query(
+      `INSERT INTO isms_profile_versions (id, org_entity_id, isms_profile_id, ref_code,
+                                          version_label, versioned_at, updated_at)
+       VALUES ($1, $2, $3, $4, $5, DATE '2026-01-31', now())`,
+      [id, orgEntityId, profileId, refCode, versionLabel],
+    );
+  }
   // Derived, not declared: the counter must reflect what was just seeded, and
   // the only way to guarantee that is to compute it from those rows. Identical
   // to the backfill in 20260810185500_user_and_base_fields for the same reason.
@@ -756,11 +911,25 @@ module.exports = async function globalSetup() {
   // rather than through the test.
   const counted = new Client({ connectionString: owner });
   await counted.connect();
+  // ⚠️ W16, STATED SO IT IS NOT MISREAD LATER: this guard is SELF-REFERENTIAL.
+  // `expected` comes from the same array the INSERT loop reads, so it catches an
+  // insert that failed to land and NOT an edit to SEED itself. What closes that
+  // half for the jurisdictions is jurisdiction.int.spec.ts's IN_SCOPE list,
+  // which is quoted from 15:41 and deliberately not read back from the seed.
+  // The five W16 tables have no equivalent external fact to anchor against —
+  // their rows are fixtures we invented — so for those this is a landing check
+  // and nothing more. Do not describe it in a phase document as "the seed has a
+  // guard" without that qualifier.
   for (const [table, expected] of [
     ['jurisdictions', SEED.jurisdictions.length],
     ['regulations', SEED.regulations.length],
     ['obligations', SEED.obligations.length],
     ['org_entities', SEED.entities.length],
+    ['isms_profiles', SEED.ismsProfiles.length],
+    ['isms_sites', SEED.ismsSites.length],
+    ['isms_contacts', SEED.ismsContacts.length],
+    ['approved_offerings', SEED.approvedOfferings.length],
+    ['isms_profile_versions', SEED.ismsProfileVersions.length],
   ]) {
     const { rows: c } = await counted.query(`SELECT count(*)::int AS n FROM ${table}`);
     if (c[0].n !== expected) {
