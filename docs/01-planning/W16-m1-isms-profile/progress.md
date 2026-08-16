@@ -236,3 +236,48 @@ invention, not the alignment.**」—— 但 `Risk.reviewDue`（W05）與 `Regul
 ### Remaining for Next Day
 
 - Day 2：seed（五張表跨兩實體）· int spec（9 組測試）· 三次中性化（N1 / N2 / N3a / N3b）
+
+---
+
+## Day 2 — 2026-08-16 — Seed + integration spec + 中性化
+
+### 2.2 int spec — 一次量測，一個修正
+
+10 條測試，**第一次跑 9 綠 1 紅**。紅的是測試 10（GRANT catalog 斷言），
+而失敗原因與 GRANT 無關：`information_schema` 把這些欄位暴露為 **`sql_identifier` domain**，
+node-pg 沒有對應的 parser ⇒ `array_agg` 回來的是字串 `'{INSERT,SELECT,UPDATE}'` 而不是陣列，
+`toEqual` 因此在一組**其實正確**的權限上失敗。修法是兩個投影欄位都加 `::text`。
+
+⭐ 值得記下來的是**這個錯誤的方向**：它讓一條正確的斷言變紅，而不是讓一條錯誤的斷言變綠。
+測試 3 沒事，因為 `pg_policies.cmd` 本來就是 `text`。
+
+⚠️ 另外預先移除了一個**跨機器的脆弱點**：測試 3 / 10 原本依賴 SQL 的 `ORDER BY 1`，
+而 `isms_profile_versions` 與 `isms_profiles` 的先後**依 collation 而反**
+（C locale 下 `_`(0x5F) < `s`(0x73)；en_US.UTF-8 在主層級忽略標點 ⇒ 順序相反）。
+改為在 JS 端排序後比對，與 collation 無關。
+
+### 2.3 中性化 —— 四個預測，寫在執行之前
+
+⛔ **原 N2 是恆真的，在寫下來的當下被發現。** 原案是「拿掉版本表唯一鍵裡的 `org_entity_id`」，
+但複合 FK `(isms_profile_id, org_entity_id) → isms_profiles(id, org_entity_id)` **已經強迫
+`isms_profile_id` 決定 `org_entity_id`** ⇒ `(isms_profile_id, version_label)` 本來就按實體隔離，
+拿掉不會產生 oracle。跑它會得到「零轉紅」，而**零轉紅看起來像是中性化沒做對，
+而不是這個實驗問錯了問題**。
+（這與 `AD-UniqueKeyOracle-1` 對 W10 的描述一致：該欄對合法列**完全冗餘**。）
+⇒ 真正承重的是**父表**的鍵，N2 改打那裡。
+
+| # | 動作 | 預期紅的**形狀**（機制 + 檔案 + 條數）|
+|---|---|---|
+| **N1** | `isms_sites` 的複合 FK 換成單欄 FK → `isms_profiles(id)` | **恰好 1 紅：測試 4**。形狀 = 「預期 rejects 卻 resolved」——(SG1, HK1_PROFILE) 在單欄 FK 下合法 ⇒ INSERT 成功。⚠️ **測試 5 必須維持綠**（`NOWHERE` 仍不是任何 profile ⇒ 23503）；若測試 5 也紅，代表我拆掉的不只是複合性 |
+| **N2** | `isms_profiles` 的 `@@unique([orgEntityId, profileYear])` → `@@unique([profileYear])` | **恰好 1 紅：測試 6**。形狀 = 在 **(a) 那一筆**（SG1 取 2099）拋 **23505**，而該筆原本預期**成功** ⇒ 失敗訊息是未預期的 rejection，不是斷言不符。⭐ 這就是 oracle 本身：SG1 因此能一年一猜列舉 HK1 有哪些年度 |
+| **N3a** | 只加 `GRANT UPDATE ON isms_profile_versions`，**policy 仍缺席** | **恰好 1 紅：測試 9**。形狀 = 「預期 rejects 卻 resolved」，**且 `rowCount = 0`**（不報錯、零筆被改）。這是 W10 N1a 在**另一張表**上的移轉檢查 |
+| **N3b** | N3a **再加上** `isms_profile_versions_update` policy | 仍是**測試 9 紅**、同樣 resolved，**但 `rowCount = 1` 且該列真的被改寫** ⇒ 兩層都拿掉才失去不可變性 ⇒ **兩層都承重** |
+
+**共通預期**：四次實驗中，其餘 9 條測試與其他 18 個 suite **一條不動**。
+
+**執行順序**（`--listTests`，`AD-JestFileOrder-1`）：本檔排 **#17**，
+`rls-direct` #18、`jurisdiction` #19。⚠️ **這是列舉順序，不必然等於執行順序** ——
+W15 已標註過同一件事。但本片四個實驗只牽動**同一檔內**的測試，而**檔內順序是宣告順序、
+是確定的**，所以這個不確定性不影響預測。⛔ 執行時**保留失敗身分**，不要只留計數行。
+
+**基線（中性化之前）**：int **235 passed / 19 suites**（基線 225/18，+10 測試 +1 suite —— 恰為本片新增）。
