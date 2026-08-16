@@ -130,23 +130,23 @@
 
 ### 2.1 Seed
 
-- [ ] **`int-global-setup.js`：retention 六列 + holds 跨兩實體**
+- [x] **`int-global-setup.js`：retention 六列 + holds 跨兩實體**
   - DoD: 六列逐字取自 `05:73-80`（**不改寫、不正規化** —— 已確認參數 #9）；
     holds 至少 HK1 / SG1 各一列，含一列已解除（`released_at` + `released_by` 皆非 NULL）
   - Verify: 計數守衛 2 列，seed 失敗時**具名**而非靜默
-- [ ] ⭐ **seed 本身是一條斷言，明確標示它**
+- [x] ⭐ **seed 本身是一條斷言，明確標示它**
   - DoD: W16 的 N2a 教訓 —— 縮小唯一鍵時 seed 先炸，得到 setup crash 而非具名失敗。
     在 seed 旁註明它依賴哪些約束
 
 ### 2.2 Integration spec
 
-- [ ] **`retention-and-hold.int.spec.ts` ~8 條，每條對應一條會消失的約束**
+- [x] **`retention-and-hold.int.spec.ts` —— 實際 12 條**（預估 ~8；多出的 4 條是 grant catalog、RLS+FORCE catalog、未範疇 session 讀取、以及 retention 的 RLS-off catalog）
   - DoD: 負面測試**一律以 SQLSTATE 斷言**（23503 / 23505 / 23514 / 42501），
     **從不斷言訊息字串**；⭐ `retention_policy` 的約束測試走 **migration owner 連線** ——
     `asOwner()` + `DATABASE_URL_MIGRATE`（`jurisdiction.int.spec.ts:63-67`；Day-0 D3：
     **不是** superuser）（app 角色無 INSERT ⇒ 42501 **先於**約束評估 ⇒ 走 app 角色會全綠而空轉）
   - Verify: `npm run test:int -w apps/api` → **235 → ~243 / 19 → 20**
-- [ ] **AC-3 / AC-4 的 catalog 斷言**
+- [x] **AC-3 / AC-4 的 catalog 斷言**
   - DoD: `legal_holds` 的 `relrowsecurity` **與** `relforcerowsecurity` 皆真；
     權限用 **`toEqual`** 逐項比對（不是 `toContain`）——
     `retention_policies` 恰為 `['SELECT']`，`legal_holds` 恰為 `['SELECT','INSERT']`
@@ -154,7 +154,7 @@
 
 ### 2.3 中性化預測（**寫在執行之前**）
 
-- [ ] **預測表寫入 progress.md 並 commit**
+- [x] **預測表寫入 progress.md 並 commit**（`57d13c6` —— 預測早於實測）
   - DoD: 每個實驗寫 (a) 改什麼 (b) **哪幾條**測試該紅 (c) **紅在哪個位置**；
     ⭐ **承諾形狀與位置，對條數給區間**（`AD-NeutralisationCountUnderPredicted-1`：
     W16 三次全把條數估低）
@@ -162,7 +162,7 @@
 
 ### 2.x Full gate
 
-- [ ] `format:check` api/web · `lint` · `type-check` · `build` api/web · `lint:negative` ·
+- [x] `format:check` api/web · `lint` · `type-check` · `build` api/web · `lint:negative` ·
       api unit · api int · web · `run_all` **8/8** · `check_entity_index` **32/36**
   - DoD: ⛔ **一次只跑一個 int suite** —— 並行會互相 `DROP isms_test`
     （`AD-IntSuiteNoMutex-1`，W16 實測 12 紅假象）
