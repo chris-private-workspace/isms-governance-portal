@@ -219,3 +219,154 @@ seed 的 INSERT **不列出這三欄**，而不是傳 NULL —— 讓語句只�
 修法：三處改用**各自獨立的 placeholder**（同值也要分開傳），並把測量結果寫進測試 8 的註解。
 
 **修正後：247 / 20 全綠**（基線 235 / 19 ⇒ **+12 tests / +1 suite**）。
+
+---
+
+# Day 3 — 2026-08-16
+
+## AC-2 逐欄位對照 —— 兩條獨立路徑
+
+| 路徑 | 方法 | `retention_policies` | `legal_holds` | 合計 |
+|---|---|---|---|---|
+| **1** | `information_schema.columns`（查 `isms_dev`）| **11** | **17** | **28** |
+| **2** | `CREATE TABLE` 區塊逐行計數（**從 `git show HEAD:` 讀，不從工作區**）| **11** | **17** | **28** |
+
+⭐ **路徑 2 刻意讀 git HEAD 而非工作區檔案** —— 中性化實驗此刻正在改工作區的 migration，
+拿一個**正在被改動的檔案**當基準會讓這條路徑失去獨立性。
+
+**逐表相符**，且欄位的 nullable 逐欄與設計一致：
+`retention_policies` 的 `trigger` / `disposition` / `review_cadence` / `retired_at` 為 `YES`，其餘 `NO`；
+`legal_holds` 的 `released_by` / `released_at` / `created_by` / `updated_by` / `retired_at` 為 `YES`，其餘 `NO`。
+
+### 缺席證明 —— **先跑陽性對照**
+
+⛔ 一個回傳零列的查詢，可能代表「那些欄位不存在」，也可能代表「我的查詢寫壞了」。
+先證明儀器有效：
+
+```
+陽性對照 → 查三個「應該存在」的欄位，回傳 3 列：
+  legal_holds.applied_by · legal_holds.scope_ref · retention_policies.record_class
+```
+
+儀器確認有效後，同一支查詢對下列 **10 個欄位回傳空集合**：
+
+| 表 | 欄位 | 為什麼不建 | 強度 |
+|---|---|---|---|
+| `retention_policies` | `org_entity_id` | 全域表（`multi-tenant-data.md:65` 舉證）| 裁決 |
+| `retention_policies` | `extensions` | `validate_extensions()` 無條件讀 `NEW.org_entity_id` ⇒ 掛上去是 runtime error | **機械** |
+| `retention_policies` | `ref_code` | 發號按實體，這裡沒有實體可發 | **結構** |
+| `retention_policies` | `status` | `02a` §4 無此實體的 lifecycle；`retired_at` 已承載唯一終態 | 判斷 |
+| `retention_policies` | `owner_user_id` · `created_by` · `updated_by` | 全域參考資料無擁有者（W15 三張表先例）| 裁決 |
+| `legal_holds` | `status` | `applied_at` / `released_at` 已承載終態 | 判斷 |
+| `legal_holds` | `scope_id` | 改名為 `scope_ref`（W11 對 `framework_id` 的裁決）| 裁決 |
+| `legal_holds` | `owner_user_id` | `applied_by` 就是責任人，再加一個擁有者是重複 | 裁決 |
+
+## 15 個裁決，各指向一個可重跑的證據
+
+⛔ **零條「已裁決但無證據」。**
+
+| # | 裁決 | 可重跑的證據 |
+|---|---|---|
+| 1 | `retention_policies` 全域 | 缺席證明（`org_entity_id`）+ **測試 5**（`rls=false, policies=0`）|
+| 2 | 舉證併入既有列、行數不變 | `git diff --numstat docs/rules-on-demand/multi-tenant-data.md` → **`1 1`** |
+| 3 | 不建多型守衛 | `polymorphic_parent_guard/migration.sql:47`（cast）vs `:52-59`（walk）—— 逐行可讀 |
+| 4 | `scope_ref` 而非 `scope_id` | 缺席證明（`legal_holds.scope_id`）+ 陽性對照（`scope_ref` 存在）|
+| 5 | `record_class` TEXT 不是 FK | `information_schema` 型別為 `text`；`pg_constraint` 上無 FK |
+| 6 | `duration` TEXT 不是 interval | `05:73-80` 六個值異質（**測試 1** 的 `CLASSES` 外部清單）|
+| 7 | `trigger` / `disposition` nullable | `information_schema.is_nullable` = **YES**（D15）|
+| 8 | `legal_holds` 不建 `status` | 缺席證明 |
+| 9 | 無 `FOR UPDATE` policy、無 `GRANT UPDATE` | **測試 12**（`toEqual ['INSERT','SELECT']`）+ **測試 9**（42501）+ **N3** |
+| 10 | 兩條 users FK 皆 `Restrict` | `migrate diff` 對 `onDelete` **零漂移** |
+| 11 | RLS `ENABLE` **加** `FORCE` | **測試 6**（`relforcerowsecurity`）+ **N1** |
+| 12 | `record_class` 唯一但今天不可達 | **測試 3**（42501，無 grant）+ **測試 4**（23505，owner）+ **N5** |
+| 13 | released pair CHECK | **測試 10**（23514）+ **N2** |
+| 14 | `legal_holds` entity-scoped | **測試 7**（只讀到自己兩列）+ **測試 8**（跨實體寫被拒）+ **N4** |
+| 15 | seed 六列取自 `05:73-80` | **測試 1** 對照 `CLASSES` —— 該清單**另外抄寫自 `05`，不從 seed 讀回** |
+
+## 識別字長度複驗（AC-7）
+
+實建的識別字逐一量：最長 `legal_holds_org_entity_id_retired_at_idx` = **40**，
+`NAMEDATALEN` 63 ⇒ **零截斷**。W11 / W16 的靜默截斷風險在本片不存在。
+
+## D17 ⭐ —— 我為中性化寫的守衛，自己踩了同一個坑
+
+中性化用腳本套用（`neutralise.py`），每一步都帶斷言 —— 這是 `AD-TextEditStructuralScope-1` 的
+要求：**便宜的字串操作做結構工作，必須錨定結構邊界並斷言結果**。
+
+N3 的守衛是 `assert "FOR UPDATE" not in text`（「必須先確認沒有 UPDATE policy，
+否則這個實驗不代表任何事」）。**它 fire 了，而且是誤判** ——
+命中的是 migration **註解裡**那句：
+
+```
+-- ⛔ NO `FOR UPDATE` policy and NO `GRANT UPDATE`, which is the same
+```
+
+⇒ **那個片語出現在檔案裡，正是因為那個東西不存在。**
+
+⭐ 這與 Day-0 的 **D4**（`FORCE` 單空格 pattern）、**D7**（oracle 計數不可重現）是同一族：
+**拿裸文字回答一個需要結構的問題**。差別在這次的代價方向是好的 ——
+守衛 **fail-closed**，寧可停下來也不繼續，所以我得到的是一個誤報而不是一個假結果。
+
+修法：`sql_only()` 先剝除註解行再比對。⇒ **守衛本身也需要被中性化檢查**，
+而這次是它自己撞出來的。
+
+## 中性化實測 —— 預測 vs 實測
+
+⚠️ 全部**逐次序列執行**（一次一個 int suite）。W16 的 N1 因為我並行跑兩個 suite
+而多出 12 條假紅（互相 `DROP isms_test`）—— 本片的排程有一道**輪詢前一批 `ALL DONE`**
+的閘門，且每次還原後驗 `git diff` 為空。
+
+| # | 動作 | 預測 | 實測 | 判定 |
+|---|---|---|---|---|
+| **N1** | 拿掉 `FORCE`（保留 `ENABLE`）| **1 紅：測試 6**，形狀 = `forced: false` vs 期望 `true`；測試 7-9 **維持綠** | **1 紅：測試 6**，`- "forced": true` / `+ "forced": false`。**246 passed** ⇒ 其餘一條未動 | ✅ **位置 / 形狀 / 條數全中** |
+| **N2** | 刪 `legal_holds_released_pair_check` | **1 紅：測試 10**，形狀 = 「預期 rejects 卻 resolved」（那一列真的插進去）| **1 紅：測試 10**，`Received promise resolved instead of rejected`，且 `"command": "INSERT", "rowCount": 1` | ✅ **全中** |
+| **N3** | `GRANT UPDATE ON legal_holds`，policy 仍缺席 | **1 紅：測試 9**，形狀 = resolved 且 **`rowCount = 0`**（不報錯、零筆被改）| **2 紅**：測試 9 —— resolved，**`rowCount: 0`** ✅ 形狀逐字命中；**外加測試 12**（grant 集合多出 `"UPDATE"`）| ⚠️ **形狀中、條數低估 1** |
+| **N4** | 刪 `legal_holds_insert` policy（grant 保留）| **0 紅**（缺席的 policy 對 INSERT 是拒絕，ADR-0014）| **0 紅 —— 247 全綠** | ✅ 中，**而這是壞消息**（見下）|
+| **N5** | `GRANT INSERT ON retention_policies` | **1 紅：測試 3**，形狀 = 42501 → 插入成功 | **2 紅**：測試 3 —— resolved，**`rowCount: 1`** ✅ 形狀逐字命中；**外加測試 12**（多出 `"INSERT"`）| ⚠️ **形狀中、條數低估 1** |
+| **N4a** | 補測試 13 之後重跑 N4 | **1 紅：測試 13** | **1 紅：測試 13**，其餘 **247 條未動** | ✅ **全中** |
+
+### 兩次低估是**同一個盲點**，不是兩次獨立失誤
+
+N3 與 N5 多出來的那一條**都是測試 12** —— 我自己寫的 grant catalog 斷言，用 `toEqual`
+逐項比對，所以**任何** grant 變動都會讓它紅。而 N3 / N5 改的正是 grant。
+
+⇒ `AD-NeutralisationCountUnderPredicted-1` 再現（W16 三次、本片兩次），
+但兩次多出來的紅**都能由該改動解釋** —— 符合「**帶資訊的是紅的位置**」那條判準，
+不是 W16 N1 那種汙染。⭐ **真正的教訓不是「條數要估高一點」，是
+「一條斷言整個 catalog 的測試，會對每一個改動它所在維度的實驗都反應」** ——
+下次預測 grant / policy 類中性化時，catalog 測試應該**預設算進去**。
+
+### ⭐⭐ N4 零轉紅：預測中了，而它揭露一個真缺口
+
+刪掉 `legal_holds_insert` policy ⇒ **247 條全綠**。
+
+原因：**缺席的 policy 對 INSERT 是拒絕**（ADR-0014，缺席即最嚴格），
+與正確的 policy 拒絕測試 8 的跨實體列**觀察不出差別**。而我的 12 條測試裡
+**沒有任何一條做「範疇內 INSERT 應該成功」**（測試 8 是被拒的跨實體寫入，
+測試 10 / 11 走 owner 連線）。
+
+⇒ 測試 8 釘住的是「policy **不比它該有的更寬**」，**而沒有任何東西釘住它存在**。
+那張表可以安靜地對 app 角色變成**唯讀**，全套測試不會有反應。
+⛔ 依 AC-5（每一條新建的約束都要有一條會因它消失而轉紅的測試），
+**`legal_holds_insert` 當時不滿足**。
+
+**補測試 13**：範疇內 INSERT 應成功，包在 `BEGIN` / `ROLLBACK` 裡 ——
+committed 的列會讓測試 7（SG1 恰好讀到兩列）變成依賴檔案內執行順序，
+那是把一個 policy 斷言換成一個順序斷言。
+
+**N4a 驗證**：基線 **248 / 20** 全綠 → 套用 N4 → **恰好 1 紅：測試 13**，其餘 247 條未動。
+⇒ 缺口關閉，且關閉這件事本身有實測證據。
+
+### AC-5 還原驗證
+
+五個實驗 + N4a 共 6 次，每次還原後 `git diff --numstat` 對 **migration 與 seed 皆為 0 行**。
+⛔ **全程逐次序列執行**，且 N3–N5 那批在啟動前**輪詢等前一批印出 `ALL DONE`** ——
+W16 的 N1 就是因為我並行跑兩個 suite 而多出 12 條假紅（互相 `DROP isms_test`）。
+
+### ⭐⭐ N1 是 W16 DR3 的直接證明
+
+拿掉 `FORCE`，**恰好一條測試轉紅 —— 就是那條刻意為它寫的斷言**，其餘 246 條**一條未動**。
+
+⇒ 若測試 6 不存在，`FORCE` 消失在這個 repo 裡就是**完全不可觀察的**：
+所有範疇測試連的是 app 角色，而 `FORCE` 只治理 owner。
+**一層屏障有一個開關，而在 W16 之前沒有任何東西在看它有沒有被打開。**
