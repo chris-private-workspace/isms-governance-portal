@@ -198,9 +198,44 @@ W14 的 progress 對它的**正向**版本寫過一句話：
 ⚠️ **若 1.1b 沒有轉紅**，那不是「守衛壞了」的結論就能收工的 ——
 要先確認 stub 真的落在 `core-model/` 且 regex 真的匹配到它（`readdirSync` 只掃該目錄一層）。
 
-### 1.1 執行結果
+### 1.1 執行結果 —— **兩半都命中**（預測 commit `4fa64d2`）
 
-<!-- 填入實測 -->
+| | 預期 | 實際 | |
+|---|---|---|---|
+| **1.1a** 3 表 + 零 repository | 218 / 17，守衛綠 | **218 / 17**，`rebuilt, migrated and seeded` | ✅ 逐位相同 |
+| **1.1b** + stub repository | **恰好 1 紅**，指名 `Jurisdiction`，在 `unaudited` | **1 failed / 217 passed / 218 total**，`Test Suites: 1 failed, 16 passed` | ✅ **逐項命中** |
+| **還原** | 218 / 17，`git status` 空 | **218 / 17**，`git status` 空 | ✅ |
+
+1.1b 的原文：
+
+```
+● audit coverage (integration) › the allowlist still matches the write surface
+
+    - Array []
+    + Array [
+    +   "Jurisdiction",
+    > 543 |     expect(unaudited).toEqual([]);
+
+Test Suites: 1 failed, 16 passed, 17 total
+Tests:       1 failed, 217 passed, 218 total
+```
+
+| 觀察 | 意義 |
+|---|---|
+| **恰好 1 紅** | 其餘 16 個 suite **一條未動** ⇒ 守衛的偵測獨立於它們 |
+| 訊息**自己指名 `Jurisdiction`** | 它是從 `core-model` 原始碼導出的，不是比對硬編碼清單 |
+| 落在 **`unaudited`**（`:543`）而非 `unreachable` | 雙向比對的**正確那一側**：新寫入面存在而清單沒跟上 |
+| stub **無人 import** 卻仍被偵測 | 證實守衛讀的是**文字**不是 build graph ⇒ 「其餘不動」是構造上必然，不是運氣 |
+
+⭐⭐ **兩半合起來才是結論，而任一半單獨都不是**：
+
+- **1.1a 單獨** = 「守衛正確忽略無寫入路徑的 model」與「守衛從不看新 model」**不可區分**
+- **1.1b 單獨** = 只證明它會對某個字串開火，不證明它**不會誤報**（清單裡的 `unreachable` 那一半）
+- **兩者合起來** = 守衛量的是**寫入面**，不是表數 ⇒ W14（有 repository 而未接清單 ⇒ 紅）
+  與 W15（無 repository ⇒ 綠）是**同一個機制的兩個方向**，各自被實測釘住
+
+⚠️ 而 1.1b 是 checklist **原本沒有**的一項。它被加進來，是因為在執行 1.1 之前先問了
+「這個觀察能區分哪兩種世界」—— ⛔ **那個問題本該在寫 checklist 的時候問，而不是在執行前**。
 
 ### 1.2 Schema + migration
 
@@ -217,3 +252,64 @@ W14 的 progress 對它的**正向**版本寫過一句話：
 | `status` | **判斷** | `02a` §4 無此三個實體的 lifecycle ⇒ 建了就是發明一份業務沒同意的詞彙表（W14 `Attestation` 同一判準）|
 
 ⭐ **只有第三個是我的選擇**，而 plan §3.1 D2 把三者寫成同一種理由。
+
+### 1.3 Seed —— 三分，以及一個**被驗證過**的計數 assert
+
+依 Day-0 D8 分三段（**11 個管轄區 / 2 個 regulation / 1 個 obligation**），
+且**區分寫進 seed 註解**：後兩者是「讓 FK 鏈可測的最小 fixture」，⛔ **不是 D003 的填充義務庫**
+（那指的是法規**條文內容**的訂閱）。條文用合成佔位文字 —— 本 repo 無授權重製法條。
+
+⭐ **`entities` 加了第 7 個元素 `jurisdictionId`，而 `APAC` 的是 `null`** ——
+那是本片 D5 論證的實體化：region 節點跨 11 個管轄區，沒有正確的單一值。
+
+**id 撞號預防**：`01xx` 區段在 `apps/api` **全樹零命中**後才使用
+（W14 因 `ab0` 撞上 assessment instance 而損失 7 個測試，且那次是全域 replace 讓它不可見）。
+
+#### ⚠️ 計數 assert：它防什麼、**不防什麼**
+
+`AD-TextEditStructuralScope-1` 的修法是兩半 —— 錨定結構邊界（本次用 Edit 的精確匹配達成）
+**＋ assert 計數**。第二半已加：seed 完成後逐表比對 `count(*)` 與陣列長度。
+
+⭐ **而它自己也被驗證了**（`AD-NegativeGate-1`：宣稱會擋東西的機制必須附一個會被它擋住的案例）。
+暫時把 INSERT 迴圈改成 `.slice(0, 10)`，實測：
+
+```
+Error: Jest: Got error running globalSetup … reason:
+[int] seed count mismatch for jurisdictions: expected 11, found 10.
+The seed edit did not land where it was meant to (AD-TextEditStructuralScope-1).
+```
+
+⛔ **但它的覆蓋範圍比它的名字窄，寫下來以免下一個人高估它**：
+
+| 失效模式 | 這個 assert 抓得到嗎 |
+|---|---|
+| INSERT 迴圈沒把陣列裡的列全插進去 | ✅ **抓得到**（已實測）|
+| 某列 INSERT 靜默失敗 / 被 ON CONFLICT 吞掉 | ✅ 抓得到 |
+| **陣列本身被編輯錯**（少一列 / 多一列）| ⛔ **抓不到** —— `expected` 是從**同一個陣列**導出的，兩邊會一起動 |
+| id 撞號（W14 的實際失效）| ⛔ **抓不到** —— 列數不變，內容錯 |
+
+⇒ **它是「INSERT 端」的守衛，不是「資料正確性」的守衛。**
+真正擋住 W14 那次失效的，是 seed 之前的**零命中驗證**，不是這個 assert。
+⚠️ 兩者一起才覆蓋，而 `AD-TextEditStructuralScope-1` 的原文把它們寫成同一條修法的兩半 ——
+本片是那條 AD 的第一次實地套用，**而套用之後才看清楚兩半各自管什麼。**
+
+### 1.x partial gate ✅ (Day 1) —— 各自 exit code 分開取
+
+| Gate | 結果 | baseline |
+|---|---|---|
+| `type-check` api+web | **0** | 0 |
+| `lint` api+web | **0** | 0 |
+| `format:check` api | **0** | 0 |
+| `run_all` | **0**（8/8）| 8/8 |
+| **api int** | **0** —— **218 / 17** | 218 / 17（**不變，如預期**）|
+| `check_entity_index` | ⭐ **25 / 35** | 22 / 35（**+3**）|
+
+⚠️ **int 測試數維持 218 是預期的** —— 本片到 Day 1 為止**沒有新增任何測試**
+（AC-4 / AC-5 是 Day 2）。⛔ 若它變動了，那本身是發現。
+
+## Remaining for Day 2
+
+- `jurisdiction.int.spec.ts`：AC-4（全域可讀）+ AC-5（FK 完整性）
+- ⛔ **AC-5 必須用 superuser 連線**（Day-0 D7：`GRANT SELECT` only ⇒ 應用層插不進去），
+  形狀抄 W02 那 8 個「完全不經應用層」的測試
+- `multi-tenant-data.md` 全域清單 +1 列 `obligations` + 舉證（D1）
