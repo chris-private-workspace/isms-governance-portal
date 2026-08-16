@@ -2,7 +2,7 @@
 
 **Phase**: W17 — M1 slice 12: records retention and legal hold
 **Period**: 2026-08-16（單日，UTC 13:24 起）
-**PR**: PR-pending
+**PR**: MERGED (PR #73, `cf7cf07`)
 **Retrospective**: `docs/01-planning/W17-m1-retention-and-legal-hold/retrospective.md`
 **Change record**: `docs/03-implementation/changes/CH-035-w17-retention-and-legal-hold.md`
 
