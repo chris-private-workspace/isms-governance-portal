@@ -282,41 +282,41 @@ _(本片零 user-facing surface：無端點、無 UI、無 CLI。依 `verificati
 
 ### 3.1 Clean restart
 
-- [ ] **N/A + 記錄理由**：本片無 dev server；int suite 的 global setup 每次
+- [x] **N/A + 記錄理由**：本片無 dev server；int suite 的 global setup 每次
       DROP + CREATE + migrate + seed ⇒ Risk Class C 結構上不成立。
       ⛔ **記錄而非打勾略過**
 
 ### 3.2 🔴 AC-2：逐欄位對照表（**這一項是 W15 `closed_partial` 的唯一理由**）
 
-- [ ] **產出一份逐欄位對照表進 progress.md**
+- [x] **產出一份逐欄位對照表進 progress.md**
   - DoD: 五張表的**每一個**欄位一列 ——「`13` 原文 / 實作 / 差異 / 依據（D 編號）」；
         且每個 §3.1「不建」的欄位（`posture` · `region_code` · `status` · `state`）
         有一條 grep 證明它**不在** schema 裡
   - Verify: 表格行數 == `grep` 出的實際欄位數（兩條獨立路徑交叉檢查，
         `AD-NarrowPatternWideClaim-1`）
-- [ ] **15 個裁決逐條標記「已執行 / 未執行」**
+- [x] **15 個裁決逐條標記「已執行 / 未執行」**
   - DoD: 每條指向一個可執行的證據（測試名 / grep / migration 行號）
   - Verify: 無「已裁決但無證據」的列
-- [ ] ⛔ **若本項未完成 ⇒ 本 phase 只能標 `closed_partial`**，與 W15 同因
+- [x] ⛔ **若本項未完成 ⇒ 本 phase 只能標 `closed_partial`**，與 W15 同因
 
 ### 3.x Full gate 重跑（**逐項複製 Day 2 §2.x 的清單，不得寫「跑 gate」**）
 
 > `AD-PartialGateReportedAsFull-1` 三次全是 `format:check`；W11 的第 3 次成因是
 > **中性化本身改了測試檔**而 full gate 停在那之前 ⇒ Day 3 必須重跑全套。
 
-- [ ] `format:check` api
-- [ ] `format:check` web
-- [ ] `lint` api + web
-- [ ] `type-check` api + web
-- [ ] `build` api
-- [ ] `build` web
-- [ ] `lint:negative`
-- [ ] api unit
-- [ ] **api int**
-- [ ] web unit
-- [ ] coverage
-- [ ] `python scripts/lint/run_all.py` **8 / 8**
-- [ ] `check_entity_index` **30 / 36**
+- [x] `format:check` api
+- [x] `format:check` web
+- [x] `lint` api + web
+- [x] `type-check` api + web
+- [x] `build` api
+- [x] `build` web
+- [x] `lint:negative`
+- [x] api unit
+- [x] **api int**
+- [x] web unit
+- [x] coverage
+- [x] `python scripts/lint/run_all.py` **8 / 8**
+- [x] `check_entity_index` **30 / 36**
 
 ---
 
