@@ -86,18 +86,25 @@
 
 ### 1.1 稽核漂移守衛：先證明它不是恆真
 
-- [ ] **1.1a — 加表之前跑一次，記錄基線**
+- [x] **1.1a — 加表之前跑一次，記錄基線**
   - DoD: `audit-coverage.int.spec.ts` 全綠，記下綠的條數
-  - Verify: `npm run test:int -w apps/api 2>&1 | grep -A3 "allowlist still matches"`
-- [ ] **1.1b — 用暫時 stub 逼出紅，確認訊息指名新 model**
-  - DoD: 暫時新增含 `client.ismsProfile.create` 的 stub ⇒ 守衛**恰好 1 紅**，訊息含
-        `"ISMSProfile"` 且落在 **`unaudited`** 側（不是 `unreachable`）；
+        → **1 passed / 224 skipped / 225 total**（該測試存在、名稱唯一、通過）
+  - Verify: ⛔ **原指令 `… | grep -A3 "allowlist still matches"` 在綠燈時零命中**，
+        因為 jest 預設 reporter 不印通過的測試名 ⇒ 它證明不了任何事（progress D1-1）。
+        改用 `npx jest --config jest.int.config.js -t "allowlist still matches the write surface" --verbose`
+- [x] **1.1b — 用暫時 stub 逼出紅，確認訊息指名新 model**
+  - DoD: 暫時新增含 `client.iSMSProfile.create` 的 stub（⚠️ **delegate 首字母才小寫** ——
+        `iSMSProfile` 不是 `ismsProfile`，證據 `rm-report.repository.ts:161` 的 `client.rMReportVersion`）
+        ⇒ 守衛**恰好 1 紅**，訊息含 `"ISMSProfile"` 且落在 **`unaudited`** 側（不是 `unreachable`）；
         ⛔ 驗完**立即刪除 stub**，不得留在 commit 裡
-  - Verify: `npm run test:int -w apps/api`；刪除後 `git status` 乾淨
+        → **四項預測逐項命中**（失敗點 `:543` · received `["ISMSProfile"]` · `unaudited` 側 ·
+        `1 failed, 224 skipped`）；⭐ stub 無人 import 且**刻意不 type-check** 仍被偵測
+  - Verify: `npx jest … -t "allowlist still matches the write surface" --verbose`；
+        刪除後 `git status --porcelain` **空**、`core-model/` 無 `isms-*` 檔
 
 ### 1.2 `schema.prisma` +5 model +4 enum
 
-- [ ] **五個 model**（`ISMSProfile` / `ISMSSite` / `ISMSContact` / `ApprovedOffering` /
+- [x] **五個 model**（`ISMSProfile` / `ISMSSite` / `ISMSContact` / `ApprovedOffering` /
       `ISMSProfileVersion`）
   - DoD: 全部帶 `02a` §1.1 base fields（照 `Attestation` 逐欄位抄）；四張子表帶 `orgEntityId`
         + 複合 FK `references: [id, orgEntityId]`；父表加 `@@unique([id, orgEntityId])`、
@@ -106,70 +113,70 @@
         `onDelete` **全部顯式**（W15：Prisma 對 optional relation 預設 `SetNull`，
         與 migration 靜默分歧且本 repo 無測試斷言 ON DELETE）
   - Verify: `npx prisma validate --schema apps/api/prisma/schema.prisma`
-- [ ] **`ISMSProfile` 的 10 個 agreed-field 欄位**（D11 八個 + D12 兩個 bool）
+- [x] **`ISMSProfile` 的 10 個 agreed-field 欄位**（D11 八個 + D12 兩個 bool）
   - DoD: `iso_27001` · `iso_27017` · `certification_state` · `certificate_number` ·
         `certification_body` · `certificate_issued_at` · `certificate_expires_at` ·
         `surveillance_at` · `iso_officer_name` · `review_at`
   - Verify: 逐欄位對上 plan §3.1 D11 / D12 的清單（**十個，不是九個也不是十一個**）
-- [ ] 🔴 **所有新索引／約束名逐個算長度，> 63 就明確命名**（⭐ Day-0 DR12 新增）
+- [x] 🔴 **所有新索引／約束名逐個算長度，> 63 就明確命名**（⭐ Day-0 DR12 新增）
   - DoD: PostgreSQL `NAMEDATALEN` 上限 **63**，超過即**靜默截斷**。
         已知超標：`isms_profile_versions_org_entity_id_isms_profile_id_version_label_key`（**69**）。
         超標者在 schema 用 `@@unique([...], map: "<短名>")`，且 migration 的 `CREATE UNIQUE INDEX`
         字面值**與 `map:` 一字不差**
   - Verify: `docker exec isms-postgres-dev psql -U isms_dev -d isms_test -tAc "SELECT indexname, length(indexname) FROM pg_indexes WHERE tablename LIKE 'isms%' OR tablename='approved_offerings';"`
         —— **全部 ≤ 63 且無一被截斷**
-- [ ] 🔴 **`posture` 確認不存在**（D13）
+- [x] 🔴 **`posture` 確認不存在**（D13）
   - DoD: `posture` 在五個新 model 中零命中
   - Verify: `grep -n 'posture' apps/api/prisma/schema.prisma`（只應命中既有的、非本片的）
-- [ ] **四個 enum**（`OfferingBusinessLine` / `OfferingType` / `OfferingApprovalStatus` /
+- [x] **四個 enum**（`OfferingBusinessLine` / `OfferingType` / `OfferingApprovalStatus` /
       `CertificationState`）
   - DoD: 值用 `snake_case` + `@@map`，照既有 9 個 enum 的慣例；`approval_status` 是
         **四值**（D9，不是設計的三值）
   - Verify: `npm run type-check -w apps/api`
-- [ ] **header 修正**：`Purpose` 的 model count → **31**；MHist **+1 行 ≤ 100 字元**
+- [x] **header 修正**：`Purpose` 的 model count → **31**；MHist **+1 行 ≤ 100 字元**
   - DoD: 數字可由 `grep -c '^model' schema.prisma` 重現（`AD-SchemaHeaderStale-1` 的判準）
   - Verify: `grep -c '^model' apps/api/prisma/schema.prisma`
 
 ### 1.3 Migration（手寫）
 
-- [ ] **`migrations/<UTC>_isms_profile/migration.sql`**
+- [x] **`migrations/<UTC>_isms_profile/migration.sql`**
   - DoD: 5 × `CREATE TABLE` + 5 × `ENABLE ROW LEVEL SECURITY` + policy（條數依 Day-0
         `D-rls-shape`）+ 4 × 複合 FK + 父表指標 FK + 2 × UNIQUE
         + `CHECK (user_id IS NOT NULL OR name IS NOT NULL)` + `GRANT`（依 `D-grant-precedent`）；
         ⛔ **UTC 時間戳**（`AD-MigrationTimestampTz-1`）
   - Verify: `npm run test:int -w apps/api`（global setup 會 DROP + CREATE + migrate + seed）
-- [ ] 🔴 **套用後 `migrate diff` 不得新增漂移**（⭐ Day-0 DR12 新增）
+- [x] 🔴 **套用後 `migrate diff` 不得新增漂移**（⭐ Day-0 DR12 新增）
   - DoD: 對剛重建的 `isms_test` 跑 diff，輸出**只剩** Day-0 記錄的那兩處既有漂移
         （`statements_of_applicability` 索引名 · `audit_log` bytea 預設表示法）——
         **五張新表一處都不得出現**
   - Verify: `DATABASE_URL_MIGRATE="postgresql://isms_dev:isms_dev_local_only@127.0.0.1:5433/isms_test" npx prisma migrate diff --from-config-datasource --to-schema ./prisma/schema.prisma`
         （在 `apps/api/` 下跑；⛔ **基準不得用 `isms_dev`** —— DR7 落後 5 支）
-- [ ] 🔴 **版本表刻意不給 `FOR UPDATE` policy 與 `GRANT UPDATE`**（D14）
+- [x] 🔴 **版本表刻意不給 `FOR UPDATE` policy 與 `GRANT UPDATE`**（D14）
   - DoD: banner 註解寫明它是**刻意的**（否則三個月後看起來像忘了加），並引用 W10 先例
         與 `AD-ImmutableRowRetention-1`（`retired_at` 因此寫不進去，是已知且刻意的缺口）
   - Verify: 測試 8（見 2.2）會證明 `UPDATE` 被拒
-- [ ] **banner 另記 D1 與 D13**
+- [x] **banner 另記 D1 與 D13**
   - DoD: 子表的 `org_entity_id` 是 guardrail 要求而非 `13` 要求；`posture` 缺席是 `02a:437`
         的要求 —— 兩個偏離**從 schema 本身看得見**（`AD-VendorAuditorSod-1` 的既有做法）
   - Verify: 讀 migration banner
-- [ ] ⛔ **`prisma generate`**（`AD-PrismaEnumThreeTruths-1` —— 本片新增 **4** 個 enum，
+- [x] ⛔ **`prisma generate`**（`AD-PrismaEnumThreeTruths-1` —— 本片新增 **4** 個 enum，
       schema / generated client / DB catalog 三份真相，中間那份會擋）
   - DoD: `apps/api/src/generated/prisma/**` 已重生成且含四個新 enum
   - Verify: `npm run type-check -w apps/api` 且 int suite 綠
 
 ### 1.4 文件：索引與規格
 
-- [ ] 🔴 **`02a:60` 那一格加 `ISMSProfileVersion`**（`02a:18` 要求同一個 change）
+- [x] 🔴 **`02a:60` 那一格加 `ISMSProfileVersion`**（`02a:18` 要求同一個 change）
   - DoD: 分母 35 → **36**
   - Verify: `python scripts/lint/check_entity_index.py`
-- [ ] **在 `13` 記錄 D1 / D5 / D6 / D13 / D14 / D15 的裁決**
+- [x] **在 `13` 記錄 D1 / D5 / D6 / D13 / D14 / D15 的裁決**
   - DoD: 每條寫「規格原文 → 裁決 → 依據」三段；⛔ **不刪除原文** ——
         guardrail 贏不代表規格的話要消失，那是審計軌跡
   - Verify: `python scripts/lint/run_all.py`（path-references + rules-hygiene）
 
 ### 1.x Partial gate
 
-- [ ] `format:check` api · `lint` api · `type-check` api · `prisma validate` —— **各自取 exit code**
+- [x] `format:check` api · `lint` api · `type-check` api · `prisma validate` —— **各自取 exit code**
 
 ---
 

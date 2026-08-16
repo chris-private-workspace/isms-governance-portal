@@ -1,5 +1,12 @@
 // File: apps/api/prisma/schema.prisma
-// Purpose: The entity graph, 22 models in. Every table here is on 02a §0's index.
+// Purpose: The entity graph, 31 models in. Every table here is on 02a §0's index.
+//          ⭐ DERIVED, NOT TRANSCRIBED — rerun `grep -c '^model' schema.prisma`
+//          rather than trusting this number. It read 22 while the true count was
+//          26 for three slices running (AD-SchemaHeaderStale-1); the fix for that
+//          is a number anyone can reproduce in one command, not a promise to
+//          remember. ⚠️ The `Scope:` line below is stale for W13-W15 and is left
+//          that way on purpose: three slices missing the same line is a pattern
+//          worth recording, not a blemish worth quietly patching.
 // Category: core-model
 // Scope: Phase W01 (M0) → W12 (M3 spike)
 // Owner: docs/02-architecture/02a-data-model-spec.md §0 (entity index)
@@ -30,6 +37,7 @@
 // Last Modified: 2026-08-16
 //
 // Modification History (newest-first):
+//   - 2026-08-16: W16 — ISMS profile x5; posture refused (02a:437), version state derived
 //   - 2026-08-16: W15 — align OrgEntity.jurisdiction to its migration: onDelete + index
 //   - 2026-08-14: Phase W12 — audit_log; the first table with no column that can redact
 //   - 2026-08-14: Phase W11 — Statement of Applicability; `framework` is a string, not an FK
@@ -133,6 +141,12 @@ model OrgEntity {
 
   attestations Attestation[]
 
+  ismsProfiles        ISMSProfile[]
+  ismsSites           ISMSSite[]
+  ismsContacts        ISMSContact[]
+  approvedOfferings   ApprovedOffering[]
+  ismsProfileVersions ISMSProfileVersion[]
+
   version   Int       @default(1)
   createdAt DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
   updatedAt DateTime  @updatedAt @map("updated_at") @db.Timestamptz(6)
@@ -215,6 +229,14 @@ model User {
   /// M4 — see that model's note. A row here today means someone wrote a uuid, not
   /// that a person signed anything.
   attestations Attestation[] @relation("AttestationUser")
+
+  /// ⚠️ Same M4 caveat as `attestations` above: nothing can populate
+  /// ISMSContact.user_id or ISMSProfileVersion.actor_user_id until a credential
+  /// source exists. ISMSContact carries `name` alongside precisely because
+  /// 13:41 expects contacts who have no platform account at all.
+  ismsContacts      ISMSContact[]        @relation("ISMSContactUser")
+  ismsProfilesOwned ISMSProfile[]        @relation("ISMSProfileOwner")
+  ismsVersionsActed ISMSProfileVersion[] @relation("ISMSProfileVersionActor")
 
   @@map("users")
 }
@@ -2255,4 +2277,422 @@ model Attestation {
   @@index([orgEntityId, retiredAt])
   @@index([subjectType, subjectId])
   @@map("attestations")
+}
+
+/// The per-year ISMS profile of one operating company (13:37). An extension of
+/// OrgEntity, and load-bearing for other modules: the certification scope of an
+/// entity is what its risk assessment, control testing and audit have to cover
+/// (13:7). Consumers arrive in M6c; this slice ships the constraint surface.
+///
+/// ⭐ ONE ROW PER (entity, year), not per edit. 13:49 says profiles are
+/// "versioned BY YEAR, previous years retained as history rather than
+/// overwritten", so the year is part of the natural key rather than a column
+/// overwritten each January. Within a year, 13:31's "save as new version"
+/// writes an ISMSProfileVersion row and moves `current_version_id`.
+///
+/// ⛔ RECORDED DEVIATION — `status` (13:37) is NOT built. 02a:93 defines the
+/// base field as "per the entity's state machine (§4)", and 02a §4 lists no
+/// lifecycle for this entity. W14 refused the same column on Attestation for
+/// the same reason. Three documents each propose a different vocabulary
+/// (13:31 `superseded` / design README `Current|Superseded` / prototype
+/// `Published|Superseded`), so there is no list to record — only one to invent.
+///
+/// ⛔ RECORDED DEVIATION — `region_code` (13:37) is NOT built. Its own example
+/// value, RAPO (13:13), is an OpCo code rather than a region: the design data
+/// has it as Ricoh Asia Pacific Operations Ltd, Hong Kong. OrgEntity.code
+/// already carries that, and "region" is structural here — OrgEntityType has a
+/// `region` member and OrgEntity.path materialises the hierarchy. A
+/// denormalised copy with no composite key holding it true is the shape
+/// AD-W15InvariantInCommentOnly-1 records.
+///
+/// ⛔ RECORDED DEVIATION — `posture` (13:27) is NOT built, and this one is a
+/// guardrail rather than a preference: 02a:437 says posture RAG values are
+/// "derived, not stored as source of truth" and 02a:128 marks the vocabulary
+/// "Derived for dashboards". The other eight attributes at 13:27 ARE built.
+model ISMSProfile {
+  id String @id @default(uuid()) @db.Uuid
+
+  /// Self-declared prefix, as every other prefix in this layer is (02a:91).
+  /// ⚠️ NOTHING ISSUES THIS YET. The prefix constant lives in a repository and
+  /// this slice ships none — M6c declares it. Until then the only writer is the
+  /// integration seed, which supplies literals. The column is here because
+  /// 02a:91 makes it a base field, not because a mechanism maintains it.
+  refCode String @unique @map("ref_code")
+
+  orgEntityId String @map("org_entity_id") @db.Uuid
+
+  /// 13:37 gives the example as the string "2026" because the source is a
+  /// spreadsheet TAB NAME. The value is a calendar year, so it is stored as one:
+  /// 13:69's dashboard asks "is this year's profile complete?", which is a
+  /// comparison rather than a string match.
+  profileYear Int @map("profile_year")
+
+  certificateCount Int?    @map("certificate_count")
+  scopeStatement   String? @map("scope_statement")
+
+  /// User ruling 2026-08-16, closing AD-DesignAlign-7. 13:29 records that the
+  /// design dropped these from the SCREEN and asks for confirmation; they are
+  /// listed in 13:37's data model, and 已確認參數 #11 makes the deliverable
+  /// authoritative for UI while the procedure governs the domain.
+  certifierCommentScope String? @map("certifier_comment_scope")
+  companyReply          String? @map("company_reply")
+
+  /// ⚠️ TWO TEMPORAL CONVENTIONS EXIST IN THIS SCHEMA, and these columns pick
+  /// the calendar-date one deliberately. RMReportVersion:1817 argues Timestamptz
+  /// is "the alignment", but W05's Risk.reviewDue and W15's
+  /// Regulation.effectiveDate are both @db.Date — so the claim of a single
+  /// convention no longer holds. Certificate validity is a calendar fact off a
+  /// certificate; an instant with a timezone would be a precision this data
+  /// does not have.
+  validFrom DateTime? @map("valid_from") @db.Date
+  validTo   DateTime? @map("valid_to")   @db.Date
+
+  /// 13:21's standards toggles. Booleans rather than a string array: the
+  /// vocabulary is closed and fixed externally (ISO), which is the criterion
+  /// Attestation:2226-2236 sets out for deciding enum-or-string.
+  iso27001 Boolean @default(false) @map("iso_27001")
+  iso27017 Boolean @default(false) @map("iso_27017")
+
+  /// Eight of the nine per-OpCo certification attributes at 13:27.
+  certificationState   CertificationState? @map("certification_state")
+  certificateNumber    String?             @map("certificate_number")
+  certificationBody    String?             @map("certification_body")
+  certificateIssuedAt  DateTime?           @map("certificate_issued_at")  @db.Date
+  certificateExpiresAt DateTime?           @map("certificate_expires_at") @db.Date
+  surveillanceAt       DateTime?           @map("surveillance_at")        @db.Date
+  reviewAt             DateTime?           @map("review_at")              @db.Date
+
+  /// ⚠️ OVERLAPS ISMSContact(role = 'ISMS lead'): 13:27 carries the ISO officer
+  /// as a profile attribute while 13:41 carries the same person as a contact
+  /// row. Both are built because the user ruled to build 13:27 in full; which is
+  /// authoritative is M6c's call, tracked as an AD rather than settled here by
+  /// silently dropping one.
+  isoOfficerName String? @map("iso_officer_name")
+
+  /// ⭐ THE POINTER, NOT A FLAG ON THE VERSION — see ISMSProfileVersion's note.
+  /// MATCH SIMPLE is what lets this be nullable while `id` is NOT NULL; W10
+  /// Day-0 D3 measured that, and under MATCH FULL the design is not buildable.
+  currentVersionId String? @map("current_version_id") @db.Uuid
+
+  /// §1.1's accountable owner, kept here and NOT on the four children: 13 names
+  /// an owner for the profile as a whole and none for a site, a contact row or
+  /// an offering (the Attestation / RMReportVersion reasoning).
+  ownerUserId String? @map("owner_user_id") @db.Uuid
+
+  createdBy String? @map("created_by") @db.Uuid
+  updatedBy String? @map("updated_by") @db.Uuid
+
+  version    Int  @default(1)
+  extensions Json @default("{}") @db.JsonB
+
+  orgEntity OrgEntity @relation(fields: [orgEntityId], references: [id])
+
+  /// ⚠️ `onDelete` EXPLICIT on every OPTIONAL relation in this slice, which is
+  /// the exact scope of W15's lesson: Prisma's default for an optional relation
+  /// is SetNull while migrations here have been writing Restrict, and nothing in
+  /// this repo asserts ON DELETE. Required relations keep the implicit default
+  /// because there it already agrees (Restrict).
+  ///
+  /// SetNull here rather than Restrict, matching Attestation.attestedBy and
+  /// RiskManagementReport.owner: an owner leaving should not pin the profile.
+  owner User? @relation("ISMSProfileOwner", fields: [ownerUserId], references: [id], onDelete: SetNull)
+
+  sites     ISMSSite[]
+  contacts  ISMSContact[]
+  offerings ApprovedOffering[]
+
+  versions       ISMSProfileVersion[] @relation("ProfileVersions")
+  currentVersion ISMSProfileVersion?  @relation("CurrentVersion", fields: [currentVersionId, id], references: [id, ismsProfileId], onDelete: Restrict)
+
+  createdAt DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt DateTime  @updatedAt @map("updated_at") @db.Timestamptz(6)
+  retiredAt DateTime? @map("retired_at") @db.Timestamptz(6)
+
+  /// The anchor the four children reference (the issues:1166 reasoning).
+  @@unique([id, orgEntityId])
+
+  /// Contains org_entity_id, so a collision cannot distinguish "another entity
+  /// already has 2026" from "nobody does" — AD-UniqueKeyOracle-1's criterion,
+  /// applied before the table exists rather than after.
+  @@unique([orgEntityId, profileYear])
+
+  @@index([orgEntityId, retiredAt])
+  @@map("isms_profiles")
+}
+
+/// One site inside an entity's certification scope (13:39).
+///
+/// ⛔ `org_entity_id` is NOT in 13:39's field list. It is here because 約束 8
+/// iron law 1 requires it on child tables too ("冗餘是故意的"), 02a:92 marks it
+/// Required and 02a:430 makes every domain record N:1 to OrgEntity. Where a
+/// design document and a guardrail disagree the design document is what
+/// changes — 13 is amended in this same change.
+model ISMSSite {
+  id String @id @default(uuid()) @db.Uuid
+
+  refCode     String @unique @map("ref_code")
+  orgEntityId String @map("org_entity_id") @db.Uuid
+
+  ismsProfileId String @map("isms_profile_id") @db.Uuid
+
+  siteName                  String  @map("site_name")
+  isHeadOffice              Boolean @default(false) @map("is_head_office")
+  address                   String?
+  employeesInScope          Int?    @map("employees_in_scope")
+  certifierCommentEmployees String? @map("certifier_comment_employees")
+
+  createdBy String? @map("created_by") @db.Uuid
+  updatedBy String? @map("updated_by") @db.Uuid
+
+  version    Int  @default(1)
+  extensions Json @default("{}") @db.JsonB
+
+  orgEntity OrgEntity   @relation(fields: [orgEntityId], references: [id])
+  /// Composite: a site cannot be filed under another entity's profile.
+  profile   ISMSProfile @relation(fields: [ismsProfileId, orgEntityId], references: [id, orgEntityId], onDelete: Restrict)
+
+  createdAt DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt DateTime  @updatedAt @map("updated_at") @db.Timestamptz(6)
+  retiredAt DateTime? @map("retired_at") @db.Timestamptz(6)
+
+  /// ⛔ NO natural unique key. (isms_profile_id, site_name) would be two
+  /// caller-supplied columns without org_entity_id — the exact tuple W10
+  /// measured as an existence oracle. 13 asks for no uniqueness here, so the
+  /// cheapest correct answer is not to create one.
+  @@index([orgEntityId, retiredAt])
+  @@index([ismsProfileId])
+  @@map("isms_sites")
+}
+
+/// A person attached to an entity's ISMS profile (13:41). Multiple allowed.
+model ISMSContact {
+  id String @id @default(uuid()) @db.Uuid
+
+  refCode     String @unique @map("ref_code")
+  orgEntityId String @map("org_entity_id") @db.Uuid
+
+  ismsProfileId String @map("isms_profile_id") @db.Uuid
+
+  /// 13:41 says "`user_id` OR `name`" and means it: the certificate recipient
+  /// may be someone with no platform account. Both are nullable and a CHECK in
+  /// the migration requires at least one — the assessment_instances_sod
+  /// precedent (W09) for cross-column constraints.
+  userId String? @map("user_id") @db.Uuid
+  name   String?
+
+  department String?
+
+  /// ⚠️ String, not an enum. 13:41 gives "(ISMS lead / certificate recipient)"
+  /// in parentheses as illustration, and nothing external fixes the vocabulary —
+  /// the criterion at Attestation:2226-2236. Its closing line applies directly:
+  /// narrowing later is one migration; un-inventing a vocabulary the business
+  /// never agreed to is a conversation.
+  role String?
+
+  createdBy String? @map("created_by") @db.Uuid
+  updatedBy String? @map("updated_by") @db.Uuid
+
+  version    Int  @default(1)
+  extensions Json @default("{}") @db.JsonB
+
+  orgEntity OrgEntity   @relation(fields: [orgEntityId], references: [id])
+  profile   ISMSProfile @relation(fields: [ismsProfileId, orgEntityId], references: [id, orgEntityId], onDelete: Restrict)
+
+  /// ⚠️ Restrict, NOT SetNull — and unlike ISMSProfile.owner the reason is
+  /// mechanical rather than editorial. SetNull would blank `user_id` on a row
+  /// whose `name` may also be NULL, which the CHECK below forbids: the delete
+  /// would fail anyway, but as a constraint violation on a table nobody was
+  /// touching. Restrict states the same rule where it can be read.
+  user User? @relation("ISMSContactUser", fields: [userId], references: [id], onDelete: Restrict)
+
+  createdAt DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt DateTime  @updatedAt @map("updated_at") @db.Timestamptz(6)
+  retiredAt DateTime? @map("retired_at") @db.Timestamptz(6)
+
+  @@index([orgEntityId, retiredAt])
+  @@index([ismsProfileId])
+  @@map("isms_contacts")
+}
+
+/// A product or service an entity is approved to sell (13:43).
+///
+/// ⭐ The one genuinely new capability in this module — 13:43 marks it "new
+/// capability, not in the current template" and 13:65 calls it "a governance
+/// question the region currently cannot answer in one place".
+///
+/// ⛔ NOT BUILT, and 13:45 is the authority for not building it: applicable
+/// geography, linkage to the authorising certification/framework, and a
+/// validity period are listed there with "Model those only if actually needed".
+/// The prototype renders Effective / Valid to / Linked risk·control anyway;
+/// 已確認參數 #11 gives the deliverable authority over UI, not over the model.
+model ApprovedOffering {
+  id String @id @default(uuid()) @db.Uuid
+
+  refCode     String @unique @map("ref_code")
+  orgEntityId String @map("org_entity_id") @db.Uuid
+
+  ismsProfileId String @map("isms_profile_id") @db.Uuid
+
+  name           String
+  businessLine   OfferingBusinessLine   @map("business_line")
+  offeringType   OfferingType           @map("offering_type")
+  approvalStatus OfferingApprovalStatus @map("approval_status")
+
+  /// Nullable together with `approved_by`: a `proposed` offering has not been
+  /// approved by anyone at any time, and a NOT NULL here would force a date to
+  /// be invented for exactly the state the enum exists to express.
+  approvedAt DateTime? @map("approved_at") @db.Date
+
+  /// ⚠️ FREE TEXT, not a User FK, and 02a:70 is why: "Governance bodies (ISC /
+  /// ITSC) as approvers" is on the must-not-be-built list, while the design
+  /// fills this with "ISC · <person>" — a committee and a person in one string.
+  /// RiskManagementReport's prepared_by/approved_by settled the same question.
+  approvedBy String? @map("approved_by")
+
+  notes String?
+
+  createdBy String? @map("created_by") @db.Uuid
+  updatedBy String? @map("updated_by") @db.Uuid
+
+  version    Int  @default(1)
+  extensions Json @default("{}") @db.JsonB
+
+  orgEntity OrgEntity   @relation(fields: [orgEntityId], references: [id])
+  profile   ISMSProfile @relation(fields: [ismsProfileId, orgEntityId], references: [id, orgEntityId], onDelete: Restrict)
+
+  createdAt DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt DateTime  @updatedAt @map("updated_at") @db.Timestamptz(6)
+  retiredAt DateTime? @map("retired_at") @db.Timestamptz(6)
+
+  @@index([orgEntityId, retiredAt])
+  @@index([ismsProfileId])
+  @@map("approved_offerings")
+}
+
+/// One entry in a profile's version history (13:31): v, date, by, role, note.
+///
+/// ⭐ HOW THE IMMUTABILITY IS ENFORCED, AND WHY IT IS NOT A TRIGGER.
+/// The migration gives this table a FOR SELECT and a FOR INSERT policy and
+/// nothing else, and GRANTs SELECT, INSERT only. With no FOR UPDATE policy RLS
+/// refuses every update regardless of GRANT — and unlike when rm_report_versions
+/// first wrote this claim, it is now MEASURED rather than predicted: W10's N1a
+/// granted UPDATE, left the policy absent, and the statement raised nothing
+/// while changing zero rows. The two layers therefore fail DIFFERENTLY, which
+/// is what makes them separately testable: no GRANT gives 42501, GRANT without
+/// policy gives a silent zero-row update.
+///
+/// ⛔ RECORDED DEVIATION — 13:31's `state` is NOT built, for the reason
+/// RMReportVersion gives: `state` would have to change when a newer version
+/// arrives, which is the one thing this table forbids, and with
+/// `current_version_id` on the parent it would be a second representation of
+/// one fact with no reconciliation rule. Superseded is derived — a version is
+/// current iff its profile's current_version_id names it.
+///
+/// ⚠️ CONSEQUENCE, STATED PLAINLY. `version`, `updated_by`, `updated_at` and
+/// `retired_at` are structurally frozen at their insert value here, because no
+/// path can write them. In particular `retired_at` means 05:77's three-year
+/// retention for ISMS profile versions has no mechanism on this table
+/// (AD-ImmutableRowRetention-1): enabling one is a policy change, not a column
+/// change.
+model ISMSProfileVersion {
+  id String @id @default(uuid()) @db.Uuid
+
+  refCode     String @unique @map("ref_code")
+  orgEntityId String @map("org_entity_id") @db.Uuid
+
+  ismsProfileId String @map("isms_profile_id") @db.Uuid
+
+  /// 13:31's `v`, e.g. "v3.2" in the design data. ⚠️ Not validated as anything,
+  /// for RMReportVersion:1802's reason: the source register's labels are not one
+  /// format, so imposing one would reject the real data this exists to hold.
+  versionLabel String @map("version_label")
+
+  /// 13:31's `date`. Distinct from `created_at` and deliberately so: importing a
+  /// profile's existing history would set `created_at` to the import and this to
+  /// the date the version was actually issued. The snapshot_at / effective_date
+  /// pair on RMReportVersion makes the same distinction.
+  versionedAt DateTime @map("versioned_at") @db.Date
+
+  /// 13:31 stamps "the actor AND the role they acted under".
+  actorUserId String? @map("actor_user_id") @db.Uuid
+
+  /// ⚠️ String, not an FK. 02a:71 puts Role / Permission in M4 with no
+  /// field-level spec, so a relation here would invent an entity — the W11
+  /// ruling on `framework_id`, one slice earlier.
+  actorRole String? @map("actor_role")
+
+  note String?
+
+  createdBy String? @map("created_by") @db.Uuid
+  updatedBy String? @map("updated_by") @db.Uuid
+
+  version    Int  @default(1)
+  extensions Json @default("{}") @db.JsonB
+
+  orgEntity OrgEntity   @relation(fields: [orgEntityId], references: [id])
+  profile   ISMSProfile @relation("ProfileVersions", fields: [ismsProfileId, orgEntityId], references: [id, orgEntityId], onDelete: Restrict)
+  actor     User?       @relation("ISMSProfileVersionActor", fields: [actorUserId], references: [id], onDelete: Restrict)
+
+  currentFor ISMSProfile[] @relation("CurrentVersion")
+
+  createdAt DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt DateTime  @updatedAt @map("updated_at") @db.Timestamptz(6)
+  retiredAt DateTime? @map("retired_at") @db.Timestamptz(6)
+
+  /// The anchor isms_profiles.current_version_id references. It includes
+  /// isms_profile_id so "the current version must belong to THIS profile" is a
+  /// database fact rather than an application rule.
+  @@unique([id, ismsProfileId])
+
+  /// ⚠️ EXPLICIT `map:`, and the length is the reason. The name Prisma would
+  /// derive — isms_profile_versions_org_entity_id_isms_profile_id_version_label_key
+  /// — is 69 characters, and PostgreSQL's NAMEDATALEN is 63: it would be
+  /// truncated SILENTLY. W11 hit exactly this on statements_of_applicability and
+  /// the schema has disagreed with the database ever since (W16 Day-0 DR12).
+  @@unique([orgEntityId, ismsProfileId, versionLabel], map: "isms_profile_versions_org_entity_profile_label_key")
+
+  @@index([orgEntityId, retiredAt])
+  @@index([ismsProfileId])
+  @@map("isms_profile_versions")
+}
+
+/// 13:43. OP = Office Printing, OS = Office Services, plus `other`.
+enum OfferingBusinessLine {
+  op
+  os
+  other
+
+  @@map("offering_business_line")
+}
+
+/// 13:43.
+enum OfferingType {
+  product
+  service
+
+  @@map("offering_type")
+}
+
+/// 13:43's four values. ⚠️ The prototype renders three different ones
+/// (Approved / Conditional / Pending). 13:43 is the data model and 已確認參數
+/// #11 gives the procedure authority over domain logic, so the four win; M6c
+/// needs a display mapping rather than a schema change.
+enum OfferingApprovalStatus {
+  proposed
+  approved
+  suspended
+  withdrawn
+
+  @@map("offering_approval_status")
+}
+
+/// 13:27's certification state. An enum rather than a string because the three
+/// values are given verbatim there — recording a list, not authoring one
+/// (Attestation:2226-2236).
+enum CertificationState {
+  certified
+  in_scope
+  not_in_scope
+
+  @@map("certification_state")
 }
