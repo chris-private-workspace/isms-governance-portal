@@ -154,7 +154,7 @@
 
 ### 2.3 中性化預測（**寫在執行之前**）
 
-- [x] **預測表寫入 progress.md 並 commit**（`57d13c6` —— 預測早於實測）
+- [x] **預測表寫入 progress.md 並 commit**（`0e80253` —— 預測早於實測）
   - DoD: 每個實驗寫 (a) 改什麼 (b) **哪幾條**測試該紅 (c) **紅在哪個位置**；
     ⭐ **承諾形狀與位置，對條數給區間**（`AD-NeutralisationCountUnderPredicted-1`：
     W16 三次全把條數估低）
@@ -235,5 +235,10 @@ Drive-through 的位置由中性化 + AC-2 逐欄位對照替代。)_
   - DoD: ⛔ **AP-3 要如實記** —— 兩張表今天零消費者
 - [x] `plan.md` frontmatter `status:` → `closed` **+ 內文 `**Status**` 一起翻**（R9）
   - Verify: `python scripts/lint/check_status_markers.py`
-- [ ] **Commit** → ⏳ PR push + open → CI → merge: **PENDING USER CONFIRMATION**
-      （push 是 outward-facing）→ merge 經 `gh pr view <N> --json state,mergedAt` **驗證**後翻狀態標籤
+- [x] **Commit** → PR push + open → CI → merge（使用者授權後執行）
+      → **PR #73** CI **6 / 6 pass**（gates · SCA · trivy · gitleaks 全歷史 · 映像 build + 啟動探測 · SAST）
+      → rebase merge，經 `gh pr view 73 --json state,mergedAt` 驗證 **MERGED 2026-08-16T16:22:37Z** / `cf7cf07`
+      → **七處** `PR-pending` 已翻：`CLAUDE.md` · `MEMORY.md` · `ROADMAP.md` · `BACKLOG.md` ·
+      `memory/project_w17_*` · `CH-035` · 本 phase `retrospective.md`
+      → ⚠️ **另修四處被 rebase 改寫的 SHA 引用**（`05c2156`→`d2abdc8` · `57d13c6`→`0e80253`）——
+      六個 SHA 零重疊，且舊 SHA **在本機仍可解析**故所有本地驗證都會通過（`AD-RebaseStaleShaRef-1`）

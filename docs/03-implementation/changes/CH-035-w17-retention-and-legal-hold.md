@@ -5,7 +5,7 @@
 **Scope**: `core-model`（schema / migration / seed / int spec）+ `multi-tenant-data.md` 豁免舉證
 + `check_entity_index.py` 一條 ALIAS
 **Components**: —
-**PR**: PR-pending
+**PR**: MERGED (PR #73, `cf7cf07`)
 
 ---
 
@@ -100,7 +100,7 @@ coverage **92.14 / 91.77 / 98.98 / 93.56**（**逐位不變** —— 本片新�
 ⚠️ **42501 在三條測試裡代表三件不同的事**（完全無 grant / 無 UPDATE grant / grant 存在但 RLS 拒絕），
 所以每條測試都寫明它斷言的是哪一層。
 
-**六次中性化實測**（預測**寫在執行之前**並鎖在 commit `57d13c6`）：
+**六次中性化實測**（預測**寫在執行之前**並鎖在 commit `0e80253`）：
 
 | 實驗 | 預測 | 實測 |
 |---|---|---|

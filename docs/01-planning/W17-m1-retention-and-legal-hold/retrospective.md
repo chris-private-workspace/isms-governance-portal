@@ -3,7 +3,7 @@
 **Phase**: W17 — M1 slice 12: records retention and legal hold
 **Period**: 2026-08-16（單日，UTC 13:24 → 16:xx；本地時間跨午夜到 08-17）
 **Plan**: [plan.md](./plan.md)  ← 四件套共置於同一個資料夾
-**PR**: PR-pending
+**PR**: MERGED (PR #73, `cf7cf07`) — 2026-08-16T16:22:37Z
 **Change record**: `docs/03-implementation/changes/CH-035-w17-retention-and-legal-hold.md`
 
 ---
@@ -71,7 +71,7 @@
 ## Q3 — Day-0 驗證的投報率
 
 - **Drift 數量：11**（Prong 1: **1** / Prong 2: **7** / Prong 3: **3**）
-- **Day-0 成本**：~18 min（T0 → 首個 commit `05c2156`，含 baselines 背景執行）
+- **Day-0 成本**：~18 min（T0 → 首個 commit `d2abdc8`，含 baselines 背景執行）
 - **預防的返工**：~**1.5–2 hr**
 - **ROI**: ~**5–7×**
 
@@ -100,7 +100,7 @@
 - **W16 的教訓被吸收進 plan 而不是 Day 0**：§3.2 直接寫 `ENABLE` 加 `FORCE`，
   Day 0 只需**對既有 migration 逐字複核寫法**（且明寫「不從本 plan 抄 —— plan 是我寫的，
   它不是證據」）。W15 的 calibration 教訓同樣進了 §7 的 bottom-up。
-- **中性化預測鎖進 commit `57d13c6` 才開始跑**，且**逐次序列執行** ——
+- **中性化預測鎖進 commit `0e80253` 才開始跑**，且**逐次序列執行** ——
   N3–N5 那批啟動前**輪詢等前一批印出 `ALL DONE`**，因為 W16 的 12 條假紅就是並行造成的。
 - **AC-2 的路徑 2 從 `git show HEAD:` 讀而非工作區** —— 中性化正在改工作區的 migration，
   拿一個正在被改動的檔案當基準，那條路徑就不獨立了。
