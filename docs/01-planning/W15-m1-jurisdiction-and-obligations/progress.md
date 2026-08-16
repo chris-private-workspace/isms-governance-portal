@@ -478,3 +478,104 @@ migration banner 的 "by one row" 一併改寫（引用已不成立的東西 = o
   （⚠️ 不只 AC-4 一條：測試 2 走 42704 路徑、測試 3 讀 catalog，**三條的紅法各不相同**，
   這比「AC-4 轉紅」是更強的預測，因此**先寫下再執行**）
 - 預測與實際逐項對照，**命中與落空都記**，⛔ 預測錯不改預測
+
+---
+
+## Day 3 — 2026-08-16 · 中性化驗證
+
+### 3.0 消費者 grep（⛔ 在寫任何預測之前）
+
+`AD-NeutralisationConsumerGrep-1`（W13）：**列的必須是 grep 出來的消費者，不是「我以為會受影響的 suite」。**
+兩條 grep 量到兩件**直接改變預測**的事實：
+
+#### 事實 A —— `app_entity_scope()` 的兩個錯誤碼不同，而且都不是我原本想的那個
+
+`20260809171812_entity_scope_fail_closed/migration.sql:27-45`：
+
+| 情況 | SQLSTATE | 來源 |
+|---|---|---|
+| GUC **從未設過** | **42704** | `current_setting` 無 `missing_ok`，函式第一行就 raise |
+| GUC 設了但**空字串** | **42501** | 函式自己 `RAISE EXCEPTION ... USING ERRCODE` |
+
+⇒ N2 若用 `app_entity_scope()` 寫 policy，**測試 1 與測試 2 會以完全不同的方式紅**：
+測試 1 拿到**錯的值**（`['SG']`），測試 2 拿到**例外**（42704）。這兩種紅不能混為一談。
+
+#### 事實 B ⭐ —— 執行順序讓「留下的那一列」剛好不會被看見
+
+```
+npx jest --config jest.int.config.js --listTests
+  … 17: entity-scope\rls-direct.int.spec.ts
+     18: core-model\jurisdiction.int.spec.ts   ← 最後
+```
+
+N1 移掉 FK 後，測試 6 的 INSERT 會**成功**並在 `org_entities` 留下第 6 列。
+而全 repo **唯一另一個** `org_entities` 計數消費者是
+`rls-direct.int.spec.ts:142` 的 `expect(rows[0].n).toBe(5)` ——
+⭐ **它跑在第 17，已經跑完了。**
+
+⛔ **這一條推翻了我的直覺。** 沒有這次 grep，我會預測「N1 造成 2 紅（測試 6 + 計數測試）」，
+而正確答案是 **1 紅**，理由**不是** RLS 也不是 FK，是**檔案執行順序**。
+⚠️ 依賴 `--listTests` 的輸出順序等同於 sequencer 的執行順序 —— 這是**假設**不是量測。
+**若實測出現第 2 紅且落在 `rls-direct`，那代表這個假設錯，而預測本身不改。**
+
+#### 其他被 grep 掃到但**預期不受影響**的消費者
+
+| 消費者 | 為什麼不動 |
+|---|---|
+| `bench.int.spec.ts:100` INSERT `org_entities` | **不供給 `jurisdiction_id`**（欄位 nullable）⇒ N1/N2 皆無關；`:131` 自己刪掉 |
+| `int-global-setup.js` seed + 計數 assert | 走 **owner** 連線。RLS 未加 `FORCE` ⇒ 對 owner 不生效 |
+| `org_entities` 的 FK RI 檢查（N2 下指向已加 RLS 的 `jurisdictions`）| W07 已量測 **RI 檢查繞過 RLS**；且 seed 本來就是 owner |
+| 其餘 16 個 int suite | grep `jurisdiction`（不分大小寫）於 `*.int.spec.ts` **只命中本片自己的檔** |
+
+### 3.1 Clean restart —— ⚪ 結構上不成立，記錄而非打勾略過
+
+本片無長駐 dev server（零端點、零 UI），int suite 的 global setup 每次
+`DROP DATABASE ... WITH (FORCE)` + `CREATE` + `migrate deploy` + seed。
+⇒ Risk Class C（陳舊長駐程序掩蓋 wiring 修正）**在這個 phase 沒有成立的路徑**。
+⛔ 這不是「跳過」，是「量過之後判定不適用」——兩者在文件上看起來一樣，所以寫出來。
+
+### 3.2 預測（⛔ 本節在**執行任何中性化之前** commit）
+
+#### N1 —— 移除 `org_entities_jurisdiction_id_fkey`
+
+做法：在 W15 migration 末尾追加 `ALTER TABLE "org_entities" DROP CONSTRAINT ...`，
+跑 int suite，然後 `git checkout --` 還原。
+
+| # | 測試 | 預測 | 理由 |
+|---|---|---|---|
+| 6 | `org_entity` 指向不存在的 `jurisdiction_id` | 🔴 **RED** | 沒有 FK ⇒ INSERT **成功** ⇒ `rejects` 斷言失敗 |
+| 1·2·3 | 全域可讀三條 | 🟢 GREEN | 與 `org_entities` 的 FK 無關 |
+| 4·5 | `obligations` 兩條 FK | 🟢 GREEN | 動的是另一張表的約束 |
+| 7 | 應用角色三張表皆 42501 | 🟢 GREEN | GRANT 未動 |
+| `rls-direct` org_entities 計數 `toBe(5)` | 🟢 **GREEN** | ⭐ **事實 B**：它跑第 17，第 6 列在第 18 才產生 |
+| 其餘 16 suite | 🟢 GREEN | grep 零命中 |
+
+⇒ **總計預測：225 → 224 passed / 1 failed，failed suite 1 個。**
+
+#### N2 —— 給 `jurisdictions` 加一條 entity-scoped RLS policy
+
+做法：追加 `ENABLE ROW LEVEL SECURITY` + 一條**看起來很合理的**收緊 policy
+（「只給你看你的實體所在的管轄區」），這正是有人「加強安全」時會寫的東西：
+
+```sql
+CREATE POLICY "jurisdictions_entity_scope" ON "jurisdictions" FOR ALL
+  USING ("id" IN (SELECT "jurisdiction_id" FROM "org_entities"
+                   WHERE "id" = ANY (app_entity_scope())));
+```
+
+| # | 測試 | 預測 | **紅的形狀**（三條各不相同）|
+|---|---|---|---|
+| 1 | SG1 範疇讀 11 個 | 🔴 **RED** | **錯的值** —— SG1 的管轄區只有 SG ⇒ 回 `['SG']`，1 個 vs 11 個 |
+| 2 | 從未設 scope 也讀 11 個 | 🔴 **RED** | **例外** —— `app_entity_scope()` raise **42704**（事實 A），query 直接 throw |
+| 3 | catalog 說沒有 RLS | 🔴 **RED** | **catalog 值** —— `relrowsecurity` `false → true`、`policies` `0 → 1` |
+| 7 | 應用角色寫不進去 | 🟢 **GREEN** | ⭐ **權限先於 RLS** —— 仍是 42501，不是 RLS 造成的 |
+| 4·5·6 | 三條 FK | 🟢 GREEN | owner 連線，RLS 無 `FORCE` ⇒ 不適用 |
+| seed + 計數 assert | 🟢 GREEN | 同上，owner |
+| 其餘 16 suite | 🟢 GREEN | grep 零命中 |
+
+⇒ **總計預測：225 → 222 passed / 3 failed，failed suite 1 個。**
+
+⭐ **N2 是本片的驗收核心**：它是唯一能區分「全域是刻意的」與「忘了加 RLS」的實驗。
+⚠️ **若測試 1 在加了 policy 之後仍綠，那條測試就是恆真的**（`AD-VacuousScopeTest-1` 形狀）。
+⭐⭐ 而「三條各以不同方式紅」比 plan §5 AC-7 寫的「**AC-4 轉紅**」是**更強的預測** ——
+plan 只要求一條紅，這裡承諾三條、且逐條指定紅的機制。**落空任何一條都算預測錯，不改預測。**
