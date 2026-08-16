@@ -109,3 +109,49 @@ EXIT=1
 
 範圍變動 **< 10%**（僅 checklist 1.2 的 Verify 指令改寫）⇒ **繼續 Day 1**。
 ⛔ 依規則，drift 不默默改 §Technical Spec —— D10 已加進 plan §8 Risks。
+
+---
+
+# Day 1 — 2026-08-16
+
+## 交付
+
+`schema.prisma` +2 model +3 enum（header **31 → 33**，`grep -c '^model '` 自我可重現；
+enum 30 → 33）· migration `20260816135016_retention_and_legal_hold`（UTC 目錄名）·
+`multi-tenant-data.md` 豁免舉證 · `check_entity_index.py` 一條 ALIAS。
+
+**`check_entity_index`: 30 / 36 → 32 / 36** ⇒ **AC-1 達成**。
+
+## Day-1 findings
+
+| ID | Finding | Implication | Verdict |
+|----|---------|-------------|---------|
+| **D12** | `schema.prisma` header 寫「**TWO tables are exempt** … **Nothing else is exempt**；adding a third requires justification」。⛔ **W15 加了三張全域參考表（`jurisdictions`/`regulations`/`obligations`）而沒動這句話** ⇒ 它在 W15 落地當天就已經不true | 這句話**本身**是那條規則的守門員，而它比它守的東西先失效。改寫為三類（定義範疇 / identity / 全域參考資料）並逐張列名，明說「kind 3 是一份**清單**不是一張**許可證**」 | 🟡 已修正並記錄它曾經錯過 |
+| **D13** ⭐ | `AD-DevDbChecksumDrift-1` 六個 phase 的落後，**被一個沒人跑過的指令關掉了**：`npx prisma migrate deploy` 一次把 `isms_dev` 從 **17 / 23** 補到 **24 / 24**（含本片這支），零錯誤 | ⭐⭐ 該 AD 的敘述一直是「`prisma migrate dev` 自 W10 起被擋」，而**六次繞開都沒有人試過 `deploy`**。兩者不同：`dev` 會做 drift 偵測 + shadow DB，`deploy` 只套用。⇒ 這條 AD 的**真正射程比它宣稱的窄**：被擋的是 `migrate dev` 的**額外功能**，不是套用 migration 本身 | 🟢 順帶關閉；AD 敘述需修正 |
+| **D14** | `check_entity_index` 對 `RetentionPolicy` 報 FAIL —— model 名 `RetentionPolicy`、表名 `retention_policies`、而 `02a:50` 寫 `retention_policy`（單數） | 三個名字都不同，正是 `ALIASES` 存在的情境（`ExtensionField` 先例）。⛔ **不改 `02a`**（權威排序：設計文件 > 代碼，讓文件遷就表名是反方向），⛔ **不把表改成單數**（其餘 24 張全是複數）⇒ 加一條有理由的 ALIAS | 🟢 已加 |
+
+## 關鍵設計決定（寫進 migration banner 與 schema docstring）
+
+| # | 決定 | 依據 |
+|---|---|---|
+| 1 | `retention_policies` **無 `org_entity_id`、無 RLS、`GRANT SELECT` only** | `05:73-80` 六列全是集團級義務；`multi-tenant-data.md:81` 舉證已寫入三處（該檔 + banner + PR 描述）|
+| 2 | ⭐ **不建多型守衛 trigger** | `polymorphic_parent_guard:47` 的 `::uuid` cast 早於 `:52-59` 的 mapping walk，而 `class` 的目標不是 uuid（會拋 22P02 而非 23503）；`record` 泛指 31 張表無從 mapping。**只涵蓋 `entity` 分支的 trigger 比沒有更糟** —— 綠燈、有斷言、對兩個需要檢查的分支全盲 |
+| 3 | 欄位名 **`scope_ref` 而非 `02a:318` 的 `scope_id`** | W11 對 `framework_id` 的裁決再套用一次：`_id` 後綴承諾一個 uuid 與一條 FK，而這欄兩者皆無 |
+| 4 | `record_class` **TEXT 不是 FK** | 六類裡 3 類指向 Wave 2 / 未建實體（`Event`·`17`·`12`）|
+| 5 | `duration` **TEXT 不是 interval** | 六個值不是同一種量（相對事件／相對版本／相對外部合約／帶拒絕處置旗標）|
+| 6 | **不建 `status`** | `applied_at` / `released_at` 已承載終態。⚠️ 與 W14/W07 的差別：那兩次是**沒有值域來源**，這次是**終態已被承載** ⇒ 建它是冗餘不是發明 |
+| 7 | **無 `FOR UPDATE` policy、無 `GRANT UPDATE`** | 解除 hold 就是一次 UPDATE，而 `05:69` 限定「僅授權角色」；`Role` 是 M4 實體（`02a:71`）⇒ **今天「解除」不可表達**。扣住 grant 是把這件事寫進 schema，而不是出貨一條無限制的解除路徑再說限制是未來工作 |
+| 8 | `applied_by` / `released_by` 兩條 FK **皆 `Restrict`** | 與 `ISMSProfile.owner` 的 `SetNull` **刻意不同**：誰下的 hold、誰解的，正是這張表要產出的證據；人離職就把它 null 掉等於銷毀稽核要問的那個事實 |
+
+## Verify
+
+| 檢查 | 結果 |
+|---|---|
+| `prisma validate` | **valid** ✅ |
+| `grep -c '^model '` | **33**（header 宣稱 33，自我可重現）· `^enum ` **33** ✅ |
+| ⭐ **D10 漂移檢查** | `migrate diff` → **恰好還是 Day-0 那 2 條既有漂移**（`audit_log` byte default · `soa` index rename），**零條新增** ⇒ 手寫 migration 與 `schema.prisma` 在欄位／型別／nullable／索引／FK／enum 上完全一致 ✅ |
+| `migrate deploy` | 24 / 24 套用成功（本片這支語法正確且乾淨套用）✅ |
+| **AC-6** 行數不變 | `git diff --numstat` → **`1  1`**（增 1 刪 1）✅ |
+| `format:check` · `lint` · `type-check` · `build` · `lint:negative` | 全部 **EXIT=0** ✅ |
+| `run_all` | **8 / 8**，`check_entity_index` **32 / 36** ✅ |
+| 識別字長度 | 最長 `legal_holds_org_entity_id_retired_at_idx` = **40** ≤ 63 ✅ |

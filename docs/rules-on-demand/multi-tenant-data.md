@@ -62,7 +62,7 @@ CREATE INDEX idx_risk_assessments_entity_asset ON risk_assessments(entity_id, as
 | `frameworks` / `framework_controls` | ISO 27001 Annex A、27017 條文 —— 集團共用 |
 | `threats` / `vulnerabilities` | 可重用庫（已確認參數 #8）。**W05 已建**，名稱依 `02a` §0 —— 本檔原寫 `threat_library` / `vulnerability_library`，那是**下位文件的鏡誤**（CLAUDE.md 權威排序：設計文件 > 規則檔）|
 | `jurisdictions` / `regulations` / `obligations` | 管轄區與法規參考資料。⭐ **`obligations` 是 W15 依 `:81` 走舉證程序後併入本列的**（併入而非新增一列：本檔被 100+ 個 `file:line` 錨點引用，`AD-MdAnchorLineShift-1` 的通則是**編輯不得改變行數**）。舉證：`02a:200` 的五個欄位（`regulation_id` / `jurisdiction_id` / `reference` / `text` / `summary`）**全部是法規內容** —— 新加坡 PDPA 的一條條文對 13 家 OpCo 逐字相同，**不存在 per-entity 的法條版本**。真正 per-entity 的是「本實體靠哪個控制項滿足它」，那住在 `ObligationControlMapping`（`10:69`，Wave 2，**刻意不在 `02a` §0 索引上**）。⛔ 把這張表範疇化，等於把「PDPA s.24 之於 SG OpCo 1」與同一條之於 SG OpCo 2 存成兩列 —— 那不是範疇化，那是**把法條複製 13 份** |
-| `risk_scales` | 集團標準量表。**per-entity 校準走設定表，不是分叉這張表**（參數 #7）|
+| `risk_scales` / `retention_policies` | 集團標準。**per-entity 校準走設定表，不是分叉這張表**（參數 #7）。⭐ **`retention_policies` 是 W17 依 `:81` 走舉證程序後併入本列的**（併入而非新增一列：本檔被 100+ 個 `file:line` 錨點引用，`AD-MdAnchorLineShift-1` 的通則是**編輯不得改變行數**；`risk_scales` 與它同屬「集團訂標準、實體不分叉」這一類）。舉證：`05:73-80` 的六列保存期限**全部是集團級義務** ——「Security incident records / 3 years after closure / ISO 27001 A.5.28」是一條標準條款加集團紀錄政策，**不是 SG OpCo 1 對自己事件的意見**，也不存在 per-entity 的 A.5.28 版本。⛔ 範疇化它會存下 13 份逐位元組相同的列，並且**默默回答一個沒人問的問題**：「HK1 可以把自己的保存期限縮成 1 年嗎？」—— 那是合規決定，不該由 schema 的預設形狀代答。真正 per-entity 的是**哪些紀錄存在、以及是否被扣留**，而那住在 `legal_holds`（W17，**帶** `org_entity_id` 且 RLS `ENABLE`+`FORCE`）|
 
 **Identity 資料是第三類** —— 既不是業務資料，也不是參考資料。上面五類**全部沒有個資**；
 這一類**有**，所以它不能混進那張表。
