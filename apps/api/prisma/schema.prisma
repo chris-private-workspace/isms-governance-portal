@@ -90,6 +90,14 @@ model OrgEntity {
   /// a recursive CTE inside an RLS policy, where a CTE would run per row.
   path String
 
+  /// 02a:159. NULLABLE, and the reason is expressiveness rather than
+  /// convenience: `type` includes `region`, and a region node spans all eleven
+  /// jurisdictions — APAC in the seed is the live example. There is no single
+  /// correct value for it, so NOT NULL could not express the root of the
+  /// hierarchy at all. Narrowing later is one migration; widening is not.
+  jurisdictionId String?       @map("jurisdiction_id") @db.Uuid
+  jurisdiction   Jurisdiction? @relation(fields: [jurisdictionId], references: [id])
+
   parent          OrgEntity?       @relation("OrgEntityHierarchy", fields: [parentId], references: [id])
   children        OrgEntity[]      @relation("OrgEntityHierarchy")
   policies        Policy[]
@@ -809,6 +817,143 @@ model Vulnerability {
   retiredAt DateTime? @map("retired_at") @db.Timestamptz(6)
 
   @@map("vulnerabilities")
+}
+
+/// How a jurisdiction treats data residency (02a:161). W15.
+///
+/// ⚠️ Every in-scope jurisdiction is `none` today, and that is not a reason to
+/// skip the column. China left scope on 2026-08-08 (CH-008, ADR-0010) and was
+/// the only one that was ever anything else. The value domain is FIXED BY THE
+/// SPEC rather than invented here, which is what separates this from the status
+/// columns W14 declined to build — those had no source for their values at all.
+///
+/// ⛔ Do NOT read this as residency capability. The seven `cross_border_*` /
+/// `deployment_region` columns in 02a:181-189 are explicitly NOT BUILT in Wave 1
+/// (02a:163 banner, and CLAUDE.md guardrail 8 calls building them AP-5). This
+/// enum is a classification label on a reference row; it enforces nothing.
+enum ResidencyPolicy {
+  none
+  conditional
+  localised
+
+  @@map("residency_policy")
+}
+
+/// The jurisdiction spine (02a:161) — GLOBAL, no org_entity_id. W15.
+///
+/// ⚠️ Consumes an existing exemption rather than introducing one:
+/// `rules-on-demand/multi-tenant-data.md:64` already lists jurisdictions and
+/// regulations among the legitimate global reference tables. Same position as
+/// Threat above — nothing here widens the rule.
+///
+/// The three omissions carry three DIFFERENT strengths of reason, worth keeping
+/// apart because only one of them is a judgement call:
+///   - no `extensions` — MECHANICAL. validate_extensions() reads
+///     NEW.org_entity_id unconditionally (governed_extensions migration
+///     :112/:116/:140, verified W15 Day 1), so attaching it here is a runtime
+///     error, not a policy choice.
+///   - no `ref_code` — STRUCTURAL. Codes are issued per entity by
+///     ref_code_counters and there is no entity here to issue against.
+///   - no `status` — JUDGEMENT. 02a §4 lists no lifecycle for this entity, so
+///     inventing one would be inventing a vocabulary the business never agreed
+///     to. Same test that kept `status` off Attestation in W14.
+model Jurisdiction {
+  id String @id @default(uuid()) @db.Uuid
+
+  /// ISO country/region code (02a:161). Unique group-wide — there is no entity
+  /// axis to make it unique against, exactly as with Threat.name.
+  code            String          @unique
+  name            String
+  residencyPolicy ResidencyPolicy @default(none) @map("residency_policy")
+  notes           String?
+
+  orgEntities OrgEntity[]
+  regulations Regulation[]
+  obligations Obligation[]
+
+  version   Int       @default(1)
+  createdAt DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt DateTime  @updatedAt @map("updated_at") @db.Timestamptz(6)
+  retiredAt DateTime? @map("retired_at") @db.Timestamptz(6)
+
+  @@map("jurisdictions")
+}
+
+/// A source of obligations (02a:198) — GLOBAL. On the list at
+/// multi-tenant-data.md:64 alongside jurisdictions. W15.
+///
+/// ⚠️ 02a:198 names a `version` field, and §1.1 already gives every entity an
+/// int `version` for optimistic locking. They are NOT the same thing: a
+/// regulation's version is "2012 Rev.3", an edition label. Policy hit the
+/// identical collision and its built model kept only the base int
+/// (schema.prisma Policy), so this follows that precedent — and unlike Policy,
+/// the cost is being recorded: the edition label has no home. See
+/// AD-RegulationVersionCollision-1.
+model Regulation {
+  id String @id @default(uuid()) @db.Uuid
+
+  name String
+
+  /// Required N:1 (02a:427) — a regulation is always jurisdiction-tagged.
+  jurisdictionId String       @map("jurisdiction_id") @db.Uuid
+  jurisdiction   Jurisdiction @relation(fields: [jurisdictionId], references: [id])
+
+  effectiveDate DateTime? @map("effective_date") @db.Date
+  sourceUrl     String?   @map("source_url")
+
+  obligations Obligation[]
+
+  version   Int       @default(1)
+  createdAt DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt DateTime  @updatedAt @map("updated_at") @db.Timestamptz(6)
+  retiredAt DateTime? @map("retired_at") @db.Timestamptz(6)
+
+  @@index([jurisdictionId])
+  @@map("regulations")
+}
+
+/// A single clause of a regulation (02a:200) — GLOBAL, and this one EXTENDS the
+/// list rather than matching it. W15.
+///
+/// ⚠️ multi-tenant-data.md:81 requires an argument for any new global table;
+/// the default is that a table carries entity_id. The argument, also written
+/// into that file:
+///
+///   All five specified fields (regulation_id, jurisdiction_id, reference,
+///   text, summary) are REGULATORY CONTENT. A clause of Singapore's PDPA reads
+///   identically for all 13 OpCos — there is no per-entity variant of what the
+///   law says. What IS per-entity is which control an entity relies on to
+///   satisfy the clause, and that lives in ObligationControlMapping (10:69,
+///   Wave 2, and deliberately off the 02a §0 index so it cannot be built here).
+///
+/// ⇒ Scoping this table would model "Singapore's PDPA clause 24, as it applies
+/// to SG OpCo 1" as a distinct row from the same clause for SG OpCo 2. That is
+/// not a scoping decision, it is a duplication of the statute.
+model Obligation {
+  id String @id @default(uuid()) @db.Uuid
+
+  /// Both links required (02a:427) — obligations are always sourced AND
+  /// jurisdiction-tagged. jurisdiction_id is redundant against
+  /// regulation.jurisdiction_id by construction today; the spec names both, and
+  /// keeping it makes "obligations in jurisdiction X" a single-table query.
+  regulationId   String       @map("regulation_id") @db.Uuid
+  regulation     Regulation   @relation(fields: [regulationId], references: [id])
+  jurisdictionId String       @map("jurisdiction_id") @db.Uuid
+  jurisdiction   Jurisdiction @relation(fields: [jurisdictionId], references: [id])
+
+  /// The clause identifier within the regulation, e.g. "s.24".
+  reference String
+  text      String
+  summary   String?
+
+  version   Int       @default(1)
+  createdAt DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt DateTime  @updatedAt @map("updated_at") @db.Timestamptz(6)
+  retiredAt DateTime? @map("retired_at") @db.Timestamptz(6)
+
+  @@index([regulationId])
+  @@index([jurisdictionId])
+  @@map("obligations")
 }
 
 /// The methodology's centre (02a:193-196): a risk is one asset, one threat, one

@@ -158,3 +158,62 @@ GRANT 從頭到尾沒有被問過，因為前九片的表都是 entity-scoped �
 - ⭐ 先建表 + 跑 int suite，**觀察漂移守衛仍綠**（D6 的實地驗證，W14 的反向對照組）
 - migration 含 `GRANT SELECT` only（D7），理由寫進註解
 - seed 三分（D8），且區分寫進註解
+
+---
+
+## Day 1 — 2026-08-16 · Schema + migration
+
+### ⛔⭐ 1.0 checklist 1.1 的原文是一條恆真的檢查 —— 在執行它之前先說
+
+checklist 1.1 寫的是「觀察漂移守衛**仍綠**」。**那個觀察單獨看什麼都不證明。**
+
+W14 的 progress 對它的**正向**版本寫過一句話：
+
+> 「先改再跑得到的是綠色，而綠色**不能區分**『守衛有效』與『守衛從不看新表』。」
+
+⇒ W15 是同一句話的**鏡像**，而 checklist 正好踩進去：
+「3 個新 model + 零 repository ⇒ 守衛綠」與「守衛從來不看新 model ⇒ 守衛永遠綠」
+**產生一模一樣的觀察**。⭐ **這是 `AD-VacuousScopeTest-1` 出現在 checklist 自己身上**，
+而 W13 才剛為它掃過 13 個 spec、補了 4 處。
+
+⚠️ 更值得說的是**它為什麼溜進來**：W14 的檢查有價值，是因為那次的預期是**紅**——
+紅色會指名、會定位、無法造假。這一片把同一個檢查抄過來，**方向翻了而沒有人重新問它證明什麼**。
+⇒ **一個檢查的價值不在它的動作，在它的預期結果能不能區分兩種世界。**
+
+### 1.0b 因此把 1.1 拆成兩半，**第二半才是驗收**
+
+| | 做什麼 | 預期 | 它排除什麼 |
+|---|---|---|---|
+| **1.1a** | 建 3 表 + 零 repository → 跑 int | **全綠 218 / 17**，守衛不動 | 排除「新 model 會讓守衛誤報」（AP-3 的另一半：清單裡有 `unreachable` 的名字）|
+| **1.1b** ⭐ | **暫時**加一個 `jurisdiction.repository.ts` stub（內含 `client.jurisdiction.create(`）→ 跑 int | ⛔ **恰好 1 紅**，訊息**自己指名 `Jurisdiction`**，落在 **`unaudited`** 側 | 排除「守衛從不看新 model」—— **只有這一半能做到** |
+
+**⇒ 預測（本節在執行前 commit）**：
+
+- **1.1a**：`api int` **218 / 17**，與 Day-0 baseline **逐位相同**；`audit-coverage` 的
+  「the allowlist still matches the write surface」**綠**。
+- **1.1b**：`api int` **217 passed / 1 failed**，該 1 條是漂移守衛，訊息含 `"Jurisdiction"`
+  且出現在 `unaudited` 陣列（**不是** `unreachable`）；⭐ **其餘 16 個 suite 一條不動**。
+- **1.1b 還原後**：回到 218 / 17。
+
+⚠️ **若 1.1b 沒有轉紅**，那不是「守衛壞了」的結論就能收工的 ——
+要先確認 stub 真的落在 `core-model/` 且 regex 真的匹配到它（`readdirSync` 只掃該目錄一層）。
+
+### 1.1 執行結果
+
+<!-- 填入實測 -->
+
+### 1.2 Schema + migration
+
+- `ResidencyPolicy` enum + 3 個 model + `OrgEntity.jurisdictionId`（nullable）
+- migration **手寫、UTC 時間戳** `20260816045848`（本地時間是 UTC+8，用它會超前八小時）
+- ⛔ **第四次繞開 `AD-DevDbChecksumDrift-1`** —— 記在這裡而不是靜靜繞過
+
+**三個「不建」的理由強度不同，Day 1 讀 `Threat` 的 docstring 才發現它們該分開寫：**
+
+| 省略 | 強度 | 依據 |
+|---|---|---|
+| `extensions` | ⭐ **機械強制** | `validate_extensions()` **無條件**讀 `NEW.org_entity_id`（`governed_extensions/migration.sql:112` · `:116` · `:140` —— **本片逐行驗證過，行號與 docstring 逐字相符**）⇒ 掛到沒有該欄位的表上是 **runtime error，不是政策選擇** |
+| `ref_code` | **結構性** | 發號是 per-entity 的（`ref_code_counters`），這裡沒有 entity 可發號 |
+| `status` | **判斷** | `02a` §4 無此三個實體的 lifecycle ⇒ 建了就是發明一份業務沒同意的詞彙表（W14 `Attestation` 同一判準）|
+
+⭐ **只有第三個是我的選擇**，而 plan §3.1 D2 把三者寫成同一種理由。
