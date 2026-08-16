@@ -95,8 +95,18 @@ CREATE TABLE "retention_policies" (
     "id" UUID NOT NULL,
     "record_class" TEXT NOT NULL,
     "duration" TEXT NOT NULL,
-    "trigger" "retention_trigger" NOT NULL,
-    "disposition" "retention_disposition" NOT NULL,
+    -- ⛔ NULLABLE, and these two were NOT NULL until Day 2 read the source
+    -- properly. 02a:314 gives each column's DOMAIN and then says what 05
+    -- confirms is "the six confirmed CLASSES AND PERIODS" — which is exactly
+    -- the three columns 05:73-80 actually has (class, retention, basis).
+    -- Two of the six triggers could be inferred from the period text ("3 years
+    -- AFTER CLOSURE") and four could not; inferring even the two is authoring a
+    -- value, and 已確認參數 #9 digitises the company's forms rather than
+    -- inventing fields. NOT NULL here would have forced the seed to make four
+    -- of them up. The columns stay because M6b's disposal scheduler must read
+    -- them; they are empty until someone with the authority fills them in.
+    "trigger" "retention_trigger",
+    "disposition" "retention_disposition",
     "basis" TEXT NOT NULL,
     "review_cadence" TEXT,
     "version" INTEGER NOT NULL DEFAULT 1,

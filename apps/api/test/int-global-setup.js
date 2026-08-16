@@ -551,6 +551,104 @@ const SEED = {
       'v1.0',
     ],
   ],
+  // W17. The six confirmed retention classes, QUOTED from 05:73-80 — a settled
+  // group fact (已確認參數 #9: digitise the company's existing forms, do not
+  // invent fields), not fabricated fixture data. The same standing as the eleven
+  // jurisdictions above, and the same consequence: retention.int.spec.ts checks
+  // this list against CLASSES, which is transcribed from 05 separately and NOT
+  // read back from here, so the assertion can disagree with the fixture.
+  //
+  // ⛔ THREE COLUMNS ARE ABSENT FROM EVERY ROW, and that is the source's shape
+  // rather than an incomplete fixture. 05:73-80 has three columns — class,
+  // retention, basis — and 02a:314 says so itself: what 05 confirms is "the six
+  // confirmed CLASSES AND PERIODS". trigger, disposition and review_cadence have
+  // no per-row source, which is why Day 2 made the first two nullable. Filling
+  // them here would be inventing four of six values and then testing against the
+  // invention.
+  //
+  // ⛔ The 017xxxx id range is new in W17 — verified ZERO hits across apps/api
+  // before use, the check W15 introduced after W14 lost seven tests to an id
+  // collision that a global replace had made invisible.
+  retentionPolicies: [
+    // [id, recordClass, duration, basis]
+    [
+      '00000000-0000-0000-0000-000000170001',
+      'Security incident records',
+      '3 years after closure',
+      'ISO 27001 A.5.28 · group records policy',
+    ],
+    [
+      '00000000-0000-0000-0000-000000170002',
+      'Risk Management Report & SoA',
+      '3 years per version',
+      'RM procedure',
+    ],
+    [
+      '00000000-0000-0000-0000-000000170003',
+      'ISMS profile versions',
+      '3 years per version',
+      'Controlled document register',
+    ],
+    [
+      '00000000-0000-0000-0000-000000170004',
+      'Audit issues & evidence',
+      '6 years',
+      'Certification body requirement',
+    ],
+    [
+      '00000000-0000-0000-0000-000000170005',
+      'External party assessments',
+      'Contract term + 2 years',
+      'A.5.19–A.5.22',
+    ],
+    [
+      '00000000-0000-0000-0000-000000170006',
+      'Platform audit log',
+      '7 years, immutable',
+      'Append-only, SHA-256 chained — no disposal',
+    ],
+  ],
+  // W17. BOTH entities again, for the reason the asset and profile fixtures
+  // give: with only SG1 rows, "HK1 cannot read SG1's hold" and "HK1 has no
+  // holds" are the same observation, and only the second one is true.
+  //
+  // ⚠️ Row 3 is RELEASED — released_at and released_by both set — and it is the
+  // only row that exercises legal_holds_released_pair_check from the satisfied
+  // side. Without it the CHECK would only ever be tested by the rows that leave
+  // both NULL, and "the constraint exists" would rest on one half of it.
+  legalHolds: [
+    // [id, orgEntityId, refCode, scopeType, scopeRef, reason, appliedBy, releasedBy]
+    [
+      '00000000-0000-0000-0000-000000170011',
+      '00000000-0000-0000-0000-0000000000c0',
+      'HOLD-SG1-000001',
+      'record',
+      '00000000-0000-0000-0000-000000160001',
+      'Fixture hold — litigation (SG1)',
+      '00000000-0000-0000-0000-0000000000d0',
+      null,
+    ],
+    [
+      '00000000-0000-0000-0000-000000170012',
+      '00000000-0000-0000-0000-0000000000c1',
+      'HOLD-HK1-000001',
+      'class',
+      'Security incident records',
+      'Fixture hold — regulatory request (HK1)',
+      '00000000-0000-0000-0000-0000000000d1',
+      null,
+    ],
+    [
+      '00000000-0000-0000-0000-000000170013',
+      '00000000-0000-0000-0000-0000000000c0',
+      'HOLD-SG1-000002',
+      'entity',
+      '00000000-0000-0000-0000-0000000000c0',
+      'Fixture hold — closed matter (SG1)',
+      '00000000-0000-0000-0000-0000000000d0',
+      '00000000-0000-0000-0000-0000000000d0',
+    ],
+  ],
 };
 
 module.exports = async function globalSetup() {
@@ -811,6 +909,46 @@ module.exports = async function globalSetup() {
       [id, orgEntityId, profileId, refCode, versionLabel],
     );
   }
+  // W17. Reference data, no dependencies — order does not matter here, unlike
+  // the profile block above.
+  //
+  // ⚠️ trigger / disposition / review_cadence are OMITTED FROM THE INSERT, not
+  // passed as NULL, so this statement says what the source says and nothing
+  // more. See the SEED.retentionPolicies comment for why the source stops at
+  // three columns.
+  for (const [id, recordClass, duration, basis] of SEED.retentionPolicies) {
+    await seed.query(
+      `INSERT INTO retention_policies (id, record_class, duration, basis, updated_at)
+       VALUES ($1, $2, $3, $4, now())`,
+      [id, recordClass, duration, basis],
+    );
+  }
+  // ⚠️ THIS INSERT IS ITSELF AN ASSERTION, and W16's N2a is why it says so out
+  // loud: when that phase narrowed a unique key, the seed violated it first and
+  // the suite died in setup — a crash instead of a named failure, which reads
+  // like the neutralisation was wrong rather than like it worked. The
+  // constraints these rows depend on: legal_holds_org_entity_id_fkey,
+  // legal_holds_applied_by_fkey, legal_holds_released_by_fkey,
+  // legal_holds_ref_code_key, and legal_holds_released_pair_check (row 3 is the
+  // satisfied side; rows 1 and 2 are the both-NULL side).
+  for (const [
+    id,
+    orgEntityId,
+    refCode,
+    scopeType,
+    scopeRef,
+    reason,
+    appliedBy,
+    releasedBy,
+  ] of SEED.legalHolds) {
+    await seed.query(
+      `INSERT INTO legal_holds (id, org_entity_id, ref_code, scope_type, scope_ref, reason,
+                                applied_by, released_by, released_at, updated_at)
+       VALUES ($1, $2, $3, $4::legal_hold_scope_type, $5, $6, $7, $8,
+               CASE WHEN $8::uuid IS NULL THEN NULL ELSE now() END, now())`,
+      [id, orgEntityId, refCode, scopeType, scopeRef, reason, appliedBy, releasedBy],
+    );
+  }
   // Derived, not declared: the counter must reflect what was just seeded, and
   // the only way to guarantee that is to compute it from those rows. Identical
   // to the backfill in 20260810185500_user_and_base_fields for the same reason.
@@ -930,6 +1068,13 @@ module.exports = async function globalSetup() {
     ['isms_contacts', SEED.ismsContacts.length],
     ['approved_offerings', SEED.approvedOfferings.length],
     ['isms_profile_versions', SEED.ismsProfileVersions.length],
+    // W17. `retention_policies` DOES have an external anchor, unlike the five
+    // W16 tables above: retention.int.spec.ts holds CLASSES, transcribed from
+    // 05:73-80 separately. So for this one the qualifier in the comment above
+    // does not apply — both halves are closed. `legal_holds` is a fixture we
+    // invented, so it is a landing check and nothing more.
+    ['retention_policies', SEED.retentionPolicies.length],
+    ['legal_holds', SEED.legalHolds.length],
   ]) {
     const { rows: c } = await counted.query(`SELECT count(*)::int AS n FROM ${table}`);
     if (c[0].n !== expected) {

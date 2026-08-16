@@ -155,3 +155,47 @@ enum 30 → 33）· migration `20260816135016_retention_and_legal_hold`（UTC �
 | `format:check` · `lint` · `type-check` · `build` · `lint:negative` | 全部 **EXIT=0** ✅ |
 | `run_all` | **8 / 8**，`check_entity_index` **32 / 36** ✅ |
 | 識別字長度 | 最長 `legal_holds_org_entity_id_retired_at_idx` = **40** ≤ 63 ✅ |
+
+---
+
+# Day 2 — 2026-08-16
+
+## D15 ⭐ —— 寫 seed 時才發現規格只給三欄
+
+`02a:314` 列了 6 個欄位並給出 `trigger` / `disposition` 的**值域**，
+而 `05:73-80` 的表只有 **三欄**：Record class · Retention · Basis。
+
+⭐ **`02a:314` 自己就說明了這件事**，而我 Day 0 逐字讀過卻沒讀出來 ——
+它寫的是「The six confirmed **classes and periods** are in `05`」，
+**不是**「the six confirmed rows」。class 與 period，正好就是那三欄。
+
+⇒ `trigger` / `disposition` / `review_cadence` **沒有 per-row 來源**。
+把前兩者建成 `NOT NULL`（Day 1 的原樣）會**逼 seed 發明四個值**：
+六列裡只有兩列的 trigger 能從期限文字推出來（「3 years **after closure**」→ closure），
+另外四列推不出來 —— **而推出來那兩個仍然是我在授權**，違反已確認參數 #9。
+
+**處置**：`trigger` / `disposition` 改為 **nullable**，欄位保留（`02a:314` 指名它們，
+M6b 的處置排程要讀）。migration 就地修正（**尚未 merge**），`isms_dev` 上先回退該支再重套。
+seed 的 INSERT **不列出這三欄**，而不是傳 NULL —— 讓語句只說來源說的話。
+
+⚠️ 這條的形狀值得記：**Day 0 的 D-fields-r 我勾了 ✅「6 個欄位名逐字比對相符」**，
+而那是真的 —— 欄位**名**確實相符。**沒有比對的是「每個欄位有沒有值的來源」**，
+那要等到寫 seed 才會被逼問出來。⇒ Day-0 的 content verify 對「名字對不對」有效，
+對「**這個欄位填得出來嗎**」無效。
+
+## 中性化預測（**寫在執行之前**，鎖進本 commit）
+
+⭐ 依 `AD-NeutralisationCountUnderPredicted-1`（W16 三次全把條數估低）：
+**承諾形狀與位置，條數給區間**。
+
+| # | 動作 | 預期紅的**形狀**（機制 + 位置） | 條數 |
+|---|---|---|---|
+| **N1** | `legal_holds` 拿掉 `FORCE ROW LEVEL SECURITY`（保留 `ENABLE`） | **測試 6** 轉紅，形狀 = `forced: false` vs 期望 `true`。⚠️ **測試 7-9 必須維持綠** —— 它們連的是 app 角色（非 owner），FORCE 對它們沒有可觀察效果。⭐ **這正是 W16 DR3 的證明**：拿掉 FORCE，**除了那一條刻意寫的斷言以外，沒有任何測試會動** | **1** |
+| **N2** | `legal_holds_released_pair_check` 刪除 | **測試 10** 轉紅，形狀 = 「預期 rejects 卻 resolved」（那一列真的插進去了）。⚠️ 其餘全綠 —— seed 三列都滿足該 CHECK，刪掉它不影響 setup | **1** |
+| **N3** | `GRANT UPDATE ON legal_holds TO isms_app`（policy 仍缺席） | **測試 9** 轉紅，形狀 = 「預期 rejects 卻 resolved」，**且 `rowCount = 0`**（不報錯、零筆被改）—— W10 N1a / W16 N3a 在第三張表上的移轉檢查 | **1** |
+| **N4** | `legal_holds_insert` policy 刪除 | **測試 8** 轉紅，形狀 = 從 42501 變成**成功插入**？⛔ **不，預測是仍然 42501** —— 缺席的 policy 對 INSERT 是**拒絕**（ADR-0014：缺席即最嚴格），所以測試 8 **維持綠**而**測試 7 可能受影響**（若 SELECT policy 也被牽動）。⚠️ **本實驗的預期是「零轉紅」**，用來證明測試 8 測的是 policy 的**存在**還是它的**內容** | **0–1** |
+| **N5** | `retention_policies` 加 `GRANT INSERT` | **測試 3** 轉紅，形狀 = 從 42501 變成**成功插入**（無 RLS 可擋）。⭐ 順帶證明「安全性來自 GRANT 不來自鍵」：**測試 4 維持綠**（唯一鍵仍在），但那條唯一鍵**此刻就變成可達的 oracle** | **1** |
+
+**總預測：4–5 條紅**，分佈在 5 個實驗。
+⛔ 若某個實驗紅的**位置**與上表不符，先懷疑量法而不是慶祝覆蓋更好
+（W16：N1 多出的 12 紅是我並行跑 int suite 造成的**汙染**）。

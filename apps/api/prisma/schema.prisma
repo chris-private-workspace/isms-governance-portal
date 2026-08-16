@@ -2793,12 +2793,27 @@ model RetentionPolicy {
   /// today. AD-RetentionDurationUnstructured-1, unblocked by M6b.
   duration String
 
-  trigger     RetentionTrigger
-  disposition RetentionDisposition
+  /// ⛔ NULLABLE, and this was NOT NULL until Day 2 measured the source. 02a:314
+  /// gives the DOMAIN of each ("creation / closure / supersession",
+  /// "retain / archive / purge") and then says, in the same sentence, that what
+  /// 05 confirms is "the six confirmed CLASSES AND PERIODS" — class, duration
+  /// and basis, which is exactly the three columns 05:73-80 has. There is no
+  /// per-row source for trigger or disposition.
+  ///
+  /// Two of the six could be inferred ("3 years AFTER CLOSURE" -> closure) and
+  /// four could not, and inferring the two is still authoring the value:
+  /// 已確認參數 #9 digitises the company's existing forms rather than inventing
+  /// fields, and a NOT NULL here would have made the seed invent four. The
+  /// column stays, because 02a:314 names it and M6b's disposal scheduler must
+  /// read it; it is empty until someone with the authority to say fills it in.
+  trigger     RetentionTrigger?
+  disposition RetentionDisposition?
 
   /// The citation (02a:315), e.g. "ISO 27001 A.5.28 · group records policy".
+  /// NOT NULL — unlike the two above, all six rows at 05:73-80 carry one.
   basis String
 
+  /// Named at 02a:314, sourced nowhere. Same standing as trigger/disposition.
   reviewCadence String? @map("review_cadence")
 
   version   Int       @default(1)
