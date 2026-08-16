@@ -27,9 +27,10 @@
 //   (rules-on-demand/multi-tenant-data.md).
 //
 // Created: 2026-08-08 (Phase W01)
-// Last Modified: 2026-08-14
+// Last Modified: 2026-08-16
 //
 // Modification History (newest-first):
+//   - 2026-08-16: W15 — align OrgEntity.jurisdiction to its migration: onDelete + index
 //   - 2026-08-14: Phase W12 — audit_log; the first table with no column that can redact
 //   - 2026-08-14: Phase W11 — Statement of Applicability; `framework` is a string, not an FK
 //   - 2026-08-13: Phase W10 — RM report + versions; first table with no UPDATE path
@@ -96,7 +97,14 @@ model OrgEntity {
   /// correct value for it, so NOT NULL could not express the root of the
   /// hierarchy at all. Narrowing later is one migration; widening is not.
   jurisdictionId String?       @map("jurisdiction_id") @db.Uuid
-  jurisdiction   Jurisdiction? @relation(fields: [jurisdictionId], references: [id])
+  /// ⚠️ `onDelete` is EXPLICIT, and it has to be: Prisma's default for an
+  /// OPTIONAL relation is SetNull, while the migration has said RESTRICT since
+  /// W15. Leaving it implicit is a schema-vs-database drift that nothing catches
+  /// — no test asserts ON DELETE anywhere in this repo, and CI runs `migrate
+  /// deploy` without a `migrate diff`. The first `prisma migrate dev` to notice
+  /// would generate a migration flipping it, and deleting a jurisdiction would
+  /// then blank the column on every OpCo instead of being refused.
+  jurisdiction   Jurisdiction? @relation(fields: [jurisdictionId], references: [id], onDelete: Restrict)
 
   parent          OrgEntity?       @relation("OrgEntityHierarchy", fields: [parentId], references: [id])
   children        OrgEntity[]      @relation("OrgEntityHierarchy")
@@ -132,6 +140,7 @@ model OrgEntity {
 
   @@index([parentId])
   @@index([path])
+  @@index([jurisdictionId])
   @@map("org_entities")
 }
 
