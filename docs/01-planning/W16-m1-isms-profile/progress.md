@@ -281,3 +281,28 @@ W15 已標註過同一件事。但本片四個實驗只牽動**同一檔內**的
 是確定的**，所以這個不確定性不影響預測。⛔ 執行時**保留失敗身分**，不要只留計數行。
 
 **基線（中性化之前）**：int **235 passed / 19 suites**（基線 225/18，+10 測試 +1 suite —— 恰為本片新增）。
+
+### D2-1 ⛔ `AD-PartialGateReportedAsFull-1` 第 4 次，**而這次的形狀不同**
+
+前三次是「**較窄的檢查被當成較寬的結論回報**」（W10：少跑 format/type/build/web；
+W11：gate 的時間點早於最後一次改動）。這次**兩者都不是** ——
+`format:check` **有跑、有正確回報 EXIT=1，而 commit 沒有以它為條件**：
+我把它寫成 `... ; echo EXIT=$?; ... ; git add -A && git commit`，
+分號讓 commit 無視前面的結果照跑。⇒ **gate 執行了、回報正確、而它不 gate 任何東西。**
+
+⚠️ **兩個獨立成因疊在一起，而我兩個都讀漏了**：
+
+1. 稍早那次 `npm run format -w apps/api` 是**在 `apps/api` 目錄內**跑的 ——
+   workspace flag 從 workspace 內部失效，npm 回 `No workspaces found`。
+2. **而且根本沒有 `format` 這個 script**（只有 `format:check`）。
+
+⇒ 我當時看到 `format EXIT=1` 卻讀成「格式有問題但等等再說」，實際上它的意思是
+**「這個指令不存在」**。格式化因此從未執行過，直到 commit 之後才被發現。
+
+⭐ **通則**：`EXIT=1` 有兩種完全不同的意思 —— 「檢查跑了而且不通過」與
+「指令根本沒跑起來」。把它們混為一談時，後者會偽裝成前者並被推遲。
+⇒ 修法與前三次相同（Day 3 逐項複製 gate 清單），**但要加一條**：
+gate 與 commit 之間用 `&&` 不用 `;`，讓失敗真的擋住提交。
+
+⛔ 為 `AD-PartialGateReportedAsFull-1` **第 4 次**，且**四次全部是 `format:check`** ——
+它是唯一對純空白／換行敏感的 gate。
