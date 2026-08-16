@@ -143,13 +143,19 @@ Drive-through 的位置由**兩次中性化**承擔 —— 它們是本片唯一
 
 ### 3.1 Clean restart
 
-- [ ] ⚪ 本片無長駐 dev server（純資料層）；int suite global setup 每次重建 DB
-      ⇒ Risk Class C 結構上不成立。⛔ **記錄而非打勾略過**
+- [x] ⚪ 本片無長駐 dev server（純資料層）；int suite global setup 每次重建 DB
+      ⇒ Risk Class C 結構上不成立。⛔ **記錄而非打勾略過** —— progress §3.1 已寫明
+      「量過之後判定不適用」而非「跳過」
 
 ### 3.2 中性化（預期方向**逐測試先 commit 再執行**）
 
-- [ ] ⛔ **先 grep 消費者再寫預測**（`AD-NeutralisationConsumerGrep-1` —— W13 少算就是因為
+- [x] ⛔ **先 grep 消費者再寫預測**（`AD-NeutralisationConsumerGrep-1` —— W13 少算就是因為
       列的是「我以為會受影響的 suite」）
+  - ⭐ **量到兩件直接改變預測的事實**：(A) `app_entity_scope()` 未設 scope raise **42704**、
+    空字串 raise **42501** ⇒ N2 的測試 1 與 2 是**兩種不同的紅**；
+    (B) `rls-direct`（第 17）跑在 `jurisdiction`（第 18）**之前**
+    ⇒ N1 留下的第 6 列 `org_entities` **不會**被 `toBe(5)` 看見 ⇒ **1 紅不是 2 紅**
+  - ⛔ (B) **推翻了我的直覺**；⚠️ 它依賴 `--listTests` 順序 = 執行順序，那是**假設不是量測**
 - [ ] **N1** 移除 `org_entities.jurisdiction_id` 的 FK 約束 → 預期 **AC-3 轉紅**、其餘不動
 - [ ] **N2** ⭐ 暫時給 `jurisdictions` 加一條 entity-scoped RLS policy → 預期 **AC-4 轉紅**
   - ⛔ **這是本片的驗收核心**：它是唯一能區分「全域是刻意的」與「忘了加 RLS」的實驗。
