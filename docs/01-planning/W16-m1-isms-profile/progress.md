@@ -306,3 +306,180 @@ gate 與 commit 之間用 `&&` 不用 `;`，讓失敗真的擋住提交。
 
 ⛔ 為 `AD-PartialGateReportedAsFull-1` **第 4 次**，且**四次全部是 `format:check`** ——
 它是唯一對純空白／換行敏感的 gate。
+
+### D2-2 ⭐⭐ N1 的第一次跑出 13 紅，而**紅的是量法不是被量的東西**
+
+預測是 **1 紅**（測試 4）。實測 **13 紅 / 4 suites**，包含 `policy`、`soa`、`entity scoping`
+—— **全都是 N1 根本沒碰的 suite** —— 以及一個 `PrismaClientConstructorValidationError`
+（連線被抽走的形狀）。
+
+成因是我自己：我先起了一個「邊跑邊 grep 過濾」的 job，發現那違反 W15 的教訓
+（**過濾器決定了我事後能問的問題**）之後又起了第二個全量捕獲的 job，
+而**兩個同時對 `isms_test` 做 DROP + CREATE**。停掉第一個時它已經動過那個資料庫了。
+
+⛔ **這一格的價值在於它差一點被當成成功。** W15 寫過：
+「多一個紅看起來像是中性化更成功，**沒有人會回頭質疑一個比預期更紅的結果**」——
+這裡多了 **12** 個。會回頭質疑的唯一理由是**紅的位置不對**：
+N1 只動 `isms_sites` 的一條 FK，它解釋不了 `soa` 為什麼會紅。
+⇒ 這是 `AD-NarrowPatternWideClaim-1` 在 W12 收斂出的那條規則的正面應用：
+**當一個便宜的量法給出「意外」的答案時，第一個要懷疑的是量法本身。**
+
+⚠️ 附帶記一個操作事實：**int suite 沒有互斥鎖**。`int-global-setup.js` 無條件
+DROP + CREATE `isms_test`，所以兩個 suite 並行會互相破壞，而症狀出現在**別人的測試**上。
+本 repo 今天沒有任何東西阻止這件事 → BACKLOG。
+
+### 中性化實測
+
+#### N1 — 複合 FK 換成單欄 FK（乾淨重跑）
+
+| 預測 | 實際 | 命中 |
+|---|---|---|
+| 恰好 1 紅 | `Tests: 1 failed, 234 passed, 235 total` | ✅ |
+| 紅的是測試 4 | `● … › 4. a site naming another entity profile is refused…` | ✅ |
+| 形狀 = 預期 rejects 卻 resolved | `Received promise resolved instead of rejected` | ✅ |
+| **測試 5 維持綠** | 是（唯一的紅是測試 4）| ✅ |
+| 其他 18 個 suite 一條不動 | `Test Suites: 1 failed, 18 passed, 19 total` | ✅ |
+
+⭐ **`rowCount: 1`** —— 那一列**真的插進去了**：SG1 成功建立了一個
+`org_entity_id = SG1` 而 `isms_profile_id = HK1 的 profile` 的 site。
+兩條單欄 FK 各自都滿足，沒有任何約束被違反。**這就是複合 FK 存在的全部理由，
+而它現在有一個會轉紅的證明**（`AD-W15InvariantInCommentOnly-1` 記的正是相反的情況：
+W15 的 `obligations` 有同樣的形狀而**沒有**任何測試會因它消失而變紅）。
+
+#### N2a — 父表唯一鍵拿掉 `org_entity_id` ⛔ **預測錯了**
+
+| 預測 | 實際 |
+|---|---|
+| 恰好 1 紅（測試 6），形狀 = (a) 那筆拋 23505 | **一條測試都沒跑到**。`globalSetup` 在 `int-global-setup.js:766` 死於 `duplicate key value violates unique constraint "isms_profiles_org_entity_id_profile_year_key"` |
+
+**為什麼錯**：我在想測試裡的 insert，卻忘了 **seed 本身就含有那一對衝突** ——
+SG1 與 HK1 各持有一個 `profile_year = 2026`，是我自己在 2.1 寫的。
+中性化因此在**比預測早一層**（fixture 建構）就引爆。
+
+⭐⭐ **這比預測對更有價值，因為它揭露了一件關於 seed 的事**：
+**seed 本身就是一條對 schema 的斷言，而沒有任何東西把它標成斷言。**
+「兩個實體可以同時持有 2026 年度」正是這條唯一鍵**必須**具備的性質 ——
+但它以 fixture 資料的形式存在，所以當它被違反時，得到的是 **setup crash**
+而不是一條具名的測試失敗。
+
+⛔ **連帶後果，必須明說**：真正會攔下這個回歸的**是 seed，不是測試 6**。
+測試 6 在這個 seed 下**永遠跑不到**。它的價值因此比我寫它時以為的窄 ——
+它證明的是「同實體重複被拒、跨實體同值可行」這個**行為**，
+而不是「這條鍵改了會有人叫」這個**守衛**。⇒ 兩者都要有，理由不同。
+
+⚠️ 且本次跑**無法驗證**「其餘 9 條與其他 18 個 suite 一條不動」—— 什麼都沒跑。
+⇒ 補 N2b。
+
+#### N2b — N2 + 暫時把 SG1 的 seed 年度改成 2025，讓 fixture 活過縮小的鍵
+
+這是為了**真的把測試 6 逼出來**，而不是停在「無法驗證」。
+
+| 對 N2 的原預測 | N2b 實際 | 命中 |
+|---|---|---|
+| 恰好 1 紅 | `Tests: 1 failed, 234 passed, 235 total` | ✅ |
+| 紅的是測試 6 | `● … › 6. profile_year collides only within SG1…` | ✅ |
+| 形狀 = **(a) 那一筆**（SG1 取 2099）拋錯，而非斷言不符 | 失敗在 `isms-profile.int.spec.ts:260`，即 (a) 的 `app.query`；訊息 `duplicate key value violates unique constraint "isms_profiles_org_entity_id_profile_year_key"` | ✅ |
+| 其他 18 個 suite 一條不動 | `Test Suites: 1 failed, 18 passed, 19 total` | ✅ |
+
+⭐ **oracle 本身被看見了**：SG1 送出一筆只關於自己的 insert，卻因為 **HK1 持有 2099**
+而被拒。SG1 因此能一年一猜，列舉出 HK1 有哪些年度的 profile ——
+`AD-UniqueKeyOracle-1` 的判準（「兩個**可分辨的結果**」）在本片被**正面**驗證。
+
+#### N3a — 只加 `GRANT UPDATE`，policy 仍缺席
+
+⛔ **先報一個我自己的不一致：我的兩份文件對 N3a 預測了不同的東西。**
+Day-0 checklist 寫「⇒ 預期測試 8 轉紅…**且測試 9 的 catalog 斷言同時轉紅**
+（兩條都該叫，只有一條叫就是覆蓋有洞）」；而 Day-2 的預測表寫「**恰好 1 紅：測試 9**」。
+**實測是兩紅。** ⇒ **checklist 對、預測表錯**。
+成因：我在寫 spec 時把測試重新編號（不可變性 8→9、catalog 9→10），
+重編時把「catalog 也會紅」那一句掉了，而 Day-2 的表是照重編後的號碼重寫的。
+⚠️ 這是 `AD-CountBeforeLastEdit-1` 的家族形狀 —— **同一個事實寫在兩處，改一處不會改另一處**。
+
+| 預測（checklist 版）| 實際 | 命中 |
+|---|---|---|
+| 不可變性測試轉紅 | `● … › 9. the application role has no UPDATE privilege…` | ✅ |
+| 形狀 =「不再是 42501」 | `Received promise resolved instead of rejected` | ✅ |
+| raw UPDATE **不報錯且 `rowCount = 0`** | `"command": "UPDATE" … "rowCount": 0` | ✅ |
+| **catalog 斷言同時轉紅** | `● … › 10. isms_app holds exactly the expected privilege set…`，diff 為 `+ "UPDATE"` 於 `isms_profile_versions` | ✅ |
+| 其他 18 個 suite 一條不動 | `Test Suites: 1 failed, 18 passed, 19 total`；`Tests: 2 failed, 233 passed` | ✅ |
+
+⭐⭐ **這一格是本片最有價值的量測，理由有兩個。**
+
+1. **W10 的預測在另一張表上被重現為事實。** `rm_report_snapshot/migration.sql:155-158`
+   至今仍寫著「**"should be" rather than "is"** … nothing has yet reached this layer to
+   find out」——W10 的 N1a 其實已經量過（Day-0 DR6 查證），而本片在一張**新表**上
+   再次量到同一件事：`GRANT` 放行、policy 缺席 ⇒ **不報錯、零筆被改**。
+   ⇒ 「缺席的 policy 自己撐得住」不再是可移轉性的推論，而是兩張表上的實測。
+2. **兩條測試都叫了，而它們證明的是不同的事。** 測試 9 證明**行為**變了，
+   測試 10 證明**設定**變了。`AD-W15ConstraintSurfaceUntested-1` 明列 W15 缺的正是
+   後者（`toEqual` 而非 `toContain` 的 catalog 斷言）—— 本片有了，而且它真的叫了。
+
+#### N3b — N3a 再加上 `_update` policy
+
+**預測 1 紅，實測 3 紅。** 預測不足，而三條都是**正確的**告警。
+
+| 預測 | 實際 | 命中 |
+|---|---|---|
+| 測試 9 仍紅、同樣 resolved | ✅ | ✅ |
+| **`rowCount = 1`，該列真的被改寫** | `"command": "UPDATE" … "rowCount": 1` | ✅ |
+| （未預測）| **測試 3 也紅**：`cmds` 多了 `+ "UPDATE"` 於 `isms_profile_versions` | ⚠️ 漏預測 |
+| （未預測）| **測試 10 也紅**：`privs` 多了 `+ "UPDATE"`（N3a 的 GRANT 仍在） | ⚠️ 漏預測 |
+| 其他 18 個 suite 一條不動 | `Test Suites: 1 failed, 18 passed`；`Tests: 3 failed, 232 passed` | ✅ |
+
+⭐ **三條各自證明不同的層**：測試 9 = **行為**（列真的變了）·
+測試 10 = **權限集合** · 測試 3 = **policy 集合**。⇒ 覆蓋沒有洞。
+
+⭐⭐ **與 N1 的對照才是本段真正的教訓。** 兩次都「比預測更紅」，但**意義相反**：
+N1 那次多出的 12 紅是**雜訊**（我自己造成的並行汙染），
+N3b 這次多出的 2 紅是**訊號**（覆蓋比我以為的好）。
+
+⇒ 分辨方法是同一條，而且很便宜：**每一條紅，是否都能由我做的那個改動解釋？**
+N1 那次 `soa` 為什麼會紅**解釋不了** —— 那就是該停下來查量法的訊號。
+N3b 這次三條全部直接對應我加的那兩行 SQL。
+**「比預期更紅」本身不帶資訊；帶資訊的是紅的位置。**
+
+#### 中性化總結
+
+| 實驗 | 預測紅 | 實測紅 | 預測是否成立 |
+|---|---|---|---|
+| **N1** 複合 FK → 單欄 FK | 1（測試 4）| **1**（測試 4，`rowCount 1` 真的插進去）| ✅ 逐項命中 |
+| **N2a** 父表鍵拿掉 `org_entity_id` | 1（測試 6）| **0 —— setup 就死** | ❌ 引爆點比預測早一層 |
+| **N2b** N2 + seed 年度錯開 | 1（測試 6）| **1**（測試 6，失敗在 (a) 那一筆）| ✅ 逐項命中 |
+| **N3a** 只加 `GRANT UPDATE` | checklist 說 2 / 預測表說 1 | **2**（測試 9 `rowCount 0` + 測試 10）| ⚠️ 兩份文件互相矛盾，checklist 對 |
+| **N3b** N3a + `_update` policy | 1（測試 9）| **3**（測試 9 `rowCount 1` + 10 + 3）| ⚠️ 漏預測 2 條，但都是正確告警 |
+
+⛔ **五次實驗，兩次預測完全正確、三次不正確。** 這個比例值得留著：
+W15 的 retro 記的是「N2 承諾了紅的**形狀**而非條數，三種形狀逐項命中」——
+本片把承諾提高到形狀 + 條數 + 其餘不動，而**條數是最常錯的那一項**。
+⇒ 下一片的建議：**承諾形狀與位置，對條數給區間而非定值**，
+因為一個好的測試套件本來就會讓一個改動觸發多條斷言。
+
+**還原驗證**：`git diff --stat` 對 migration 與 seed **為空**（與 HEAD 逐位元組相同），
+五個中性化逐條確認撤銷；還原後 int **235 passed / 19 suites** 全綠。
+
+### 2.x Full gate（十三項各自取 exit code）
+
+| # | Gate | 結果 |
+|---|------|------|
+| 1 | `format:check` api | EXIT=0 |
+| 2 | `format:check` web | EXIT=0 |
+| 3 | `lint` api+web | EXIT=0 |
+| 4 | `type-check` api+web | EXIT=0 |
+| 5 | `build` api | EXIT=0 |
+| 6 | `build` web | EXIT=0 |
+| 7 | `lint:negative` | EXIT=0 |
+| 8 | api unit | EXIT=0 — **480 passed / 40 suites** |
+| 9 | **api int** | EXIT=0 — **235 passed / 19 suites**（還原後那一次）|
+| 10 | web unit | EXIT=0 |
+| 11 | coverage | EXIT=0 — **92.14 / 91.77 / 98.98 / 93.56** |
+| 12 | `run_all.py` | EXIT=0 — **8 / 8** |
+| 13 | `check_entity_index` | EXIT=0 — **30 / 36** |
+
+⭐ **coverage 與基線逐位相同**，而這是有原因的、值得記一行的：
+`AD-ModuleFileZeroCoverage-1` 說每新增一個 module 檔就稀釋一次全域 stmts/lines，
+而本片**新增零個進 unit coverage 的 `.ts` 檔**（int spec 跑在另一個 jest config）。
+⇒ 本片是那條 AD 的**反例邊界**：稀釋來自 DI wiring 檔，不是來自「新增了東西」。
+
+### Remaining for Next Day
+
+- Day 3：🔴 **AC-2 逐欄位對照表**（W15 `closed_partial` 的唯一理由）+ full gate 重跑

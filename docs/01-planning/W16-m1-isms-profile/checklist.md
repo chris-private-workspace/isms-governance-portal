@@ -184,12 +184,12 @@
 
 ### 2.1 Seed
 
-- [ ] **`int-global-setup.js`：跨兩實體各一 profile + 各自 site / contact / offering / version**
+- [x] **`int-global-setup.js`：跨兩實體各一 profile + 各自 site / contact / offering / version**
   - DoD: 五張新表的 insert 排在 `org_entities` **之後**，四張子表在 `isms_profiles` 之後；
         編輯用**結構邊界錨定**（唯一 ref code / 含換行的完整界定符），不用行號或序數；
         ⚠️ **無真實個資**（guardrail 7）—— 聯絡人與 ISO officer 用明顯的佔位姓名
   - Verify: `npm run test:int -w apps/api`
-- [ ] **五張表加進 `:759` 的計數守衛**
+- [x] **五張表加進 `:759` 的計數守衛**
   - DoD: 五列加入；⛔ **同時在 progress.md 記下它是自我指涉的**
         （`expected` 取自 `SEED.<key>.length`，與被檢查的陣列同源）——
         不得在任何文件寫成「seed 有守衛」而不加限定
@@ -197,25 +197,25 @@
 
 ### 2.2 Integration spec — `core-model/isms-profile.int.spec.ts`
 
-- [ ] **測試 1-2：跨實體讀 / 寫拒絕**（五張表各一組）
+- [x] **測試 1-2：跨實體讀 / 寫拒絕**（五張表各一組）
   - DoD: 讀回 0 列（不是 403）；寫入被拒且**資料未變**（寫後重查確認）
   - Verify: `npm run test:int -w apps/api`
-- [ ] **測試 3：RLS 層獨立成立**（`rls-direct` 風格，不經應用層）
+- [x] **測試 3：RLS 層獨立成立**（`rls-direct` 風格，不經應用層）
   - DoD: **逐表**斷言 `relrowsecurity` 為真；⚠️ 不硬編碼表名總數（W15 的 `THREE` 的教訓）
   - Verify: `npm run test:int -w apps/api`
-- [ ] **測試 4：複合 FK —— 子列指向別實體的 profile 被拒絕**
+- [x] **測試 4：複合 FK —— 子列指向別實體的 profile 被拒絕**
   - DoD: D1 的唯一證明；SQLSTATE 斷言，不斷言訊息字串
   - Verify: `npm run test:int -w apps/api`
-- [ ] 🔴 **測試 5：`@@unique([orgEntityId, profileYear])` 的兩個面**
+- [x] 🔴 **測試 5：`@@unique([orgEntityId, profileYear])` 的兩個面**
   - DoD: 同實體同年 → **23505**；**不同實體同年 → 成功**。兩者皆斷言
   - Verify: `npm run test:int -w apps/api`
-- [ ] 🔴 **測試 6：`@@unique([orgEntityId, ismsProfileId, versionLabel])` 的兩個面**
+- [x] 🔴 **測試 6：`@@unique([orgEntityId, ismsProfileId, versionLabel])` 的兩個面**
   - DoD: 同上兩面 —— 這是 W10 `rm_report_versions` 的原案標的，判準逐字移轉
   - Verify: `npm run test:int -w apps/api`
-- [ ] **測試 7：`ISMSContact` 的 CHECK**（兩欄皆 NULL → 拒絕）
+- [x] **測試 7：`ISMSContact` 的 CHECK**（兩欄皆 NULL → 拒絕）
   - DoD: SQLSTATE 23514
   - Verify: `npm run test:int -w apps/api`
-- [ ] ⭐ **測試 8：app 角色無法 UPDATE 一列版本** ⚠️ **測試名刻意只講這件事**
+- [x] ⭐ **測試 8：app 角色無法 UPDATE 一列版本** ⚠️ **測試名刻意只講這件事**
   - DoD: ⭐ **Day-0 DR-immutable 改寫了本項**：兩層防線今天產生**可分辨的結果** ——
         GRANT 缺席 → **42501**（權限檢查早於 policy）；GRANT 放行而 policy 缺席 →
         **不報錯但 `rowCount = 0`**（W10 N1a 實測）。⇒ 本測試斷言 **42501**，
@@ -223,48 +223,55 @@
         （`AD-TestNameWiderThanProof-1`；W10 的 migration 註解 `:104-109` 記錄了
         第一版測試正是預測相反而失敗的）
   - Verify: `npm run test:int -w apps/api`
-- [ ] ⭐ **測試 9：`GRANT` 用 catalog 斷言**
+- [x] ⭐ **測試 9：`GRANT` 用 catalog 斷言**
   - DoD: 對 `information_schema.role_table_grants` 斷言 `isms_app` 對五張表的 privilege
         集合**恰好等於**預期（`toEqual` 排序陣列，**不是** `toContain`）——
         多一個 verb 自動紅（`AD-W15ConstraintSurfaceUntested-1` (c) 明列的修法）
   - Verify: `npm run test:int -w apps/api`
-- [ ] **測試名逐條檢查：不得寬於證明**（`AD-TestNameWiderThanProof-1`，3/3 已達門檻）
+- [x] **測試名逐條檢查：不得寬於證明**（`AD-TestNameWiderThanProof-1`，3/3 已達門檻）
   - DoD: 測 INSERT 的就叫 INSERT；覆蓋 N 個 verb 的才可以說 N 個
   - Verify: 逐條讀測試名 vs 斷言
 
 ### 2.3 中性化實驗（≥ 3 次）
 
-- [ ] **N1 / N2 / N3 的預期紅**形狀**寫在執行之前**
+- [x] **N1 / N2 / N3 的預期紅**形狀**寫在執行之前**
   - DoD: 每次逐條指定**機制 + 檔案 + 條數**（不只條數 —— W15 N2 的做法）；
         ⛔ 先跑 `--listTests` 取順序並把「誰先跑完」寫進預測（`AD-JestFileOrder-1`）；
         ⛔ **保留失敗身分**，不要只留計數行（W15：「過濾器決定了我事後能問的問題」）
   - Verify: 預測寫入 progress.md 並 commit **之後**才執行
-- [ ] **N1：拿掉一條複合 FK** ⇒ 預期測試 4 轉紅，其餘不動
-- [ ] **N2：拿掉版本表 UNIQUE 的 `orgEntityId`** ⇒ 預期測試 6 的「不同實體同 label」
-      由成功變 23505（oracle 現形）
-- [ ] **N3a：只加 `GRANT UPDATE`，policy 仍缺席**（⭐ Day-0 DR-immutable 導出；
+- [x] **N1：拿掉一條複合 FK** ⇒ 預期測試 4 轉紅，其餘不動
+- [x] **N2** ⛔ **原案（拿掉版本表 UNIQUE 的 `orgEntityId`）在寫預測時就被判定為恆真** ——
+      複合 FK 已強迫 `isms_profile_id` 決定 `org_entity_id`，該鍵本來就按實體隔離。
+      改打**父表**的 `@@unique([orgEntityId, profileYear])`。
+      → **N2a**：seed 自己先炸（引爆點比預測早一層）；**N2b**（seed 年度錯開）：
+      **恰好 1 紅、測試 6、失敗在 (a) 那一筆** —— oracle 現形
+- [x] **N3a：只加 `GRANT UPDATE`，policy 仍缺席**（⭐ Day-0 DR-immutable 導出；
       這是 W10 N1a 在**另一張表**上的移轉檢查，不是重跑一個已解的問題）
       ⇒ 預期測試 8 轉紅**且紅的形狀是「不再是 42501」**；raw UPDATE **不報錯而 `rowCount = 0`**；
       **測試 9 的 catalog 斷言同時轉紅**（兩條都該叫，只有一條叫就是覆蓋有洞）
-- [ ] **N3b：N3a 再加上 `_update` policy** ⇒ 預期列**真的被改寫**
+- [x] **N3b：N3a 再加上 `_update` policy** ⇒ 預期列**真的被改寫**
       ⇒ 兩層都拿掉才失去不可變性 ⇒ **兩層都是承重的**（W10 N1b 的同形驗收）
-- [ ] **預測錯了要寫下為什麼錯**（W15 N1 的做法 —— 比預測對更有價值）
+- [x] **預測錯了要寫下為什麼錯**（W15 N1 的做法 —— 比預測對更有價值）
+      → **五次實驗，2 次預測完全正確、3 次不正確**，三次都是**把條數估低**。
+      ⭐ 連帶量到 N1 與 N3b 是**相反的失敗模式**：同樣「比預期更紅」，
+      前者是雜訊（我自己的並行汙染）、後者是訊號（覆蓋比預期好），
+      而分辨方法只有一個 —— **每一條紅是否都能由該改動解釋**
 
 ### 2.x Full gate（**十三項各自取 exit code**）
 
-- [ ] `format:check` api
-- [ ] `format:check` web
-- [ ] `lint` api + web
-- [ ] `type-check` api + web
-- [ ] `build` api
-- [ ] `build` web
-- [ ] `lint:negative`
-- [ ] api unit
-- [ ] **api int**
-- [ ] web unit
-- [ ] coverage（門檻 80/70/80/80）
-- [ ] `python scripts/lint/run_all.py` **8 / 8**
-- [ ] `check_entity_index` **30 / 36**
+- [x] `format:check` api
+- [x] `format:check` web
+- [x] `lint` api + web
+- [x] `type-check` api + web
+- [x] `build` api
+- [x] `build` web
+- [x] `lint:negative`
+- [x] api unit
+- [x] **api int**
+- [x] web unit
+- [x] coverage（門檻 80/70/80/80）
+- [x] `python scripts/lint/run_all.py` **8 / 8**
+- [x] `check_entity_index` **30 / 36**
 
 ---
 
