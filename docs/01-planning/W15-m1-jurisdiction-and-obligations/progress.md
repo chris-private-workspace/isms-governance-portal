@@ -579,3 +579,89 @@ CREATE POLICY "jurisdictions_entity_scope" ON "jurisdictions" FOR ALL
 ⚠️ **若測試 1 在加了 policy 之後仍綠，那條測試就是恆真的**（`AD-VacuousScopeTest-1` 形狀）。
 ⭐⭐ 而「三條各以不同方式紅」比 plan §5 AC-7 寫的「**AC-4 轉紅**」是**更強的預測** ——
 plan 只要求一條紅，這裡承諾三條、且逐條指定紅的機制。**落空任何一條都算預測錯，不改預測。**
+
+### 3.3 執行結果 —— **兩次中性化逐項命中，含三種紅的形狀**
+
+#### N1（`ALTER TABLE org_entities DROP CONSTRAINT org_entities_jurisdiction_id_fkey`）
+
+```
+Test Suites: 1 failed, 17 passed, 18 total
+Tests:       1 failed, 224 passed, 225 total
+● … › 6. an org_entity naming a jurisdiction that does not exist is refused — AC-3, …
+```
+
+| 預測 | 實際 | |
+|---|---|---|
+| 測試 6 單獨紅 | 測試 6 單獨紅，訊息自己指名 | ✅ |
+| 224 passed / 1 failed / 1 failed suite | **逐位相同** | ✅ |
+| ⭐ `rls-direct` 的 `toBe(5)` **維持綠**（事實 B：它跑第 17）| **綠** | ✅ |
+
+⭐ **事實 B 的價值在這裡結清**：若照直覺預測「2 紅」，這次就會是**預測錯**。
+而它錯的方式特別難察覺 —— 「多一個紅」看起來像是中性化更成功，
+沒有人會回頭質疑一個比預期更紅的結果。**是 grep 讓它變成 1 而不是 2。**
+
+#### N2（`ENABLE ROW LEVEL SECURITY` + 一條「只給你看你的實體所在的管轄區」）
+
+```
+Test Suites: 1 failed, 17 passed, 18 total
+Tests:       3 failed, 222 passed, 225 total
+```
+
+| # | 預測的紅法 | 實際 | |
+|---|---|---|---|
+| 1 | **錯的值** —— 11 → 1 個 | `- Expected - 10 / + Received + 0`（陣列少 10 個元素）| ✅ |
+| 2 | **例外 42704** —— `app_entity_scope()` 第一行 raise | `error: unrecognized configuration parameter "app.entity_scope"`，堆疊指在 `codes()` 的 `client.query`（`:70`）| ✅ **逐字** |
+| 3 | **catalog 值** —— `rls` false→true、`policies` 0→1 | `- Expected - 2 / + Received + 2`（兩個欄位各變一個）| ✅ |
+| 7 | 🟢 **綠** —— 權限先於 RLS，仍是 42501 | 綠 | ✅ |
+| 4·5·6 | 🟢 綠（owner 連線）| 綠 | ✅ |
+| 其餘 16 suite | 🟢 綠 | 綠 | ✅ |
+| 總計 222 / 3 | **逐位相同** | ✅ |
+
+⭐⭐ **測試 2 是整片最有價值的一條，而 N2 證明了它為什麼值得存在**：
+它不是「少回幾列」而是**整個 query 拋例外**。任何呼叫 `app_entity_scope()` 的 policy
+在未設 scope 的連線上都會 42704 —— 所以測試 2 綠這件事，
+排除的是**「有 policy 但剛好放行」**這整類世界，而測試 1 排除不了。
+⛔ 這正是 plan §5 AC-4 那句「它證明的是**沒有 policy**」的可執行形式。
+
+### 3.4 還原 —— ✅ 已還原，⚠️ 但過程中出現一次**無法解釋的紅**
+
+`git checkout --` 後 `git status` **空**（零輸出），`type-check` **0**。
+
+⛔ **而還原後的第一次 int 跑出 `2 failed / 223 passed`，兩個失敗分屬兩個 suite。**
+接著在**完全沒有任何改動**的情況下連跑三次，**三次都是 225 / 18 全綠**（EXIT=0）。
+
+| 跑次 | 結果 |
+|---|---|
+| 還原後第 1 次 | ⛔ **223 / 2 failed**（2 個 suite）|
+| 第 2 次 | ✅ 225 / 18 |
+| 第 3 次 | ✅ 225 / 18 |
+| 第 4 次 | ✅ 225 / 18 |
+
+⛔⛔ **我不知道那兩條是什麼，因為我把輸出過濾成只剩計數行** ——
+那一次的 `Select-String` pattern 只留 `Tests:|Test Suites:`，
+**失敗的身分在產生的當下就被丟掉了**。這是 `feedback_evidence_must_support_claim`
+的形狀發生在我自己的量測命令上：**過濾器決定了我事後能問的問題**。
+⇒ 後續三次改成**寫檔再讀**，但那三次是綠的，證據已不可回收。
+
+**⇒ 查 BACKLOG，這不是新現象**：`AD-JestFileOrder-1`（W03 → PR #31，🟡 P1）已經記著
+「跨 suite 的資料庫污染是順序相依的，而順序本機與 CI 不同 ——
+jest **冷快取依檔案大小排序、暖快取依上次執行時間**」，
+且 `jest.int.config.js` 自己的註解寫著「`policy.int.spec.ts` 是第一個會**寫入**的 suite，
+它第一次跑就因為留下一列而弄紅了 `entity-scope.int.spec.ts`。
+**序列化決定順序，它不會撤銷那次寫入**」。
+
+⚠️ **我原本的假設（「failure-first 重排」）與該條記載的（「暖快取依上次執行時間」）
+不是同一個機制，但兩者導出同一個後果**：**任何一次異常跑之後，下一次的順序就與平常不同** ——
+而那正是中性化工作的必經狀態。⇒ **每次中性化的「其餘 N 條不動」都比它看起來弱一個等級。**
+⭐ 這讓 `AD-JestFileOrder-1` 既有的候選守衛 `--randomize` 從「防 CI 差異」
+升級為「**防每次中性化之後的第一次驗收**」。
+
+⛔ **不當場追**（節流閘 Step 0.0：非阻塞、非安全、使用者未要求）。
+已掛到 `AD-JestFileOrder-1` 並附**可重現配方**（用本片的 N1 當觸發器），
+證據遺失一併掛到 `AD-GrepAssertion-1`。
+**還原本身的驗收成立**：clean tree + 連續三次 225/18 + type-check 0。
+
+⭐ **順帶一提，這是本 session 第二次「先查 BACKLOG 就省下一條重複的 AD」** ——
+第一次是 D10 的 `AD-MdAnchorLineShift-1`（那次是查得太晚），這次是查在寫之前。
+兩次都指向同一件事：**這個 repo 的既有知識放在 BACKLOG 的儲存格裡，
+而沒有任何機制會在你需要它的時候把它推到面前。**
