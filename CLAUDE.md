@@ -76,7 +76,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 | Attribute | Value |
 |-----------|-------|
 | **Stage** | Wave 1 backbone — 建立共用骨幹，並用 Policy + Risk/Control 兩個最小模組端到端證明它 |
-| **Current Phase** | **W15**（**MERGED PR #67**，`d01d505`）`closed_partial` — M1 slice 10：三張**全域**參考表（jurisdiction／regulation／obligation）+ `residency_policy` enum，**零端點零 repository**，**25/35 實體**。⭐⭐ Day 0 的 **D7 不在 plan 的五個決策點裡** —— GRANT 從沒被問過（前九片全是 entity-scoped），而它決定了 FK 測試**不能走應用層**（42501 先於約束評估 ⇒ 照 plan 寫兩條測試會全綠而空轉）。⛔ calibration **1.235 OVER 而 plan 預測 UNDER** —— 零端點讓實作便宜（64.4 min）卻讓**驗證變貴**（65.9 min）。⚠️ **AC-2 從未被驗證** ⇒ `closed_partial` |
+| **Current Phase** | **W16**（PR-pending）`closed` —— M1 slice 11：ISMS profile 五張 entity-scoped 表（+ `ISMSProfileVersion`，依 `02a:18` 同 change 上索引）**30 / 36**，零端點。⭐⭐ Day-0 **DR3**：plan 漏了 `FORCE` RLS —— owner 繞過全部 policy，而 int suite 連 app 角色 ⇒ **無測試會發現**。⭐ `AD-UniqueKeyOracle-1` 首次**正面**驗證；`AD-DevDbChecksumDrift-1` 五片來首個真數（17/22）。calibration **0.84 IN** |
 | **History** | See [`MEMORY.md`](./MEMORY.md) + 各 phase 的 `retrospective.md` |  <!-- doc-links: ignore — MEMORY.md 由 bootstrap 複製到專案根 -->
 | **Pending / Next** | See [`docs/01-planning/BACKLOG.md`](./docs/01-planning/BACKLOG.md)（**有什麼**）· [`ROADMAP.md`](./docs/01-planning/ROADMAP.md)（**先做哪個**）|
 | **跨來源狀態** | See [`docs/01-planning/STATUS_AUDIT.md`](./docs/01-planning/STATUS_AUDIT.md) —— 問「現在全項目怎樣」時跑 `/status-audit`，**不要只讀 BACKLOG** |
@@ -510,6 +510,6 @@ python scripts/lint/run_all.py
 
 ---
 
-**Last Updated**: 2026-08-16（W15 closeout）
+**Last Updated**: 2026-08-16（W16 closeout）
 **Project Start**: 2026-08-07
 **Template Version**: 2.6.1 (claude-code-dev-template)

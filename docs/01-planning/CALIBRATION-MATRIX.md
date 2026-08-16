@@ -51,7 +51,7 @@ Bottom-up ~X hr → class-calibrated ~Y hr (mult Z) → agent-adjusted ~Y' hr (a
 | Scope class | Mult | 3-phase mean | Status（1 行）|
 |-------------|------|---------------|--------------|
 | `greenfield-scaffold` | 0.60 | n/a (1 pt) | KEEP (W01 ratio ~0.35 UNDER band; 工時未逐項記錄，數字由 commit 時間戳回推故品質打折; if 2nd <0.70 → 0.40; → calibration-log) |
-| `pattern-reuse-feature` | 0.50 | n/a (8 pt, 跨 0.23~1.24) | KEEP (W15 **1.235 OVER**, 第 8 點; ⛔ **plan 的預測方向錯了** —— 預告「更偏複製 ⇒ ratio 明顯低於 band、可能該分 `schema-only`」而實測往**反方向**出 band: 零端點讓實作便宜 64.4 min 卻讓**驗證變貴** 65.9 min; ⛔ **資料品質打折** —— progress 零時間記錄 + plan §7 未宣告量法 ⇒ 分子事後由 author date 反推且不含 plan 起草, **1.235 是下限不是測量值**; 六間隙最大 44.05 ⇒ 兩種量法同值, 第 2 點; 單點不調乘數; → calibration-log) |
+| `pattern-reuse-feature` | 0.50 | n/a (9 pt, 跨 0.23~1.24) | KEEP (W16 ratio **0.84 IN**, 第 9 點; W15 的 1.235 OVER 後方向反轉 —— 教訓被吸收進**估算**而非乘數: §7 事先寫明「表數 1.67 倍且 entity-scoped」故把驗證面算進 bottom-up; ⚠️ 量法三態已事先宣告但**兩條路徑只在 Day 0-1 獨立**，Day 2-4 同源; 單點不調; → calibration-log) |
 | `spike` | 0.65 | n/a (6 pt, 跨 0.30~1.03) | KEEP (W12 ratio **1.025 IN —— 本欄第一個 IN 點**; ⭐ `actual/bottom-up` **0.667** 首次高於 0.4 下限，但 bottom-up 是 Day-0 後**重估**的故非事前證據; 無等待間隙; 單點不調乘數; → calibration-log) |
 
 ### 常見 scope class 起始建議值
