@@ -483,3 +483,149 @@ W15 的 retro 記的是「N2 承諾了紅的**形狀**而非條數，三種形�
 ### Remaining for Next Day
 
 - Day 3：🔴 **AC-2 逐欄位對照表**（W15 `closed_partial` 的唯一理由）+ full gate 重跑
+
+---
+
+## Day 3 — 2026-08-16 — 整合驗證 ⚪ gate-only verified
+
+### 3.1 Clean restart — **N/A，記錄理由而非打勾略過**
+
+本片無 dev server。`int-global-setup.js` 每次 DROP + CREATE + migrate + seed，
+所以 Risk Class C（陳舊長駐程序掩蓋 wiring 修正）**結構上不成立**。
+⚠️ 但本片確實踩到一個**相鄰**的程序問題（D2-2）：兩個 int suite 並行會互相 DROP 對方的資料庫。
+Risk Class C 講的是「程序太舊」，這個是「程序太多」——同一類的另一面。
+
+### 3.2 🔴 AC-2 — 逐欄位對照（**這一項是 W15 `closed_partial` 的唯一理由**）
+
+#### 覆蓋聲明：掃了什麼、用什麼方法、什麼沒掃到
+
+**方法**：欄位清單取自**資料庫**（`information_schema.columns`），
+不是從 `schema.prisma` 讀 —— 後者是拿宣告去驗宣告。
+**兩條獨立路徑交叉檢查**（`AD-NarrowPatternWideClaim-1`）：
+
+| 路徑 | 結果 |
+|---|---|
+| A：`information_schema.columns` | **94** |
+| B：`migration.sql` 的 `CREATE TABLE` 區塊逐行計數 | **94**（29 / 16 / 15 / 18 / 16，逐表相符）|
+
+**沒掃到的**：本表比對的是**欄位的存在與型別**，不是**語義**。
+「`scope_statement` 存的真的是 ISO 範圍聲明」這種事今天沒有寫者也沒有讀者，無從驗證。
+
+#### 94 個欄位的分解
+
+| 類別 | 數量 | 內容 |
+|---|---|---|
+| **Base fields**（`02a` §1.1）| **50** = 10 × 5 | `id` · `ref_code` · `org_entity_id` · `version` · `extensions` · `created_at` · `created_by` · `updated_at` · `updated_by` · `retired_at` |
+| **領域欄位** | **44** | 見下表 |
+
+⛔ **`02a` §1.1 列了 11 項 base field，本片建了 10 項**，差額逐條交代：
+
+| §1.1 base field | 本片 | 依據 |
+|---|---|---|
+| `status` | **不建**（五張表皆無）| D5。⭐ **經驗確認**：全 schema 中 `status` 恰好存在於 `actions` / `assessment_instances` / `control_tests` / `issues` / `policies` / `risks` **六張表**，正是 `02a` §4 有 lifecycle 的那六個。status 存在於**且僅存在於**有狀態機的地方 —— D5 的推理與現況一致，不是特例 |
+| `owner_user_id` | **只在 `isms_profiles`** | 既有 24 張 entity-scoped 表中**只有 10 張**有它 ⇒ 選擇性的，非普遍。`13` 為 profile 整體指名了負責人語義、為子表沒有 |
+| `is_active` | **不建** | ⚠️ **全 schema 零張表有它**（`information_schema` 實測 **0**）。`02a:100` 把它列為 base field 並註「Derived convenience flag」，而**從 W02 至今沒有任何一片實作過**。⇒ 本片與既有 25 張表一致；但那條清單有一項**沒有任何東西實作** → BACKLOG |
+
+#### 44 個領域欄位 vs `13`
+
+| 表 | 領域欄位 | `13` 出處 | 差異 / 依據 |
+|---|---|---|---|
+| `isms_profiles`（19）| `profile_year` | `13:37` | 型別為 `INTEGER` 而非字面的字串 `"2026"` —— `13:69` 的儀表板問「今年的 profile 完成了嗎」，那是比較不是字串匹配 |
+| | `certificate_count` · `scope_statement` | `13:37` | 逐字 |
+| | `certifier_comment_scope` · `company_reply` | `13:37` | **D7 使用者裁定建**（關閉 `AD-DesignAlign-7`）|
+| | `valid_from` · `valid_to` | `13:37` | `@db.Date`；⚠️ schema 有兩種時間慣例（D1-4）|
+| | `iso_27001` · `iso_27017` | `13:21` | **D12 使用者裁定建**。`13:37` 的資料模型行**沒有**它們 |
+| | `certification_state` · `certificate_number` · `certification_body` · `certificate_issued_at` · `certificate_expires_at` · `surveillance_at` · `review_at` · `iso_officer_name` | `13:27` | **D11 使用者裁定建**（九選八）。`13:37` **沒有**它們 |
+| | `current_version_id` | 由 `13:31` 導出 | **D14**：`13` 未指名此欄，它是「不建 `state`」的代價與對價 |
+| | `owner_user_id` | 無 | `02a` §1.1 base field，`13` 未指名 |
+| `isms_sites`（6）| `isms_profile_id` · `site_name` · `is_head_office` · `address` · `employees_in_scope` · `certifier_comment_employees` | `13:39` | **逐字六項，零增零減** |
+| `isms_contacts`（5）| `isms_profile_id` · `user_id` · `name` · `department` · `role` | `13:41` | **逐字**；`user_id` **or** `name` 由 CHECK 承載（D10）|
+| `approved_offerings`（8）| `isms_profile_id` · `name` · `business_line` · `offering_type` · `approval_status` · `approved_at` · `approved_by` · `notes` | `13:43` | **逐字八項，零增零減**；`approved_by` 為自由文字（D8）|
+| `isms_profile_versions`（6）| `isms_profile_id` · `version_label` · `versioned_at` · `actor_user_id` · `actor_role` · `note` | `13:31` 的 `(v, date, by, role, note, state)` | **六選五**：`state` 不建（D14）。`actor_role` 為字串（D15）|
+
+⭐ **三張子表對 `13` 是零增零減**（sites 6/6 · offerings 8/8 · contacts 5/5）。
+所有增減都集中在 `isms_profiles`（+10 個 agreed-field 欄位、−3 個規格欄位）
+與版本表（−1）。
+
+#### 「不建」的欄位 —— 缺席證明（對**資料庫**查，非對 schema 檔 grep）
+
+⚠️ **先證明儀器有效再信任它的零**（`AD-NarrowPatternWideClaim-1`：
+零命中要先證明搜對了地方）。陽性對照：
+
+| 探針 | 結果 |
+|---|---|
+| `iso_officer_name` | → `isms_profiles` ✅ 找得到 |
+| `certifier_comment_scope` | → `isms_profiles` ✅ |
+| `version_label` | → `isms_profile_versions` ✅ |
+| `address` | → `isms_sites` ✅（⚠️ 這是 `13:23` 的**站點**地址；`13:25` 的 ISMS leader 地址**未建**）|
+| `posture` | → **ABSENT** |
+
+儀器成立後的缺席清單，**12 條全部 0 欄**：
+
+| 欄位 | 依據 |
+|---|---|
+| `posture` | **D13** — `02a:437` 導出值不儲存 |
+| `region_code` | **D6** — `13:13` 的範例值是 OpCo code |
+| `status` | **D5** — `02a` §4 無此實體的 lifecycle |
+| `state` | **D14** — superseded 由父表指標導出 |
+| `standards` | **D12** — 改建為兩個 bool |
+| `company_name` · `country` | `OrgEntity.name` / `OrgEntity.jurisdiction_id` 已承載 |
+| `email` · `phone` | `13:25` 的 agreed field，`13:41` 的資料模型行沒有 |
+| `applicable_geography` · `valid_period` · `framework_id` | `13:45` 自己說「Model those only if actually needed」|
+
+#### 15 個裁決的執行狀態
+
+| D | 裁決 | 已執行？ | 可執行證據 |
+|---|---|---|---|
+| D1 | 子表加 `org_entity_id` + 複合 FK | ✅ | 測試 4（N1 實測會轉紅）· `pg_constraint` 四條 `%_isms_profile_id_org_entity_id_fkey` |
+| D2 | `@@unique([orgEntityId, profileYear])` | ✅ | 測試 6（N2b 實測會轉紅）|
+| D3 | 子表不建自然唯一鍵 | ✅ | `pg_indexes` 過濾 `indexdef LIKE '%UNIQUE%'`：三張子表**各恰好 2 條** —— `_pkey` 與 `_ref_code_key`，兩者都是伺服器生成／發號（AD 明文豁免）⇒ **零個呼叫端可選的唯一 tuple** |
+| D4 | 建第五張表 + 進 `02a:60` | ✅ | `check_entity_index` **30 / 36** |
+| D5 | 不建 `status` | ✅ | 缺席查詢 0 欄 |
+| D6 | 不建 `region_code` | ✅ | 缺席查詢 0 欄 |
+| D7 | 建三個 certifier / reply 欄 | ✅ | `information_schema` 三欄在 `isms_profiles` |
+| D8 | `approved_by` 自由文字 | ✅ | `information_schema`：`approved_by` = `text`（非 uuid、無 FK）|
+| D9 | `approval_status` 四值 | ✅ | `pg_enum`：`offering_approval_status` 四個 label |
+| D10 | `user_id` **or** `name` + CHECK | ✅ | 測試 8（23514）· `pg_constraint` 的 `isms_contacts_identifies_someone` |
+| D11 | 建 `13:27` 九選八 | ✅ | 八欄在 `information_schema`；`posture` 缺席查詢 0 欄 |
+| D12 | 建 standards 兩個 bool | ✅ | `iso_27001` / `iso_27017` = `boolean` |
+| D13 | 不建 `posture` | ✅ | 缺席查詢 0 欄 + migration banner 記錄理由 |
+| D14 | 版本表不建 `state`、改父表指標、無 `FOR UPDATE` | ✅ | 測試 9（N3a/N3b 實測）· 測試 3 的 cmd 集合 `[INSERT,SELECT]` |
+| D15 | `actor_role` 為字串 | ✅ | `information_schema`：`actor_role` = `text`（非 uuid、無 FK）|
+
+**15 / 15 已執行，每條都指向一個可重跑的證據。零條「已裁決但無證據」。**
+
+### 3.x Full gate 重跑（逐項複製 §2.x 的十三項）
+
+⭐ 這一次的十三項是在**最後一次改動之後**跑的 —— `AD-PartialGateReportedAsFull-1`
+的 W11 變體（「gate 的時間點早於最後一次改動」）要求的正是這件事，
+而本片 Day 2 的 int 是在還原之後跑的、Day 3 這一輪是全部十三項重跑。
+
+| # | Gate | 結果 |
+|---|------|------|
+| 1 | `format:check` api | EXIT=0 |
+| 2 | `format:check` web | EXIT=0 |
+| 3 | `lint` api+web | EXIT=0 |
+| 4 | `type-check` api+web | EXIT=0 |
+| 5 | `build` api | EXIT=0 |
+| 6 | `build` web | EXIT=0 |
+| 7 | `lint:negative` | EXIT=0 |
+| 8 | api unit | EXIT=0 |
+| 9 | **api int** | EXIT=0 |
+| 10 | web unit | EXIT=0 |
+| 11 | coverage | EXIT=0 |
+| 12 | `run_all.py` | EXIT=0 |
+| 13 | `check_entity_index` | EXIT=0 |
+
+**AGGREGATE: ALL 13 GREEN**（聚合判定由指令印出，非我手寫）
+
+### Day 3 判定
+
+⚪ **gate-only verified。** 本片零 user-facing surface —— 無端點、無 UI、無 CLI ——
+依 `verification-discipline.md` §適用範圍屬「純後端 / 純 infra」豁免。
+⛔ **這不是省略，是明記**：本片**沒有**任何可駕駛的東西，
+所以「人能不能真的用」這個問題今天問不出來，也不得暗示答案。
+
+🔴 **AC-2 已完成** —— 94 個欄位逐條對照、兩條獨立路徑交叉檢查、
+12 條缺席欄位有經陽性對照驗證過的缺席證明、15 個裁決全部指向可重跑的證據。
+⇒ **W15 被判 `closed_partial` 的那個理由，在本片不成立。**
