@@ -4,7 +4,7 @@
 **Phase**: W16
 **Scope**: `core-model`（schema / migration / seed / int spec）+ `02a` §0 索引 + `13` 實作記錄
 **Components**: —
-**PR**: PR-pending
+**PR**: #71
 
 ---
 

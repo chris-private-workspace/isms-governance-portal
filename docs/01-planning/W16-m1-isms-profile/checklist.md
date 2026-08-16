@@ -353,5 +353,15 @@ _(本片零 user-facing surface：無端點、無 UI、無 CLI。依 `verificati
       （⛔ **AP-3 要如實記 ≥ 1** —— `ISMSProfileVersion` 今天零消費者，是知情下的裁定）
 - [x] `plan.md` frontmatter `status:` → `closed` / `closed_partial` **+ 內文 `**Status**` 一起翻**（R9）
   - Verify: `python scripts/lint/check_status_markers.py`
-- [ ] **Commit** → ⏳ PR push + open → CI → merge: **PENDING USER CONFIRMATION**
-      （push 是 outward-facing）→ merge 經 `gh pr view <N> --json state,mergedAt` **驗證**後翻狀態標籤
+- [x] **Commit** → PR push + open → CI → merge（push 是 outward-facing，已取得使用者核可）
+      → merge 經 `gh pr view <N> --json state,mergedAt` **驗證**後翻狀態標籤
+  - 2026-08-16: pushed（7 commits）+ **PR #71 opened** → **CI 六項全 pass**。
+    CI 的 `gates` 與本機**逐位相符**：unit **480 / 40** · int **235 / 19** ·
+    coverage **92.14 / 91.77 / 98.98 / 93.56**（int 在 CI 是 compose 起真 PostgreSQL 跑的，
+    `ci.yml:228`）⇒ 「本機綠但 CI 未驗」的紅旗**已清**。
+  - **Merge 已驗證**（非採信宣稱）：`gh pr view 71 --json state,mergedAt` →
+    `MERGED` / `2026-08-16T12:11:27Z` / mergeCommit **`0086ba5`** / `mergedBy: laitim2001`。
+    ⚠️ **rebase merge —— 7 個 SHA 全改寫**（`f80a36e` → `0086ba5`，與 origin/main 零重疊，
+    已用 `Compare-Object` 實測）⇒ 標籤記的是 **main 上的 SHA**，不是本地分支的。
+    七處 `PR-pending` 已翻：`CLAUDE.md` · `BACKLOG.md` · `ROADMAP.md` · `MEMORY.md` ·
+    `memory/project_w16_isms_profile.md` · `retrospective.md` · `CH-034`

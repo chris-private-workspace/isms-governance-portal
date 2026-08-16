@@ -2,7 +2,7 @@
 
 **Phase**: W16 — M1 slice 11: the APAC ISMS profile
 **Period**: 2026-08-16（單日）
-**PR**: PR-pending
+**PR**: #71（MERGED 2026-08-16，`0086ba5`）
 **Retrospective**: `docs/01-planning/W16-m1-isms-profile/retrospective.md`
 **Change record**: `docs/03-implementation/changes/CH-034-w16-isms-profile.md`
 
