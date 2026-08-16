@@ -17,9 +17,12 @@
 --      for threats/vulnerabilities, whose migration says it "simply matches a
 --      row already on the list. Nothing here widens it." Neither does this.
 --
---   2. `obligations` DOES widen it, by one row, and multi-tenant-data.md:81
---      requires an argument rather than a default for exactly that. The
---      argument, also written into that file and into the PR description:
+--   2. `obligations` DOES widen it, and multi-tenant-data.md:81 requires an
+--      argument rather than a default for exactly that. It was APPENDED TO THE
+--      EXISTING ROW rather than given its own, because that file is cited by
+--      100+ `file:line` anchors and AD-MdAnchorLineShift-1's rule is that
+--      editing it must not change the line count. The argument, also written
+--      into that file and into the PR description:
 --
 --        All five specified fields (02a:200) are regulatory content. A clause
 --        of Singapore's PDPA reads identically for all 13 OpCos; there is no
