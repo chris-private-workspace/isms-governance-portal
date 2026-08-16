@@ -1,5 +1,5 @@
 ---
-status: closed_partial  # draft | active | closed | closed_partial —— 機器可讀的唯一權威
+status: closed  # draft | active | closed | closed_partial —— 機器可讀的唯一權威
 ---
 
 # Phase W05 Plan — M1 slice 2: the asset-based risk chain
@@ -11,9 +11,26 @@ status: closed_partial  # draft | active | closed | closed_partial —— 機器
 ⚪ **無 UI** → drive-through 不適用，一律標 **API-level verified**。
 ❌ **不需要 design note**（feature continuation，非 spike —— 見 §1）。
 
-**Status**: **closed_partial**（2026-08-11 收尾，MERGED PR #36）—— US-1/2/3/5/6 完成，
-**US-4 部分**：約束 8 四項只對 `Risk` 完全成立，`AssetGroup` / `Asset` 兩張表**無端點**故未逐條測
-（checklist 2.4 標 🚧 **未刪**，解封：slice 3 的 `POST /assets` 同一個 PR）。
+**Status**: **closed**（2026-08-11 收尾 MERGED PR #36 · **2026-08-15 翻為 `closed`**）——
+US-1/2/3/5/6 於收尾當日完成；**US-4 的 🚧 已由 W06 解封**。
+
+> ⛔ **原始收尾措辭保留於下，不覆寫** —— 差距本身就是紀錄：
+> ~~**closed_partial** —— **US-4 部分**：約束 8 四項只對 `Risk` 完全成立，
+> `AssetGroup` / `Asset` 兩張表**無端點**故未逐條測（checklist 2.4 標 🚧 **未刪**，
+> 解封：slice 3 的 `POST /assets` 同一個 PR）。~~
+>
+> **解封實據**（審計 #5 `AD-19`，2026-08-15 處置）：條件是「slice 3 建 `POST /assets` 時同一個 PR
+> 補齊四項範疇測試」，**W06 就是 slice 3 且確實補了** —— `asset.int.spec.ts` 測試
+> 2（跨實體讀）· 3 / 6（跨實體寫拒且資料未變）· **3b / 6b**（policy 自己擋，發號器已繞開）·
+> 7（RLS 獨立於 repository）· 8（滾升只見授權子樹），由 `8eb8897`（W06）加入，
+> **逐條讀標題確認而非數命中**（⚠️ 該檔對「約束 8」這個字串 **0 命中**，審計 #5 第一次因此誤判為缺口）。
+> 本檔 `checklist.md:185` 早已自行標記 `🚧→✅ 已於 W06 解封並完成`，**只有這裡沒跟著翻**。
+>
+> ⛔ **`check_status_markers` 對此一直是綠的，而它沒有錯** —— E1/E2 比對的是 frontmatter 與內文
+> **彼此**是否一致，兩處都寫 `closed_partial`，所以一致。
+> **detector 抓得到「不一致」，抓不到「一致地過時」** —— 這個缺口仍在（候選守衛：
+> checklist 內不存在任何 `- [ ] 🚧` 而 plan 是 `closed_partial` 即 fail；W14 是它的正面對照組，
+> 因為 W14 **真的**還有一個 🚧）。
 ↓ **以下為原始核可紀錄，不覆寫** ↓
 **原 Status**: **Approved-to-execute**（使用者核可 2026-08-11。§3.1 的 **D1–D4 全部由使用者拍板同日**；
 D1/D2 判為架構級 → **ADR-0013** 於 Day 1 產出。⛔ **D1-A 有一個未解的前置** ——
