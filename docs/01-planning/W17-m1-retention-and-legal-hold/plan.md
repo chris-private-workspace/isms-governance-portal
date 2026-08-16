@@ -1,5 +1,5 @@
 ---
-status: active   # draft | active | closed | closed_partial —— 機器可讀的唯一權威
+status: closed   # draft | active | closed | closed_partial —— 機器可讀的唯一權威
 ---
 
 # Phase W17 Plan — Records retention and legal hold
@@ -12,7 +12,7 @@ status: active   # draft | active | closed | closed_partial —— 機器可讀�
 對 `legal_holds` 結構上不可用** —— 見 §0 D3，這是本 plan 最重要的一項發現。
 **無 drive-through**（零 user-facing surface）· **無 design note**（feature continuation）。
 
-**Status**: Approved-to-execute（使用者核可 2026-08-16；方向與 `retention_policy` 範疇軸同日裁定。
+**Status**: Closed（使用者核可 2026-08-16；方向與 `retention_policy` 範疇軸同日裁定。
 T0 `2026-08-16T13:24:10Z`）
 
 **Branch**: `feature/W17-retention-and-legal-hold`
