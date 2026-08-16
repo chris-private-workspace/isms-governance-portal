@@ -352,9 +352,10 @@ describe('the ISMS profile tables, with the application removed', () => {
       // a test called "versions are immutable" would pass with the policy half
       // silently gone. N3a is the experiment that separates them.
       await expect(
-        client.query(`UPDATE isms_profile_versions SET note = 'rewritten' WHERE org_entity_id = $1`, [
-          SG1,
-        ]),
+        client.query(
+          `UPDATE isms_profile_versions SET note = 'rewritten' WHERE org_entity_id = $1`,
+          [SG1],
+        ),
       ).rejects.toMatchObject({ code: '42501' });
     } finally {
       await client.end();
