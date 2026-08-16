@@ -1,5 +1,5 @@
 ---
-status: active   # draft | active | closed | closed_partial —— 機器可讀的唯一權威
+status: closed   # draft | active | closed | closed_partial —— 機器可讀的唯一權威
 ---
 
 # Phase W16 Plan — ISMS profile: five entity-scoped tables, no endpoints
@@ -13,7 +13,7 @@ status: active   # draft | active | closed | closed_partial —— 機器可讀�
 不一致，§3.1 逐條裁決。⚪ 純資料層，**gate-only verified**，無 drive-through。
 Feature continuation ⇒ **無 design note**、**無 ADR**。
 
-**Status**: Approved-to-execute（使用者核可 2026-08-16；D4 / D7 / D11-12 已裁定 —— §3.1 標 ✅USER。
+**Status**: Closed（收尾 2026-08-16；使用者核可 2026-08-16；D4 / D7 / D11-12 已裁定 —— §3.1 標 ✅USER。
 D13（`posture` 不建）於核可時一併知情通過）
 
 **Branch**: `feature/W16-isms-profile`

@@ -324,7 +324,7 @@ _(本片零 user-facing surface：無端點、無 UI、無 CLI。依 `verificati
 
 ### 4.1 Change record
 
-- [ ] **`docs/03-implementation/changes/CH-034-w16-isms-profile.md`**（Problem / Root Cause /
+- [x] **`docs/03-implementation/changes/CH-034-w16-isms-profile.md`**（Problem / Root Cause /
       Solution / Verification / Impact —— 含 **§關鍵設計細節**（15 個裁決）
       + **§Drive-through 抓到而 gate 沒抓到的** ⇒ ⚪ 本片寫「N/A — gate-only verified，
       零 user-facing surface」而**不是留白**）
@@ -333,25 +333,25 @@ _(本片零 user-facing surface：無端點、無 UI、無 CLI。依 `verificati
 
 ### 4.2 Closeout
 
-- [ ] `retrospective.md` Q1-Q7 + calibration（`pattern-reuse-feature` 0.50，**第 9 個資料點**；
+- [x] `retrospective.md` Q1-Q7 + calibration（`pattern-reuse-feature` 0.50，**第 9 個資料點**；
       ratio 出 band 就標記 re-point）
   - DoD: ⭐ **兩條路徑的分子都要算**（progress.md 逐日時間記錄 **與** commit author date），
         差距 > 20% 要寫下差在哪，**不挑對自己有利的那個**（plan §7 已事先宣告）
-- [ ] `calibration-matrix.md` 那一行 —— 填這個骨架，**≤ 1 行 ~250 字元**
+- [x] `calibration-matrix.md` 那一行 —— 填這個骨架，**≤ 1 行 ~250 字元**
       （lint 上限 400；完整敘述 → `calibration-log.md`）：
       `| \`pattern-reuse-feature\` | 0.50 | <mean> | KEEP/re-point (W16 ratio ~<Y> IN/OVER band; <一子句>; if 2nd >1.20 → <Z>; → calibration-log) |`
-- [ ] Final gate sweep（**逐項複製 §2.x 的十三項**，各自取 exit code）
-- [ ] 導航檔: `CLAUDE.md` Current-Phase + Last-Updated（**各 1 行，不加 Prev Phase 列**）·
+- [x] Final gate sweep（**逐項複製 §2.x 的十三項**，各自取 exit code）
+- [x] 導航檔: `CLAUDE.md` Current-Phase + Last-Updated（**各 1 行，不加 Prev Phase 列**）·
       `MEMORY.md` pointer（~250-300 字元）+ `memory/project_w16_isms_profile.md` subfile
-- [ ] `BACKLOG.md`：**關閉 `AD-DesignAlign-7`**（D7 已裁定）→ 移到 Shipped Pointer Index；
+- [x] `BACKLOG.md`：**關閉 `AD-DesignAlign-7`**（D7 已裁定）→ 移到 Shipped Pointer Index；
       新增 D5 / D6 / D9 / D11(重疊) / D13 五條 AD
-- [ ] `ROADMAP.md` 第 4 項推進（**30 / 36**，並說明分母 +1 的理由）
+- [x] `ROADMAP.md` 第 4 項推進（**30 / 36**，並說明分母 +1 的理由）
       **+ 第 4d 項標記**（`AD-UniqueKeyOracle-1` 的 Day-0 落點已執行）
-- [ ] `RISK_REGISTER.md` R3 / R4 更新 + Last Reviewed
+- [x] `RISK_REGISTER.md` R3 / R4 更新 + Last Reviewed
       （⚠️ R4：五張新表**零寫入路徑**，敞口是否變大要據實寫）
-- [ ] Anti-pattern 自檢（retro Q5）：AP-1..AP-7 → 違規數
+- [x] Anti-pattern 自檢（retro Q5）：AP-1..AP-7 → 違規數
       （⛔ **AP-3 要如實記 ≥ 1** —— `ISMSProfileVersion` 今天零消費者，是知情下的裁定）
-- [ ] `plan.md` frontmatter `status:` → `closed` / `closed_partial` **+ 內文 `**Status**` 一起翻**（R9）
+- [x] `plan.md` frontmatter `status:` → `closed` / `closed_partial` **+ 內文 `**Status**` 一起翻**（R9）
   - Verify: `python scripts/lint/check_status_markers.py`
 - [ ] **Commit** → ⏳ PR push + open → CI → merge: **PENDING USER CONFIRMATION**
       （push 是 outward-facing）→ merge 經 `gh pr view <N> --json state,mergedAt` **驗證**後翻狀態標籤

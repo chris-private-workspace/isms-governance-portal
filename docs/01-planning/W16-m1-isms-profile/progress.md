@@ -241,6 +241,20 @@ invention, not the alignment.**」—— 但 `Risk.reviewDue`（W05）與 `Regul
 
 ## Day 2 — 2026-08-16 — Seed + integration spec + 中性化
 
+### Today's Accomplishments
+
+| Task | 起 | 迄 | 實際 | 量法 |
+|---|---|---|---|---|
+| 2.1 seed（五張表跨兩實體 + 計數守衛）| `10:22:09Z` | `10:26:00Z` | **~4 min** | ⚠️ commit 導出 |
+| 2.2 int spec（10 條 + 一次修正 + collation 加固）| `10:26:00Z` | `10:31:17Z` | **~5 min** | ⚠️ commit 導出（`020fe11`）|
+| 2.3 中性化 ×5（含一次汙染重跑）| `10:33:37Z` | `11:01:34Z` | **~28 min** | ⚠️ commit 導出（`f19bd75`）|
+| **Day 2 合計** | `10:22:09Z` | `11:01:34Z` | **39.4 min** | |
+
+⛔ **這些是 commit 時間戳導出的，不是逐任務量測** —— plan §7 承諾分子取本檔的逐任務記錄、
+author date 只作交叉檢查，而 Day 2 起我沒有在每個任務前後蓋 `date -u`。
+⇒ 對 Day 2-4 而言**兩條路徑同源**，「相差 2% 以內」那句話沒有它看起來的份量。
+`AD-CalibrationNoTimeRecord-1` 在本片是**部分清償**。
+
 ### 2.2 int spec — 一次量測，一個修正
 
 10 條測試，**第一次跑 9 綠 1 紅**。紅的是測試 10（GRANT catalog 斷言），
@@ -488,6 +502,14 @@ W15 的 retro 記的是「N2 承諾了紅的**形狀**而非條數，三種形�
 
 ## Day 3 — 2026-08-16 — 整合驗證 ⚪ gate-only verified
 
+### Today's Accomplishments
+
+| Task | 起 | 迄 | 實際 | 量法 |
+|---|---|---|---|---|
+| 3.2 AC-2 逐欄位對照（94 欄 + 12 條缺席證明 + 15 個裁決對帳）| `11:01:34Z` | `11:08:00Z` | **~6 min** | ⚠️ commit 導出 |
+| 3.x full gate 十三項重跑 | `11:08:00Z` | `11:11:38Z` | **~4 min** | ⚠️ commit 導出（`fa7f49a`）|
+| **Day 3 合計** | `11:01:34Z` | `11:11:38Z` | **10.1 min** | |
+
 ### 3.1 Clean restart — **N/A，記錄理由而非打勾略過**
 
 本片無 dev server。`int-global-setup.js` 每次 DROP + CREATE + migrate + seed，
@@ -629,3 +651,43 @@ Risk Class C 講的是「程序太舊」，這個是「程序太多」——同�
 🔴 **AC-2 已完成** —— 94 個欄位逐條對照、兩條獨立路徑交叉檢查、
 12 條缺席欄位有經陽性對照驗證過的缺席證明、15 個裁決全部指向可重跑的證據。
 ⇒ **W15 被判 `closed_partial` 的那個理由，在本片不成立。**
+
+---
+
+## Day 4 — 2026-08-16 — Closeout
+
+### Today's Accomplishments
+
+| Task | 實際 | 量法 |
+|---|---|---|
+| `CH-034` change record | ~6 min | ⚠️ commit 導出 |
+| `retrospective.md` Q1-Q7 + calibration | ~8 min | ⚠️ commit 導出 |
+| calibration matrix + log 回填 | ~4 min | ⚠️ commit 導出 |
+| BACKLOG（關 1 / 新增 5 / 更新 5）+ ROADMAP + RISK_REGISTER | ~8 min | ⚠️ commit 導出 |
+| 導航檔（CLAUDE.md 2 行 · MEMORY.md 指標 · memory subfile）| ~5 min | ⚠️ commit 導出 |
+| **Day 4 合計** | **~31 min** | |
+
+### Issues / Discoveries
+
+**D4-1 ⭐ CLAUDE.md 的預算是 bytes，而我用 chars 量。**
+把 Current Phase 那格從 W15 版換成 W16 版時，**字元數 448 → 447（少 1）**，
+而 **byte 數 29,676 → 30,146（多 470）** —— 因為新格子的中文字比舊的多。
+lint 立刻擋下（`over_budget: 30,146 > 30,000`），改用 byte 量後壓到 **29,469**，
+**比 W15 那版還小**。
+⇒ 這是「拿便宜的代理指標回答需要真值的問題」的又一次
+（`AD-NarrowPatternWideClaim-1` 家族），只是這次代理指標是**單位**而不是 pattern。
+⚠️ 附帶：Python 的 `len(s.encode())` 與 `wc -c` 因 CRLF 而不同 —— **權威是 lint，不是我的計算**。
+
+### Phase 總時數
+
+| Day | Actual | 量法 |
+|-----|--------|------|
+| Day 0（起草）| ~95 min | ⛔ **估算**（起草前沒蓋時間戳）|
+| Day 0（三-prong）| 14.6 min | ✅ 量測 |
+| Day 1 | 21.4 min | ✅ 量測 |
+| Day 2 | 39.4 min | ⚠️ commit 導出 |
+| Day 3 | 10.1 min | ⚠️ commit 導出 |
+| Day 4 | ~31 min | ⚠️ commit 導出 |
+| **Total** | **~3.5 hr** | 混合 |
+
+→ retrospective Q2：ratio **3.5 / 4.15 = 0.84 IN**。
