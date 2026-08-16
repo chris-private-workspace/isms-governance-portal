@@ -156,12 +156,22 @@ Drive-through 的位置由**兩次中性化**承擔 —— 它們是本片唯一
     (B) `rls-direct`（第 17）跑在 `jurisdiction`（第 18）**之前**
     ⇒ N1 留下的第 6 列 `org_entities` **不會**被 `toBe(5)` 看見 ⇒ **1 紅不是 2 紅**
   - ⛔ (B) **推翻了我的直覺**；⚠️ 它依賴 `--listTests` 順序 = 執行順序，那是**假設不是量測**
-- [ ] **N1** 移除 `org_entities.jurisdiction_id` 的 FK 約束 → 預期 **AC-3 轉紅**、其餘不動
-- [ ] **N2** ⭐ 暫時給 `jurisdictions` 加一條 entity-scoped RLS policy → 預期 **AC-4 轉紅**
+- [x] **N1** 移除 `org_entities.jurisdiction_id` 的 FK 約束 → 預期 **AC-3 轉紅**、其餘不動
+  - ✅ **224 / 1 failed / 1 suite**，逐位對上；紅的是測試 6 且訊息自己指名
+  - ⭐ `rls-direct` 的 `toBe(5)` **維持綠**，如事實 B 所預測 —— 直覺的「2 紅」會是**預測錯**
+- [x] **N2** ⭐ 暫時給 `jurisdictions` 加一條 entity-scoped RLS policy → 預期 **AC-4 轉紅**
   - ⛔ **這是本片的驗收核心**：它是唯一能區分「全域是刻意的」與「忘了加 RLS」的實驗。
     ⚠️ 若 AC-4 在加了 policy 之後**仍綠**，那代表該測試是恆真的（`AD-VacuousScopeTest-1` 形狀）
-- [ ] 逐項對照預測 vs 實際，命中/落空**都**記入 progress.md（⛔ 預測錯**不改預測**）
-- [ ] **還原驗證**：`git status` 空 · api int 回到 Day 2 的數字 · type-check 0
+  - ✅ **222 / 3 failed / 1 suite**，逐位對上；**三條各以預測的機制紅**：
+    測試 1 錯的值（少 10 個）· 測試 2 **例外 42704**（`unrecognized configuration parameter`）·
+    測試 3 catalog 兩個欄位各變一個。測試 7 **綠**（權限先於 RLS），4/5/6 綠（owner）
+- [x] 逐項對照預測 vs 實際，命中/落空**都**記入 progress.md（⛔ 預測錯**不改預測**）
+  - ✅ **兩次全數命中，零落空** —— 含 N2 三條紅的**形狀**而不只是條數
+- [x] **還原驗證**：`git status` 空 · api int 回到 Day 2 的數字 · type-check 0
+  - ✅ clean tree · **連續三次 225 / 18**（EXIT=0）· type-check 0
+  - ⛔⚠️ **還原後第 1 次跑出 `223 / 2 failed`（2 個 suite），之後三次全綠且無任何改動**
+    —— **失敗身分已遺失**（我把輸出過濾成只剩計數行）。假設：jest sequencer 的
+    failure-first 重排 × 本 suite 已知的順序相依。⛔ **不當場追** → BACKLOG + 重現配方
 
 ---
 
