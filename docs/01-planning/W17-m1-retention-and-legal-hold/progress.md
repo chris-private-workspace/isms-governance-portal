@@ -370,3 +370,55 @@ W16 的 N1 就是因為我並行跑兩個 suite 而多出 12 條假紅（互相 
 ⇒ 若測試 6 不存在，`FORCE` 消失在這個 repo 裡就是**完全不可觀察的**：
 所有範疇測試連的是 app 角色，而 `FORCE` 只治理 owner。
 **一層屏障有一個開關，而在 W16 之前沒有任何東西在看它有沒有被打開。**
+
+---
+
+# Day 4 — 2026-08-16（closeout）
+
+## `git diff --name-status` 對照 plan §4
+
+⭐ 這一步是 `AD-DecisionSideEffect-1` 建議的固定 closeout 動作（成本 < 1 min），
+本片第一次照做就抓到一項偏離。
+
+| plan §4 | 實際 | 判定 |
+|---|---|---|
+| `schema.prisma` EDIT | ✅ M | 相符 |
+| `migrations/<utc>_.../migration.sql` NEW | ✅ A | 相符 |
+| `retention-and-hold.int.spec.ts` NEW | ✅ A | 相符 |
+| `int-global-setup.js` EDIT | ✅ M | 相符 |
+| `multi-tenant-data.md` EDIT | ✅ M（`1 1`，行數不變）| 相符 |
+| **`02a-data-model-spec.md` EDIT（§0 索引 `:50` 標記已建）** | ⛔ **未改** | **偏離** |
+| — | ➕ `scripts/lint/check_entity_index.py`（**plan 未預期**）| **偏離** |
+
+**兩項偏離都在同一個地方**：`02a:50` 的索引列**早就存在** ——
+`retention_policy` 與 `LegalHold` 從 Wave 1 起就在上面。
+W16 需要改 `02a` 是因為它**新增了一個實體**（`ISMSProfileVersion`），本片沒有。
+⇒ plan §4 那一列是我從 W16 的形狀抄過來的，而 `02a:18` 的規則
+（「adding an entity means adding a row **in the same change**」）**本片不適用**。
+
+而它改成需要動 `check_entity_index.py` 的原因是 **D14**：三個名字都不同
+（model `RetentionPolicy` / 表 `retention_policies` / 索引 `retention_policy`）
+⇒ 加一條有理由的 `ALIAS`。⛔ **不改 `02a`** —— 權威排序是設計文件 > 代碼，
+讓文件遷就我的表名是反方向。
+
+## Final gate（十一項，各自取 exit code，在最後一次改動之後重跑）
+
+| Gate | 結果 |
+|---|---|
+| `format:check` api/web · `lint` · `type-check` · `build` · `lint:negative` | 全部 **EXIT=0** |
+| api unit `test:cov` | **480 / 40**，coverage **92.14 / 91.77 / 98.98 / 93.56**（**逐位不變**）|
+| api int `test:int` | **248 / 20**（基線 235 / 19 ⇒ **+13 / +1**）|
+| web `test` | **10 / 1** |
+| `run_all` | **8 / 8** |
+| `check_entity_index` | **32 / 36** |
+| `check_backlog_counts` | OK（宣告值由 detector 導出：117→**122** / P1 66→**68** / P2 44→**47**）|
+| `check_status_markers` | OK（23 pre-doc，E1/E2/E3/E4 clean）|
+
+## 收尾時複驗過的兩個宣稱
+
+我在 `RISK_REGISTER.md` 寫了兩個數字，寫完**當場量了**而不是留著：
+
+- **ENABLE 25 / FORCE 25 / 缺口 0**（寬容 pattern，含本片 `legal_holds`）✅
+- **`AUDITED_MODELS` = 16**，分母 32 ⇒ **16 / 32**，分母 +2 分子不變**是正確的** ✅
+
+`CLAUDE.md` **29,469 / 30,000**（餘裕 531，用 **bytes** 量 —— W16 的教訓）。

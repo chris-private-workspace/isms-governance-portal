@@ -207,33 +207,33 @@ Drive-through 的位置由中性化 + AC-2 逐欄位對照替代。)_
 
 ### 4.1 Change record
 
-- [ ] **`docs/03-implementation/changes/CH-035-w17-retention-and-legal-hold.md`**
+- [x] **`docs/03-implementation/changes/CH-035-w17-retention-and-legal-hold.md`**
   - DoD: Problem / Root Cause / Solution / Verification / Impact；
     含 **§Drive-through 抓到而 gate 沒抓到的**（本片為 N/A，**且明記為非省略**）；
     ⛔ 若 `migrate diff` 抓到 gate 抓不到的事，記在該節作為同形狀替代品（W16 先例）
-- [ ] 無 design note（feature continuation）· 無 ADR（無架構級決定）—— **在 retro 明說理由**
+- [x] 無 design note（feature continuation）· 無 ADR（無架構級決定）—— **在 retro 明說理由**（Q7 末段）
 
 ### 4.2 Closeout
 
-- [ ] `retrospective.md` Q1-Q7 + calibration
+- [x] `retrospective.md` Q1-Q7 + calibration
   - DoD: `pattern-reuse-feature` **0.50**，**第 10 個資料點**；
     量法 = 逐段相加、排除 > 60 min 間隙、Day 0 計入；
     ⭐ T0 已蓋（`2026-08-16T13:24:10Z`）⇒ 分子是**量測**不是回推，
     但**起草段仍是估算**，如實標註
-- [ ] `CALIBRATION-MATRIX.md` 那一行 —— **≤ 1 行 ~250 字元**（lint 上限 400）；
+- [x] `CALIBRATION-MATRIX.md` 那一行 —— **≤ 1 行 ~250 字元**（lint 上限 400）；
       完整敘述 → `CALIBRATION-LOG.md` §1
-- [ ] Final gate sweep（十三項**各自取 exit code**，**且在最後一次改動之後重跑**）
-- [ ] 導航檔 Minimal Touch: `CLAUDE.md` Current-Phase（**1 行**）+ Last-Updated ·
+- [x] Final gate sweep（**十一項**各自取 exit code，且在最後一次改動之後重跑）—— 全綠
+- [x] 導航檔 Minimal Touch: `CLAUDE.md` Current-Phase（**1 行**）+ Last-Updated ·
       `MEMORY.md` pointer（~250-300 字元）+ `memory/project_w17_*.md` subfile ·
       `BACKLOG.md` §Shipped 加 1 行 + §Open 加**新 AD**（計數由 detector 導出，**不手數**）·
       `ROADMAP.md` 第 4 項推進 · `RISK_REGISTER.md` R3 / R4
   - DoD: ⚠️ `CLAUDE.md` 位元組預算現為 **29,976 / 30,000（餘裕 24）**——
     ⛔ **用 bytes 量不用 chars**（W16 教訓），且權威是 lint 不是我的計算
-- [ ] 三個新 AD 登記：`AD-LegalHoldScopeRefUnguarded-1` · `AD-RetentionDurationUnstructured-1` ·
+- [x] **五個**新 AD 登記（plan 估三個）：`AD-LegalHoldScopeRefUnguarded-1` · `AD-RetentionDurationUnstructured-1` ·
       （第三個待 Day 0–3 產出）
-- [ ] Anti-pattern 自檢（retro Q5）：AP-1..AP-7 → 違規數
+- [x] Anti-pattern 自檢（retro Q5）：AP-1..AP-7 → **違規 1**（AP-3 如實記：兩張表今天零消費者）
   - DoD: ⛔ **AP-3 要如實記** —— 兩張表今天零消費者
-- [ ] `plan.md` frontmatter `status:` → `closed` / `closed_partial` **+ 內文 `**Status**` 一起翻**（R9）
+- [x] `plan.md` frontmatter `status:` → `closed` **+ 內文 `**Status**` 一起翻**（R9）
   - Verify: `python scripts/lint/check_status_markers.py`
 - [ ] **Commit** → ⏳ PR push + open → CI → merge: **PENDING USER CONFIRMATION**
       （push 是 outward-facing）→ merge 經 `gh pr view <N> --json state,mergedAt` **驗證**後翻狀態標籤

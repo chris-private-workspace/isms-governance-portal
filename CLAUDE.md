@@ -76,7 +76,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 | Attribute | Value |
 |-----------|-------|
 | **Stage** | Wave 1 backbone — 建立共用骨幹，並用 Policy + Risk/Control 兩個最小模組端到端證明它 |
-| **Current Phase** | **W16**（**MERGED PR #71**，`0086ba5`）`closed` —— M1 slice 11：ISMS profile 五張 entity-scoped 表（+ `ISMSProfileVersion`，依 `02a:18` 同 change 上索引）**30 / 36**，零端點。⭐⭐ Day-0 **DR3**：plan 漏了 `FORCE` RLS —— owner 繞過全部 policy，而 int suite 連 app 角色 ⇒ **無測試會發現**。⭐ `AD-UniqueKeyOracle-1` 首次**正面**驗證；`AD-DevDbChecksumDrift-1` 五片來首個真數（17/22）|
+| **Current Phase** | **W17**（PR-pending）`closed` —— M1 slice 12：`retention_policies`（**全域**，第三張擴充豁免清單的表）+ `legal_holds`（entity-scoped）**32 / 36**，零端點。⭐⭐ 最重要的產出是一個**不做**：W14 的多型守衛對 `scope_ref` **結構上不可用**（`::uuid` cast 早於 mapping walk），只涵蓋一個分支的守衛會是 `AD-VacuousScopeTest-1`。⭐ 中性化 **N4 零轉紅揭露真缺口** ⇒ 補測試 13 |
 | **History** | See [`MEMORY.md`](./MEMORY.md) + 各 phase 的 `retrospective.md` |  <!-- doc-links: ignore — MEMORY.md 由 bootstrap 複製到專案根 -->
 | **Pending / Next** | See [`docs/01-planning/BACKLOG.md`](./docs/01-planning/BACKLOG.md)（**有什麼**）· [`ROADMAP.md`](./docs/01-planning/ROADMAP.md)（**先做哪個**）|
 | **跨來源狀態** | See [`docs/01-planning/STATUS_AUDIT.md`](./docs/01-planning/STATUS_AUDIT.md) —— 問「現在全項目怎樣」時跑 `/status-audit`，**不要只讀 BACKLOG** |
@@ -510,6 +510,6 @@ python scripts/lint/run_all.py
 
 ---
 
-**Last Updated**: 2026-08-16（W16 closeout）
+**Last Updated**: 2026-08-16（W17 closeout）
 **Project Start**: 2026-08-07
 **Template Version**: 2.6.1 (claude-code-dev-template)
