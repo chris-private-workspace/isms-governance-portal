@@ -243,6 +243,9 @@ coverage · `run_all` **8/8** · `check_entity_index` **25 / 35**。
 | `AD-TextEditStructuralScope-1`：改 `int-global-setup.js` 的 seed 用字串操作 | ⛔ W14 **同一天犯兩次**。本片改 seed 時**錨定結構邊界**（唯一 ref code / 含換行的完整界定符）+ `assert` 計數符合預期 |
 | 加 `jurisdiction_id` 到 `org_entities` 可能需要重寫其 RLS | Day-0 **D-orgentity-rls** 先量（W14 D3 對 `policies` 的同形答案是不需要）。⛔ 量了再寫，不假設 |
 | **D1 擴充了一條既有規則** | 舉證寫進 `multi-tenant-data.md` 本身 + PR 描述（`:81` 明文要求）。⚠️ 若使用者不同意 D1 ⇒ `obligations` 改為帶 `org_entity_id` + RLS，**本片工作量約增加 40%**（多一組 policy + 四項範疇測試）|
+| ⛔⭐ **Day-0 D7：plan 從頭到尾沒有寫 GRANT，而先例是 `SELECT` only** | 三張表照 `threats`/`vulnerabilities` 抄 **`GRANT SELECT` only**。⭐ 這**強化**了 §3.1 D3 的論證（從「今天沒有寫者」變成「**寫者被資料庫層擋著**」），⛔ **但它讓 §5 AC-5 的 FK 測試不能走應用層** —— 必須以 superuser 連線，與 W02 那 8 個「完全不經應用層」的測試同形。**AC-5 的連線在原文中是空白，Day 2 前補上** |
+| **Day-0 D8：seed 範圍需要一個 §3.0 沒做的三分** | `jurisdictions` 11 列（集團固定事實 + AC-4 需要）· `regulations` **2 列** · `obligations` **1 列**，後兩者**僅為讓 FK 鏈可測的最小 fixture**。⛔ **與 D003「填充義務庫」的區分必須寫進 seed 註解**，否則會被讀成內容訂閱已開始。⚠️ 條文用佔位文字，**不抄真實法條**（本 repo 無授權的法規全文）|
+| **Day-0 D3：`APAC` 是 region 節點，結構上沒有單一管轄區** | §3.1 D5（nullable）的理由由「backfill 不方便」升級為「**NOT NULL 表達不出組織階層的根節點**」。決定不變，論證更強 |
 
 ## 9. Out of Scope（這個 phase 不做 → 另開 slice / AD）
 
