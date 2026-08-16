@@ -285,6 +285,26 @@ Gate 全綠只證明「零件對」；curl 通過只證明「API 會回應」。
 
 ---
 
+## Subagent delegation policy
+
+Standing authorization from the user: you may call the Agent tool on your own
+judgement. Treat this section as the user having requested delegation — do not
+wait for a per-task request. The same authorization applies to workflows.
+
+Delegate when:
+- Work spans several files or modules that are genuinely independent
+- Broad search or exploration whose intermediate results should stay out of
+  the main context
+- Multiple independent review or verification angles can run in parallel
+- The task matches the description of an agent in .claude/agents/
+
+Do not delegate when:
+- The work finishes in a handful of tool calls
+- You would be spawning a subagent to verify your own just-completed work
+- One subagent would do — do not fan out wider than the task needs
+
+---
+
 ## 「Check Existing Before Building」
 
 建任何新 infra 前，**權威排序**：
@@ -490,6 +510,6 @@ python scripts/lint/run_all.py
 
 ---
 
-**Last Updated**: 2026-08-15（W14 closeout）
+**Last Updated**: 2026-08-16（新增 §Subagent delegation policy）
 **Project Start**: 2026-08-07
 **Template Version**: 2.6.1 (claude-code-dev-template)
