@@ -3,7 +3,7 @@
 **Phase**: W16 — ISMS profile: five entity-scoped tables, no endpoints
 **Period**: 2026-08-16（單日）
 **Plan**: [plan.md](./plan.md)  ← 四件套共置於同一個資料夾
-**PR**: PR-pending
+**PR**: #71（**MERGED** 2026-08-16 12:11:27Z，`0086ba5` —— **rebase merge，7 個 SHA 全改寫**）
 **Change record**: `docs/03-implementation/changes/CH-034-w16-isms-profile.md`
 
 ---
