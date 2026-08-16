@@ -313,3 +313,168 @@ The seed edit did not land where it was meant to (AD-TextEditStructuralScope-1).
 - ⛔ **AC-5 必須用 superuser 連線**（Day-0 D7：`GRANT SELECT` only ⇒ 應用層插不進去），
   形狀抄 W02 那 8 個「完全不經應用層」的測試
 - `multi-tenant-data.md` 全域清單 +1 列 `obligations` + 舉證（D1）
+
+---
+
+## Day 2 — 2026-08-16 · 整合測試 + 全域清單舉證
+
+### ⛔⭐ D9 —— **AC-3 是一條沒有測試的驗收標準，而 N1 正要去中性化它**
+
+依 `AD-NeutralisationConsumerGrep-1`（W13：中性化前先 grep 消費者，不要列「我以為會受影響的」），
+在寫測試**之前**先反查 N1 的標的：
+
+```
+Grep "jurisdiction" apps/api/src --glob *.spec.ts  →  No matches found
+```
+
+⇒ **全 repo 零個測試提到 jurisdiction**。而 plan §5 是這樣寫的：
+
+| | 原文 |
+|---|---|
+| **AC-3** | `org_entities.jurisdiction_id` 存在、nullable、FK 指向 `jurisdictions(id)`；既有 seed 列已指過去 |
+| **AC-6（N1）** | 移除 `org_entities.jurisdiction_id` 的 FK 約束 → **AC-3 的測試轉紅** |
+
+⛔ **「AC-3 的測試」不存在。** AC-3 被寫成**結構性**斷言（欄位在、型別對、seed 指過去），
+而這三件事**在 FK 被移除之後全部仍然成立** —— seed 從來只插入存在的 id，
+所以拿掉約束不會讓任何東西變紅。**N1 原本會是一場空實驗**，
+而它回報的「沒有測試轉紅」會與「守衛沒接上」長得一模一樣。
+
+⭐ **這與 Day 1 的 1.1 是同一個形狀，第二次**：
+> 一條檢查的價值不在它的動作，在它的**預期結果能不能區分兩種世界**。
+
+差別在偵測時機：1.1 是我在**寫下預期時**發現的，D9 是我在**執行 grep 時**發現的。
+兩次都在動手前，而兩次都不是靠 plan —— **plan 兩次都把恆真的東西寫成驗收**。
+
+⇒ 處置：`jurisdiction.int.spec.ts` 補測試 6（見下），**AC-3 因此才有可被 N1 falsify 的行為**。
+⇒ 不改 plan §5 的原文（保留「計畫寫了什麼 vs 現實是什麼」的軌跡），本條進 §Risks。
+
+### 2.1 `jurisdiction.int.spec.ts` —— 7 個測試，逐個說明買到什麼
+
+checklist 2.1 列的是 2 項（AC-4 / AC-5）。實際寫了 **7 個 `it()`**，**沒有一個是投機的** ——
+每一個都釘住一句已經被寫下來的斷言：
+
+| # | 測試 | 它釘住的那句話 | 若刪掉會漏掉什麼 |
+|---|---|---|---|
+| 1 | SG1 範疇連線讀到全部 11 個 | AC-4 本體 | — |
+| 2 | **從未設過 scope** 的連線也讀到 11 個 | 「**沒有 policy**」而非「policy 剛好放行」 | 任何呼叫 `current_setting` 的 policy 會在未設 scope 時 raise 42704（`rls-direct` 測試 6 對 `policies` 釘過這件事）。⇒ 測試 1 分不出「permissive policy」與「無 policy」，測試 2 可以 |
+| 3 | catalog 直接讀 `relrowsecurity` + `pg_policies` = 0，**三張表**| migration banner 的整段理由 | 測試 1/2 **只碰 `jurisdictions`**。`regulations` / `obligations` 被加上 RLS 時，1 與 2 全綠 |
+| 4 | `obligations` 指向不存在的 `regulation_id` → **23503** | AC-5 前半 | — |
+| 5 | `obligations` 指向不存在的 `jurisdiction_id` → **23503** | AC-5 後半 | `02a:427` 要求**兩條** N:1；一個複合案例只滿足其中一條時，看起來和這一對一模一樣 |
+| 6 | ⭐ `org_entities` 指向不存在的 `jurisdiction_id` → **23503** | **AC-3**（D9） | **N1 沒有標的** |
+| 7 | 應用角色**三張表都寫不進去** → **42501** | plan §3.1 **D3** | 「沒有寫入路徑可稽核」會退回成「今天剛好沒有 repository」的觀察 |
+
+⛔ **連線的選擇是有承載力的，不是風格**：測試 4/5/6 走 **owner** 連線。
+PostgreSQL **先查權限再查約束** —— 以 `isms_app` 發出的同一句 INSERT 會拿到 **42501**，
+`rejects` 仍然會綠，而**那條 FK 從頭到尾沒有被碰到**。
+這正是 Day-0 D7 那條「AC-5 的連線在原文中是空白」所指的東西，
+而測試 7 把這個順序**變成可見的**：同樣三句 INSERT，換一個角色，錯誤碼從 23503 變 42501。
+
+⚠️ 測試 1/2 斷言的是**排序後的 code 清單**而不是 `count = 11`：
+清單來自 `15:41`（已確認參數 #4）**手寫**，不是從 seed 陣列導出的。
+從被檢查的東西導出期望值，就是 `AD-VacuousScopeTest-1` 的形狀 ——
+Day 1 的計數 assert 已經量到它抓不到「陣列本身被編輯錯」。這裡的清單**可以與 fixture 不同意**。
+
+⚠️ `NOWHERE = ffffffff-...-ffffffffffff` 使用前已驗證 `apps/api` 全樹零命中
+（W14 因為 id 撞號掉了 7 個測試）。
+
+**結果**：`api int` **225 / 18**（+7 tests / +1 suite），EXIT=0。⛔ 七個第一次跑就全綠 ——
+其中 1/2/3/6 的**可證偽性由 Day 3 的 N1/N2 負責證明**，今天不宣稱。
+
+### 2.2 全域清單 + `obligations` + 舉證（D1）✅ —— 但**做了兩次**
+
+### ⛔⭐ D10 —— **第一版加了一列，而那違反 repo 自己既有的一條 AD**
+
+第一版照 plan 寫的做：在表格**插入一列** `obligations`。做完立刻反查引用：
+
+```
+Grep "multi-tenant-data\.md:[0-9]+(-[0-9]+)?"  →  100+ 命中（含 generated）
+```
+
+插在第 65 行 ⇒ **舊行號 ≥ 65 的每一個引用都少了 1**。於是開始分流修補
+（`schema.prisma` · `audit.recorder.ts` ×2 · `rls-direct.int.spec.ts` · `BACKLOG` ·
+`DEFERRED_REGISTER` · 本片 migration，共 7 檔），並準備為「已採納 ADR 不回頭改」
+與「歷史紀錄不動」寫一段判準。
+
+⛔ **然後在寫 BACKLOG 條目之前先查了 BACKLOG，發現這條規則已經存在：**
+
+> **`AD-MdAnchorLineShift-1`**（W07 Day 4，🟡 P1）——「一次 markdown 編輯插入 8 行，
+> 就讓 ~30 個 `02a:NNN` 錨點全部偏 +13」。**通則：被大量錨定的文件，編輯不得改變行數。**
+> W07 的解法是把多行註記改寫成**同一行追加**，並以 `git diff --numstat` + 總行數驗證。
+
+⇒ **全部還原，改照那條 AD 做**：`obligations` **併入既有的
+`jurisdictions` / `regulations` 那一列**，不新增列。
+
+| 量測 | 值 |
+|---|---|
+| 行數 | **390 → 390** |
+| `git diff --numstat` | **1 / 1**（一行改，零增零刪）|
+| 錨點抽驗 `:64` `:67` `:81` `:145` `:161` `:197` `:212` `:294` | **逐個逐字不變** |
+| 需要重新指向的檔案 | **0**（第一版是 7 檔 + 3 份 ADR 的未決問題）|
+
+⭐ **併入其實比新增一列更貼合這張表自己的慣例** —— 表中既有的
+`frameworks` / `framework_controls`、`threats` / `vulnerabilities` 本來就是「一個家族一列」，
+而管轄區→法規→義務正是一條家族鏈。**零位移是附帶的，不是硬凹的。**
+
+⚠️ 它同時取消了第一版的另一個連帶修改：新增一列會讓緊接其後的
+「上面**五**類全部沒有個資」變成錯的（要改「六」）。併入之後**仍然是五列**，那句話不必動 ——
+少改一處就少一個出錯面。
+
+#### 這次的教訓不是「規則寫過了」，是**規則寫過了而我先做完才查**
+
+⛔ 動手前該做的檢索是 `BACKLOG` 而不只是 `rules-on-demand/`：
+`AD-MdAnchorLineShift-1` 是一條**通則**（"被大量錨定的文件，編輯不得改變行數"），
+但它住在 BACKLOG 的 P1 列裡 —— **沒有任何 always-loaded 規則、也沒有任何 lint 帶著它**。
+⇒ 這是 `AD-NegativeGate-1` 家族的另一種形態：**規則存在、正確、而且沒有東西在執行它**。
+W07 自己就寫過「這比 detector 便宜得多 —— detector 只能在偏移**之後**告警，
+本規則讓偏移不發生」；本次證明了那條規則**在沒有載體時**連自己都攔不住。
+
+⭐ **順帶量到的三個實例（不是本次造成的，且因為零位移而更乾淨）**：
+`entity-scope.resolver.ts:16`、`:39`、`entity-scope.resolver.spec.ts:80`
+三處引 `:145` / `:144-149` 宣稱「滾升是子樹不是繞道」，而 `:145` 實際是
+**「查不到資料時回 404」**那一節 —— 由 W04 / W05 對本檔的兩次編輯造成
+（`156e8ea` / `8f08f3f`），**本次零位移，所以這三處與 W15 無關**。
+`AD-16` 只列了 3 個實例，這是第 **4 / 5 / 6** 個 → BACKLOG，
+作為 ROADMAP 第 9 列 detector 的現成驗收料。⛔ **不當場修**（節流閘）。
+
+#### 2.2 最終狀態 ✅
+
+`multi-tenant-data.md:64` 一列涵蓋三張表，舉證與 migration banner **同一段論證**：
+`02a:200` 五個欄位全部是法規內容 · per-entity 的是「靠哪個控制項滿足」住在
+`ObligationControlMapping`（`10:69`，Wave 2）· 範疇化等於**把法條複製 13 份**。
+migration banner 的 "by one row" 一併改寫（引用已不成立的東西 = orphan claim）。
+
+### 2.x Full gate ✅ —— 十三項各自 exit code 分開取
+
+| Gate | 結果 | baseline |
+|---|---|---|
+| `format:check` api | **0** | 0 |
+| `format:check` web | **0** | 0 |
+| `lint` api+web | **0** | 0 |
+| `type-check` api+web | **0** | 0 |
+| `build` api | **0** | 0 |
+| `build` web | **0** | 0 |
+| `lint:negative` | **0** —— 60 檔掃描 / 0 bypass / 3 allowlisted | PASS |
+| **api unit** | **0** —— **480 / 40** | 480 / 40（**不變**）|
+| ⭐ **api int** | **0** —— **225 / 18** | 218 / 17（**+7 / +1**）|
+| web unit | **0** —— **10 / 1** | 10 / 1 |
+| coverage | **92.14 / 91.77 / 98.98 / 93.56** | **逐位不變** |
+| `run_all` | **0**（8/8）| 8/8 |
+| `check_entity_index` | **25 / 35** | 25 / 35 |
+
+⭐ **coverage 逐位不變是 checklist 2.x 先寫下的預期並且命中** ——
+本片零 `.ts` 產品檔，新增的是 `.int.spec.ts`（不在 unit config 的計算範圍內）。
+⛔ 若它動了，那本身會是發現（`AD-ModuleCoverageDilution-1`）。
+
+⚠️ **上表是 D10 還原之後重跑的完整一輪**，不是還原前那一輪的數字 ——
+還原動到 `schema.prisma` / `audit.recorder.ts` / migration 註解，
+`prisma generate` 跟著重跑（`GEN_EXIT=0`）之後才取這十三個 exit code。
+⛔ 沿用還原前的數字會是「用另一個世界的證據寫這個世界的結論」。
+
+## Remaining for Day 3
+
+- ⛔ **先 grep 消費者再寫預測**（`AD-NeutralisationConsumerGrep-1`）—— D9 已先做過一半
+- **N1** 移除 `org_entities.jurisdiction_id` FK → 預期 **測試 6 單獨轉紅**，其餘 224 不動
+- **N2** 給 `jurisdictions` 加 entity-scoped RLS policy → 預期 **測試 1 / 2 / 3 轉紅**
+  （⚠️ 不只 AC-4 一條：測試 2 走 42704 路徑、測試 3 讀 catalog，**三條的紅法各不相同**，
+  這比「AC-4 轉紅」是更強的預測，因此**先寫下再執行**）
+- 預測與實際逐項對照，**命中與落空都記**，⛔ 預測錯不改預測

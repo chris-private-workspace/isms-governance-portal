@@ -94,28 +94,45 @@
 
 ### 2.1 負面測試
 
-- [ ] **AC-4 全域可讀** — `jurisdiction.int.spec.ts`
+- [x] **AC-4 全域可讀** — `jurisdiction.int.spec.ts`
   - DoD: 以 SG1 範疇連線讀到**全部 11 個**管轄區。⚠️ **測試名稱要寫明它證明的是「沒有 policy」**
     （`AD-TestNameWiderThanProof-1`）
   - Verify: `npm run test:int -w apps/api`
-- [ ] **AC-5 FK 完整性** — 指向不存在的 `regulation_id` / `jurisdiction_id` 皆被拒
+  - ✅ 測試 1（SG1 範疇）+ 測試 2（**從未設過 scope**，分辨「無 policy」與「permissive policy」）
+    + 測試 3（catalog 直接讀 `relrowsecurity` / `pg_policies`，**涵蓋另外兩張表**）
+- [x] **AC-5 FK 完整性** — 指向不存在的 `regulation_id` / `jurisdiction_id` 皆被拒
   - DoD: 斷言 **SQLSTATE `23503`**，⛔ **不斷言訊息字串**（`AD-GrepAssertion-1` 同族）
   - Verify: 同上
+  - ✅ 測試 4 / 5，走 **owner** 連線（Day-0 D7）；測試 7 把「權限先於約束」變成可見的對照
+- [x] ⛔⭐ **D9（Day 2 發現，plan 未預見）：AC-3 沒有任何測試 ⇒ N1 原本是空實驗**
+  - DoD: `jurisdiction` 在全 repo `*.spec.ts` 零命中 ⇒ 補**測試 6**（`org_entities` 指向不存在的
+    `jurisdiction_id` → 23503），**AC-3 因此才有可被 N1 falsify 的行為**
+  - ⛔ **不改 plan §5 原文** —— 保留「計畫寫了什麼 vs 現實是什麼」的軌跡，本條進 §Risks
 
 ### 2.2 全域清單舉證（D1）
 
-- [ ] **`multi-tenant-data.md` 全域清單 +1 列 `obligations` + 舉證**
+- [x] **`multi-tenant-data.md` 全域清單 +1 列 `obligations` + 舉證**
   - DoD: 舉證寫明「`02a:200` 五個欄位全部是法規內容，per-entity 適用性住在
     `ObligationControlMapping`（`10:69`，Wave 2）」；`:81` 要求的 PR 描述複述留待 Day 4
   - Verify: `python scripts/lint/run_all.py`（rules-hygiene + path-references）
+  - ✅ **併入既有列而非新增列**（見 D10）⇒ 行數 **390 → 390**、`--numstat` **1/1**、
+    錨點 `:64` `:67` `:81` `:145` `:161` `:197` `:212` `:294` 逐字不變、**0 檔需重新指向**
+- [x] ⛔⭐ **D10：第一版加了一列，違反既有的 `AD-MdAnchorLineShift-1`（「被大量錨定的文件，
+      編輯不得改變行數」）** —— 已全部還原重做
+  - ⛔ 我是**做完 7 檔重新指向、正要寫 BACKLOG 條目時**才查到那條規則已經存在
+    ⇒ `AD-NegativeGate-1` 家族：**規則存在、正確，而沒有任何載體在執行它**
+  - ⭐ 順帶量到 `AD-16` 的**第 4/5/6 個實例**（`resolver.ts:16` / `:39` / `resolver.spec.ts:80`
+    引 `:145` 卻指向 404 那一節，**由 W04/W05 造成，與本片無關**）→ BACKLOG，不在此修
 
 ### 2.x Full gate
 
-- [ ] 十三項各自 exit code 分開取：`format:check` api/web · `lint` · `type-check` ·
+- [x] 十三項各自 exit code 分開取：`format:check` api/web · `lint` · `type-check` ·
       `build` api/web · `lint:negative` · api unit · **api int** · web · coverage ·
       `run_all` 8/8 · `check_entity_index` **25 / 35**
-- [ ] ⚠️ **coverage 不得因新 model 稀釋**（`AD-ModuleCoverageDilution-1` / `AD-ModuleFileZeroCoverage-1`）
+      —— ✅ 全 **0**；**api int 225 / 18**（+7 / +1）· api unit 480 / 40 · web 10 / 1
+- [x] ⚠️ **coverage 不得因新 model 稀釋**（`AD-ModuleCoverageDilution-1` / `AD-ModuleFileZeroCoverage-1`）
       —— 本片零 `.ts` 產品檔，所以**預期逐位不變**；若變動，那本身是發現
+      —— ✅ **92.14 / 91.77 / 98.98 / 93.56 逐位不變**，預期命中
 
 ---
 
