@@ -203,27 +203,37 @@ _中性化實測是這一層的等價物 —— 它回答「拿掉這條約束�
 
 ### 4.1 Change record
 
-- [ ] **`docs/03-implementation/changes/CH-037-w18-event-and-posture-snapshot.md`**（單檔 1-page）
-  - DoD: Problem / Root Cause / Solution / Verification / Impact
-  - DoD: §Verification 明寫 **gate-only verified（drive-through N/A，非省略）**
-  - DoD: 記下**中性化抓到而一般 gate 沒抓到的**（若有）
-  - DoD: ⚪ 非 spike（複用 W14/W17 pattern）⇒ **無 design note**，理由寫一行
+- [x] **`docs/03-implementation/changes/CH-037-w18-event-and-posture-snapshot.md`**（單檔 1-page）
+  - DoD: Problem / Root Cause / Solution / Verification / Impact ✅
+  - DoD: §Verification 明寫 **gate-only verified（drive-through N/A，非省略）** ✅
+  - DoD: 記下**中性化抓到而一般 gate 沒抓到的**（若有）—— ✅ N3 讓「兩層失敗方式不同」
+    首次由本片自己的表證明；N1 讓 `AD-VacuousScopeTest-1` 的修法首次被量到有效
+  - DoD: ⚪ 非 spike（複用 W14/W17 pattern）⇒ **無 design note**，理由寫一行 ✅
 
 ### 4.2 Closeout
 
-- [ ] `retrospective.md` Q1-Q7 + calibration
+- [x] `retrospective.md` Q1-Q7 + calibration
       （`pattern-reuse-feature` 0.50，**第 11 個資料點**；ratio 出 band 就標記 re-point）
-- [ ] `calibration-matrix.md` 那一行 —— ⚠️ **該行帶預先判準**：
+      —— ratio **0.545 UNDER**，KEEP 0.50 + **修訂判準**
+- [x] `calibration-matrix.md` 那一行 —— ⚠️ **該行帶預先判準**：
       「若第 11 點再落 0.7-0.85 則 re-point 0.45」⇒ 本次 ratio 直接觸發或否決調整。
       ≤ 1 行 ~250 字元；完整敘述 → `calibration-log.md`
-- [ ] Final gate sweep: `format:check` · `lint` · `type-check` · `build` · `lint:negative` ·
-      api unit · api int · web · coverage · `run_all` **9/9** · `check_entity_index` **34/36**
-- [ ] `plan.md` frontmatter `status:` → `closed` + 內文 `**Status**` 一起翻（R9）
-  - Verify: `python scripts/lint/check_status_markers.py`
-- [ ] 導航檔: `CLAUDE.md` Current-Phase + Last-Updated · `MEMORY.md` pointer + subfile ·
-      `BACKLOG.md` 新 AD（`Event.status` 未裁決 · `severity` 未登記進 `02a` §2 enum 註冊表 ·
-      `loss_amount` 的 AP-3）· `ROADMAP.md`
-- [ ] Anti-pattern 自檢（retro Q5）：AP-1..AP-7 → 違規數
-      —— ⚠️ `loss_amount` 的 AP-3 **如實記一次**，不藏在 N/A 底下
-- [ ] **Commit** → ⏳ PR push + open → CI → merge: **PENDING USER CONFIRMATION**
+      —— ⛔ **實際結果是第三種**：本點 **0.545 低於**該區間 ⇒ **字面不觸發**。
+      ⭐ 且揭露一個方向錯誤：`ratio = actual/committed`，分子變大則 ratio **變大**
+      ⇒ W17 的 0.78 是**下限**，真值 **>** 0.78 ⇒ 歷史 UNDER 有一部分是量測 artifact。
+      新判準：第 12 點**同量法**再 < 0.7 則 re-point 0.45（`AD-CalibrationT0PlacementShift-1`）
+- [x] Final gate sweep: `format:check` ✅ · `lint` ✅ · `type-check` ✅ · `build` ✅ ·
+      `lint:negative` ✅ · api unit **480/40** · api int **265/21** · web **10/1** ·
+      coverage **92.14/91.77/98.98/93.56** · `run_all` ✅ **9/9** · `check_entity_index` ✅ **34/36**
+- [x] `plan.md` frontmatter `status:` → `closed` + 內文 `**Status**` 一起翻（R9）
+  - Verify: `python scripts/lint/check_status_markers.py` → ✅ `OK (25 pre-doc(s), E1/E2/E3/E4 clean)`
+- [x] 導航檔: `CLAUDE.md` Current-Phase + Last-Updated（**只有這兩行**）· `MEMORY.md` pointer
+      + subfile `memory/project_w18_event_and_posture.md` ·
+      `BACKLOG.md` **7 條**新 AD（`Event.status` 未裁決 · `severity` 未登記進 `02a` §2 enum 註冊表 ·
+      `loss_amount` **無幣別**（第二個獨立理由）· `posture_rag` 的 `metric_value` 語義未定 ·
+      schema 無 format gate · `audit.module.ts` 註解過期 · calibration 量法位移）·
+      `ROADMAP.md` 第 4 項推進到 slice 13 · **`RISK_REGISTER.md` R3 / R4 複查**
+- [x] Anti-pattern 自檢（retro Q5）：AP-1..AP-7 → 違規數 **1**
+      —— ⚠️ `loss_amount` 的 AP-3 **如實記一次**，不藏在 N/A 底下 ✅
+- [ ] **Commit** ✅（6 個）→ ⏳ PR push + open → CI → merge: **PENDING USER CONFIRMATION**
       （push 是 outward-facing）→ merge 經 `gh pr view --json state,mergedAt` 驗證後翻狀態標籤
