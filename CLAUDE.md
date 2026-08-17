@@ -76,7 +76,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 | Attribute | Value |
 |-----------|-------|
 | **Stage** | Wave 1 backbone — 建立共用骨幹，並用 Policy + Risk/Control 兩個最小模組端到端證明它 |
-| **Current Phase** | **W17**（**MERGED PR #73**，`cf7cf07`）`closed` —— M1 slice 12：`retention_policies`（**全域**，第三張擴充豁免清單的表）+ `legal_holds`（entity-scoped）**32 / 36**，零端點。⭐⭐ 最重要的產出是一個**不做**：W14 的多型守衛對 `scope_ref` **結構上不可用**（`::uuid` cast 早於 mapping walk），只涵蓋一個分支的守衛會是 `AD-VacuousScopeTest-1`。⭐ 中性化 **N4 零轉紅揭露真缺口** ⇒ 補測試 13 |
+| **Current Phase** | **W18**（**PR-pending**）`closed` —— M1 slice 13：`events`（`02a:233` 六欄骨架）+ `posture_snapshots`（旗艦儀表板的唯一資料來源）**34 / 36**，零端點。⭐⭐ 核心是一個**區分**：兩表構造相同而 append-only 的理由不可互換 —— 快照是**規格明文且無解封**，事件是**能力尚不可表達且 M6 解封**。⭐ Day-0 **D1 推翻 plan 自己的理由**（`02a:157`：§3 只列 entity-specific 欄位 ⇒「不在清單上」對任何 base field 都成立）。⭐ 中性化 **5/5 命中含紅的形狀** |
 | **History** | See [`MEMORY.md`](./MEMORY.md) + 各 phase 的 `retrospective.md` |  <!-- doc-links: ignore — MEMORY.md 由 bootstrap 複製到專案根 -->
 | **Pending / Next** | See [`docs/01-planning/BACKLOG.md`](./docs/01-planning/BACKLOG.md)（**有什麼**）· [`ROADMAP.md`](./docs/01-planning/ROADMAP.md)（**先做哪個**）|
 | **跨來源狀態** | See [`docs/01-planning/STATUS_AUDIT.md`](./docs/01-planning/STATUS_AUDIT.md) —— 問「現在全項目怎樣」時跑 `/status-audit`，**不要只讀 BACKLOG** |
@@ -510,6 +510,6 @@ python scripts/lint/run_all.py
 
 ---
 
-**Last Updated**: 2026-08-16（W17 post-merge）
+**Last Updated**: 2026-08-17（W18 closeout）
 **Project Start**: 2026-08-07
 **Template Version**: 2.6.1 (claude-code-dev-template)
