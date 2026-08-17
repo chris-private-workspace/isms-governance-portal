@@ -1,5 +1,5 @@
 ---
-status: active   # draft | active | closed | closed_partial —— 機器可讀的唯一權威
+status: closed_partial   # draft | active | closed | closed_partial —— 機器可讀的唯一權威
 ---
 
 # Phase W20 Plan — responsive layout down to 768px
@@ -10,7 +10,8 @@ status: active   # draft | active | closed | closed_partial —— 機器可讀�
 能純 CSS 就純 CSS，只有側欄自動收合與 topbar 收納走 `matchMedia`；(c) **不做** class 遷移。
 **Drive-through 為 MANDATORY**（純 UI phase）。非 spike，**不產出 design note**。
 
-**Status**: Approved-to-execute（使用者 2026-08-17 核可並裁定 **D1 = (b) 放寬**，見 §3.3）
+**Status**: **closed_partial**（2026-08-18）—— Day 0 與 Day 1 執行完畢並全綠，使用者三度否決視覺結果後裁定**完全回退**（`6f2c712`）。Day 2/3/4 未執行。
+⚠️ **本 plan 的前提已被推翻**：它假設任務是「補上交付物沒有的響應式行為」，而使用者要的是「和 mockup 一樣」。§3 的技術方案不可作為未來依據，§0 記錄的既有事實與 `retrospective.md` 的三個交付物發現才是本片的殘值。
 
 **Branch**: `feature/W20-responsive-layout`
 **Base**: `main` HEAD `756d503`（PR #81 —— ROADMAP 9b 排程 rebase 設定重審）

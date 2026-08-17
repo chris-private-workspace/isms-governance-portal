@@ -6,6 +6,11 @@
 
 ## Day 0 — Plan-vs-Repo Verify（三-prong）+ Branch
 
+> ⚠️ **這些項目確實執行完畢**（證據：`progress.md` 2026-08-17 Day 0 —— baselines、7 條 drift
+> findings、40 個 `maxWidth` 的完整分類、go/no-go 判定），**但當時漏了回填勾選**。
+> 保持未勾以留下「checklist 回填紀律漏掉一次」的證據 —— 事後補勾會抹掉這個訊號。
+> Day-0 的產出是本片唯一沒有隨回退失效的東西。
+
 ### 0.1 三-prong Day-0 verify（對照 `main` HEAD `756d503`）
 
 > 完整程序：`docs/rules-on-demand/day0-plan-verify.md`
@@ -48,6 +53,9 @@
 ---
 
 ## Day 1 — Shell：斷點機制 + 側欄 + topbar (US-1)
+
+> ⚠️ **以下 7 項確實完成且驗證通過**（含兩次中性化預測命中），**但成果已於 `6f2c712` 全數回退**。
+> 勾選保持不變 —— 工作真的做了；失效的是它建立在其上的前提，不是它的執行品質。
 
 ### 1.1 `useBreakpoint` hook
 
@@ -96,6 +104,14 @@
 
 ## Day 2 — 內容寬度 + grid 重排 + 表格逃生 (US-2, US-3, US-4)
 
+> 🚧 **未執行 —— phase 於 Day 2 開始前被裁定回退**（2026-08-18，`6f2c712`）。
+> 理由：使用者三度否決 Day 1 的視覺結果，第三次點名原因 ——「參考 mockup 的大小吧」。
+> 本片假設任務是「補上交付物沒有的響應式」，而使用者要的是「和 mockup 一樣」；
+> 在錯誤前提上疊更多版面只會擴大偏離。
+> **解封條件**：先解決 `retrospective.md` §交付物三個發現裡的自我矛盾（README 規定
+> 1400px 上限、`class="page"` 從未被使用），確定「和 mockup 一樣」的可驗證定義之後，
+> 才有辦法判斷這些項目該不該做、以及做成什麼樣。
+
 ### 2.1 內容 `maxWidth` 處置（依 D1）
 
 - [ ] **內容類 `maxWidth` 全數處置**（表單／散文／卡片；**不動**資料類 `minWidth`）
@@ -128,6 +144,10 @@
 
 ## Day 3 — Drive-through (US-5) — 真 UI，五個寬度
 
+> 🚧 **未執行 —— 同 Day 2**（前提被推翻，無版面變更可供驅動驗證）。
+> 註：Day 1 的成果在被否決之前，**有**用 Playwright 在多個寬度實測過（記於 `progress.md`）；
+> 未執行的是本片規劃的「五寬度 × 30 畫面」完整走查。
+
 ### 3.1 Clean restart
 
 - [ ] **乾淨重啟 3200 並擷取 startup log**
@@ -150,6 +170,10 @@
 ---
 
 ## Day 4 — closeout
+
+> ⚠️ **部分執行** —— 回退後仍走了 closeout（`status:` 翻 `closed_partial`、retrospective、
+> calibration 回填、導航檔、BACKLOG）。**4.1 因回退而不適用**：沒有行為變更可寫 change record，
+> 也沒有設計偏離需要登記 —— 偏離本身被撤回了。
 
 ### 4.1 Change record + 偏離登記
 
