@@ -39,6 +39,14 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          # **全歷史，不可淺 clone。** `check_sha_anchors.py`（CH-036）要回答的是
+          # 「這個被文件引用的 commit 還在 main 的歷史上嗎」—— 淺 clone 下
+          # `origin/main` 不存在、歷史被截斷，那個問題結構上答不出來。
+          # ⚠️ 同一個 job 裡其餘的 lint 不需要它；這一行是為 sha-anchors 加的。
+          # 該 detector 在看不到 origin/main 時**硬失敗而不是 skip** —— 一個
+          # 安靜跳過的 detector 讀起來與通過一模一樣（AD-NegativeGate-1）。
+          fetch-depth: 0
 
       # === 現在就有效的 gate ==========================================
       # 這一步會擋住 always-loaded 規則檔的膨脹、斷掉的文件連結、

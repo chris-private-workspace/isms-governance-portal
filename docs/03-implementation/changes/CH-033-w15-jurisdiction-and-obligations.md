@@ -48,7 +48,7 @@ Wave 2 的義務庫（`10:69`）也因此沒有落點：`Regulation` / `Obligati
 3. ⭐ **FK 測試必須走 owner 連線** —— app 角色沒有 INSERT 權限，PostgreSQL 會在**評估任何約束之前**
    以 42501 拒絕。照 plan 原樣用 app 角色寫，兩條 FK 測試會**全綠而什麼都沒測到**（Day 0 D7）。
 
-**後續修正（同 PR，commit `e02eb57`）**：`OrgEntity.jurisdiction` 是 optional relation 且未寫
+**後續修正（同 PR，commit `1bc4d60`）**：`OrgEntity.jurisdiction` 是 optional relation 且未寫
 `onDelete`，Prisma 預設 `SetNull` 而 migration 是 `RESTRICT` ⇒ schema 與 DB 不一致。
 同批另三條 FK 是 required relation（`RESTRICT` 本就是預設）故未漂。DB 端已正確，**不需新 migration**。
 

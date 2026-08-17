@@ -48,7 +48,7 @@
   - DoD: 對兩個 Dockerfile 各做 build → run → probe；檔頭**重述** `ci.yml:3-10` 的
         「不用 paths filter」設計決策及其理由 —— 並補了一層本 workflow 專屬的理由：
         **image 正確性不只取決於 Dockerfile**（改 `start` / `next.config` / lockfile
-        都能弄壞 image 而不碰 Dockerfile，W01 的 `08ddc0f` 正是這一類）
+        都能弄壞 image 而不碰 Dockerfile，W01 的 `dee0d7e` 正是這一類）
   - DoD: 「找不到 Dockerfile 就跳過」的守衛**刻意不寫** —— 那正是 W01 綠著掃 0 個目標的
         trivy job（`security-scan.yml:248-252`）。改為缺席即 `::error::` 並 exit 1
   - Verify: ⏳ `actionlint` 由 CI 的 Workflow lint 步驟執行（本機未安裝）

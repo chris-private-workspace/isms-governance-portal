@@ -89,5 +89,5 @@ status: done
     且**查了 CI log 而非假設**：`run_all: 8/8` 含 `backlog-counts`、`Ran 13 tests` 逐項列名
   - → 內容在 main 用 `git cherry`（patch-id）驗過，**不用 ancestry**（`AD-RebaseMergeBranchCheck-1`）
   - → ⛔ **rebase 又殺掉一個「工作就是可查證性」的 SHA**：`56822e4` → `7c8d46f`。
-    已改指並補 author date（`09:31:41+08:00`，兩側逐秒相同）。⚠️ PR #54 描述與 `a75e02e`
+    已改指並補 author date（`09:31:41+08:00`，兩側逐秒相同）。⚠️ PR #54 描述與 `5a676f9`
     的 message 仍引用舊值，**兩者都已發布不可改** —— 這正是 `AD-DesignNoteAnchor-1` 要抓的形狀

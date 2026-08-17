@@ -66,7 +66,7 @@ checklist 1.1 原文是「觀察漂移守衛**仍綠**」—— 而
 `pattern-reuse-feature` · bottom-up 3.6 hr → committed **1.8 hr** (mult 0.50) →
 actual **2.223 hr** · **ratio 1.235 → OVER**
 
-量法：commit author date 逐段相加（`d6d2d38` → `7c8c8d5`），六個間隙 17.03 / 17.35 / 29.98 /
+量法：commit author date 逐段相加（`fd77e50` → `4fc44d8`），六個間隙 17.03 / 17.35 / 29.98 /
 44.05 / 3.12 / 21.85 min，**最大 44.05、無一超過 60** ⇒ 與窗口法**同值 133.38 min**（第 2 個資料點）。
 
 ⛔ plan §7 預告：本片更偏「複製」（零端點零 repository，藍本 `Threat` 可逐欄位抄）

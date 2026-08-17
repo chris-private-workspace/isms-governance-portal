@@ -320,5 +320,5 @@ build **0** · `run_all` **6/6** · `lint:negative` PASS（**allowlist 不得增
 - **`Issue` · `Action` · `Evidence`** — 零消費者，等有東西產生 findings
 - **稽核軌跡** — M3。⚠️ R4 敞口本 phase 再擴大三條寫入路徑
 - **`AD-RiskBand-1` 的分帶拍板** — M8 之前，不在本 phase
-- **W01 的兩個失效 SHA**（`e6ddff1` / `6ec4bf9`）— 留給 `AD-DesignNoteAnchor-1` 的 detector
+- **W01 的兩個失效 SHA**（`e6ddff1` / `6ec4bf9`）— 留給 `AD-DesignNoteAnchor-1` 的 detector  <!-- sha-check: ignore — 死值本身就是這一行的內容 -->
   當第一批驗收命中（使用者 2026-08-11 排序）

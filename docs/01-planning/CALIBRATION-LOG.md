@@ -96,7 +96,7 @@ W15 的 plan 預測 UNDER 而實測 OVER，根因是「零端點讓實作便宜�
 #### Phase W15 — ratio **1.235 (OVER)** ⛔ plan 預測 UNDER，實測往反方向出 band
 
 - Bottom-up 3.6 hr → committed **1.8 hr** (mult 0.50) → actual **2.223 hr**（133.38 min）
-- **量法**：commit author date 逐段相加，`d6d2d38 12:27:12` → `7c8c8d5 14:40:35`。六個間隙
+- **量法**：commit author date 逐段相加，`fd77e50 12:27:12` → `4fc44d8 14:40:35`。六個間隙
   17.03 / 17.35 / 29.98 / 44.05 / 3.12 / 21.85 min，**最大 44.05、無一超過 60 min**
   ⇒ 逐段法與窗口法**同值**。這是 W14 那個結論的**第 2 個資料點**，但同樣**只在無長間隙時成立**
   ⇒ `AD-CalibrationWindowCrossSession-1` **仍不關閉**（解封條件是一個真正跨夜／跨 session 的 phase）。
@@ -114,7 +114,7 @@ W15 的 plan 預測 UNDER 而實測 OVER，根因是「零端點讓實作便宜�
   （`min|hr|分鐘|actual|elapsed` 全部零命中），而 `task-workflow.md` §Step 5 明寫 per-day
   估算住在 progress.md；(b) **plan §7 未宣告量法**，那正是 `AD-CalibrationDay0InOrOut-1`
   要求的事、W14 做到了而本片漏了。⇒ 分子只能事後從 commit 反推，**量法是在知道答案之後選的**，
-  且排除了 `d6d2d38` 之前的 plan 起草時間 ⇒ **1.235 是下限，不是測量值** → `AD-CalibrationNoTimeRecord-1`。
+  且排除了 `fd77e50` 之前的 plan 起草時間 ⇒ **1.235 是下限，不是測量值** → `AD-CalibrationNoTimeRecord-1`。
 - **行動**：**KEEP 0.50**。單點不調乘數（需連續 3 個 phase 的證據），且本點資料品質打折。
   ⚠️ 但**預測方向錯誤本身是一個值得追蹤的訊號** —— 若下一個 schema-heavy 的 slice 也 OVER，
   那就不是雜訊，而是「零端點 = 便宜」這個直覺本身要被推翻。
@@ -244,7 +244,7 @@ plan §7 的 bottom-up 把「中性化」估成 0.5 hr，**沒有「中性化失
 **⚠️ 但這個點也暴露了量法的第三個模糊處，而且是 W10 的分界線沒有涵蓋的**：
 
 宣告的窗口是「branch **第一個 commit** → closeout commit」。而 plan / checklist 的**起草**
-發生在第一個 commit **之前** —— `52465f0` 這個 commit 同時包含了 plan、checklist 與 Day-0
+發生在第一個 commit **之前** —— `e74efd0` 這個 commit 同時包含了 plan、checklist 與 Day-0
 的驗證結果，所以窗口內含 Day-0 的**驗證**，不含 Day-0 的**起草**。
 
 ⇒ 「含 Day 0」其實有兩種讀法（含起草 / 只含驗證），而四個舊資料點沒有一個標明是哪一種。
@@ -286,7 +286,7 @@ W10 的分界線把污染從兩類降到一類，**沒有降到零**。→ 回�
 #### Phase W09 — ratio **0.50 (UNDER)** ⛔ 這一則的重點是「上界」這兩個字
 
 - Bottom-up 7.5 hr → committed 3.75 hr (mult 0.50) → actual **1.88 hr**
-  （`a18b366` 10:16:12 → `f2b393b` 12:09:09 = 112.95 min，兩端皆 commit 時間戳）
+  （`a18b366` 10:16:12 → `d5febf7` 12:09:09 = 112.95 min，兩端皆 commit 時間戳）
 - **四段全部是 commit-to-commit 的閉合區間**：Day 0 **54.4 min** · Day 1 **16.4** ·
   Day 2 **24.6** · Day 3 **17.5**。這是 `AD-EstimateAsMeasurement-1` 要求的形狀，
   沒有任何一段是推估的。
@@ -381,7 +381,7 @@ W10 的分界線把污染從兩類降到一類，**沒有降到零**。→ 回�
 - Bottom-up 24 hr → committed 14.4 hr (mult 0.60) → actual **~5 hr**
 - **⚠️ 量測基礎不足**：`progress.md` 全程沒有逐任務工時（`task-workflow.md` Step 5 要求
   「Task X.Y — actual Z min」）。5 hr 是從 commit 時間戳回推的 ——
-  首個 commit `e6ddff1` 16:30 → Day 3 收尾 `6ec4bf9` 19:57 = 3h27m，
+  首個 commit `1b2c18c` 16:30 → Day 3 收尾 `ada8fc7` 19:57 = 3h27m，
   加上第一個 commit 之前的 plan 起草與 Day-0 verify，再加 Day 4 收尾。
   **這是估算不是量測**，資料點品質因此打折 → `AD-TimeTracking-1`
 - **發生了什麼**：即使把量測誤差算進去，0.35 仍遠低於 band 下緣。兩個候選解釋，
