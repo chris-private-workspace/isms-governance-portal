@@ -1,5 +1,5 @@
 ---
-status: active   # proposed | approved | active | done | cancelled —— 機器可讀的唯一權威
+status: done   # proposed | approved | active | done | cancelled —— 機器可讀的唯一權威
 affects_components: []
 ---
 
@@ -9,7 +9,8 @@ affects_components: []
 **Phase**: W17 post-merge（獨立 CH，不屬於任何 active phase）
 **Scope**: `scripts/lint/` — 新 detector + 自我測試 + `run_all` 註冊 · `ci.yml` checkout ·
 **既有壞錨點修正**（**NO migration / NO 新依賴 / NO 產品程式碼**）
-**Status**: 進行中 —— 實作與文件修正完成；⛔ **AC-8（CI 上 `origin/main` 可解析）本機答不出來，等 PR 的 CI**
+**Status**: 已完成 —— AC-1 ~ AC-9 全數達成。**AC-8 於 CI run `31988000079` 實測解封**
+（`refs in use: origin/main, HEAD`）；⚠️ 第一輪 CI 雖然全綠但**證明不了它**，見 progress §AC-8
 **PR**: TBD
 
 > ⛔ **這不是新提案。** 它執行的是 [`ROADMAP.md:87`](../../../01-planning/ROADMAP.md) 主線**第 9 列**

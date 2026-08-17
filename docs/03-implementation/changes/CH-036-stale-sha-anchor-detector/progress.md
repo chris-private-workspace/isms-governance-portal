@@ -158,3 +158,20 @@ sha-anchors: OK (every documented SHA resolves; refs in use: origin/main, HEAD)
 ```
 
 新增第 18 條測試釘住這個行為。AC-8 要等**第二輪** CI 的這一行才算答出來。
+
+### ✅ 第二輪 —— AC-8 解封
+
+CI run **`31988000079`**，`gates` job log 原文：
+
+```
+sha-anchors: OK (every documented SHA resolves; refs in use: origin/main, HEAD)
+```
+
+⇒ `origin/main` 在 `pull_request` 事件的 CI 環境中**確實可解析**，`fetch-depth: 0` 生效。
+判準成立，spec §D4 不需要改成「detector 自行 fetch」的備案。
+
+⭐ **兩輪的差別不在 CI 也不在 detector 的行為，只在它印了什麼。**
+第一輪與第二輪的 exit code 相同、9/9 相同、綠的程度完全一樣 ——
+差別只是第二輪的那一行**能夠區分兩個假設**，第一輪的不能。
+
+> 一個檢查的價值，不在它通過了，而在**它通過時你知道了什麼**。
