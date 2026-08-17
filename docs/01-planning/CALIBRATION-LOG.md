@@ -611,6 +611,41 @@ W10 的分界線把污染從兩類降到一類，**沒有降到零**。→ 回�
 
 ---
 
+### `greenfield-feature`
+
+**現行乘數**: 0.55（建議起手值，**未經任何完成的 phase 驗證**）| **資料點**: 0 | **agent_factor**: 0.75（W20 宣告值，未驗證）
+
+#### Phase W20 — **aborted，無資料點**
+
+- Bottom-up **14 hr** → class-calibrated **7.7 hr** (mult 0.55) → agent-adjusted **5.8 hr** (factor 0.75)
+  → actual **無法計算**
+
+- **為什麼不產生資料點（兩個獨立原因，任一都足夠）**：
+  1. phase 執行到 Day 1 就被使用者裁定**完全回退**。把「Day 0 + Day 1 的工時」除以
+     「Day 0-4 的完整承諾」不是 ratio，是兩個不同東西相除
+  2. ⚠️ **逐任務計時只有 Day 1 有**（~35 / ~40 / ~55 min）。Day 0 的三-prong verify 與
+     Day 2 的回退＋closeout **完全沒有記錄** —— 而 plan §7 自己寫著
+     「⚠️ 本片必須逐任務記時間到 progress.md」
+
+- **第 2 點是重點，因為它是同一形狀第 2 次**（W15 一次、W20 一次）。
+  更難堪的是：W20 的 plan §7 **明文引用了 W15 的那條 AD** 作為警告，然後照樣沒做到。
+  ⇒ 「在 plan 裡寫一句提醒」對這個問題**無效**，因為漏記發生在每天收尾、
+  而 plan §7 是起草時讀一次的東西。
+  依 `.claude/rules/README.md` 的強度階梯，第 2 次符合升級為
+  **on-demand 規則 + Trigger「每個 Day 收尾」**；第 3 次才考慮機械強制。
+
+- **對這個 class 的意涵**：0.55 仍是**未經驗證的起手值**。
+  下一個真的走完的 `greenfield-feature` phase 才是第 1 個資料點。
+  ⛔ 不要把 W20 的部分工時當作「至少要 X 小時」的下限引用 ——
+  被回退的工作量與完成的工作量之間沒有可推導的關係。
+
+- **⚠️ 一個 calibration 本身量不到的失敗模式**：本片的工時偏差不是問題，
+  **方向**才是。ratio 這個指標假設「做的是對的事，只是估錯時間」。
+  W20 是 gate 全綠、drive-through 有做、時間也沒失控，但**做的不是使用者要的東西**。
+  → `AD-PlanPremiseUnverified-1`
+
+---
+
 ### `mockup-port`
 
 **現行乘數**: 0.55 | **資料點**: 1 | **agent_factor**: 0.45（sub-class `greenfield-port-style`）

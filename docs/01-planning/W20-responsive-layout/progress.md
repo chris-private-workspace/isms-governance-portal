@@ -115,3 +115,68 @@ AC-3 只說「被收納項仍可達」，而我在寫 plan 時**假設**了名�
 
 - Day 2：21 個內容 `maxWidth` 放寬（D1(b)，散文類另議）· 固定欄數 grid 重排
   · 6 個表格 **`minWidth` + 捲動容器**（Day 0 的 D-table-fix-insufficient）
+
+---
+
+## 2026-08-18 — Day 2（未執行既定內容 —— phase 被裁定回退）
+
+### 發生了什麼
+
+Day 1 的成果推上瀏覽器給使用者看之後，被**連續三次否決**，第三次點出了原因：
+
+| # | 使用者的話 | 我當時的反應 |
+|---|---|---|
+| 1 | 「不行」 | 以為是 D1(b) 放寬的視覺結果不好 → 改提「版面重新組織（斷點）」 |
+| 2 | 選了「版面重新組織」，看到結果後仍否決 | 以為斷點數不夠 |
+| 3 | 「現在也只是固定的大小, 你是否先參考 mockup 的大小吧」 | ⭐ 前提錯了，不是參數錯了 |
+
+**根因**：本片從第一句話就假設任務是「**發明**交付物沒有的響應式行為」。使用者要的是
+「**參考**交付物的尺寸」。這兩件事在 plan 的每一節都長得很像，所以 Day 0 的三-prong verify
+（它驗的是「plan 對 repo 的斷言是否屬實」）**完全不會發現**——
+斷言全部屬實，錯的是斷言之上的目的。
+
+### 為了回答「和 mockup 一樣是什麼意思」而查到的三件事
+
+1. **交付物的 standalone HTML 跑不起 30 個畫面** —— `__dcRegistry` 只有 **1 個**項目（封面頁）。
+   30 個畫面只存在於帶 `{{ }}` 模板語法的 fragment，不能直接開來比對
+2. **dashboard 已經和 mockup 一樣** —— 逐項比對 grid 宣告（`1.5fr 1fr 1fr` / `repeat(5,1fr)` /
+   `repeat(6,1fr)`）與 `max-width`（兩邊皆 0）**完全相同**
+3. ⭐ **交付物自我矛盾** —— `README.md` 的 application shell 規格圖寫「main content,
+   **max-width 1400px**, padding 24px」，`base.css:48` 也有這條規則，
+   但 **`class="page"` 在交付物 fragment 與 app 皆出現 0 次** ⇒ 這條規格**兩邊都從未實作**
+
+第 3 點是關鍵：在它被解決之前，「和 mockup 一樣」沒有可驗證的定義 —— README 說一套、
+fragment 做另一套。
+
+### 回退執行
+
+- `git checkout 756d503 -- apps/web` + `git rm` 四個 W20 新增檔
+- ⚠️ **陷阱**：`git checkout <sha> -- <path>` **不會刪除該 commit 不存在的檔**。
+  第一次還原看起來完整，實際留下 4 個新增檔 —— 是比對**檔案清單**（不只內容）才發現的
+- 驗證：`git diff --stat 756d503 -- apps/web` 空 + 檔案清單 diff 空 ⇒ 與 W19 逐位元組相同
+- Commit `6f2c712`
+
+### Gate（回退後實跑）
+
+format **exit 0** · lint **exit 0** · type-check **exit 0** · test **9 檔 / 88**
+（自 111 退回 W19 基線，符合移除 3 個 suite 的預期）· build **31 條路由** · `run_all` **9/9**
+
+### Drive-through（回退後）
+
+乾淨重啟 3200（舊 server 是前一日 20:43 起的孤兒 worker，Risk Class C），
+以區域資訊安全主管身分登入，1440px 走 login / dashboard / risks / ai-assistant / risks-new
+五個畫面 —— 渲染與 W19 相同。
+
+⚠️ **順帶發現（dev-only，記錄不修）**：用 `127.0.0.1:3200` 開會拿到 **403**，三個 JS chunk
+載不進來；`localhost:3200` 正常。Next.js 16 的 dev origin 檢查擋掉帶
+`Origin: http://127.0.0.1:3200` 的請求。`curl` 不帶 Origin 所以看起來 200 ——
+**這正是「用代理指標回答需要讀內容的問題」的形狀**，帶 header 重跑才看到 403。
+⇒ 之後的 drive-through 一律用 `localhost`。
+
+### Notes
+
+- 本片的**執行品質沒有問題**（兩次中性化預測命中、抓到一個會靜默消失的角色）。
+  失效的是它服務的目的 —— 這是我第一次遇到「gate 全綠、drive-through 也做了、
+  但**方向**是錯的」的形狀
+- Day 0 的三-prong 驗的是 plan 對 repo 的斷言，**驗不到 plan 的目的是否是使用者要的**。
+  這個缺口不是 Day-0 程序的瑕疵，而是它的設計邊界
