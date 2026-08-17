@@ -121,4 +121,9 @@
 - [x] BACKLOG 同步（R7）：`AD-DesignNoteAnchor-1` / `AD-RebaseStaleShaRef-1` 的 detector 部分關閉；
       新 AD 加入（未填 `<sha>` 佔位符 · 7 位縮寫假設 · 錨點慣例）；**計數照 detector 印的抄**
 - [x] 架構級決定有 ADR（R5）—— 預期 **無**（一支 lint 工具不約束未來架構）
-- [ ] PR：push → CI → `gh pr view --json state,mergedAt` **驗證** merged → 翻 `PR-pending`
+- [x] PR：push → CI → `gh pr view --json state,mergedAt` **驗證** merged → 翻 `PR-pending`
+      → **PR #75** MERGED `2026-08-17T02:33:38Z` / `6c63a2d`（三輪 CI，各 6/6）
+      → ⭐ **detector 的第一次實戰就在自己的 merge 上**：rebase 改寫了本 CH 的三個 SHA，
+      實測 `on-main=False` 而 `git cat-file -t` 仍回 `commit`（本地分支未刪）——
+      **W05 那支被推翻的守衛在這個狀態下會是綠的，這一支判 STALE**。
+      本 CH 的文件本身零壞錨點（用 CI run id 與敘述代替 commit SHA）
