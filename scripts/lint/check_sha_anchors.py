@@ -171,13 +171,26 @@ def _ref_exists(root: Path, ref: str) -> bool:
     return _git(root, "rev-parse", "--verify", "--quiet", ref).returncode == 0
 
 
+def refs_in_use(root: Path) -> list[str]:
+    """Which of the anchor refs actually resolve here.
+
+    Reported in the output on purpose. The predicate is "origin/main OR HEAD",
+    so `sha-anchors: OK` reads identically whether fetch-depth: 0 worked or the
+    checkout was shallow and only HEAD was available -- a silent downgrade that
+    keeps the wording of a stricter check. Measured in CI 2026-08-17: the first
+    green run could not tell those two apart, which is the exact shape this
+    detector exists to catch.
+    """
+    return [r for r in ("origin/main", "HEAD") if _ref_exists(root, r)]
+
+
 def reachable(root: Path) -> tuple[set[str], set[str]]:
     """(main-or-HEAD reachable, archive-tag reachable) as 7-char prefixes.
 
     One `git rev-list` per set, not one `git cat-file` per token
     (lint-detector-authoring.md:89 forbids spawning git inside a loop).
     """
-    refs = [r for r in ("origin/main", "HEAD") if _ref_exists(root, r)]
+    refs = refs_in_use(root)
     if not refs:
         # Never fall through to "no violations". A detector that goes quiet
         # when it cannot do its job reads exactly like success.
@@ -382,7 +395,10 @@ def main(argv: list[str] | None = None) -> int:
         )
         return 1
 
-    print(f"sha-anchors: OK (every documented SHA resolves against {_ANCHOR_NOTE})")
+    # Name the refs actually used, not the predicate. "origin/main or HEAD"
+    # cannot tell a working fetch-depth: 0 from a silent downgrade to HEAD only.
+    used = ", ".join(refs_in_use(root))
+    print(f"sha-anchors: OK (every documented SHA resolves; refs in use: {used})")
     return 0
 
 

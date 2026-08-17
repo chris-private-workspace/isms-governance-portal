@@ -168,6 +168,16 @@ class TestShaAnchors(unittest.TestCase):
     def test_self_test_runs_both_directions(self) -> None:
         csa.self_test(_REPO_ROOT)
 
+    # --- the output must distinguish a real check from a downgraded one ----
+
+    def test_reports_which_refs_it_actually_used(self) -> None:
+        """"origin/main or HEAD" reads the same whether fetch-depth: 0 worked or
+        the checkout was shallow and only HEAD resolved. The first CI run was
+        green and could not tell those apart, so the refs are now named."""
+        used = csa.refs_in_use(_REPO_ROOT)
+        self.assertIn("HEAD", used)
+        self.assertTrue(used, "no anchor ref resolved -- the detector must not be silent")
+
 
 if __name__ == "__main__":
     unittest.main(verbosity=2)
