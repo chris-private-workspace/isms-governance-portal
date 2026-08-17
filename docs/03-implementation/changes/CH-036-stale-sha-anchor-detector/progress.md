@@ -125,3 +125,36 @@ detector 掃 hex token，對「檔案還在但那一行已經不是它宣稱的�
 
 **Drive-through**: ⚪ N/A（純 lint 工具）。⭐ **AC-8 的 CI 實測是這一層的等價物** ——
 `fetch-depth: 0` 是否真的讓 `origin/main` 在 PR 的 CI 環境可解析，**本機答不出來**。
+
+---
+
+## ⭐⭐ AC-8 第一次 CI 綠，而那個綠證明不了 AC-8
+
+PR #75 第一輪 CI **6/6 pass**，`gates` 的 log 有這一行：
+
+```
+sha-anchors: OK (every documented SHA resolves against origin/main or HEAD)
+```
+
+⛔ **它不足以支持 AC-8 的結論。** 判準是「`origin/main` **或** HEAD」，
+而 `reachable()` 只要兩者有一個存在就繼續 ⇒ 這一行在**兩種情況下逐字相同**：
+
+1. `fetch-depth: 0` 生效，`origin/main` 真的可解析
+2. `origin/main` 不存在，detector **靜默降級**成只用 HEAD
+
+而 PR 分支上，當前 PR 自己的 commit 全都從 HEAD 可達 ⇒ 情況 2 也會全綠。
+
+⇒ 這正是本 CH 在講的形態：**拿一個在兩種情況下都一樣的觀察，去回答一個需要區分它們的問題。**
+差別是這次我是對自己的驗收做這件事。
+
+**同時它揭露 detector 的一個真缺陷**：看不到 `origin/main` 時它會靜默降級，
+**保留了一個更嚴格的檢查的措辭**。`AD-NegativeGate-1` 的親戚 —— 不是假綠，
+是**失去了它宣稱的嚴格性而沒有人會知道**。
+
+⇒ 改為報告**實際使用的 ref**：
+
+```
+sha-anchors: OK (every documented SHA resolves; refs in use: origin/main, HEAD)
+```
+
+新增第 18 條測試釘住這個行為。AC-8 要等**第二輪** CI 的這一行才算答出來。
