@@ -190,15 +190,18 @@
   - Verify: Day 3 drive-through 逐頁目視（**不是**靠測試 —— mock 標記本身要被 drive-through 驗證）
         → 組件已建（琥珀底 + 邊框 + 大寫 mono 標籤，置於頁面第一個元素）；
         dashboard 已掛且測試斷言 `role="note"` 存在。
-        🚧 **「每個消費 fixture 的畫面都掛」尚未成立** —— 目前只有 1 / 27 頁。
-        解封：其餘 26 頁各自落地時掛上，Day 3 逐頁目視確認
+        🚧 **代碼層已成立** —— `(app)` 底下 **27 / 27** 頁都渲染 `<DemoBadge/>`（逐檔 grep 實測，0 缺）；
+        `login` 不用該元件而用明文（`auth.demoNoSubmit` / `auth.demoNoMfa`，兩者都有 render）。
+        **但目視確認尚未做**。解封：Day 3 逐頁目視 ——
+        掛了不等於看得到（mock 標記自己就有過「測試通過但對整類無效」的前科）
 
 ### 2.2 27 個 screen page.tsx（US-3）— **agent 平行**
 
-- [ ] **27 個 `page.tsx` + 共用 primitive** —— **進度 24 / 27**（build 路由表實測）
-      · 🚧 剩 3 個：`controls/[id]` · `admin` · `isms-profiles`
-      · 解封：三者的 fixture（`data/extended/`）與字典（`i18n/{admin,deep,profiles}.*.json`）
-        **都已寫好**，剩下的是照 fragment 寫 JSX。中斷交接見 `progress.md` §Day 2 中斷交接
+- [x] **27 個 `page.tsx` + 共用 primitive** —— **27 / 27**（build 路由表實測：31 條路由
+      = 27 screens + `login` + `/` + `_not-found` + `api/demo-session`）
+      · 最後 3 個（`controls/[id]` · `admin` · `isms-profiles`）補上了導航／列點擊
+        **原本就指過去卻 404** 的三個目的地 —— 不是新功能，是接上既有主流量的斷點
+      · 🚧 **並排比對（本項的 Verify）尚未做** —— 解封：Day 3 逐頁比對 → `page-inventory.md`
   - DoD: 每頁 inline style 原封不動、`<sc-if>`/`<sc-for>` 正確轉譯、
         SVG icon 直接搬、`hint-*` drop、文案走 `t()`（en=原文 / zh-Hant=譯文）、
         無對應行為的控件**不掛 handler 也不做成看似可點**

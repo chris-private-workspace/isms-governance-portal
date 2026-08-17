@@ -36,6 +36,8 @@
  * Last Modified: 2026-08-17
  *
  * Modification History (newest-first):
+ *   - 2026-08-17: Add Plus/Export/Edit/Save/Minus (Phase W19) — ISMS profiles
+ *   - 2026-08-17: Add IconTaxonomy + IconLock (Phase W19) — admin screen
  *   - 2026-08-17: Initial creation (Phase W19) — shell icons
  *
  * Related:
@@ -280,5 +282,62 @@ export const IconSwitchRole = (p: IconProps) => (
 export const IconSignOut = (p: IconProps) => (
   <Svg {...p}>
     <path d="M16 17l5-5-5-5M21 12H9M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4" />
+  </Svg>
+);
+
+/* --- admin (14-admin.html:279,314) --- */
+
+export const IconTaxonomy = (p: IconProps) => (
+  <Svg {...p}>
+    <path d="M3 7h18M3 12h18M3 17h12" />
+  </Svg>
+);
+
+/* --- ISMS profiles (23-apac-isms-profiles.html:22,85,87,92,165) --- */
+
+export const IconPlus = (p: IconProps) => (
+  <Svg {...p}>
+    <line x1="12" y1="5" x2="12" y2="19" />
+    <line x1="5" y1="12" x2="19" y2="12" />
+  </Svg>
+);
+
+/**
+ * NOT IconDownload. Same idea, different geometry — the download arrow starts at
+ * y=3 over a 20px baseline, this one at y=4 over a 19px baseline. Substituting
+ * one for the other would be the silent re-derivation the port rules forbid.
+ */
+export const IconExport = (p: IconProps) => (
+  <Svg {...p}>
+    <path d="M12 4v11" />
+    <path d="M8 11l4 4 4-4" />
+    <path d="M4 19h16" />
+  </Svg>
+);
+
+export const IconEdit = (p: IconProps) => (
+  <Svg {...p}>
+    <path d="M4 20h4l10-10-4-4L4 16v4z" />
+    <path d="M14 6l4 4" />
+  </Svg>
+);
+
+export const IconSave = (p: IconProps) => (
+  <Svg {...p}>
+    <path d="M5 4h11l3 3v13H5z" />
+    <path d="M8 4v6h7V4" />
+  </Svg>
+);
+
+export const IconMinus = (p: IconProps) => (
+  <Svg {...p}>
+    <line x1="6" y1="12" x2="18" y2="12" />
+  </Svg>
+);
+
+export const IconLock = (p: IconProps) => (
+  <Svg {...p}>
+    <rect x="4" y="10" width="16" height="10" rx="2" />
+    <path d="M8 10V7a4 4 0 018 0v3" />
   </Svg>
 );
