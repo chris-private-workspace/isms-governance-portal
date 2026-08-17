@@ -104,20 +104,47 @@
 
 ### 1.5 App shell（US-2）
 
-- [ ] **`apps/web/src/app/(app)/layout.tsx`**（fragment `02-app-shell.html`，222 行）
+- [x] **`apps/web/src/app/(app)/layout.tsx` + `components/shell/AppShell.tsx`**
+      （fragment `02-app-shell.html`，222 行）
   - DoD: 左 rail 232px + topbar 56px + scope/period + 搜尋 + 通知 + 語言 + 主題 + avatar；
         inline style 原封不動；文案走 `t()`
   - Verify: 代碼層並排比對 fragment vs layout.tsx，逐行確認
+  - ⭐ **本檔建立了 27 個畫面共用的 5 條 port 規則**（寫在檔頭）——
+        inline style 值不動 · `style-hover`→`data-hov` · sc 標籤→JSX · `hint-*` 剝除前先讀出示意筆數 ·
+        文案一律 `t()`
+  - ⭐ **fragment 留洞時的取值來源已定案**：active 樣式與 collapsed 寬度取 `components.css:118/113`
+        （fragment 是 `{{ }}` 洞，那裡是唯一寫下來的地方）；**佈局值取 fragment**
+        —— 兩者實測不一致（fragment `padding:8px 11px`/`radius 0 7px 7px 0`/`13px`
+        vs class `height:34px`/`padding:0 12px`/`radius 8px`/`12.5px`），而 fragment 才是設計實際渲染的
+  - ⭐ **補上 `aria-current="page"`**（Day-0 D11）—— 同時關掉 a11y 缺口，
+        並讓 `components.css:118` **第一次有可能生效**
+  - 🚧 **尚無消費者** —— `(app)` 群組只有 layout 沒有 page，build 實測路由仍是 `/` + `/_not-found`。
+        解封：Day 2.2 的第一頁（dashboard）
+
+- [x] **`apps/web/src/components/icons.tsx`**（shell 的 25 個 inline SVG）
+  - DoD: path 逐字；只做 JSX 語法強制的轉換（`stroke-width`→`strokeWidth`）
+  - ⭐ 抽象邊界：組件只擁有 **path 資料 + viewBox**，尺寸/描邊/顏色留在呼叫點
+        —— 同一個盾牌在品牌區是 17px/`#fff`/1.9、在導覽是 18px/`currentColor`/1.7，
+        把差異折進組件預設值等於**靜默抹平 mockup 刻意的區別**
+- [x] **`apps/web/src/lib/tok.ts`** —— `components/status.md:11-18` 的四態色彩規則，逐字
+- [x] **`apps/web/src/data/opcos.ts`** —— 13 家（刪 `RIN`，不補 `RCN`）。⚠️ 這是 Day 2.1 的提前項
 
 ### 1.6 vitest 改 jsdom
 
-- [ ] **`apps/web/vitest.config.mts` + `package.json`**
+- [x] **`apps/web/vitest.config.mts` + `package.json`**
   - DoD: `environment: 'jsdom'`；`include` 含 `.test.tsx`；裝 jsdom / @testing-library/react
   - Verify: `npm run test -w apps/web` → 現有 **10 條全過**（不得回歸）+ 新組件測試可跑
+        → 10/10 未回歸。⚠️ **組件測試尚未撰寫** ⇒ jsdom + testing-library 的**能力未經驗證**，
+        只證明了「沒弄壞現有的」。解封：Day 2 第一個組件測試
+  - ⚠️ 首次執行曾失敗一次（60.07 s，`environment 0ms`，測試未跑）。清 `.vite` cache 冷啟動
+        **無法重現**（8.3 s 通過），連續三次綠 ⇒ 記錄但不阻塞；CI 若出現同症狀，這是線索
 
 ### 1.x partial gate
 
-- [ ] `npm run lint -w apps/web` · `npm run type-check -w apps/web` · `python scripts/lint/run_all.py` **10/10**
+- [x] `npm run lint -w apps/web` · `npm run type-check -w apps/web` · `python scripts/lint/run_all.py`
+      → format **0** · lint **0** · type **0** · test **0** · build **0** · run_all **9/9**
+      （⚠️ plan 寫 10/10 是**我算錯了** —— `run_all` 的分母一直是 9，
+      `check_mockup_fidelity` 本來就在那 9 個裡面，只是先前回 SKIP）
 
 ---
 
@@ -171,7 +198,7 @@
 ### 2.x Full gate
 
 - [ ] web lint · type-check · build · test（10 條不得回歸）·
-      api 全套不得回歸（int 265/21 · unit 480/40）· `run_all` **10/10**
+      api 全套不得回歸（int 265/21 · unit 480/40）· `run_all` **9/9**
 
 ---
 
@@ -212,7 +239,7 @@
 - [ ] `retrospective.md` Q1-Q7 + calibration（`mockup-port` 0.55 × agent 0.45，**第 1 個資料點**；
       ratio 出 band 就標記 re-point）
 - [ ] `calibration-matrix.md` 新增一行 —— **≤ 1 行 ~250 字元**（lint 上限 400；完整敘述 → `calibration-log.md`）
-- [ ] Final gate sweep: web lint/type/build/test · api int 265/21 · api unit 480/40 · `run_all` **10/10**
+- [ ] Final gate sweep: web lint/type/build/test · api int 265/21 · api unit 480/40 · `run_all` **9/9**
 - [ ] 導航檔: `CLAUDE.md` Current-Phase + Last-Updated · `MEMORY.md` pointer + subfile ·
       `BACKLOG.md`（CLOSE 三條 AD + `AD-Mockup-2` 改為「已渲染，結構問題仍開」）
 - [ ] Anti-pattern 自檢（retro Q5）：AP-1..AP-7 → 違規數

@@ -64,3 +64,41 @@ html,
 body {
   min-height: 100%;
 }
+
+/* ------------------------------------------------------------------
+   style-hover -> :hover     (W19, the one mechanism change in the port)
+
+   The fragments carry hover state in a NON-STANDARD attribute:
+       style-hover="background:var(--surface-3);"
+   No browser reads it, and inline style cannot express :hover in any
+   technology -- so this one thing genuinely has to change mechanism.
+
+   Changing the MECHANISM is not translating the VALUE. What the playbook
+   forbids is re-deriving a declaration (padding: 0 14px -> px-3.5), where
+   the number gets rounded to the nearest available token. Here every
+   declaration below is copied character for character from the attribute
+   it replaces. Nothing is approximated.
+
+   Measured across all 30 fragments on 2026-08-17: 116 occurrences, only
+   10 distinct values. The top three cover 109 of them.
+
+   Named after the VALUE, not the use-case: `data-hov="s3"` is surface-3
+   wherever it appears. A semantic name (`data-hov="row"`) would be a
+   design decision, and this is meant to be a mechanical correspondence
+   anyone can check against the fragment in one step.
+
+   Attribute rather than class: the fragments have ZERO class= attributes
+   (Day-0 D10), so introducing classes here would blur the line between
+   "copied from the mockup" and "authored by us".
+   ------------------------------------------------------------------ */
+
+[data-hov='s3']:hover { background: var(--surface-3); }
+[data-hov='s2']:hover { background: var(--surface-2); }
+[data-hov='nav']:hover { background: var(--nav-surface); color: #fff; }
+[data-hov='op85']:hover { opacity: .85; }
+[data-hov='bs']:hover { border-color: var(--border-strong); }
+[data-hov='bs-s2']:hover { border-color: var(--border-strong); background: var(--surface-2); }
+[data-hov='s3-bs']:hover { background: var(--surface-3); border-color: var(--border-strong); }
+[data-hov='s2-bp']:hover { background: var(--surface-2); border-color: var(--primary); }
+[data-hov='r-bg']:hover { background: var(--rag-r-bg); }
+[data-hov='r-bg-ink']:hover { background: var(--rag-r-bg); color: var(--rag-r-ink); }
