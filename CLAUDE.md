@@ -76,7 +76,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 | Attribute | Value |
 |-----------|-------|
 | **Stage** | Wave 1 backbone — 建立共用骨幹，並用 Policy + Risk/Control 兩個最小模組端到端證明它 |
-| **Current Phase** | **W19**（PR-pending）`closed` —— mockup port：**30 / 30 個畫面**落地 `apps/web`（build 31 條路由）。⭐⭐ 核心是**三層驗證互相看不見**：gate 綠 · 保真度比對 719 字串**漏抄 0** ·而 **drive-through 抓到 25 個死控件**（無 handler、未停用、4 個會 hover 發亮）——**它們通過了每一項 gate，含本片當天新加的 hover 守衛**。⭐ 停用前先問「能不能真的做到」：2 個變成真的能用 |
+| **Current Phase** | **W19**（PR #79 merged）`closed` —— mockup port：**30 / 30 個畫面**落地 `apps/web`（build 31 條路由）。⭐⭐ 核心是**三層驗證互相看不見**：gate 綠 · 保真度比對 719 字串**漏抄 0** ·而 **drive-through 抓到 25 個死控件**（無 handler、未停用、4 個會 hover 發亮）——**它們通過了每一項 gate，含本片當天新加的 hover 守衛**。⭐ 停用前先問「能不能真的做到」：2 個變成真的能用 |
 | **History** | See [`MEMORY.md`](./MEMORY.md) + 各 phase 的 `retrospective.md` |  <!-- doc-links: ignore — MEMORY.md 由 bootstrap 複製到專案根 -->
 | **Pending / Next** | See [`docs/01-planning/BACKLOG.md`](./docs/01-planning/BACKLOG.md)（**有什麼**）· [`ROADMAP.md`](./docs/01-planning/ROADMAP.md)（**先做哪個**）|
 | **跨來源狀態** | See [`docs/01-planning/STATUS_AUDIT.md`](./docs/01-planning/STATUS_AUDIT.md) —— 問「現在全項目怎樣」時跑 `/status-audit`，**不要只讀 BACKLOG** |

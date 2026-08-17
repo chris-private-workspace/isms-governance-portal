@@ -1,6 +1,6 @@
 # W19 — Mockup port（30 / 30 個畫面）
 
-**Phase**: W19 · **Closed**: 2026-08-17 · **PR**: PR-pending（push 待使用者確認）
+**Phase**: W19 · **Closed**: 2026-08-17 · **PR**: **MERGED** (PR #79, `c62159a`)
 **權威來源**: [`W19-mockup-port/retrospective.md`](../docs/01-planning/W19-mockup-port/retrospective.md)
 **Change record**: `docs/03-implementation/changes/CH-038-w19-mockup-port.md`
 

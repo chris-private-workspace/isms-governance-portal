@@ -101,7 +101,7 @@
 ### Remaining for Next Day
 
 - plan 修訂（§3.3 / §3.4 / §3.x / §5 AC-4 / §7 / §8 / §9）+ checklist 對應調整 ✅
-- 開 branch `feature/W19-mockup-port` ✅（`bf2a2dd`）
+- 開 branch `feature/W19-mockup-port` ✅（`358f8e2` —— rebase merge 改寫過，原記錄的 `bf2a2dd` 已不存在）
 - Day 1：三支 CSS verbatim copy → self-host 字型 → detector config + **負面測試** → 紅線 7 修正 → app shell
 
 ---
