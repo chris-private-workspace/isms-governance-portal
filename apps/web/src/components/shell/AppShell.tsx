@@ -43,11 +43,13 @@
  * Key Components:
  *   - AppShell: the layout; owns rail collapse, theme, locale and menu state
  *   - NAV: the 13 destinations in their 5 groups, in the fragment's order
+ *   - AiDrawer: the third shell region, mounted here so it is on every screen
  *
  * Created: 2026-08-17 (Phase W19)
  * Last Modified: 2026-08-17
  *
  * Modification History (newest-first):
+ *   - 2026-08-17: Mount AiDrawer (Phase W19) — the shell fragment closeout found missing
  *   - 2026-08-17: Initial creation (Phase W19) — first ported screen
  *
  * Related:
@@ -95,6 +97,7 @@ import {
   IconSwitchRole,
   IconUser,
 } from '@/components/icons';
+import { AiDrawer } from '@/components/shell/AiDrawer';
 import { ShellStateContext, type ShellState } from '@/components/shell/shell-state';
 import { opcos } from '@/data/opcos';
 import { LOCALES, t, tf, type Locale } from '@/i18n';
@@ -1220,9 +1223,15 @@ export function AppShell({ children, persona }: { children: ReactNode; persona: 
           </div>
         </header>
 
-        <main style={{ flex: 1, overflowY: 'auto', padding: '22px 26px 40px' }}>
-          <ShellStateContext.Provider value={shellState}>{children}</ShellStateContext.Provider>
-        </main>
+        {/* The provider wraps the drawer as well as the screen, so the drawer
+            reads locale through the same channel every screen does. It emits no
+            DOM of its own, so this is the same markup as before. */}
+        <ShellStateContext.Provider value={shellState}>
+          <main style={{ flex: 1, overflowY: 'auto', padding: '22px 26px 40px' }}>{children}</main>
+          {/* Fixed-position, z-index 60/70, and mounted here rather than per
+              screen because the fragment puts it on every one of them. */}
+          <AiDrawer />
+        </ShellStateContext.Provider>
       </div>
     </div>
   );

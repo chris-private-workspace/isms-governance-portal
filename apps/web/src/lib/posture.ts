@@ -86,7 +86,8 @@ export function bandDesc(value: number, good: number, watch: number): Rating {
 
 /**
  * The thresholds, named so a call site reads as a sentence rather than as two
- * bare numbers. Invented — see the file header.
+ * bare numbers. All five are the design's own, from dc.html:5088-5092 — see the
+ * file header for how two of them had drifted and what that cost.
  */
 export const THRESHOLD = {
   /** Control coverage %, higher is better. */
