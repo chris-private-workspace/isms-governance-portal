@@ -228,3 +228,170 @@ build 實測路由仍是 `/` + `/_not-found` —— `(app)` 群組**只有 layou
 - **Day 2.3** persona 登入 + auth 四狀態
 - ⚠️ **`data-grc` 掛載點的負面驗證**（拿掉屬性確認顏色真的垮）留到 Day 3 drive-through ——
   它需要真瀏覽器，而本機的瀏覽器擴充目前未連線
+
+---
+
+## 2026-08-17 — Day 2（fixture 移植 + 第一頁）
+
+### Today's Accomplishments
+
+**2.1 完成**（fixture + 五處清理）· **2.2 第一頁 dashboard 完成**（其餘 26 頁未開始）·
+**Day 1 的兩個 🚧 雙雙解封**。
+
+- 21 支 fixture 以 **`cp` 機械複製** `.js` → `.ts`，複製後逐檔 `diff` **21/21 IDENTICAL**，
+  之後才套清理編輯。型別不手寫，用 `(typeof x)[number]` 推導 ⇒ **資料本體零手打**。
+- `entityPosture.ts` 是唯一**不能複製**的一支，改為**從 `opcos.ts` map 出來**。
+  13 這個數字因此不是寫死的，而是 `opcos.length` 的結果。
+- `/dashboard` 落地：build 實測路由 `/` · `/_not-found` · **`/dashboard`**。
+
+### ⭐ D13 —— checklist 自己的 Verify 指令是不可能通過的
+
+checklist 2.1 的 Verify 用 `grep -riE "india|RIN|china|..."`。`RIN` **沒有 word boundary**。
+
+| 實測 | 結果 |
+|---|---|
+| checklist 原樣的 pattern | **72 命中** |
+| 加 `\b` 後 | **6 命中，全部在註解裡**（`opcos.ts` 檔頭在解釋為什麼那一列被刪） |
+| 只看資料行（排除註解行） | **0** |
+
+72 命中裡最大宗是 **`string` ×11** —— s-t-**rin**-g。其餘：`print`/`printing`/`printers`/`Print` ×6、
+`monitoring` ×2、`Preparing` / `expiring` / `offering` / `engineering`、
+`Streamline`（含 **aml**）、`SAML`、`mass`（含 **mas**）。
+
+⛔ **這條 Verify 永遠不會回 0** ——
+在一家印表機公司的程式碼裡搜 `RIN`，等於搜「印」。
+如果我照著跑並相信它，只有兩種結局：**誤判失敗**，或**為了讓它綠而放寬檢查**。
+Day-0 D-bfsi-spread 當時抓到 5 個漏掉的縮寫，但沒有人檢查 pattern **本身**是否可判。
+
+⇒ 升為 **`AD-GrepBoundary-1`**：憲章類 verify 的 pattern 必須自帶「已排除的假陽性」清單，
+否則零命中與滿命中一樣沒有資訊。已改寫 checklist 2.1 的兩條 Verify。
+
+### 五處清理（實際範圍）
+
+| # | 項目 | 實際 |
+|---|---|---|
+| 1 | `opcos` 13 家 | Day 1 已完成 |
+| 2 | 中國移除 | `risks` / `controls` / `issues` / `notifications` 的 `entity` 值 |
+| 3 | Japan 不作為營運實體 | 同上 |
+| 4 | BFSI 清零 | **10 處**：risks 3 標題 · controls 3 名稱 · issues 3 標題 · policies 1 列 |
+| 5 | `data.js` 重建 | → `entityPosture.ts`，13 列 |
+
+**替換表**（一次定案，全域套用）：`Japan→RKR (K. Sato→H. Park)` ·
+`China→RTW (L. Wang→Y. Chen)` · `Hong Kong→RHK` · `Malaysia→RMY` · `Singapore→RSG` · `Australia→RAU`。
+⭐ 後四者的 owner **本來就等於 `opcos.ts` 的 `iso`** —— 換句話說交付物自己已經在用這個對應，
+只是在 4/6 的情況下對、2/6 的情況下指向範圍外的實體。
+
+⭐ **`entity` 由國名改為 OpCo code 不是我發明的**：`auditIssues` / `incidents` / `suppliers` /
+`osServices` 四支**本來就用 `opco:'RSG'`**。改的是另外三支落後的，讓 fixture **內部一致**。
+
+### ⭐ D14 —— 交付物有兩套彼此矛盾的「實體」模型
+
+fragment 盤點（30 檔全文）證實：
+
+| 模型 | 來源 | 使用的畫面 |
+|---|---|---|
+| **6 個國家** + 金融監理機關（`Singapore (MAS)`…）| `data.js` | 03 · 05 · 10 · 13 · 14 · 27 |
+| **14 家 OpCo** | `opcos.js` | 17 · 23 · 24 |
+
+兩者從未被調和。`16-incidents-list:22` 寫「across 14 APAC OpCos」，
+而同一份交付物的 `14-admin:208` 寫「6 active entities across 6 jurisdictions」。
+
+⇒ 這讓 `AD-Mockup-2` 從「印度那一列」升級為**結構問題**：不是刪一列的事，
+是**兩套模型要收斂成一套**。`entityPosture.ts` 就是那個收斂點。
+
+### ⭐ D15 —— BFSI 殘留全在 data，fragment 只有一行
+
+30 個 fragment 裡 **AML / CTF / KYC / sanctions / reconciliation / Basel 與六個金融監理機關
+的真實命中數 = 0**。唯一一處是 `14-admin.html:212` 的欄位標題 **`Regulator / jurisdiction`**。
+
+原因是 fragment 只透過 `{{ hole }}` 取值，BFSI 詞彙全部住在 `data/*.js`。
+⇒ 我清理 data 層是對的層；fragment 層 Day 2.2 只需改那一個標題。
+
+### ⭐ D16 —— 交付物自己的 prose 計數已經對不上它自己的資料
+
+| 位置 | 寫的 | 實際 |
+|---|---|---|
+| `14-admin:237` | 43 users | 該迴圈 `hint=8` |
+| `14-admin:294` | 6 connected | `hint=8` |
+| `30-ai-drawer:18` | grounded on 7 sources | `knowledgeSources` 8 列 |
+| `02-app-shell:44` | Issues badge `5` | `issues` 10 列（未結 9）|
+
+⇒ **政策定案：畫面上的計數一律由資料算出，不從 fragment 抄字面。**
+dashboard 三處已照辦（`6 jurisdictions`→11 · `6 entities`→13 · 硬編碼的 `Watch`/`A` → 由 13 列推導）。
+AppShell 的 `5` 是 Day 1 照抄的，現在有證據它是錯的 ⇒ 記入 `AD-Nav-2`。
+
+### ⭐ jsdom 的能力驗證：Day 1 標的 🚧 是對的，而且**不足的地方有三層**
+
+Day 1「10/10 未回歸」只證明沒弄壞既有的。實際寫下第一個 `.test.tsx` 之後，連續撞到三道：
+
+1. **JSX 根本沒被轉譯** —— tsconfig 是 `jsx: preserve`（Next 要原始語法），
+   vitest 拿到未轉譯的 JSX 直接 parse 失敗。
+   ⚠️ 我先試 `esbuild: { jsx: 'automatic' }` —— **被接受、無警告、完全沒作用**，
+   同一個錯誤原樣再來一次。改裝 `@vitejs/plugin-react` 才成立。
+   （一個「被讀取但被忽略」的設定比沒有更糟，已寫進 config 檔頭。）
+2. **`@/` alias 在 vitest 不存在** —— 它宣告在 tsconfig，type-check 與 Next 都讀，vitest 不讀。
+   既有 10 條測試全用相對路徑 ⇒ 從來沒人要求 vitest 解析過它。
+3. **testing-library 的 afterEach cleanup 沒註冊**（`globals: false`）⇒
+   第二個 `it` 看到兩份 DOM，症狀是「found multiple elements」。
+   ⚠️ 這個最陰險：它**怪到斷言頭上**，而顯而易見的修法（改用 `getAllBy`）會讓套件變綠，
+   同時讓每條測試都跑在累積的 DOM 上。改用 setup file 真正卸載。
+
+⇒ 三者都不是「寫錯測試」，是**能力從未被行使過**。這正是 🚧 該標的理由。
+
+### ⭐ 我自己造出一個 i18n 假綠，又修掉
+
+KPI 文案原本寫成 ``tr(`dash.kpi.${k.key}.label` as '...')``。
+`i18n.test.ts` 的 check 3 **掃原始碼找 key 字面**——一個 runtime 組出來的 key
+型別過、渲染正常、而掃描器看不見。6 個 KPI 有 **5 個是不設防的**，測試照樣 10/10 綠。
+
+⇒ 全部改回字面 key（`labelKey` / `subKey` / `footKey`）。
+**這是 27 個畫面的 port 規則**：key 一律字面，不用樣板字串組。
+
+### Gate（實測）
+
+| Gate | 結果 |
+|---|---|
+| `format:check -w apps/web` | **All matched files use Prettier code style** |
+| `lint -w apps/web` | EXIT=0 |
+| `type-check -w apps/web` | **0** errors |
+| `build -w apps/web` | ✓ Compiled · 路由 `/` · `/_not-found` · **`/dashboard`** |
+| `test -w apps/web` | **22 passed (2 files)** —— 10 既有 + **12 新組件測試** |
+| `run_all.py` | **9/9** |
+| `check_mockup_fidelity` | **OK** |
+
+⚠️ **`.prettierignore` 新增 `apps/web/src/data/`** —— prettier 會把每列 fixture 從一行炸成 ~13 行，
+那會摧毀「每一列都能與交付物 1:1 diff」這個性質，而那正是複製這件事的**全部價值**。
+不是風格偏好，是可稽核性。
+
+### 🚧 → 解封
+
+| Day 1 的 🚧 | 現況 |
+|---|---|
+| shell 尚無消費者 | **解封** —— build 實測 `/dashboard` 存在 |
+| jsdom 能力未驗證 | **解封** —— 12 條組件測試通過（代價：三道修正，見上） |
+| `data-grc` 負面驗證 | **仍未做** —— 需真瀏覽器，Day 3 |
+
+### Remaining for Next Day
+
+- **26 個畫面** —— ⚠️ 見下方紅旗，範圍與 plan 假設不同
+- **Day 2.3** persona 登入 + auth 四狀態（含 `01-auth:124` 那個寫死的 Japan/China 下拉）
+- **Day 2.2 附帶**：`14-admin.html:212` 的 `Regulator / jurisdiction` 標題
+
+### 🔴 範圍發現：27 個畫面不是同一種工作
+
+fragment 盤點顯示，有一批畫面消費的集合**在 `data/*.js` 裡根本不存在**：
+
+| 畫面 | 行數 | 缺的集合 |
+|---|---|---|
+| `14-admin` | 343 | `adminUsers` `adminRoles` `taxonomy` `integrations` `systemAudit` `recentExports` `thresholds` `adminSections`（8）|
+| `06-risk-detail` | 277 | `auditTrail` `signOff` `obligations` `assets` `assessmentHistory` `controlTests`（6+）|
+| `23-apac-isms-profiles` | 275 | `ismsProfileData` —— **交付物 README 明言未抽出**，只存在原始 `.dc.html` |
+| `19-risk-programme` | 234 | RM 報告工作表 `rp.rows`（CIA 評分結構，無對應檔）|
+| `08-control-detail` | 175 | `frameworks` `testHistory` `evidence` `obligations` `signOff` `auditTrail`（6）|
+| `26-audit-issue-detail` | 160 | `actions` `evidence` `history`（3）|
+| `18-incident-detail` | 152 | `rca` `work` `corr` `prev`（4）|
+
+這 7 頁 = **1,616 行 / 全部 3,777 行的 43%**，而它們不是「照抄 fragment」，
+是「**先發明一份 fixture，再照抄 fragment**」。plan §7 的工時是以「port」估的。
+
+**這是要使用者裁決的事，不是我自行吸收的事。** 三個選項與建議寫在今天的回覆裡。

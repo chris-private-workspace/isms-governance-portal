@@ -31,12 +31,31 @@
  *   - 2026-08-17: jsdom + .test.tsx for component tests (Phase W19)
  *   - 2026-08-08: Initial creation (Phase W01)
  */
+import { fileURLToPath } from 'node:url';
+
+import react from '@vitejs/plugin-react';
 import { defineConfig } from 'vitest/config';
 
 export default defineConfig({
+  // The `@/*` alias is declared in tsconfig.json, which the type checker and
+  // Next both read and Vitest does not. The 10 pre-existing tests all import
+  // relatively, so nothing had ever asked Vitest to resolve it.
+  resolve: {
+    alias: { '@': fileURLToPath(new URL('./src', import.meta.url)) },
+  },
+  // Next compiles JSX for the app; Vitest does not inherit that. tsconfig sets
+  // `jsx: preserve` because Next wants the raw syntax, so a .test.tsx reaches
+  // the import analyser untransformed and fails to parse.
+  //
+  // The plugin rather than an `esbuild: { jsx }` option: Vitest 4 does not run
+  // the transform this config could reach, so that setting was accepted and
+  // did nothing — the identical parse error came back. A setting that is read
+  // and ignored is worse than none, which is the reason this note exists.
+  plugins: [react()],
   test: {
     environment: 'jsdom',
     include: ['src/**/*.test.ts', 'src/**/*.test.tsx'],
+    setupFiles: ['./vitest.setup.ts'],
     coverage: {
       include: ['src/i18n/**'],
       thresholds: { statements: 80, branches: 80, functions: 80, lines: 80 },
