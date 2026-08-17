@@ -38,6 +38,7 @@ Related:
 """
 
 import argparse
+import os
 import subprocess
 import sys
 from pathlib import Path
@@ -67,6 +68,12 @@ DETECTORS: list[tuple[str, str, list[str]]] = [
     # Derives BACKLOG's §Open counts from its own table instead of trusting the
     # figure copied into the header by hand (CH-027).
     ("backlog-counts", "check_backlog_counts.py", []),
+    # Documented commit SHAs that no longer resolve. Rebase merge rewrites every
+    # SHA on a feature branch, and closeout docs are written before the merge
+    # (CH-036). ⚠️ Needs real git history: the gates job checks out with
+    # fetch-depth: 0 for this, and the detector hard-fails rather than skipping
+    # when it cannot see origin/main.
+    ("sha-anchors", "check_sha_anchors.py", []),
     # ("your-detector", "check_your_pattern.py", ["--root", "src"]),
 ]
 
@@ -83,8 +90,21 @@ def run_one(
     if "--root" not in extra:
         args += ["--root", str(repo_root)]
 
-    proc = subprocess.run(args, capture_output=True, text=True)
-    output = (proc.stdout + proc.stderr).strip()
+    # === UTF-8 on both ends of the pipe ===================================
+    # Why: `text=True` alone decodes with the locale encoding, which on Windows
+    # is cp950 here. The first detector to print a line of Chinese blew up the
+    # RUNNER, not the detector -- UnicodeDecodeError inside run_one, so every
+    # remaining detector went unrun (CH-036 hit it; the quoted line was a
+    # document excerpt). PYTHONIOENCODING fixes the child's writer, encoding=
+    # fixes this reader, and errors="replace" means a stray byte degrades one
+    # character instead of taking down the whole lint run.
+    # ⚠️ Platform-specific: this passes on Linux CI either way, so nothing in CI
+    # would ever have caught it (Risk Class B in task-workflow.md).
+    env = {**os.environ, "PYTHONIOENCODING": "utf-8"}
+    proc = subprocess.run(
+        args, capture_output=True, text=True, encoding="utf-8", errors="replace", env=env
+    )
+    output = ((proc.stdout or "") + (proc.stderr or "")).strip()
 
     if verbose and output:
         print(f"--- {name} ---")

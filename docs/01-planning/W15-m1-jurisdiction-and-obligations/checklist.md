@@ -12,7 +12,7 @@
 
 > ⚠️ **本節 15 項是 2026-08-16 Day 4 closeout 補勾的，不是執行當下勾的。**
 > 依據是 progress.md:47-154 的執行紀錄（D1–D8 八條 drift、Go/No-Go 判定、baseline 數字）
-> 與 commit `b7fddaf`。⛔ **我沒有重新執行它們** —— 這次補登記本身是一個違規
+> 與 commit `942ba19`。⛔ **我沒有重新執行它們** —— 這次補登記本身是一個違規
 > （`task-workflow.md` §Common Violation Patterns 把「事後補 checklist」列為有害 pattern），
 > 已記為 `AD-CalibrationNoTimeRecord-1` 的第二個症狀。
 

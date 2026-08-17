@@ -63,7 +63,7 @@ branch protection 不存在於版控中。
 - ⭐ **六個 context 有五個是中文，含 em dash 與全形括號**（`憑證外洩 — gitleaks（全歷史）`）。
   比對是逐字的 —— **workflow 裡的 `job.name:` 從此是 branch protection 的一部分**，
   改一個字，所有 PR 會卡在等一個永遠不會出現的 context，且錯誤訊息不會說明原因
-- **context 名稱取自實際跑過的 check run**（PR #26 head `128c510`），不是從 yml 的 `name:` 推論 ——
+- **context 名稱取自實際跑過的 check run**（PR #26 head `568589d`），不是從 yml 的 `name:` 推論 ——
   `AD-GrepAssertion-1` 的形狀
 
 ---

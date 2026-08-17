@@ -545,7 +545,7 @@ merge 後真值 **34.68 min**（`706d94d` → `e9ab83a`），落在我當時所�
 我寫了 `assert total == 17`（來自先前 Grep 的輸出），實際替換 **27** 處。
 
 **腳本沒錯，我的預期值錯了** —— Grep 回報的是**行數**，我拿它當**出現次數**。
-`| 7bea684 → 652fb64 |` 是一行兩個 SHA；`CALIBRATION-LOG.md` 的 9 行裡有 15 個 SHA。
+`| 736b1f1 → 6701305 |` 是一行兩個 SHA；`CALIBRATION-LOG.md` 的 9 行裡有 15 個 SHA。
 
 ⭐ **這是 `AD-NarrowPatternWideClaim-1` 的微縮版**（拿便宜的代理指標回答需要精確計數的問題），
 而抓到它的正是 `AD-TextEditStructuralScope-1` **今天才提議的那條 assert**。

@@ -38,7 +38,7 @@
 - **Agent-delegated**: `no`（plan 時宣告；實際自己直接做）
 - **Bottom-up est**: 7.5 hr
 - **Committed (calibrated)**: 3.75 hr（mult 0.50）
-- **Actual**: **1.88 hr**（112.95 min，`a18b366` 10:16:12 → `f2b393b` 12:09:09，
+- **Actual**: **1.88 hr**（112.95 min，`a18b366` 10:16:12 → `d5febf7` 12:09:09，
   commit 時間戳兩端錨點閉合）
 - **Ratio**: 1.88 / 3.75 = **0.50**
 - **Band 判定**: **UNDER**（< 0.7）

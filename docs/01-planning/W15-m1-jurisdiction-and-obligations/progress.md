@@ -198,7 +198,7 @@ W14 的 progress 對它的**正向**版本寫過一句話：
 ⚠️ **若 1.1b 沒有轉紅**，那不是「守衛壞了」的結論就能收工的 ——
 要先確認 stub 真的落在 `core-model/` 且 regex 真的匹配到它（`readdirSync` 只掃該目錄一層）。
 
-### 1.1 執行結果 —— **兩半都命中**（預測 commit `4fa64d2`）
+### 1.1 執行結果 —— **兩半都命中**（預測 commit `1bc2f2f`）
 
 | | 預期 | 實際 | |
 |---|---|---|---|
@@ -679,7 +679,7 @@ Day 3 結束後、closeout 之前，對本分支跑了一次**三角度平行審
 
 **產出**：3 條新 AD + 4 條既有 AD 更新 + **一個真實的 schema↔migration 漂移並修掉**。
 
-## 4.1 修掉的漂移（commit `e02eb57`）
+## 4.1 修掉的漂移（commit `1bc4d60`）
 
 `OrgEntity.jurisdiction` 是 **optional** relation 且未寫 `onDelete` ⇒ Prisma 預設 `SetNull`，
 而 `migration.sql:143` 是 `RESTRICT`。同批另三條 FK 是 **required** relation（`RESTRICT` 本就是預設），
@@ -720,7 +720,7 @@ CI 只跑 `migrate deploy`（`.github/` grep `migrate diff` **零命中**）· �
 ## 4.3 Calibration —— 分子只能事後反推
 
 ⛔ **本檔 Day 0–3 沒有任何時間記錄**，plan §7 也**沒有宣告量法**。
-分子改由 commit author date 逐段相加：`d6d2d38 12:27:12` → `7c8c8d5 14:40:35`，
+分子改由 commit author date 逐段相加：`fd77e50 12:27:12` → `4fc44d8 14:40:35`，
 六個間隙 **17.03 / 17.35 / 29.98 / 44.05 / 3.12 / 21.85 min**，最大 44.05 ⇒ 無 > 60 min 間隙
 ⇒ 逐段法與窗口法**同值 133.38 min = 2.223 hr**。
 

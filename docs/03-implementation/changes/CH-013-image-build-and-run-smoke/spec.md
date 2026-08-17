@@ -29,7 +29,7 @@ CI 的 `Build` 步驟跑的是 `npm run build`（`ci.yml:194`），那是 tsc / 
 | `USER` 未明寫 | trivy config + semgrep 同時報 | `apps/api/Dockerfile:96-100` |
 
 而**「build 成功但產物起不到」在 W01 也真的發生過**：`apps/api/package.json` 的 `start`
-指向 `dist/main.js`，nest 實際 emit 的是 `dist/bootstrap/main.js`。gate 全綠，修在 `08ddc0f`。
+指向 `dist/main.js`，nest 實際 emit 的是 `dist/bootstrap/main.js`。gate 全綠，修在 `dee0d7e`。
 那次是本機 drive-through 抓到的 —— 容器裡沒有人在開車。
 
 ### 這一項擋著三個 AD
@@ -216,7 +216,7 @@ CI（run `31299823765`）：六個 check 全 pass ·
 
 | # | 弄壞什麼 | build | run | probe | 對應真實缺陷 |
 |---|---|---|---|---|---|
-| 1 | `CMD` 指向不存在的檔 | 🟢 | 🔴 `Exited (1)` | 🔴 `ECONNREFUSED` | W01 的 `start` 指錯 entry（`08ddc0f`）|
+| 1 | `CMD` 指向不存在的檔 | 🟢 | 🔴 `Exited (1)` | 🔴 `ECONNREFUSED` | W01 的 `start` 指錯 entry（`dee0d7e`）|
 | 2 | 拿掉 `apps/web/Dockerfile:48` 的 `.next/static` | 🟢 | 🟢 `Up` | **🔴 指名 chunk 404** | 「頁面開得起來但沒樣式」|
 | 3 | 拿掉 openssl 安裝 | 🟢 | 🟢 | **🟢 抓不到** | W01 已修過的缺陷 —— **見下** |
 | 4 | DB 不可達（3 的替代） | 🟢 | 🟢 **HTTP 200** | 🔴 `db was "down"` | 「API 活著但依賴死了」|

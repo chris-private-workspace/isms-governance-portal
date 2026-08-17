@@ -20,7 +20,7 @@ status: done
 
 掃描對象：`docs/01-planning/BACKLOG.md`（全檔 279 行）。方法：Grep `-o` 逐項抽取後交叉比對。
 
-> ⚠️ **本節的行號是枚舉當下（`56822e4` 之前）的值。** 本 CH 的收尾在 BACKLOG 開頭增了 9 行，
+> ⚠️ **本節的行號是枚舉當下（`7c8d46f` 之前）的值。** 本 CH 的收尾在 BACKLOG 開頭增了 9 行，
 > §Open 表格因此整體下移 —— 這正是 `AD-MdAnchorLineShift-1` 講的形狀，由本 CH 自己觸發。
 > **穩定的識別符是 AD 名稱**，下方各處都同時寫了；行號只用來重現當時的量測，不要拿去導航。
 
@@ -148,7 +148,7 @@ header declares P2=32  but the §Open table has 33
 控制組與最終還原各驗一次（皆 `OK red=0`）。
 
 > ⛔ **這個 SHA 被 rebase merge 改寫過（原 `56822e4`），而本 CH 自己剛寫過這個形狀。**
-> PR #54 的描述與 `a75e02e` 的 commit message 都引用了舊值，它們**在 main 上指向不存在的物件**
+> PR #54 的描述與 `5a676f9` 的 commit message 都引用了舊值，它們**在 main 上指向不存在的物件**
 > —— 與 W10 `74f0774`（標題就是 "repoint a SHA the rebase killed"）同一件事，隔一個 CH 再犯。
 > ⭐ **穩定的錨點是 author date：`2026-08-14T09:31:41+08:00`，改寫前後逐秒相同**
 > （commit date 變成 rebase 時刻 `09:48:34`）。本 repo 第二次量到 rebase 不動 author date。

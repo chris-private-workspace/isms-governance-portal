@@ -49,7 +49,7 @@ key 一致性測試斷言不了任何事）。英文已在 `07:20` 的語言集�
 
 ⚠️ **先講量測問題**：`progress.md` **沒有逐任務工時紀錄** —— `task-workflow.md` Step 5 要求
 「Task X.Y — actual Z min」，本 phase 從頭到尾沒寫。`~5 hr` 是從 commit 時間戳回推的
-（首個 commit `e6ddff1` 16:30 → Day 3 收尾 `6ec4bf9` 19:57 = **3h27m**，
+（首個 commit `1b2c18c` 16:30 → Day 3 收尾 `ada8fc7` 19:57 = **3h27m**，
 加上第一個 commit 之前的 plan/checklist 起草與 Day-0 verify，再加 Day 4 收尾）。
 **這是估算不是量測**，資料點品質因此打折。
 

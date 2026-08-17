@@ -172,7 +172,7 @@ CI 的 `Architecture lints` 紅，本機我卻回報 6/6。真相：我用 `Sele
 
 ### 發現 C —— `ci.yml` 缺 Node 安裝，五個 guard 步驟醒來即撞牆
 
-第二次 CI（`7ab19d2`）：`Architecture lints` / `actionlint` / detector tests 全過，
+第二次 CI（`0251517`）：`Architecture lints` / `actionlint` / detector tests 全過，
 **`Format check` 首次真的執行** —— 然後 `sh: 1: prettier: not found`（exit 127）。
 
 `ci.yml` 有 `actions/setup-python@v5`，但**沒有 `actions/setup-node`，也沒有 `npm ci`**。
@@ -183,7 +183,7 @@ CI 的 `Architecture lints` 紅，本機我卻回報 6/6。真相：我用 `Sele
 修它是改 CI，須先問。**在它修好之前，Lint / Type check / Tests / Build 四步都是 skipped，
 不是 pass** —— PR #18 的 CI 仍然是紅的，且應該保持紅。
 
-## ✅ 四項 CI 修正的結果（`6431b43`）—— gate 從此不再是假綠
+## ✅ 四項 CI 修正的結果（`ff2a9e0`）—— gate 從此不再是假綠
 
 | Workflow | 結果 | 證據 |
 |---|---|---|
