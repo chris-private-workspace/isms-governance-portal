@@ -1,0 +1,18 @@
+{
+  "_purpose": "已知並經評估後暫時接受的相依漏洞。每一條都有理由、負責人與到期日。",
+  "_enforced_by": "scripts/lint/check_sca_allowlist.py — 到期日由機器強制：過期當天 gate 變紅，與該漏洞是否仍存在無關。",
+  "_rule": "security-scan.yml 的分流三選一：修 / 豁免（寫理由 + 到期日）/ 誤報（寫理由）。本檔只放第二種。誤報請寫進對應掃描器自己的設定（例如 .gitleaks.toml）。",
+  "_how_to_add": "先問三件事：(1) 這條在我們的用法下真的可達嗎？(2) 有沒有非破壞性的修法？(3) 到期日要短到足以強迫重新決定。三個都答完才寫進來。",
+
+  "accepted": [
+    {
+      "advisory": "GHSA-ggr8-5vv4-36mx",
+      "package": "deepmerge-ts",
+      "severity": "high",
+      "expires": "2026-11-17",
+      "owner": "platform",
+      "reason": "DeepmergeTS stack exhaustion when merging recursive object graphs (vulnerable <8.0.0). 傳遞路徑：apps/api -> prisma@7.9.1 -> @prisma/config@7.9.1 -> deepmerge-ts@7.1.5。W19 未引入它 —— 同一個 SCA 檢查在本片前一個 commit 上仍是綠的，是新公布的 advisory 打到既有相依。可達性：@prisma/config 用它合併 Prisma 的設定檔，發生在 CLI / build 路徑，輸入是我們版控裡的自有設定，不在請求路徑上，也不接受攻擊者控制的資料 —— 遞迴物件圖無法由外部構造送達。非破壞性修法不存在：脆弱範圍是 <8.0.0 所以 patch 級無效；實測以 npm overrides 拉到 ^8.0.1 不生效（磁碟上仍是 7.1.5，@prisma/config 的範圍不相容）；npm 給的唯一建議是把 prisma 降到 6.12.0，那是 semver-major 且會推翻 ADR-0001 的 Prisma 7 決定。正解在上游：等 Prisma 發出改依 deepmerge-ts 8 的版本。",
+      "review_action": "到期時重跑 `npm ls deepmerge-ts`；若 Prisma 已升到 8.x 則刪除本條，否則重新評估可達性並更新 expires（不要無理由續期）。"
+    }
+  ]
+}
