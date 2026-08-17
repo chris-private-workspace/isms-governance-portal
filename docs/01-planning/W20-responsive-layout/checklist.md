@@ -51,36 +51,46 @@
 
 ### 1.1 `useBreakpoint` hook
 
-- [ ] **`apps/web/src/lib/useBreakpoint.ts`** —— `matchMedia` 驅動，回傳 `'wide'|'mid'|'narrow'`
+- [x] **`apps/web/src/lib/useBreakpoint.ts`** —— `matchMedia` 驅動，回傳 `'wide'|'mid'|'narrow'`
   - DoD: 首幀**固定回 `'wide'`**（SSR 無 `window`），掛載後才反映真實寬度；訂閱與清理成對
-  - Verify: `npm run type-check -w apps/web`
-- [ ] **`useBreakpoint.test.ts` —— 含 SSR 首幀的負面測試**
+  - Verify: `npm run type-check -w apps/web` → **exit 0**
+- [x] **`useBreakpoint.test.tsx` —— 含 SSR 首幀的負面測試**（`.tsx` 非 `.ts`：需要 JSX 探針元件）
   - DoD: 斷言首幀為 `'wide'` **即使** `matchMedia` 已回報 narrow；
         ⛔ 拿掉 SSR 保護後該測試**必須轉紅**（實跑一次確認，不是宣稱）
-  - Verify: `npm run test -w apps/web`
+  - Verify: **10 個測試綠**；中性化（改成 lazy initialiser 讀 matchMedia）→ **恰好 2 紅**
+        （`expected 'narrow' to be 'wide'`），⭐ **其餘 8 條全綠** ⇒ 只斷言最終值的測試看不見它
 
 ### 1.2 側欄自動收合
 
-- [ ] **窄螢幕自動收合，且手動切換優先**
+- [x] **窄螢幕自動收合，且手動切換優先**
   - DoD: `mid`/`narrow` 預設收合；**使用者手動切換後，改變視窗寬度不覆蓋該選擇**
-  - Verify: 測試斷言兩個方向；drive-through Day 3 逐項點過
-- [ ] **負面測試：手動切換不得變成死控件**
+  - Verify: `app-shell-collapse.test.tsx` **7 個測試綠**，測真的 `AppShell` 而非抽出的一行純函式；
+        drive-through Day 3 逐項點過
+- [x] **負面測試：手動切換不得變成死控件**
   - DoD: 拿掉「手動優先」邏輯後，該測試轉紅（W19 的 25 個死控件教訓）
-  - Verify: `npm run test -w apps/web`
+  - Verify: 中性化（`collapsed = band !== 'wide'`）→ **預測 3 紅 4 綠，實測完全一致**
+        （`expected '64px' to be '232px'`）。⭐ 4 條 band 測試維持綠 ⇒ 只測自動行為會對死控件全盲
 
 ### 1.3 Topbar 窄螢幕收納
 
-- [ ] **`narrow` 下 topbar 不溢出**
-  - DoD: 768px 時 `body.scrollWidth <= innerWidth`；搜尋框 `min(230px, 100%)`
-  - Verify: 瀏覽器實測，非 CSS 推論
-- [ ] ⭐ **被收納的項目仍可達（不是藏起來）**
-  - DoD: 期間選擇與使用者名稱/角色在 `narrow` 下仍能透過既有使用者選單到達；
-        ⛔ 「看不到就算修好」是 AP-3
-  - Verify: drive-through 逐項點開
+- [x] **`narrow` 下 topbar 不溢出**
+  - DoD: 768px 時 `body.scrollWidth <= innerWidth`；~~搜尋框 `min(230px, 100%)`~~
+        → ⛔ **該處方是 no-op**：`100%` 相對於 flex 容器（768px 下約 732px），
+        `min(230, 732)` 仍是 230。改為依斷點降地板 **230px → 120px**
+  - Verify: ⏳ **瀏覽器實測留到 Day 3**（單元測試證明不了版面溢出，非 CSS 推論）
+- [x] ⭐ **被收納的項目仍可達（不是藏起來）**
+  - DoD: 期間選擇與使用者名稱/角色在 `narrow` 下仍能到達；⛔ 「看不到就算修好」是 AP-3
+  - → ⚠️ **plan 的落點被推翻**：期間**不收進使用者選單**（它是範疇控制不是使用者設定，
+        埋進去等於找不到），改為就地換成精簡下拉，五個選項全在裡面
+  - → ⭐⭐ **角色原本會消失**：使用者選單有 name + email 但**沒有角色**，
+        照 plan 直接隱藏 topbar 文字塊會讓角色在 1440px 以下完全不可達 ⇒ **先補進下拉再隱藏**
+  - Verify: `app-shell-topbar-stow.test.tsx` **6 個測試綠**；中性化（拿掉下拉裡的角色）
+        → **預測 1 紅，實測 1 紅**（`Unable to find an element with the text: 平台管理員`）
 
 ### 1.x partial gate
 
-- [ ] `npm run lint -w apps/web` · `type-check` · `test`
+- [x] format **exit 0** · lint **exit 0** · type-check **exit 0** · test **12 檔 / 111** ·
+      build **31 條路由**（與 W19 基線相同，無路由遺失）
 
 ---
 
