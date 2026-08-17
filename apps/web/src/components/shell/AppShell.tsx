@@ -57,7 +57,14 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { useEffect, useState, type ComponentType, type ReactNode, type SVGProps } from 'react';
+import {
+  useEffect,
+  useMemo,
+  useState,
+  type ComponentType,
+  type ReactNode,
+  type SVGProps,
+} from 'react';
 
 import {
   IconAdmin,
@@ -88,8 +95,9 @@ import {
   IconSwitchRole,
   IconUser,
 } from '@/components/icons';
+import { ShellStateContext, type ShellState } from '@/components/shell/shell-state';
 import { opcos } from '@/data/opcos';
-import { LOCALES, t, type Locale } from '@/i18n';
+import { LOCALES, t, tf, type Locale } from '@/i18n';
 import { tok } from '@/lib/tok';
 
 type IconCmp = ComponentType<SVGProps<SVGSVGElement>>;
@@ -221,7 +229,7 @@ export function AppShell({ children }: { children: ReactNode }) {
   const [locale, setLocale] = useState<Locale>('zh-Hant');
   const [openMenu, setOpenMenu] = useState<MenuId | null>(null);
   const [scopeCode, setScopeCode] = useState<string>('APAC');
-  const [period, setPeriod] = useState(PERIODS[0]);
+  const [period, setPeriod] = useState<string>(PERIODS[0] ?? '');
 
   const tr = (key: string) => t(locale, key as Parameters<typeof t>[1]);
   const toggle = (id: MenuId) => setOpenMenu((cur) => (cur === id ? null : id));
@@ -240,10 +248,28 @@ export function AppShell({ children }: { children: ReactNode }) {
   const navText: React.CSSProperties = collapsed ? { display: 'none' } : {};
 
   const scopeLabel = scopeCode === 'APAC' ? 'APAC' : scopeCode;
-  const scopeMeta =
-    scopeCode === 'APAC'
-      ? `${opcos.length} OpCo`
-      : (opcos.find((o) => o.code === scopeCode)?.country ?? '');
+  const scopeEntity = opcos.find((o) => o.code === scopeCode) ?? null;
+  const scopeMeta = scopeCode === 'APAC' ? `${opcos.length} OpCo` : (scopeEntity?.country ?? '');
+
+  // What the screens under this shell are allowed to read. Memoised because it
+  // is a context value: a fresh object every render would re-render all 27
+  // screens on any menu open, which is state they have no interest in.
+  const shellState = useMemo<ShellState>(
+    () => ({
+      locale,
+      tr,
+      trf: (key: Parameters<typeof tf>[1], vars: Parameters<typeof tf>[2]) => tf(locale, key, vars),
+      scopeCode,
+      scopeLabel,
+      entity: scopeEntity,
+      setScope: setScopeCode,
+      periodLabel: period,
+    }),
+    // `tr` and `scopeEntity` are omitted deliberately: both are pure functions
+    // of locale / scopeCode, and both are rebuilt every render, so listing them
+    // would make the memo a no-op.
+    [locale, scopeCode, scopeLabel, period],
+  );
 
   return (
     <div style={{ display: 'flex', minHeight: '100vh' }}>
@@ -1177,7 +1203,9 @@ export function AppShell({ children }: { children: ReactNode }) {
           </div>
         </header>
 
-        <main style={{ flex: 1, overflowY: 'auto', padding: '22px 26px 40px' }}>{children}</main>
+        <main style={{ flex: 1, overflowY: 'auto', padding: '22px 26px 40px' }}>
+          <ShellStateContext.Provider value={shellState}>{children}</ShellStateContext.Provider>
+        </main>
       </div>
     </div>
   );

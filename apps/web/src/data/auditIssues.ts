@@ -1,0 +1,49 @@
+/**
+ * File: apps/web/src/data/auditIssues.ts
+ * Purpose: Sample audit findings with corrective action plans and remediation status.
+ * Category: ui / demo fixture
+ * Scope: Phase W19
+ *
+ * Description:
+ *   Verbatim copy of the handoff file of the same name. Exports `auditIssues`, 7 rows,
+ *   covering ref, title, src, audit, clause, grade, opco, owner, raised, due, status,
+ *   link, finding, cap, and ev.
+ *
+ *   DEMO fixture. Screens consuming it must render the demo marker; unlabelled
+ *   fixture data presented as real is an anti-pattern in this project.
+ *
+ * Created: 2026-08-17 (Phase W19)
+ * Last Modified: 2026-08-17
+ *
+ * Modification History (newest-first):
+ *   - 2026-08-17: Initial creation (Phase W19) — copied from the design handoff
+ *
+ * Related:
+ *   - docs/06-reference/design_handoff_isms_grc_platform/data/auditIssues.js
+ */
+
+// Extracted verbatim from the prototype's logic class.
+// Sample/reference data — replace with real API responses.
+export const auditIssues = [
+    { ref:'AF-2026-014', title:'Wipe certificate step can be bypassed in reverse logistics', src:'Certification body', audit:'BSI surveillance audit 2026', clause:'A.7.14', grade:'Major', opco:'RSG', owner:'J. Lim', raised:'2026-07-22', due:'2026-09-05', status:'CAP in progress', link:'INC-2026-0144',
+      finding:'Twelve returned devices were dispatched to the refurbishment pool without a recorded wipe certificate. The workflow allows the verification step to be skipped without a system block.',
+      cap:'Introduce a system gate that prevents dispatch until a wipe certificate ID is recorded, and re-run the control test over the last 30 days of dispatches.', ev:'Workflow change request CR-8841, test evidence pending' },
+    { ref:'AF-2026-013', title:'Privileged access review not evidenced for the NOC supplier', src:'Internal audit', audit:'FY26 third-party access audit', clause:'A.5.22', grade:'Major', opco:'RAPO', owner:'W. Cheung', raised:'2026-07-09', due:'2026-08-29', status:'Verification', link:'EPR-022',
+      finding:'The half-yearly privileged access review for the external NOC was performed but not evidenced; no signed record of the accounts reviewed was retained.',
+      cap:'Re-perform the review with a signed record, and move future reviews into the platform access review campaign so evidence is captured automatically.', ev:'Review record signed 2026-08-01; campaign configured' },
+    { ref:'AF-2026-012', title:'Risk register entries missing target dates', src:'Internal audit', audit:'FY26 ISMS internal audit', clause:'6.1.3', grade:'Minor', opco:'RMY', owner:'R. Abdullah', raised:'2026-06-30', due:'2026-08-15', status:'Overdue', link:'RSK-1042',
+      finding:'Two entries in the IT Risk Register carried no target completion date, so progress against treatment could not be measured.',
+      cap:'Populate target dates for all open register entries and add a validation rule that blocks submission without one.', ev:'—' },
+    { ref:'AF-2026-011', title:'Awareness training completion below target in two OpCos', src:'Internal audit', audit:'FY26 ISMS internal audit', clause:'7.2, 7.3', grade:'Minor', opco:'RID', owner:'B. Santoso', raised:'2026-06-30', due:'2026-09-30', status:'CAP in progress', link:'POL-205',
+      finding:'Security awareness completion was 74% against a 95% target at the audit date, with no documented follow-up for non-completers.',
+      cap:'Run a catch-up campaign, add manager escalation at 30 days, and report completion monthly in the Security Metric Program.', ev:'Campaign launched 2026-07-15' },
+    { ref:'AF-2026-010', title:'Document control — two procedures past review date', src:'Certification body', audit:'BSI surveillance audit 2026', clause:'7.5.2', grade:'Minor', opco:'RAP', owner:'A. Kumar', raised:'2026-05-18', due:'2026-07-31', status:'Closed', link:'POL-318',
+      finding:'Two procedures had passed their scheduled review date without evidence of review or an approved extension.',
+      cap:'Both procedures reviewed and re-approved; review reminders now issued 60 days before the due date.', ev:'Approved 2026-07-04; reminder rule active' },
+    { ref:'AF-2026-009', title:'Customer audit — encryption of backup media not demonstrated', src:'Customer audit', audit:'Government customer assurance review', clause:'A.8.24', grade:'Observation', opco:'RHK', owner:'C. Ng', raised:'2026-05-02', due:'2026-08-31', status:'CAP submitted', link:'CTL-2255',
+      finding:'The customer requested evidence that backup media holding their scanned records is encrypted at rest; current evidence covers the platform but not the removable media path.',
+      cap:'Document the removable media encryption standard and provide a signed attestation with the next assurance pack.', ev:'Draft standard circulated' },
+    { ref:'AF-2026-008', title:'Opportunity for improvement — supplier register consolidation', src:'Certification body', audit:'BSI surveillance audit 2026', clause:'A.5.19', grade:'Observation', opco:'RAPO', owner:'W. Cheung', raised:'2026-05-18', due:'—', status:'Accepted', link:'EPR-024',
+      finding:'External party assessments are maintained in two places for supply-chain vendors, creating a risk of divergence.',
+      cap:'Consolidate into the platform supplier register at the next annual review cycle.', ev:'Planned FY27' },
+  ];

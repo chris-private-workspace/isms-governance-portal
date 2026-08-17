@@ -60,3 +60,21 @@ export const DICTIONARIES: Record<Locale, Record<string, string>> = {
 export function t(locale: Locale, key: TranslationKey): string {
   return DICTIONARIES[locale][key] ?? DICTIONARIES[DEFAULT_LOCALE][key] ?? key;
 }
+
+/**
+ * Resolve one string that carries values, e.g. `{n} jurisdictions`.
+ *
+ * Exists so that screens never assemble a sentence by concatenation. A count
+ * and its noun sit on opposite sides in some languages and need a measure word
+ * in others — zh-Hant writes `11 個管轄區` where English writes
+ * `11 jurisdictions` — so the whole sentence has to be one translatable unit
+ * with holes, not a number glued to a translated fragment.
+ *
+ * Unknown placeholders are left as written rather than blanked, so a typo in a
+ * variable name shows up on screen instead of quietly producing a gap.
+ */
+export function tf(locale: Locale, key: TranslationKey, vars: Record<string, string | number>) {
+  return t(locale, key).replace(/\{(\w+)\}/g, (whole, name: string) =>
+    name in vars ? String(vars[name]) : whole,
+  );
+}

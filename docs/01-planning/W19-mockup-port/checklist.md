@@ -118,8 +118,10 @@
         vs class `height:34px`/`padding:0 12px`/`radius 8px`/`12.5px`），而 fragment 才是設計實際渲染的
   - ⭐ **補上 `aria-current="page"`**（Day-0 D11）—— 同時關掉 a11y 缺口，
         並讓 `components.css:118` **第一次有可能生效**
-  - 🚧 **尚無消費者** —— `(app)` 群組只有 layout 沒有 page，build 實測路由仍是 `/` + `/_not-found`。
-        解封：Day 2.2 的第一頁（dashboard）
+  - ✅ **🚧 已解封（Day 2）** —— build 實測路由現為 `/` · `/_not-found` · **`/dashboard`**。
+        shell 同時長出兩個 Day 1 沒有的東西：`shell-state.ts` context（畫面讀 scope / period /
+        locale 的唯一管道）與 `setScope` —— 否則 topbar 的範疇選擇器碰不到頁面，
+        那就是一個看起來會動的死控件
 
 - [x] **`apps/web/src/components/icons.tsx`**（shell 的 25 個 inline SVG）
   - DoD: path 逐字；只做 JSX 語法強制的轉換（`stroke-width`→`strokeWidth`）
@@ -136,6 +138,15 @@
   - Verify: `npm run test -w apps/web` → 現有 **10 條全過**（不得回歸）+ 新組件測試可跑
         → 10/10 未回歸。⚠️ **組件測試尚未撰寫** ⇒ jsdom + testing-library 的**能力未經驗證**，
         只證明了「沒弄壞現有的」。解封：Day 2 第一個組件測試
+  - ✅ **🚧 已解封（Day 2）—— 而且「不足」的地方有三層，全部只有寫測試才會浮現**：
+        (1) **JSX 沒被轉譯**（tsconfig 是 `jsx: preserve`）⇒ 裝 `@vitejs/plugin-react`。
+        ⚠️ 先試的 `esbuild: { jsx: 'automatic' }` **被接受、無警告、完全沒作用**；
+        (2) **`@/` alias 在 vitest 不存在**（宣告在 tsconfig，vitest 不讀）——
+        既有 10 條全用相對路徑，所以從未要求它解析過；
+        (3) **testing-library 的 afterEach cleanup 沒註冊**（`globals: false`）⇒
+        第二個 `it` 看到兩份 DOM。它**怪到斷言頭上**，而顯而易見的修法（`getAllBy`）
+        會讓套件變綠、同時讓每條測試跑在累積的 DOM 上 ⇒ 改用 `vitest.setup.ts` 真正卸載。
+        → 現況 **22 passed（10 既有 + 12 新）**
   - ⚠️ 首次執行曾失敗一次（60.07 s，`environment 0ms`，測試未跑）。清 `.vite` cache 冷啟動
         **無法重現**（8.3 s 通過），連續三次綠 ⇒ 記錄但不阻塞；CI 若出現同症狀，這是線索
 
@@ -152,28 +163,59 @@
 
 ### 2.1 Fixture 移植 + 三處憲章清理（US-4）⭐ 先做，畫面依賴它
 
-- [ ] **`apps/web/src/data/*.ts`**（23 支）—— **五處清理**（Day-0 修訂，原列三處）
+- [x] **`apps/web/src/data/*.ts`**（23 支）—— **五處清理**（Day-0 修訂，原列三處）
   - DoD: (1) `opcos` 刪 `RIN` → **13 家 / 11 管轄區**，不補 `RCN`；
         (2) **中國移除**（8 處跨 5 檔 + auth 下拉 1 處 —— Day-0 D5，原 plan 漏列）；
         (3) Japan 不作為營運實體（**5 檔**，含 `01-auth:124`）；
         (4) BFSI 殘留清零（**真實 18 行 / 6 檔**）；
         (5) ⭐ **`data.js` 從 `opcos.js` 重建為 13 列**（非修補 —— Day-0 D4）
-  - Verify: `grep -riE "india|RIN|china|AML|CTF|sanction|reconcil|prudential|FSA|MAS|APRA|HKMA|BNM|PBoC|Basel|KYC" apps/web/src/` → **0 命中**
-        ⚠️ 命中後**逐處讀上下文**排除子字串假陽性（Day-0 實測 `Streamline NX` / `SAML 2.0` 會誤命中 `AML`）
-  - Verify: OpCo 列數 = **13**、distinct country = **11**、`data` 列數 = **13**
+  - ⛔ **原 Verify 指令不可判，已改寫**（D13）——
+        `grep -riE "india|RIN|china|AML|..."` 的 `RIN` **沒有 word boundary**，
+        在印表機公司的程式碼裡等於搜「印」：實測 **72 命中**，最大宗是 **`string` ×11**
+        （s-t-**rin**-g），其餘 `print`/`printing`/`printers`/`monitoring`/`expiring`/
+        `Streamline`（含 **aml**）/`SAML`/`mass`（含 **mas**）。**這條永遠不會回 0。**
+  - Verify（改寫後）: `grep -rniE "india|\bRIN\b|china|\bAML\b|\bCTF\b|sanction|reconcil|prudential|\bFSA\b|\bMAS\b|\bAPRA\b|\bHKMA\b|\bBNM\b|PBoC|Basel|\bKYC\b|japan" apps/web/src/`
+        再 `grep -vE ":[0-9]+: *(\*|//|/\*)"` 排除註解行 → **實測 0 命中**
+        （未排除註解時 6 命中，全部是 `opcos.ts` 檔頭在解釋那一列為什麼被刪）
+  - Verify: OpCo 列數 = **13**、distinct country = **11**、`entityPosture` 列數 = **13**
+        → ⭐ **不是用眼睛數的**：`entityPosture.ts` 是 `opcos.map(...)`，三個數字都是算出來的；
+        `dashboard.test.tsx` 斷言 `entityPosture.length === 13` 且表格列數 = 13 + 1 表頭
+  - ⭐ **21 支以 `cp` 機械複製後逐檔 `diff` → 21/21 `IDENTICAL`**，之後才套清理編輯；
+        型別用 `(typeof x)[number]` 推導 ⇒ **資料本體零手打**
+  - ⭐ **`data.js` → `entityPosture.ts`（改名）**：`data/data.ts` 這個名字什麼都沒說（AP-7），
+        而它是唯一**不是複製**的一支 —— 換名字正好標示這個差別
 
-- [ ] **`apps/web/src/components/DemoBadge.tsx`**
+- [x] **`apps/web/src/components/DemoBadge.tsx`**
   - DoD: 視覺上不可忽略；每個消費 fixture 的畫面都掛
   - Verify: Day 3 drive-through 逐頁目視（**不是**靠測試 —— mock 標記本身要被 drive-through 驗證）
+        → 組件已建（琥珀底 + 邊框 + 大寫 mono 標籤，置於頁面第一個元素）；
+        dashboard 已掛且測試斷言 `role="note"` 存在。
+        🚧 **「每個消費 fixture 的畫面都掛」尚未成立** —— 目前只有 1 / 27 頁。
+        解封：其餘 26 頁各自落地時掛上，Day 3 逐頁目視確認
 
 ### 2.2 27 個 screen page.tsx（US-3）— **agent 平行**
 
-- [ ] **27 個 `page.tsx` + 共用 primitive**
+- [ ] **27 個 `page.tsx` + 共用 primitive** —— **進度 1 / 27**（`/dashboard`）
   - DoD: 每頁 inline style 原封不動、`<sc-if>`/`<sc-for>` 正確轉譯、
         SVG icon 直接搬、`hint-*` drop、文案走 `t()`（en=原文 / zh-Hant=譯文）、
         無對應行為的控件**不掛 handler 也不做成看似可點**
   - Verify: **每頁**代碼層並排比對 fragment vs page.tsx → 結果進 `page-inventory.md`
   - ⚠️ agent 回報的「完成」不採信 —— 並排比對我自己做（plan §8 第一條 risk）
+  - ⭐ **第一頁定下 3 條畫面層 port 規則**（承 AppShell 的 5 條）：
+        (6) 畫面從 `useShell()` 讀 scope / period / locale，**不自己開 state**；
+        (7) 每頁第一個元素是 `<DemoBadge/>`；
+        (8) **i18n key 一律字面**，不用樣板字串組 —— ``tr(`x.${id}.label`)`` 型別會過、
+        會渲染，而 `i18n.test.ts` check 3 掃的是原始碼字面 ⇒ **掃不到 = 不設防**。
+        我自己先寫成樣板字串，6 個 KPI 有 5 個沒被守到，套件照樣全綠
+  - ⭐ **計數一律由資料算出，不抄 fragment 字面**（D16）—— 交付物自己就已經對不上：
+        `14-admin:237` 寫 43 users 而迴圈 `hint=8`；`30-ai-drawer:18` 寫 7 sources 而資料 8 列
+  - 🔴 **這 27 頁不是同一種工作**（Day 2 盤點發現）——
+        `14-admin`(343) · `06-risk-detail`(277) · `23-apac-isms-profiles`(275) ·
+        `19-risk-programme`(234) · `08-control-detail`(175) · `26-audit-issue-detail`(160) ·
+        `18-incident-detail`(152) 消費的集合**在 `data/*.js` 裡不存在**
+        （`ismsProfileData` 更是交付物 README 明言未抽出）。
+        7 頁 = **1,616 行 / 43%**，且是「先發明 fixture 再照抄」而非「照抄」。
+        ⏳ **待使用者裁決範圍**，未裁決前不動這 7 頁
 
 ### 2.3 Persona 登入（US-5）
 

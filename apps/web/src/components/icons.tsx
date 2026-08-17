@@ -188,6 +188,34 @@ export const IconChevronLeft = (p: IconProps) => (
   </Svg>
 );
 
+/* --- screen icons (03-dashboard.html:29,152,165) --- */
+
+export const IconChevronRight = (p: IconProps) => (
+  <Svg {...p}>
+    <path d="M9 6l6 6-6 6" />
+  </Svg>
+);
+
+export const IconDownload = (p: IconProps) => (
+  <Svg {...p}>
+    <path d="M12 3v12M7 10l5 5 5-5M4 20h16" />
+  </Svg>
+);
+
+/**
+ * The inner dot is filled, not stroked, and the fragment hardcodes that fill
+ * to the same token it strokes with (03-dashboard.html:152). Bound to
+ * currentColor instead so one value at the call site drives both — the
+ * rendered result is identical and the colour still lives outside the glyph.
+ */
+export const IconInfo = (p: IconProps) => (
+  <Svg {...p}>
+    <circle cx="12" cy="12" r="9" />
+    <line x1="12" y1="11" x2="12" y2="16" />
+    <circle cx="12" cy="8" r=".6" fill="currentColor" stroke="none" />
+  </Svg>
+);
+
 export const IconGlobe = (p: IconProps) => (
   <Svg {...p}>
     <circle cx="12" cy="12" r="9" />

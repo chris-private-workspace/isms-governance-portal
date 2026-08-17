@@ -11,3 +11,12 @@ apps/api/src/generated/
 # fixed-width layouts the frozen phase templates rely on.
 docs/
 *.md
+
+# Demo fixtures copied verbatim from the design handoff (W19). Formatting them
+# is not a style preference, it destroys the property that makes them
+# trustworthy: every row can be diffed one-to-one against
+# docs/06-reference/design_handoff_isms_grc_platform/data/*.js, so a change to
+# the data shows up as a changed line rather than hiding inside a reflow.
+# Prettier expands each single-line row into ~13 lines, which makes that diff
+# unreadable and any future re-sync from the handoff impossible to review.
+apps/web/src/data/
