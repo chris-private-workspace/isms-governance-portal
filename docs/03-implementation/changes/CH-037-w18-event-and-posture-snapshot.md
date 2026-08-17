@@ -4,7 +4,7 @@
 **Phase**: W18（M1 slice 13）
 **Scope**: `core-model`（+ 非範疇：`scripts/lint`、`test`）
 **Components**: —
-**PR**: PR-pending
+**PR**: **MERGED (PR #77, `d370f8c`)** — 2026-08-17T05:40:31Z，經 `gh pr view 77 --json state,mergedAt` 驗證
 
 ---
 

@@ -163,8 +163,8 @@ _中性化實測是這一層的等價物 —— 它回答「拿掉這條約束�
 
 ### 3.1 預測先行
 
-- [x] **把 ≥ 4 條中性化的預測寫進 progress.md 並先 commit** —— **5 條**，commit `726f8cc`
-  - DoD: ⛔ **預測的 commit 必須早於執行** —— 事後寫的預測不是預測 ✅ `726f8cc` 早於第一次執行
+- [x] **把 ≥ 4 條中性化的預測寫進 progress.md 並先 commit** —— **5 條**，commit `4837316`
+  - DoD: ⛔ **預測的 commit 必須早於執行** —— 事後寫的預測不是預測 ✅ `4837316` 早於第一次執行
   - DoD: 每條註明：改什麼 · 預測哪幾個測試轉紅 · 紅的形狀（SQLSTATE / 斷言訊息）✅
 
 ### 3.2 逐次執行
@@ -235,5 +235,24 @@ _中性化實測是這一層的等價物 —— 它回答「拿掉這條約束�
       `ROADMAP.md` 第 4 項推進到 slice 13 · **`RISK_REGISTER.md` R3 / R4 複查**
 - [x] Anti-pattern 自檢（retro Q5）：AP-1..AP-7 → 違規數 **1**
       —— ⚠️ `loss_amount` 的 AP-3 **如實記一次**，不藏在 N/A 底下 ✅
-- [ ] **Commit** ✅（6 個）→ ⏳ PR push + open → CI → merge: **PENDING USER CONFIRMATION**
-      （push 是 outward-facing）→ merge 經 `gh pr view --json state,mergedAt` 驗證後翻狀態標籤
+- [x] **Commit**（**8 個**）→ PR push + open → CI → merge —— 全部經使用者授權後執行
+      → **PR #77 MERGED** `2026-08-17T05:40:31Z` / `d370f8c`，經
+      `gh pr view 77 --json state,mergedAt` **驗證**（不採信「已 merge」的宣稱）
+      → ⭐ **CI 6/6，而綠燈本身不是我採信的東西**：gates job 只跑 **1m56s** 而本機光 int
+      就要 227s ⇒ 下載 job log 取**數字**而非 step 狀態，得
+      `run_all: 9/9` · `check-entity-index: OK (34 / 36)` · unit `480 passed / 40` +
+      coverage `92.14 | 91.77 | 98.98 | 93.56` · int `[int] isms_test rebuilt, migrated and seeded`
+      → `265 passed / 21` —— **與本機逐位相同**。時間差來自 Linux 原生 PostgreSQL
+      vs 本機 Docker Desktop 的 I/O（CI 端 int 僅 23 s）
+      → ⚠️ **rebase merge 改寫全部 8 個 SHA**（`8ec6e43`→`d370f8c` · `9c352bb`→`4cdefc0` ·
+      `3a23e70`→`3ec5f0b`）
+      → ⛔ **我在這一行原本寫「W18 的文件刻意不引用自己的 commit SHA ⇒ 零壞錨點」，
+      而 detector 立刻推翻它**：`check_sha_anchors.py` 報 **20 處**（`CALIBRATION-LOG.md` 的逐段
+      量測表 6 處 · `retrospective.md` 12 處 · 本檔 2 處）。那個宣稱是**未經驗證就寫下的** ——
+      calibration 的逐段表**必須**用 commit 當段界，所以「不引用自己的 SHA」對本片從來不成立。
+      ⭐ **這是 CH-036 那支 detector 的第二次實戰，而這次它抓的是我的一句話而不是一個錯誤**。
+      已依 subject 比對重指全部 20 處（`git show` 對舊 SHA 已不可用），複驗 **0 violations**
+      → ⚠️ 附帶發現：detector 在 Windows console 印含中文的 context 行時撞
+      `UnicodeEncodeError`（cp1252），清單印到第 5 筆就中斷 —— 我因此一度只看到 5 處。
+      ⛔ **exit code 是對的**：我第一次量到 `EXIT=0` 是因為管線末端是 `head`，`$?` 取的是它的碼
+      （量法錯誤，本 phase 第三次「先懷疑量法」）。繞法 `PYTHONIOENCODING=utf-8`，記 BACKLOG
