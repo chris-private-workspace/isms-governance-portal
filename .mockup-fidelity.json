@@ -1,0 +1,17 @@
+{
+  "_comment_scope": "KNOWN GAP: canonical_css takes ONE path, but the handoff ships THREE stylesheets (tokens 96 / base 54 / components 123 lines). tokens.css is guarded here because a token drift silently changes every colour on every screen. base.css and components.css are NOT mechanically guarded -- their guard is the code-level side-by-side comparison (playbook 7.3) recorded in docs/02-architecture/page-inventory.md. Do not read a green run of this check as 'all three stylesheets are intact'. Registered as an AD in BACKLOG.md.",
+
+  "canonical_css": "docs/06-reference/design_handoff_isms_grc_platform/styles/tokens.css",
+  "adopted_css": "apps/web/src/styles/tokens.css",
+
+  "_comment_allowance": "ZERO. tokens.css is copied with no divergence at all, so any differing line is drift. The one declared divergence in the handoff (base.css's Google Fonts @import, removed for guardrail 7 / CSP) lives in a file this check does not read -- raising the allowance here would not cover it and would only blind this file.",
+  "allowed_header_diff_lines": 0,
+  "ignore_diff_patterns": [],
+
+  "component_globs": ["apps/web/src/**/*.tsx"],
+
+  "_comment_colors": "The default patterns target utility arbitrary values (bg-[#abc]) and do not fit this project -- there is no Tailwind here and components carry the mockup's inline style verbatim. This pattern catches BARE hex instead, with a narrow exemption list. The exempt values are the eight the handoff itself already uses outside its token system, measured 2026-08-17 across all 30 fragments: #fff (86) + #FFFFFF (1) are white text on coloured fills; the other six (#111827 x5, #E4E7EC x3, #98A2B3 x3, #8A94A6 x3, #344054 x3, #667085 x1) are a SECOND greyscale palette that escapes tokens.css entirely. Carrying them across verbatim is required by the fidelity rule; inventing token substitutes would be exactly the lossy translation step the playbook deletes. Listing them by value keeps the exemption narrow -- any NEW hard-coded colour still fails.",
+  "hardcoded_color_patterns": [
+    "(?i)#(?!(?:fff|ffffff|111827|e4e7ec|98a2b3|8a94a6|344054|667085)\\b)[0-9a-f]{3,8}\\b"
+  ]
+}

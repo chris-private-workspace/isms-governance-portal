@@ -1,0 +1,96 @@
+/* ============================================================
+   ISMS Governance Platform — design tokens
+   Extracted verbatim from the HTML design reference.
+   Applied on the app root element, e.g. <div data-grc data-theme="light">
+   ============================================================ */
+
+[data-grc] {
+  /* surfaces */
+  --bg: #F5F6F8;
+  --surface: #FFFFFF;
+  --surface-2: #FAFBFC;
+  --surface-3: #F1F3F6;
+
+  /* lines */
+  --border: #E4E8ED;
+  --border-strong: #CED5DD;
+
+  /* text */
+  --text: #1B222C;
+  --text-2: #586372;
+  --text-3: #8B95A3;
+
+  /* brand / interactive */
+  --primary: #2A5BD7;
+  --primary-ink: #1E43A0;
+  --primary-tint: #EAF0FE;
+
+  /* left navigation rail */
+  --nav-bg: #111823;
+  --nav-surface: #1B2532;
+  --nav-text: #B3BECC;
+  --nav-text-2: #6E7C8C;
+  --nav-border: #232F3D;
+
+  /* RAG status — green / amber / red / neutral */
+  --rag-g: #1E8A5C;  --rag-g-bg: #E6F4EC;  --rag-g-ink: #12603F;
+  --rag-a: #B4740A;  --rag-a-bg: #FBF0DC;  --rag-a-ink: #7E4E02;
+  --rag-r: #C43D34;  --rag-r-bg: #FAE9E7;  --rag-r-ink: #8A2019;
+  --rag-n: #7C8794;
+
+  /* elevation — the only shadow in the system */
+  --shadow: 0 1px 2px rgba(16,24,40,.04), 0 1px 3px rgba(16,24,40,.06);
+
+  /* density — table row vertical padding (5px compact / 7px default / 10px comfortable) */
+  --row-py: 7px;
+
+  /* type */
+  --mono: 'IBM Plex Mono', ui-monospace, monospace;
+  --sans: 'IBM Plex Sans', 'IBM Plex Sans JP', system-ui, sans-serif;
+
+  /* radius */
+  --r-card: 12px;
+  --r-panel: 10px;
+  --r-btn: 8px;
+  --r-chip: 6px;
+
+  /* spacing scale used in the design */
+  --sp-1: 4px;
+  --sp-2: 8px;
+  --sp-3: 12px;
+  --sp-4: 16px;
+  --sp-5: 20px;
+  --sp-6: 24px;
+  --sp-8: 32px;
+}
+
+[data-grc][data-theme="dark"] {
+  --bg: #0C1016;
+  --surface: #151A22;
+  --surface-2: #1A212B;
+  --surface-3: #212934;
+
+  --border: #27313D;
+  --border-strong: #3A4653;
+
+  --text: #E7ECF3;
+  --text-2: #9CA8B6;
+  --text-3: #6E7A89;
+
+  --primary: #5B8CFF;
+  --primary-ink: #8FB0FF;
+  --primary-tint: rgba(91,140,255,.15);
+
+  --nav-bg: #080B11;
+  --nav-surface: #141B26;
+  --nav-text: #B3BECC;
+  --nav-text-2: #68758A;
+  --nav-border: #1B2530;
+
+  --rag-g: #3FB07C;  --rag-g-bg: rgba(63,176,124,.15);  --rag-g-ink: #7CD4A7;
+  --rag-a: #D69436;  --rag-a-bg: rgba(214,148,54,.16);  --rag-a-ink: #EBB463;
+  --rag-r: #E4685E;  --rag-r-bg: rgba(228,104,94,.16);  --rag-r-ink: #F0958C;
+  --rag-n: #6E7A89;
+
+  --shadow: 0 1px 2px rgba(0,0,0,.35), 0 1px 3px rgba(0,0,0,.45);
+}

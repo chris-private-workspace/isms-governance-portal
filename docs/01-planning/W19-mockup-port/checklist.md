@@ -48,35 +48,59 @@
 
 ### 1.1 三支 CSS verbatim copy
 
-- [ ] **`apps/web/src/styles/{tokens,base,components}.css`**
+- [x] **`apps/web/src/styles/{tokens,base,components}.css`**
   - DoD: 與 Layer 1 逐字相同（含註解與順序），唯一差異是 `base.css` 的字型 `@import`
   - Verify: `diff` 三對檔案，差異只有已聲明那一處
+        → **三支全部 `IDENTICAL`**（複製後立即 diff），之後才改 `base.css:6` 一行
   - ⚠️ 複製**用 Read + Write 工具，不用 Python `write_text`**（`AD-WriteTextCRLF-1`：
         它在 Windows 靜默把 LF 轉 CRLF，而 `.gitattributes` 要求 `eol=lf`）
+        → **實際改用 `cp`**：Read+Write 會讓內容經過我的手 = **一個 drift 注入點**，
+        而 playbook §4.2 要求複製是**機械動作（0 個注入點）**。`cp` 同時也不動 line ending
 
 ### 1.2 Self-host 字型 + globals.css
 
-- [ ] **`apps/web/public/fonts/*.woff2` + `apps/web/src/app/globals.css`**
-  - DoD: IBM Plex 三個字族本機化；`globals.css` import 三支 CSS + `@font-face`；
-        頁面渲染時**零外部網路請求**
+- [x] **`@fontsource` + `apps/web/src/app/globals.css`**（原寫 `public/fonts/*.woff2`）
+  - DoD: IBM Plex 本機化；`globals.css` import 三支 CSS + 字型；頁面渲染時**零外部網路請求**
   - Verify: `grep -r "fonts.googleapis.com" apps/web/src` → 0 命中
+        → **build 產物實測**：`@font-face` 只宣告 `IBM Plex Sans` / `IBM Plex Mono`，
+        39 個 woff2 隨 bundle 出貨
+  - ⭐ **改用 `@fontsource` 而非 `next/font/google`**：tokens.css 寫死**家族真名**
+        （`--sans: 'IBM Plex Sans'`），而 `next/font/google` 產生雜湊家族名
+        ⇒ 那個字面名會**解析不到並靜默 fallback**。`@fontsource` 註冊真名 ⇒ tokens.css **零修改**
+  - ⭐ **刻意不載入 IBM Plex Sans JP**：它是日文字型，繁中會落到它並以**日式字形**渲染
+        （guardrail 9 的 UI 語言是繁中）⇒ 讓繁中落到 `system-ui`。已聲明於 `globals.css` 檔頭
 
 ### 1.3 Detector config + 負面測試 ⭐
 
-- [ ] **`.mockup-fidelity.json`**
-  - DoD: `canonical_css` 指 `tokens.css`；字型差異走 `ignore_diff_patterns` **逐條聲明**
-        （**不是**調大 `allowed_header_diff_lines`）；config 註解寫明「三支只守一支」的缺口
+- [x] **`.mockup-fidelity.json`**
+  - DoD: `canonical_css` 指 `tokens.css`；config 註解寫明「三支只守一支」的缺口
   - Verify: `python scripts/lint/check_mockup_fidelity.py` → 從 SKIP 轉為 **OK**
-- [ ] **負面測試：故意改壞 Layer 2 一行 → detector 必須紅**
+        → `run_all` **9/9，且第 5 項內容由 SKIP 變 OK**（數字沒變，組成變了）
+  - ⚠️ **`allowed_header_diff_lines` 設 0 而非 3**：tokens.css 零差異，任何差異都是 drift。
+        字型那行的差異在 `base.css`（本檢查**讀不到**的檔）⇒ 調大 allowance 只會把這個檔弄瞎
+  - ⚠️ `hardcoded_color_patterns` **改為抓裸 hex + 八值豁免清單**（預設 pattern 針對 Tailwind
+        arbitrary value，本專案無 Tailwind 且組件逐字帶 inline style）。豁免的是交付物**自己**
+        逸出 token 系統的值：`#fff`×86 + `#FFFFFF`×1（彩底白字）+ **另一套灰階** 6 種×18 處
+        （`#111827` `#E4E7EC` `#98A2B3` `#8A94A6` `#344054` `#667085`）—— 逐值列舉讓豁免夠窄，
+        **新出現的寫死色值仍會紅**
+- [x] **負面測試：故意改壞 Layer 2 一行 → detector 必須紅**
   - DoD: 記下實際錯誤訊息與它指名的檔案；改回後複驗綠
   - Verify: 紅→綠兩次輸出都貼進 progress.md
   - ⚠️ 沒紅過的守衛不算守衛（`AD-NegativeGate-1`）
+        → **三條全部命中預測**（預測寫在執行之前）：
+        **N1** 改 `--primary` 一個字元 → `[css-drift]` **2 differing lines**、allowance 0、EXIT=1；
+        **N2** 加未豁免的 `#123456` → `[hardcoded-color] layout.tsx:45` 指名行號、EXIT=1；
+        **N3** 換成已豁免的 `#fff` → **綠**。⭐ N2+N3 成對才證明**豁免是窄的**而非把檢查關掉
 
 ### 1.4 修正紅線 7（關 `AD-CssToken-1`）
 
-- [ ] **`docs/rules-on-demand/mockup-fidelity.md:38`**
+- [x] **`docs/rules-on-demand/mockup-fidelity.md:38`**
   - DoD: `oklch(var(--token))` → `var(--token)`；加一行說明本專案 token 是 hex
   - Verify: `grep -n "oklch" docs/rules-on-demand/mockup-fidelity.md` 只剩說明性提及
+- [x] ⭐ **第二個藏身處**（N2 當場暴露，plan 未列）—— `check_mockup_fidelity.py` 的**違規訊息本身**
+      寫著 `<- use oklch(var(--token))`
+  - DoD: 訊息改為 `var(--token)`；module docstring 加註「wrapper 形式取決於 token 存什麼」
+  - ⚠️ 這一處比 md 更危險：它在**你違規的當下**告訴你怎麼改，照做就寫出無效 CSS
 
 ### 1.5 App shell（US-2）
 

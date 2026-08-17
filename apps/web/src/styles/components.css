@@ -1,0 +1,123 @@
+/* ============================================================
+   ISMS Governance Platform — component primitives
+   A class-based recreation of the primitives used across the design.
+   Load after tokens.css and base.css.
+
+   The HTML design reference uses inline styles (a constraint of the
+   prototyping tool). These classes are the same values, named — use them,
+   or map them onto your codebase's existing component library.
+   ============================================================ */
+
+/* ---------- card ---------- */
+.grc-card        { background: var(--surface); border: 1px solid var(--border); border-radius: var(--r-card); box-shadow: var(--shadow); }
+.grc-card-pad    { padding: 18px 20px; }
+.grc-card-head   { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 13px 18px; background: var(--surface-2); border-bottom: 1px solid var(--border); font-size: 12px; font-weight: 700; }
+
+/* ---------- button ---------- */
+.grc-btn         { display: inline-flex; align-items: center; justify-content: center; gap: 7px; height: 34px; padding: 0 14px;
+                   border-radius: var(--r-btn); font-size: 12.5px; font-weight: 600; cursor: pointer; border: 1px solid transparent;
+                   transition: background 140ms ease, border-color 140ms ease, color 140ms ease; }
+.grc-btn--primary{ background: var(--primary); color: #fff; }
+.grc-btn--primary:hover { filter: brightness(1.06); }
+.grc-btn--ghost  { background: var(--surface); color: var(--text-2); border-color: var(--border-strong); }
+.grc-btn--ghost:hover { background: var(--surface-3); }
+.grc-btn--sm     { height: 30px; padding: 0 12px; font-size: 12px; border-radius: 7px; }
+.grc-btn--lg     { height: 38px; padding: 0 18px; font-size: 13px; }
+.grc-btn:disabled{ opacity: .5; cursor: not-allowed; }
+
+/* ---------- input / field ---------- */
+.grc-field       { display: flex; flex-direction: column; gap: 6px; }
+.grc-field-label { font-size: 11px; font-weight: 700; letter-spacing: .4px; text-transform: uppercase; color: var(--text-3); }
+.grc-input       { height: 36px; padding: 0 11px; border: 1px solid var(--border-strong); border-radius: 9px;
+                   background: var(--surface); color: var(--text); font-family: inherit; font-size: 13px; width: 100%; }
+.grc-input:focus { outline: none; border-color: var(--primary); box-shadow: 0 0 0 3px var(--primary-tint); }
+.grc-textarea    { min-height: 90px; padding: 10px 11px; line-height: 1.55; resize: vertical; }
+.grc-input:read-only, .grc-input:disabled { background: var(--surface-2); color: var(--text-2); }
+
+/* ---------- table ---------- */
+.grc-table-wrap  { overflow-x: auto; }
+.grc-table       { width: 100%; border-collapse: collapse; }
+.grc-table thead th {
+  position: sticky; top: 0; z-index: 1;
+  padding: 9px 16px; text-align: left; background: var(--surface-2); border-bottom: 1px solid var(--border);
+  font-size: 10.5px; font-weight: 700; letter-spacing: .45px; text-transform: uppercase; color: var(--text-3); white-space: nowrap;
+}
+.grc-table tbody td { padding: var(--row-py) 16px; border-bottom: 1px solid var(--border); font-size: 12.5px; }
+.grc-table tbody tr { cursor: pointer; }
+.grc-table tbody tr:hover { background: var(--surface-2); }
+.grc-table tbody tr[aria-selected="true"] { background: var(--primary-tint); }
+
+/* ---------- status: pill, dot, badge ---------- */
+.grc-pill        { display: inline-flex; align-items: center; gap: 6px; height: 22px; padding: 0 10px; border-radius: var(--r-chip); font-size: 11px; font-weight: 700; }
+.grc-pill--g     { background: var(--rag-g-bg); color: var(--rag-g-ink); }
+.grc-pill--a     { background: var(--rag-a-bg); color: var(--rag-a-ink); }
+.grc-pill--r     { background: var(--rag-r-bg); color: var(--rag-r-ink); }
+.grc-pill--n     { background: var(--surface-3); color: var(--text-2); }
+
+.grc-dot         { width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; }
+.grc-dot--g      { background: var(--rag-g); }
+.grc-dot--a      { background: var(--rag-a); }
+.grc-dot--r      { background: var(--rag-r); }
+.grc-dot--n      { background: var(--rag-n); }
+
+.grc-status      { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; font-weight: 600; }
+
+/* ---------- filter chips (single-select) ---------- */
+.grc-chips       { display: flex; flex-wrap: wrap; gap: 7px; }
+.grc-chip        { height: 30px; padding: 0 13px; border-radius: 8px; border: 1px solid var(--border-strong);
+                   background: var(--surface-2); color: var(--text-2); font-size: 12px; font-weight: 600; cursor: pointer; }
+.grc-chip[aria-pressed="true"] { background: var(--primary); border-color: var(--primary); color: #fff; }
+
+/* ---------- segmented tabs ---------- */
+.grc-tabs        { display: flex; align-items: center; gap: 3px; padding: 3px; background: var(--surface-3); border-radius: 9px; width: fit-content; flex-wrap: wrap; }
+.grc-tab         { height: 32px; padding: 0 15px; border: 1px solid transparent; border-radius: 7px; background: transparent;
+                   color: var(--text-2); font-size: 12.5px; font-weight: 600; cursor: pointer; }
+.grc-tab[aria-selected="true"] { background: var(--surface); border-color: var(--border-strong); color: var(--primary-ink); }
+.grc-tab:disabled{ opacity: .5; cursor: not-allowed; color: var(--text-3); }
+
+/* ---------- KPI card ---------- */
+.grc-kpi         { background: var(--surface); border: 1px solid var(--border); border-radius: var(--r-card); box-shadow: var(--shadow); padding: 15px 17px; }
+.grc-kpi__label  { font-size: 11px; font-weight: 600; letter-spacing: .3px; text-transform: uppercase; color: var(--text-3); }
+.grc-kpi__value  { font-size: 26px; font-weight: 700; letter-spacing: -.6px; margin-top: 6px; }
+.grc-kpi__delta  { font-size: 11.5px; color: var(--text-3); margin-top: 4px; }
+
+/* ---------- banner (info / warning / error) ---------- */
+.grc-banner      { display: flex; align-items: center; gap: 10px; padding: 11px 15px; border: 1px solid; border-radius: var(--r-panel); font-size: 12.5px; font-weight: 600; }
+.grc-banner--r   { border-color: var(--rag-r); background: var(--rag-r-bg); color: var(--rag-r-ink); }
+.grc-banner--a   { border-color: var(--rag-a); background: var(--rag-a-bg); color: var(--rag-a-ink); }
+.grc-banner--g   { border-color: var(--rag-g); background: var(--rag-g-bg); color: var(--rag-g-ink); }
+.grc-banner--i   { border-color: var(--border-strong); background: var(--surface-2); color: var(--text-2); font-weight: 500; }
+
+/* ---------- lifecycle stepper ---------- */
+.grc-steps       { display: grid; gap: 8px; min-width: 620px; }          /* set grid-template-columns to the step count */
+.grc-step__num   { width: 24px; height: 24px; border-radius: 50%; display: flex; align-items: center; justify-content: center;
+                   font-family: var(--mono); font-size: 11px; font-weight: 700; flex-shrink: 0; }
+.grc-step--done .grc-step__num { background: var(--rag-g); color: #fff; }
+.grc-step--now  .grc-step__num { background: var(--primary); color: #fff; }
+.grc-step--todo .grc-step__num { background: var(--surface-3); color: var(--text-3); }
+.grc-step__bar   { flex: 1; height: 2px; border-radius: 2px; background: var(--border); }
+.grc-step--done .grc-step__bar { background: var(--rag-g); }
+.grc-step__label { font-size: 11.5px; font-weight: 600; line-height: 1.35; }
+.grc-step__meta  { font-size: 10.5px; color: var(--text-3); margin-top: 2px; }
+
+/* ---------- record panel (right column of every detail page) ---------- */
+.grc-record      { background: var(--surface); border: 1px solid var(--border); border-radius: var(--r-card); box-shadow: var(--shadow);
+                   padding: 16px 18px; display: flex; flex-direction: column; gap: 11px; }
+.grc-record__row { display: flex; justify-content: space-between; gap: 12px; font-size: 12px; }
+.grc-record__k   { color: var(--text-3); }
+.grc-record__v   { font-weight: 600; text-align: right; }
+
+/* ---------- navigation rail ---------- */
+.grc-nav         { width: 232px; flex-shrink: 0; background: var(--nav-bg); border-right: 1px solid var(--nav-border);
+                   display: flex; flex-direction: column; position: sticky; top: 0; height: 100vh; transition: width 160ms ease; }
+.grc-nav--collapsed { width: 64px; }
+.grc-nav__group  { font-size: 10px; font-weight: 700; letter-spacing: .6px; text-transform: uppercase; color: var(--nav-text-2); padding: 14px 16px 6px; }
+.grc-nav__item   { display: flex; align-items: center; gap: 10px; height: 34px; padding: 0 12px; margin: 0 8px; border-radius: 8px;
+                   color: var(--nav-text); font-size: 12.5px; font-weight: 500; text-decoration: none; }
+.grc-nav__item:hover { background: var(--nav-surface); color: #fff; text-decoration: none; }
+.grc-nav__item[aria-current="page"] { background: var(--nav-surface); color: #fff; font-weight: 600; }
+.grc-nav__badge  { margin-left: auto; font-family: var(--mono); font-size: 10px; font-weight: 600; }
+
+/* ---------- topbar ---------- */
+.grc-topbar      { height: 56px; display: flex; align-items: center; gap: 12px; padding: 0 20px;
+                   background: var(--surface); border-bottom: 1px solid var(--border); position: sticky; top: 0; z-index: 20; }
