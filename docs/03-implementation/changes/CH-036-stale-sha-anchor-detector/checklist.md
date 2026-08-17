@@ -95,10 +95,13 @@
 
 - [x] **AC-1 ~ AC-7 逐條確認**
   - Verify: `python scripts/lint/run_all.py` **9/9** + 測試檔全綠
-- [ ] 🚧 **AC-8 —— CI 上 `origin/main` 可解析** —— **阻塞：本機答不出來**
-  - 🚧 解封條件：PR 開出後看 `gates` job 的 log。`actions/checkout@v4` 在 `pull_request`
-    事件下是否建立 `refs/remotes/origin/main`，我手上**只有依已知行為的推導**
-  - DoD: ⭐ **貼出 CI log 行**，不接受推導
+- [x] **AC-8 —— CI 上 `origin/main` 可解析** —— ✅ **實測通過**（run `31988000079`）
+  - CI log 原文：`sha-anchors: OK (every documented SHA resolves; refs in use: origin/main, HEAD)`
+  - ⚠️ **這是第二輪才答出來的**：第一輪 6/6 全綠，但當時的輸出是
+    `resolves against origin/main or HEAD` —— 那句話在「`fetch-depth: 0` 生效」與
+    「checkout 仍是淺的、只剩 HEAD」兩種情況下**逐字相同**，證明不了 AC-8。
+    改成點名實際使用的 ref 之後才有答案
+  - DoD: ⭐ **貼出 CI log 行**，不接受推導 ✅
   - DoD: 若實測不可解析 → 改為 detector 自行 `git fetch origin main`，並更新 spec D4
   - Verify: PR 的 CI log
 - [x] **既有 8 個 detector 逐位不變**
@@ -112,8 +115,7 @@
 
 ## 5. 收尾
 
-- [ ] 🚧 `progress.md` 寫完成摘要 ✅，`spec.md` status → `done` —— **阻塞於 AC-8**
-      （現為 `active`；CI 驗證前標 `done` 就是宣稱一件沒被證明的事）
+- [x] `progress.md` 寫完成摘要，`spec.md` status → `done`（R9）—— AC-8 已於 run `31988000079` 解封
 - [x] `ROADMAP.md` 主線第 9 列 ⬜ → **🟡 而非 ✅** —— 該列標題有兩個交付物，
       `file:line` 內容比對**仍不存在**；標 ✅ 會讓剩下那一半消失（理由寫在該列）
 - [x] BACKLOG 同步（R7）：`AD-DesignNoteAnchor-1` / `AD-RebaseStaleShaRef-1` 的 detector 部分關閉；
