@@ -175,9 +175,56 @@
 (b) 把 fallback 鏈裡的字串當成「JP 字型被載入了」。⇒ 兩者都靠**換一種問法重查**才分辨出來，
 而不是靠第一次 grep 的數字。
 
+### Day 1 後半 — App shell（1.5 / 1.6 完成）
+
+**建立了 27 個畫面共用的 port 規則**，寫在 `AppShell.tsx` 檔頭。下一片照抄，不重新推導。
+
+| 決策 | 內容 | 為何不是「翻譯」 |
+|---|---|---|
+| `style-hover` → `data-hov` | 全站量到 **116 處僅 10 種唯一值**（前三種佔 94%），在 `globals.css` 定義 10 條 rule | inline style 在**任何**技術下都表達不了 `:hover` ⇒ 機制**必須**換。但每條宣告是**逐字**照抄，沒有任何數值被重新推導。playbook §3 禁的是 `padding: 0 14px` → `px-3.5` 那種**值的重新詮釋** |
+| 用 attribute 而非 class | `data-hov="s3"`（依**值**命名，不依用途） | fragments 零 `class=`（D10）⇒ 引入 class 會模糊「複製自 mockup」與「我們自己寫的」的界線。依值命名讓對照是一步可查的機械動作；依用途命名（`data-hov="row"`）則是設計決策 |
+| icon 抽象邊界 | 組件只擁有 **path + viewBox**，尺寸/描邊/顏色留在呼叫點 | 同一個盾牌在品牌區是 17px/`#fff`/1.9、在導覽是 18px/`currentColor`/1.7 —— 折進組件預設值會**靜默抹平 mockup 刻意的差異** |
+
+### ⭐ fragment 留洞時，值從哪裡來（本片定案）
+
+`{{ nav.dashboard.c }}` 這類洞在 fragment 裡沒有值。定案：
+
+- **active 樣式 + collapsed 寬度** → 取 `components.css:118` / `:113`（**唯一**寫下來的地方）
+- **佈局值** → 取 **fragment**，因為兩者實測**不一致**：
+  fragment `padding:8px 11px` / `radius 0 7px 7px 0` / `13px` / `gap 11px`
+  vs class `height:34px` / `padding:0 12px` / `radius 8px` / `12.5px` / `gap 10px`
+  ⇒ 這再次證實 `components.css` 是**平行推導**而非 fragment 的來源（D10 的延伸證據），
+  而 fragment 才是設計實際渲染出來的東西。
+
+### 我自己造出來又修掉的一個 Potemkin
+
+主題切換按鈕原本會換 icon、**但什麼都不會變色** —— 因為 token 掛在 `<html>` 的
+`[data-grc][data-theme]`（D12），而 `AppShell` 是它的子孫，state 碰不到。
+補 `useEffect` 寫 `document.documentElement.dataset.theme` 才真的生效。
+⇒ **這正是 drive-through 專門在抓的形狀**：有 handler、handler 有作用（換了 icon）、
+但那個作用不是使用者以為的那件事。
+
+### Gate（Day 1 收尾實測）
+
+`format=0 · lint=0 · type=0 · test=0 · build=0 · run_all=9/9 · mockup-fidelity=OK`
+
+⚠️ **plan 的 `run_all` 10/10 是我算錯的** —— 分母一直是 **9**，
+`check_mockup_fidelity` 本來就在那 9 個裡，只是先前回 SKIP。已修正 plan §3.y / §5 AC-2 與 checklist 兩處。
+
+### 🚧 誠實的狀態：shell 尚無消費者
+
+build 實測路由仍是 `/` + `/_not-found` —— `(app)` 群組**只有 layout 沒有 page**。
+這是 Day 1 / Day 2 的分界所致（Day 1 = 設計系統 + shell，Day 2 = 畫面），不是遺漏，
+但在 Day 2 第一頁落地之前，**shell 是一段主流量到不了的程式碼**。解封條件寫在 checklist 1.5。
+
+同理 **jsdom 的能力尚未被驗證** —— 現有 10 條測試在 jsdom 下不回歸，只證明「沒弄壞既有的」，
+不證明「組件測試跑得起來」。解封條件寫在 checklist 1.6。
+
 ### Remaining for Next Day
 
-- 1.5 App shell（`02-app-shell.html` 222 行 —— 全 repo 最密：33 個 `style-hover` / 30 SVG / 31 onClick）
-- 1.6 vitest 改 jsdom + 組件測試
+- **Day 2.1** `data.ts` 從 `opcos.ts` 重建（13 列）+ 其餘 22 支 fixture + 五處憲章清理
+- **Day 2.2** 27 個畫面 —— **第一頁 dashboard 我自己做**（它同時解封 shell 與 jsdom 兩個 🚧），
+  之後的畫面平行委派，**但並排比對逐頁自己做**（那是保真度 gate 本身，不可委派）
+- **Day 2.3** persona 登入 + auth 四狀態
 - ⚠️ **`data-grc` 掛載點的負面驗證**（拿掉屬性確認顏色真的垮）留到 Day 3 drive-through ——
   它需要真瀏覽器，而本機的瀏覽器擴充目前未連線

@@ -274,7 +274,7 @@ UNTOUCHED
 
 Gates: web lint EXIT=0 · web type-check EXIT=0 · web build clean ·
 web test（現有 10 條不得回歸 + 新增組件測試）· api 全套不得回歸（265/21 + 480/40）·
-`run_all` **10/10**（`check_mockup_fidelity` 從 SKIP 轉為實跑）。
+`run_all` **9/9**（其中 `check_mockup_fidelity` 由 SKIP 轉為實跑 —— 分母不變，組成改變）。
 加上 §3.2 的代碼層並排比對 + **MANDATORY drive-through**（30 個畫面）。
 
 ## 4. File Change List
@@ -311,7 +311,7 @@ web test（現有 10 條不得回歸 + 新增組件測試）· api 全套不得�
 
 1. `diff` 三支 canonical CSS vs `apps/web/src/styles/*` → 只剩 `.mockup-fidelity.json`
    **逐條聲明**的差異（字型 `@import`）；`ignore_diff_patterns` 的排除行數被印出來。
-2. `check_mockup_fidelity.py` 從 **SKIP 轉為實跑且 PASS**；`run_all` **10/10**。
+2. `check_mockup_fidelity.py` 從 **SKIP 轉為實跑且 PASS**；`run_all` **9/9**（分母不變 —— 它本來就是那 9 個之一）。
    驗證方式：暫時改壞 Layer 2 一行 → detector 必須紅（**負面測試** —— 沒紅過的守衛不算守衛）。
 3. 30 個畫面全部可導覽，每個畫面與其 fragment 完成**代碼層並排比對**，結果記入 `page-inventory.md`。
 4. Fixture **五處**清理完成（Day-0 修訂）：OpCo **13 家 / 11 管轄區** · **印度與中國皆 0 命中** ·
