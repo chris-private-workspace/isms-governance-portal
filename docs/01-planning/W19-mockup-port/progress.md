@@ -566,3 +566,82 @@ Day 1 記錄過一次「60.07s、`environment 0ms`、無法重現」。今天**�
 - **i18n key 一律字面**，不用樣板字串組
 - **Day 3 需要真瀏覽器** —— 先前記錄擴充未連線，這是 drive-through 的前置相依
 - 3 個未寫的畫面**沒有留下半成品檔案**（目錄都沒開），所以不必清理殘骸
+
+---
+
+## 2026-08-17（續）— Day 2 收尾：27 / 27
+
+接回中斷點。派 3 個 agent 平行寫最後 3 頁，各自擁有一對不重疊的字典檔（`admin` / `deep` / `profiles`），
+所以並行寫入不互相踩。**派工前先實測交接聲稱的每一項**（9 個 fixture、3 對字典、3 個 fragment 全部在），
+沒有只憑文件相信。
+
+### 完成
+
+| 畫面 | 行數 | 新增字典鍵 | 備註 |
+|---|---|---|---|
+| `/controls/[id]` | 1,280 | **0** —— 上一輪寫的 108 個鍵全部夠用 | 58 個 `tr()` 呼叫 |
+| `/admin` | — | 8（`admin.*` 145→153）| 7 處 disabled，14 個按鈕 |
+| `/isms-profiles` | 1,771 | 5 | 36 個 `<sc-if>` 全數 port，編輯模式是真的 |
+
+**build 路由表實測 31 條 = 27 screens + `login` + `/` + `_not-found` + `api/demo-session`。**
+
+⭐ 這 3 頁不是新功能，是**接上既有主流量的斷點** —— `controls/page.tsx:359` 的列點擊、
+`AppShell.tsx:179` 與 `:185` 的兩個導航項，在此之前**點下去都是 404**。
+這順帶回答了 AP-3 的「關掉會壞什麼」。
+
+### Drift findings（承 Day 0 編號）
+
+**D22 — `posture.ts` 的門檻有兩組與設計交付物不符，而 header 宣稱它們是「invented」。**
+
+管理畫面把設計的門檻表與 `posture.ts` 並排渲染，分歧才浮出來。追到權威來源
+`dc.html:5088-5092`（交付物自己的 `thresholds` 集合）後發現：**五組全都寫明了**，
+`posture.ts` **三組吻合、兩組漂移** —— RCSA completion amber 界線 75 寫成 70、
+High/critical risks `≤5 / 6–9 / ≥10` 寫成 `4 / 7`。
+
+三組吻合代表當初就是抄這份，只是兩組抄錯 —— 所以這是**轉錄漂移，不是刻意偏離**。
+`posture.ts` header 那句「No procedure in this repo states what control coverage is 'good'」
+把這個漂移藏了起來：既然宣告是憑空發明的，就沒有人會拿它去跟任何來源比對。
+
+- **影響面**：9 個畫面消費 `posture.ts`（含旗艦儀表板）
+- **裁決**（使用者）：**對齊設計交付物**（參數 #11 —— 無程序可依時交付物就是唯一來源）
+- **已修**：`completion.watch` 70→75 · `highRisks` `{4,7}`→`{5,9}` · header 改寫成誠實描述
+- **驗證**：五組逐組比對 → **MATCH ×5**；無測試或代碼寫死舊值
+
+### 兩個記進 BACKLOG 的缺口（使用者裁決：本 phase 不做）
+
+1. **`<sc-if isAdmin>`（`14-admin:7`）完全未強制。** `ShellState` 不帶角色，
+   `AppShell:185` 對所有 persona 都顯示 `/admin`。已確認參數 #13 要求六角色在
+   導航／路由／動作三層 + **伺服器端**強制。**只在前端隱藏是可繞過的，做了反而像已強制** ——
+   比缺口更糟的假象。留給接上真 API 的 phase 一次做對。
+2. **fixture 英文列舉值渲染進中文句子**（guardrail 9）。
+   `控制項詳情` 會出現「此 preventive 控制項…以 continuous 的頻率運作」。
+   既有的 `/controls` 登記表也是直接顯示英文 —— **是系統性做法，不是這次引入的**。
+   只補一個畫面會造成同一個值在登記表與詳情頁不一致，所以跨畫面一起處理。
+
+### Gate（我自己跑的，不採信 agent 回報）
+
+`format:check` **All matched files use Prettier code style** · `lint` **exit 0** ·
+`type-check` **exit 0** · `test` **8 檔 / 76 通過** · `build` **✓ 31 條路由 / 27 畫面** ·
+`run_all` **9 / 9**（含 `mockup-fidelity: hovers resolve`）
+
+逐項複驗 agent 宣稱（全部屬實）：`data-hov` 只用允許的 10 個值 · 0 個樣板字串 i18n key ·
+`(app)` **27 / 27** 頁都渲染 `<DemoBadge/>`（逐檔 grep，0 缺）· 0 處 `localStorage`/`sessionStorage` ·
+管理畫面 **0 個密碼欄位**（ADR-0007）· entity 一律來自 `useShell()`，無一從 URL 參數讀 ·
+`admin` 字典 234/234 雙向零缺、`riskProg.*` 81 鍵未被動到、8 insertions **0 deletions**
+
+### 🔴 我自己犯的錯（第 3、4 次同一形狀）
+
+**兩次都是把原始 grep 命中數當成事實寫進 agent prompt，兩次都由 agent 回報衝突擋下：**
+
+1. 我叫三個 agent 跑 `npm run format -w apps/web` —— **該 script 不存在**（`apps/web` 只有
+   `format:check`）。若有 agent 改用 workspace-wide `prettier --write` 補救，會覆寫另外兩個
+   agent 正在寫的檔。發現後即時對兩個仍在跑的 agent 發更正，要求 `--write` 只限縮到自己的檔。
+2. 我寫「fragment 有 37 個 `<sc-if>`」—— **實際 36**。第 4 行是 fragment 自己的說明註解
+   （`Template syntax: {{ value }} holes, <sc-if>, <sc-for>`），被 `grep -c` 算進去了。
+
+同 session 內累計 **8 次**「用便宜的代理指標回答需要讀內容才能回答的問題」。
+`.claude/rules/README.md` 的強度階梯門檻是 3 次 ⇒ **早該上結構性解法**。
+已對 `data-hov` 做了（`check_hover_rules`）；**計數類尚無守衛**。
+
+⭐ 真正擋住這兩次的不是我的自律，是 prompt 裡那句「**回報衝突而不是自行消化**」——
+三個 agent 全部照做。這條要求本身值得升級成派工的預設項。

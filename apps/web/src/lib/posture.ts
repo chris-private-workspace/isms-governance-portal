@@ -12,17 +12,24 @@
  *   the colours per row, which renders identically and is a lie the moment the
  *   fixture changes.
  *
- *   WHAT IS SOURCED vs WHAT IS INVENTED, because the difference matters:
+ *   WHERE EVERY BOUNDARY COMES FROM, because the difference matters:
  *
- *   - Sourced. The 16 boundary is the charter's (CLAUDE.md parameter #7:
- *     score >= 16 must be treated, residual >= 16 enters the IT Risk Register).
+ *   - The 16 boundary is the charter's (CLAUDE.md parameter #7: score >= 16
+ *     must be treated, residual >= 16 enters the IT Risk Register).
  *     The G/A/R meanings are components/status.md's table — 'High / Critical'
  *     is one red band there, which is why riskBand collapses both onto R.
- *   - Invented. Every percentage and count threshold below. No procedure in
- *     this repo states what control coverage is 'good'. They are calibrated so
- *     each demo row agrees with its own posture letter, and they are in ONE
- *     place so a real threshold set replaces them with one edit — the design
- *     itself says thresholds are configurable in Admin.
+ *   - Every percentage and count in THRESHOLD is the design's own, from the
+ *     `thresholds` collection at dc.html:5088-5092. No procedure in this repo
+ *     states them, so the deliverable is the only source and it governs
+ *     (parameter #11). The Admin screen renders that same collection, which is
+ *     why it must read this module rather than carry a second copy.
+ *
+ *   This header used to claim the five were invented. They were not, and the
+ *   claim hid a transcription drift: three matched the design exactly while
+ *   RCSA completion (75 written as 70) and high/critical risks (5/9 written as
+ *   4/7) did not, so nine screens banded two metrics against numbers nobody
+ *   had chosen. Corrected 2026-08-17 — the mismatch surfaced only when the
+ *   Admin screen put the design's numbers and this module's side by side.
  *
  *   regionPosture is the roll-up and the weakest claim on the page. The
  *   deliverable simply hardcoded 'A' for six entities, so there is no design
@@ -40,6 +47,7 @@
  * Last Modified: 2026-08-17
  *
  * Modification History (newest-first):
+ *   - 2026-08-17: Align completion + highRisks to dc.html:5088 (Phase W19) — drift
  *   - 2026-08-17: Initial creation (Phase W19)
  *
  * Related:
@@ -84,9 +92,9 @@ export const THRESHOLD = {
   /** Control coverage %, higher is better. */
   coverage: { good: 90, watch: 80 },
   /** RCSA / assessment completion %, higher is better. */
-  completion: { good: 90, watch: 70 },
+  completion: { good: 90, watch: 75 },
   /** High and critical risks held open, lower is better. */
-  highRisks: { good: 4, watch: 7 },
+  highRisks: { good: 5, watch: 9 },
   /** Overdue actions, lower is better. */
   overdue: { good: 2, watch: 5 },
   /** Open critical issues, lower is better. Any one of them is already amber. */
