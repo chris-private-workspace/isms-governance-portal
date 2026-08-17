@@ -4,7 +4,7 @@
 **Phase**: W19（mockup port）
 **Scope**: `ui`（+ `identity`：persona 登入與 demo session；+ 非範疇：`scripts/lint`、`test`）
 **Components**: —
-**PR**: ⏳ **PENDING** —— push 需使用者確認（outward-facing）
+**PR**: **MERGED** (PR #79, `c62159a`) —— 2026-08-17，rebase merge（SHA 已改寫）
 
 ---
 

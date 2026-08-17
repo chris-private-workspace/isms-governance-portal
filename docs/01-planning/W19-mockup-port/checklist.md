@@ -373,6 +373,11 @@
       · `RISK_REGISTER.md` 已複查：**新增 E4**（R5 的新形狀 —— E1 是守衛壞了，**E4 是根本沒有守衛**）
 - [x] Anti-pattern 自檢（retro Q5）：**發生 37 · 處置後 1**（AP-2 `answerFor` 重複，已記錄未修）
       · ⚠️ AP-3 的 25 與 AP-7 的 11 **都只在 drive-through 之後才可見** —— 停在 gate 全綠這張表會是假的 0
-- [ ] **Commit** → ⏳ PR push + open → CI → merge: **PENDING USER CONFIRMATION**
+- [x] **Commit** → PR push + open → CI → merge ✅ 使用者 2026-08-17 裁定「現在 merge」
       （push 是 outward-facing）→ merge 經 `gh` 驗證後翻狀態標籤
+      - CI **6/6 綠**（gates · gitleaks 全歷史 · 映像 build+探測 · SCA · SAST · trivy），`mergeStateStatus=CLEAN`
+      - **rebase merge**（repo 既定，保線性歷史；13 個 commit 各自對應 checklist 項不被壓平）
+      - 驗證：`gh pr view 79` → `state=MERGED` · `mergedAt=2026-08-17T14:49:17Z` · merge commit `c62159a`
+      - ⚠️ 使用者選擇**不採用** branch protection 的補償機制（PR 開著睡一晚）—— 已提出，使用者裁定現在 merge
+      - post-merge：`check_sha_anchors` 抓到 1 個 stale anchor（`bf2a2dd`→`358f8e2`），8 處 `PR-pending` 已翻
 - [x] `plan.md` frontmatter `status: closed` + 內文 `**Status**` 一起翻（R9），`check_status_markers` 綠

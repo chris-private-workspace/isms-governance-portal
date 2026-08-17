@@ -3,7 +3,7 @@
 **Phase**: W19 — mockup port（把設計交付物的 30 個畫面移植進 `apps/web`）
 **Period**: 2026-08-17 ~ 2026-08-17（單日，含一次關機中斷）
 **Plan**: [plan.md](./plan.md)
-**PR**: ⏳ PR-pending（push 需使用者確認）
+**PR**: **MERGED** (PR #79, `c62159a`) —— 2026-08-17，rebase merge
 **Change record**: `docs/03-implementation/changes/CH-038-w19-mockup-port.md`
 
 ---
