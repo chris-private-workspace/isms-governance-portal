@@ -121,3 +121,25 @@ D11 是記錄項。唯一待確認的 D7 是一個 enum 的大小寫，**不阻�
 | `run_all.py` | ✅ **9 / 9** |
 | `check_entity_index.py` | ✅ **34 / 36**（models 33 → 35）—— **AC-1 達成** |
 | `test:int -w apps/api` | ✅ **265 passed / 21 suites**（248 baseline + **17 新**），227.4 s。⚠️ 第一輪是 **264 / 265** —— 測試 3 依 D15 修正後重跑 |
+
+---
+
+## Day 3 — 2026-08-17 — 中性化預測（⛔ 寫在執行之前，本段先 commit）
+
+⚠️ **這一段的 commit 必須早於任何中性化的執行。** 事後寫的預測不是預測 ——
+它只證明我能解釋已經發生的事。以下五條在**一次也還沒跑**的狀態下寫成。
+
+基線：**265 passed / 21 suites**。每次只改一處，跑完整 int suite，然後復原。
+
+| # | 改動 | 預測轉紅 | 預測的紅**長什麼樣** |
+|---|------|---------|---------------------|
+| **N1** | 刪 `events_insert` policy | **恰 1 個**：測試 6 | 有 `GRANT INSERT` 但無 policy ⇒ PostgreSQL 拋 `new row violates row-level security policy`（**42501**）。測試 6 的 query 直接 reject，`expect(rowCount).toBe(1)` 走不到。⭐ **測試 5 必須仍綠** —— 缺席的 policy 也會拒絕跨實體寫入，兩者觀察不出差別。**那正是 W17 的 N4 零轉紅的原因，本片補了測試 6 才有這一格** |
+| **N2** | 刪 `posture_snapshots` 的 `FORCE`（保留 `ENABLE`）| **恰 1 個**：測試 8 | `relforcerowsecurity` 由 `true` 變 `false` ⇒ `toEqual({rls:true, forced:true})` 失敗。⚠️ 測試 10 / 14 用 owner 連線且**不會**因此轉紅 —— 它們今天能讀到兩個實體，代表該角色本來就繞過 RLS（superuser／BYPASSRLS），所以 FORCE 對它們無作用。**這個預測若錯，錯的是我對那條連線的理解，不是測試** |
+| **N3** | 加回 `GRANT UPDATE ON events` | **恰 2 個**：測試 7、測試 17 | 測試 17 是 `toEqual(['INSERT','SELECT'])` ⇒ 直接不符。測試 7 更有意思：有 GRANT 但**沒有 `FOR UPDATE` policy** ⇒ 依 W10 N1a / W16 N3a 的實測，UPDATE **不拋錯**、影響 0 列 ⇒ 期待 reject 的斷言收到 resolve ⇒ 紅。⭐ 這一條同時是「兩層失敗方式不同」那個論證的實驗 |
+| **N4** | 把 `org_entity_id` 從 posture 唯一鍵拿掉（改為 `(period, metric_key)`）| ⛔ **不是測試紅 —— 是 setup 崩潰，21 suites 全滅** | seed 的 rows 1 & 4 都是 `(2026-Q3, total_risks)`，只差實體 ⇒ 第二筆 INSERT 撞 **23505**，`globalSetup` 拋錯 ⇒ 整個 suite 起不來。⚠️ **這個形狀已預先寫在 seed 的註解裡**（W16 N2a：crash 讀起來像「中性化做錯了」而不是「中性化成功了」）|
+| **N5** | 刪 `events_read` policy | **恰 2 個**：測試 2、測試 4 | 兩者都是 app-role 的 SELECT ⇒ 回 0 列。測試 2 的 `toEqual([...兩個 ref code])` 收到 `[]`；測試 4 的 `toHaveLength(1)` 收到 0。⚠️ 測試 3 用 owner ⇒ 綠；測試 5 / 6 是 INSERT 無 RETURNING ⇒ 綠；測試 7 被 grant 層先擋 ⇒ 綠 |
+
+**判準**（⛔ 三條都要答）：
+1. **零轉紅 = 揭露真缺口**，必須補測試（W17 N4 先例），不是「符合預期」
+2. **紅得比預測多**，多出來的若不能由該改動解釋 ⇒ 測試之間有隱藏耦合
+3. **紅得比預測少**，代表我對機制的理解有誤 ⇒ 查清楚再改測試
