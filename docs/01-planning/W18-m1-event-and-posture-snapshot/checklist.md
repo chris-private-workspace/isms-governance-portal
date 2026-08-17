@@ -54,48 +54,65 @@
 
 ### 1.1 `schema.prisma` — 2 model + 3 enum
 
-- [ ] **`enum EventSeverity { S1 S2 S3 }`**
+- [x] **`enum EventSeverity`** —— ⚠️ **值為 `s1 s2 s3` 小寫**（Day-0 D7，可推翻）
   - DoD: 值域逐字照 `11:35-39`；docstring 記明**這是 Wave 1 的表引用 Wave 2 文件的值域**，
     且 `02a` §2 的 enum 註冊表缺這一列（⇒ 新 AD）
   - Verify: `Grep "EventSeverity" apps/api/prisma/schema.prisma`
-- [ ] **`enum PostureMetricKey`** —— 九個值逐字照 `02a:482-483`
+- [x] **`enum PostureMetricKey`** —— 九個值逐字照 `02a:482-483`
   - DoD: 建 enum 而非 TEXT 的理由（`02a:477` "not free-form" + `:485` "review step"）寫進 docstring
-  - DoD: ⛔ 九個值逐一比對，**不准少一個也不准自己補一個**
-- [ ] **`enum PostureRag`** —— 值域 `08:33-45`，大小寫依 D-ragcase 定案
-- [ ] **`model Event`** → `@@map("events")`
+  - DoD: ⛔ 九個值逐一比對，**不准少一個也不准自己補一個** —— int 測試 15 用**外部抄寫的清單**斷言
+- [x] **`enum PostureRag`** —— 值域 `08:33-45`，大小寫依 D-ragcase 定案 → `green amber red`
+- [x] **`model Event`** → `@@map("events")`
   - DoD: 欄位嚴格照 `02a:233` 六欄 + `org_entity_id` + base fields（D-basefields 定案）
   - DoD: `loss_amount` nullable；docstring 記明它今天永遠為 NULL（**AP-3 形狀，如實記**）+ 解封點 M6
+        —— ⭐ **並記下第二個獨立理由**：`02a:233` **無幣別欄位**，13 OpCo × 11 管轄區不共用幣別
+        ⇒ 就算有人寫了也無法解讀（新 AD `AD-LossAmountNoCurrency-1`）
   - DoD: `detected_at` 用 `02a:233` 的名字；`11:75` 的 `discovered_at` 別名與
     "the template does" 那句話寫進 docstring；**標為可推翻**
-  - DoD: `status` **不建** —— 理由（不在欄位清單 + 4 份互斥 lifecycle）寫進 docstring
-- [ ] **`model PostureSnapshot`** → `@@map("posture_snapshots")`
-  - DoD: 7 欄照 `02a:465-473`；`period` TEXT（兩種格式）· `metric_value` Decimal
+  - DoD: `status` **不建** —— ⚠️ **理由已依 Day-0 D1 修正**：不是「不在欄位清單」（那對任何
+    base field 都成立），而是**兩份權威給出不相容的 lifecycle 且從未裁決**（JUDGEMENT 等級）
+- [x] **`model PostureSnapshot`** → `@@map("posture_snapshots")`
+  - DoD: 7 欄照 `02a:465-473`；`period` TEXT（兩種格式）· `metric_value` Decimal(18,4)
   - DoD: `@@unique([orgEntityId, period, metricKey])` —— D-uniquekey 的結論寫進 docstring
   - DoD: residency 五欄 **不建**，`02a:488` banner 原文與「ADR-0010 ⇒ 零 consumer」寫進 docstring
-- [ ] `npx prisma format` + `npx prisma validate` 通過
-  - Verify: `npm run prisma:format -w apps/api`（或 `npx prisma format --schema=...`）
+  - DoD: ⭐ **base-field 信封依 Day-0 D3 改用 `AuditLog` 而非 `Attestation`** ——
+    `extensions` 的省略**明確標為 JUDGEMENT 而非 MECHANICAL**（本表有 `org_entity_id`，
+    借用 `retention_policies` 的理由會是 `AD-BorrowedRefusal-1`）
+- [x] `npx prisma validate` 通過 · `npx prisma format` 已跑
+  - Verify: `npx prisma validate --schema=apps/api/prisma/schema.prisma` → `valid 🚀`
+  - ⚠️ **D12（新）**：`prisma format` 順帶重排了 **11 行既有內容**（`StatementOfApplicability` ·
+    `Attestation` · `ISMSProfile` 的欄位對齊）—— 那是 formatter 的**確定性輸出**，不是本片的編輯。
+    **保留**（還原只會讓下個 phase 再撞一次），記進 BACKLOG：schema 無 format gate
 
 ### 1.2 Migration
 
-- [ ] **`migrations/<ts>_event_and_posture_snapshot/migration.sql`**
-  - DoD: 3 enum + 2 表 + 2 index/unique + RLS `ENABLE` **且** `FORCE`（逐表）
+- [x] **`migrations/20260817033944_event_and_posture_snapshot/migration.sql`**
+  - DoD: 3 enum + 2 表 + 3 index/unique + RLS `ENABLE` **且** `FORCE`（逐表）
   - DoD: 各表 2 條 policy（SELECT / INSERT）· `GRANT SELECT, INSERT` —— **無 UPDATE、無 DELETE**
   - DoD: banner 寫明**三個「不建」**（residency 五欄 / `Event.status` / restricted block）
     各自的理由與解封點，形狀比照 `20260816135016_retention_and_legal_hold/migration.sql:200-212`
   - DoD: banner 寫明 `severity` 的值域來源是 `11:35-39`（Wave 2 文件）與依賴方向
-  - Verify: `npm run prisma:migrate -w apps/api` 套用成功
-- [ ] **`prisma generate` 已跑**（`AD-PrismaEnumThreeTruths-1`：三份真相，部署路徑不會自動重建）
-  - Verify: `Grep "EventSeverity" apps/api/node_modules/.prisma/client/index.d.ts`
+  - DoD: ⭐ banner 明確區分**兩表 append-only 的理由不同** —— 快照是 `02a:475` **明文且無解封**、
+    事件是**能力尚不可表達且 M6 解封**。同一個缺席的 GRANT，兩個不能互換的宣稱
+  - DoD: 目錄名用 **UTC** 時戳（`AD-MigrationTimestampTz-1`）—— 實測 `20260817033944` UTC
+    vs `20260817113944` local，**差 8 小時**
+  - Verify: ⚠️ **不照抄 plan 的 `npm run prisma:migrate`**（= `migrate dev`，被
+    `AD-DevDbChecksumDrift-1` 擋）。改由 int suite 的 global setup 套用（它跑 `migrate deploy`）
+    → ✅ `[int] isms_test rebuilt, migrated and seeded`，**248 passed**（舊 seed 那一輪）
+- [x] **`prisma generate` 已跑**（`AD-PrismaEnumThreeTruths-1`：三份真相，部署路徑不會自動重建）
+  - Verify: ⚠️ **路徑不是 `node_modules/.prisma`** —— 本專案輸出到
+    `apps/api/src/generated/prisma`。實際輸出：`✔ Generated Prisma Client (v7.9.1) in 2.45s`
 
 ### 1.3 `check_entity_index.py` +1 ALIAS
 
-- [ ] **依 D-alias 的結論加 ALIAS**
+- [x] **依 D-alias 的結論加 ALIAS** —— `"PostureSnapshot": "posture_snapshot"`；`Event` 不需要
   - DoD: 若 D-alias 證明不需要 ALIAS，**這一項標 🚧 並寫明原因**，不是靜默跳過
-  - Verify: `python scripts/lint/check_entity_index.py` → **34 / 36**
+  - Verify: `python scripts/lint/check_entity_index.py` → ✅ **34 / 36**（models 33 → 35）
 
 ### 1.x partial gate
 
-- [ ] `npm run lint -w apps/api` · `npm run type-check -w apps/api` · `npm run build -w apps/api`
+- [x] `npm run lint -w apps/api` ✅ EXIT=0 · `npm run type-check -w apps/api` ✅ EXIT=0 ·
+      `npm run build -w apps/api` ✅ EXIT=0 · `format:check` ✅ *All matched files use Prettier code style*
 
 ---
 
@@ -103,27 +120,38 @@
 
 ### 2.1 Seed
 
-- [ ] **`test/int-global-setup.js` 兩張表 seed + 計數守衛**
-  - DoD: 跨實體資料（≥ 2 個 entity）才能讓 AC-4 的兩個方向都可測
-  - DoD: ⛔ **不得產生真實個資或有效卡號**（guardrail 7）
-  - Verify: `npm run test:int -w apps/api` 起得來
+- [x] **`test/int-global-setup.js` 兩張表 seed + 計數守衛** —— 3 events + **5** posture snapshots
+  - DoD: 跨實體資料（≥ 2 個 entity）才能讓 AC-4 的兩個方向都可測 —— ✅ SG1 + HK1 皆有
+  - DoD: ⛔ **不得產生真實個資或有效卡號**（guardrail 7）—— ✅ 全部標 `Fixture`，無姓名／無卡號
+  - DoD: ⭐ **rows 1 & 4 共用 `(period, metric_key)` 而分屬不同實體** —— 這個 fixture 本身
+    就是唯一鍵形狀的常駐斷言，且 N4 的預期紅（setup 崩潰）已預先寫在註解裡
+  - Verify: `npm run test:int -w apps/api` 起得來 —— ✅
 
 ### 2.2 整合測試
 
-- [ ] **`core-model/event-and-posture.int.spec.ts`**
+- [x] **`core-model/event-and-posture.int.spec.ts`** —— **17 個測試**
   - DoD: **AC-2** — `relrowsecurity` / `relforcerowsecurity` 逐表斷言（不是查一次算兩表）
+    —— ✅ 測試 1 / 8，兩個獨立查詢
   - DoD: **AC-3** — `information_schema.role_table_grants` 逐表斷言 grant 集合
-    **恰為** `{SELECT, INSERT}`；UPDATE / DELETE 缺席
+    **恰為** `{SELECT, INSERT}`；UPDATE / DELETE 缺席 —— ✅ 測試 17，`toEqual` 非 `toContain`
   - DoD: **AC-4 兩個方向** — 跨實體 INSERT 被拒（SQLSTATE `42501`）**且**範疇內 INSERT 成功。
     ⚠️ W17 的 N4 證明：少了後者，policy 整個消失測試仍全綠
+    —— ✅ events 測試 5 / 6 · posture 測試 11 / 12（**四個測試，兩表各兩個方向**）
   - DoD: **AC-5** — `information_schema.columns` 與 migration `CREATE TABLE` 區塊兩條獨立路徑逐欄相符；
     ⛔ **先跑陽性對照證明查詢儀器有效**，才採信「residency 五欄缺席」的零
-  - Verify: `npm run test:int -w apps/api` → 248 + N passing
+    —— ✅ 測試 16：先 `toEqual` 七欄（陽性對照），**再**斷言五欄缺席
+  - DoD: ⭐ 額外 —— 測試 15 用**外部抄寫的九個 metric key** 斷言 enum（不從 `pg_enum` 讀回自比）；
+    測試 10 用 owner 連線證明「兩個實體可共存同一 `(period, metric_key)`」——
+    app-role 讀會被 RLS 過濾成一列，那是**不可能失敗**的形狀
+  - Verify: `npm run test:int -w apps/api` → ✅ **265 passed / 21 suites**（248 + 17）
 
 ### 2.x Full gate
 
-- [ ] `format:check` · `lint` · `type-check` · `build` · `lint:negative`（⚠️ **root script**）·
-      api unit · api int · web · coverage 逐位 · `run_all` **9/9** · `check_entity_index` **34/36**
+- [x] `format:check` ✅ · `lint` ✅ · `type-check` ✅ · `build` ✅ ·
+      `lint:negative`（⚠️ **root script**）✅ `0 bypasses` ·
+      api unit ✅ **480/40** · api int ✅ **265/21** · web ✅ **10/1** ·
+      coverage **92.14 / 91.77 / 98.98 / 93.56** ✅ 逐位 · `run_all` ✅ **9/9** ·
+      `check_entity_index` ✅ **34/36**
 
 ---
 
@@ -141,12 +169,16 @@ _中性化實測是這一層的等價物 —— 它回答「拿掉這條約束�
 
 ### 3.2 逐次執行
 
-- [ ] **N1 刪 `events` 的 INSERT policy** — 預期 AC-4 轉紅
-- [ ] **N2 刪 `posture_snapshots` 的 `FORCE`** — 預期 AC-2 轉紅
-- [ ] **N3 加回 `GRANT UPDATE`** — 預期 AC-3 轉紅
-- [ ] **N4 刪 unique 約束** — 預期對應斷言轉紅
+- [ ] **N1 刪 `events_insert` policy** — 預期**恰 1 紅**（測試 6），而測試 5 **仍綠**
+- [ ] **N2 刪 `posture_snapshots` 的 `FORCE`** — 預期**恰 1 紅**（測試 8）
+- [ ] **N3 加回 `GRANT UPDATE` on `events`** — 預期**恰 2 紅**（測試 7、17）
+- [ ] **N4 把 `org_entity_id` 從 posture 唯一鍵拿掉**（⚠️ **依 Day-0 D8 改設計**，
+      不是「刪 unique 約束」）— 預期 **setup 崩潰**（seed 的 rows 1 & 4 衝突，23505），
+      **不是**單一測試轉紅
+- [ ] **N5 刪 `events_read` policy** — 預期**恰 2 紅**（測試 2、4）
   - DoD: 每次**只改一處**，跑完整 int suite，記錄實際轉紅集合
   - DoD: ⛔ **零轉紅 = 揭露真缺口**，必須補測試（W17 的 N4 先例），不是「符合預期」
+  - DoD: ⛔ **紅得比預測多也要解釋** —— 多出來的紅若不能由該改動解釋，就是測試在互相依賴
   - Verify: 每次 `npm run test:int -w apps/api` 的實際輸出貼進 progress.md
 
 ### 3.3 復原驗證

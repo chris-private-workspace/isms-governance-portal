@@ -649,6 +649,114 @@ const SEED = {
       '00000000-0000-0000-0000-0000000000d0',
     ],
   ],
+  // W18. Both entities again, for the reason every fixture since W05 gives:
+  // with only SG1 rows, "HK1 cannot read SG1's event" and "HK1 has no events"
+  // are the same observation and only the second one is true.
+  //
+  // All three severity levels appear at least once. An enum value no row ever
+  // holds is a value nothing exercises — the column would accept it and no test
+  // would notice if the type were narrowed.
+  //
+  // ⚠️ Row 2 carries a loss_amount and is the only thing that will put a number
+  // in that column before M6. The schema docstring says every PRODUCTION row is
+  // NULL; that stays true. This is the seed supplying a literal, exactly as it
+  // does for legal_holds.ref_code, and it is here so DECIMAL(18,2) is exercised
+  // rather than merely declared.
+  events: [
+    // [id, orgEntityId, refCode, title, occurredAt, detectedAt, severity, description, lossAmount]
+    [
+      '00000000-0000-0000-0000-000000180001',
+      '00000000-0000-0000-0000-0000000000c0',
+      'EVT-SG1-000001',
+      'Fixture event — phishing mail reported by staff (SG1)',
+      '2026-07-14T02:10:00Z',
+      '2026-07-14T06:45:00Z',
+      's2',
+      'Fixture row. Reported through the security mailbox; nothing left the OpCo.',
+      null,
+    ],
+    [
+      '00000000-0000-0000-0000-000000180002',
+      '00000000-0000-0000-0000-0000000000c0',
+      'EVT-SG1-000002',
+      'Fixture event — laptop lost in transit (SG1)',
+      '2026-07-28T09:00:00Z',
+      '2026-07-28T09:30:00Z',
+      's1',
+      'Fixture row. Full-disk encrypted. Carries the only non-null loss_amount.',
+      '4820.00',
+    ],
+    [
+      '00000000-0000-0000-0000-000000180003',
+      '00000000-0000-0000-0000-0000000000c1',
+      'EVT-HK1-000001',
+      'Fixture event — non-critical print server outage (HK1)',
+      '2026-08-02T01:15:00Z',
+      '2026-08-02T01:20:00Z',
+      's3',
+      'Fixture row. No information impact; work continued on the secondary queue.',
+      null,
+    ],
+  ],
+  // W18. ⭐ ROWS 1 AND 4 ARE THE POINT: same period, same metric_key, different
+  // entity. They can only coexist because org_entity_id is IN the unique key,
+  // so this fixture is a standing assertion about the key's shape rather than
+  // background data (AD-UniqueKeyOracle-1, Day-0 D8).
+  //
+  // ⚠️ CONSEQUENCE FOR NEUTRALISATION, stated in advance because W16's N2a
+  // showed how it reads otherwise: removing org_entity_id from that key makes
+  // these two rows collide DURING SETUP. The suite dies in globalSetup with a
+  // 23505 rather than failing a named test, and a crash looks like the
+  // neutralisation was wrong rather than like it worked. That crash IS the
+  // expected red for N4.
+  //
+  // Two period formats on purpose — `2026-Q3` and `2026-07`. 02a:469 gives both
+  // ("e.g. 2026-Q3 or month key") with no rule for choosing, which is why the
+  // column is TEXT; a fixture using only one shape would let a later DATE or
+  // enum narrowing pass unnoticed. All three rag bands appear.
+  postureSnapshots: [
+    // [id, orgEntityId, period, metricKey, metricValue, rag]
+    [
+      '00000000-0000-0000-0000-000000180011',
+      '00000000-0000-0000-0000-0000000000c0',
+      '2026-Q3',
+      'total_risks',
+      '42',
+      'green',
+    ],
+    [
+      '00000000-0000-0000-0000-000000180012',
+      '00000000-0000-0000-0000-0000000000c0',
+      '2026-Q3',
+      'posture_rag',
+      '2',
+      'amber',
+    ],
+    [
+      '00000000-0000-0000-0000-000000180013',
+      '00000000-0000-0000-0000-0000000000c0',
+      '2026-07',
+      'rcsa_completion',
+      '83.3333',
+      'amber',
+    ],
+    [
+      '00000000-0000-0000-0000-000000180014',
+      '00000000-0000-0000-0000-0000000000c1',
+      '2026-Q3',
+      'total_risks',
+      '17',
+      'green',
+    ],
+    [
+      '00000000-0000-0000-0000-000000180015',
+      '00000000-0000-0000-0000-0000000000c1',
+      '2026-07',
+      'open_critical_issues',
+      '3',
+      'red',
+    ],
+  ],
 };
 
 module.exports = async function globalSetup() {
@@ -949,6 +1057,49 @@ module.exports = async function globalSetup() {
       [id, orgEntityId, refCode, scopeType, scopeRef, reason, appliedBy, releasedBy],
     );
   }
+  // W18. Constraints these rows depend on: events_org_entity_id_fkey,
+  // events_ref_code_key, and the event_severity domain. ⚠️ `updated_at` is
+  // supplied explicitly — Prisma's @updatedAt is client-side and puts no DEFAULT
+  // on the column, so a seed that omits it fails on NOT NULL (legal_holds above
+  // does the same for the same reason).
+  //
+  // ⚠️ `$9::decimal` rather than a bare $9: node-pg sends JS null untyped, and
+  // PostgreSQL cannot infer a type for a parameter that is NULL in every row it
+  // sees first. The cast is what stops a 42P08 at PARSE time — the same failure
+  // W17's tests 8, 10 and 11 all hit on their first run.
+  for (const [
+    id,
+    orgEntityId,
+    refCode,
+    title,
+    occurredAt,
+    detectedAt,
+    severity,
+    description,
+    lossAmount,
+  ] of SEED.events) {
+    await seed.query(
+      `INSERT INTO events (id, org_entity_id, ref_code, title, occurred_at, detected_at,
+                           severity, description, loss_amount, updated_at)
+       VALUES ($1, $2, $3, $4, $5, $6, $7::event_severity, $8, $9::decimal, now())`,
+      [id, orgEntityId, refCode, title, occurredAt, detectedAt, severity, description, lossAmount],
+    );
+  }
+  // W18. ⭐ This loop is an assertion about the unique key, not just data —
+  // rows 1 and 4 share (period, metric_key) and differ only by entity, so they
+  // insert cleanly if and only if org_entity_id is part of
+  // posture_snapshots_org_entity_id_period_metric_key_key. See the fixture
+  // comment for what that means when N4 removes it.
+  //
+  // captured_at is left to its DEFAULT: 02a:473 calls it the capture timestamp
+  // and a seeded literal would be a fixture pretending to be a measurement.
+  for (const [id, orgEntityId, period, metricKey, metricValue, rag] of SEED.postureSnapshots) {
+    await seed.query(
+      `INSERT INTO posture_snapshots (id, org_entity_id, period, metric_key, metric_value, rag)
+       VALUES ($1, $2, $3, $4::posture_metric_key, $5::decimal, $6::posture_rag)`,
+      [id, orgEntityId, period, metricKey, metricValue, rag],
+    );
+  }
   // Derived, not declared: the counter must reflect what was just seeded, and
   // the only way to guarantee that is to compute it from those rows. Identical
   // to the backfill in 20260810185500_user_and_base_fields for the same reason.
@@ -1075,6 +1226,13 @@ module.exports = async function globalSetup() {
     // invented, so it is a landing check and nothing more.
     ['retention_policies', SEED.retentionPolicies.length],
     ['legal_holds', SEED.legalHolds.length],
+    // W18. Both are fixtures this phase invented, like legal_holds — landing
+    // checks rather than external anchors. ⚠️ The posture count is the one that
+    // earns its keep: five rows across two entities and two period formats, so
+    // a silent narrowing of the unique key surfaces here as a count mismatch in
+    // the cases where it does not already crash the insert.
+    ['events', SEED.events.length],
+    ['posture_snapshots', SEED.postureSnapshots.length],
   ]) {
     const { rows: c } = await counted.query(`SELECT count(*)::int AS n FROM ${table}`);
     if (c[0].n !== expected) {

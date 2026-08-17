@@ -159,6 +159,9 @@ model OrgEntity {
 
   legalHolds LegalHold[]
 
+  events           Event[]
+  postureSnapshots PostureSnapshot[]
+
   version   Int       @default(1)
   createdAt DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
   updatedAt DateTime  @updatedAt @map("updated_at") @db.Timestamptz(6)
@@ -2008,7 +2011,7 @@ model StatementOfApplicability {
   /// saying it is a user id, and the approver of an SoA is frequently a committee.
   /// ⛔ The cost is on the record: what this row cannot prove is WHO approved it.
   /// That is the audit-trail gap (ADR-0003, open), not something a column fixes.
-  approvedBy String? @map("approved_by")
+  approvedBy String?   @map("approved_by")
   approvedAt DateTime? @map("approved_at") @db.Timestamptz(6)
 
   ownerUserId String? @map("owner_user_id") @db.Uuid
@@ -2282,8 +2285,8 @@ model Attestation {
   version    Int  @default(1)
   extensions Json @default("{}") @db.JsonB
 
-  orgEntity   OrgEntity @relation(fields: [orgEntityId], references: [id])
-  attestedBy  User?     @relation("AttestationUser", fields: [userId], references: [id])
+  orgEntity  OrgEntity @relation(fields: [orgEntityId], references: [id])
+  attestedBy User?     @relation("AttestationUser", fields: [userId], references: [id])
 
   /// ⛔ NO relation for `subject_id`, deliberately — Evidence:1107 states the
   /// whole argument: Prisma would emit a real foreign key to ONE table, and that
@@ -2364,7 +2367,7 @@ model ISMSProfile {
   /// certificate; an instant with a timezone would be a precision this data
   /// does not have.
   validFrom DateTime? @map("valid_from") @db.Date
-  validTo   DateTime? @map("valid_to")   @db.Date
+  validTo   DateTime? @map("valid_to") @db.Date
 
   /// 13:21's standards toggles. Booleans rather than a string array: the
   /// vocabulary is closed and fixed externally (ISO), which is the criterion
@@ -2376,10 +2379,10 @@ model ISMSProfile {
   certificationState   CertificationState? @map("certification_state")
   certificateNumber    String?             @map("certificate_number")
   certificationBody    String?             @map("certification_body")
-  certificateIssuedAt  DateTime?           @map("certificate_issued_at")  @db.Date
+  certificateIssuedAt  DateTime?           @map("certificate_issued_at") @db.Date
   certificateExpiresAt DateTime?           @map("certificate_expires_at") @db.Date
-  surveillanceAt       DateTime?           @map("surveillance_at")        @db.Date
-  reviewAt             DateTime?           @map("review_at")              @db.Date
+  surveillanceAt       DateTime?           @map("surveillance_at") @db.Date
+  reviewAt             DateTime?           @map("review_at") @db.Date
 
   /// ⚠️ OVERLAPS ISMSContact(role = 'ISMS lead'): 13:27 carries the ISO officer
   /// as a profile attribute while 13:41 carries the same person as a contact
@@ -2429,12 +2432,10 @@ model ISMSProfile {
 
   /// The anchor the four children reference (the issues:1166 reasoning).
   @@unique([id, orgEntityId])
-
   /// Contains org_entity_id, so a collision cannot distinguish "another entity
   /// already has 2026" from "nobody does" — AD-UniqueKeyOracle-1's criterion,
   /// applied before the table exists rather than after.
   @@unique([orgEntityId, profileYear])
-
   @@index([orgEntityId, retiredAt])
   @@map("isms_profiles")
 }
@@ -2662,14 +2663,12 @@ model ISMSProfileVersion {
   /// isms_profile_id so "the current version must belong to THIS profile" is a
   /// database fact rather than an application rule.
   @@unique([id, ismsProfileId])
-
   /// ⚠️ EXPLICIT `map:`, and the length is the reason. The name Prisma would
   /// derive — isms_profile_versions_org_entity_id_isms_profile_id_version_label_key
   /// — is 69 characters, and PostgreSQL's NAMEDATALEN is 63: it would be
   /// truncated SILENTLY. W11 hit exactly this on statements_of_applicability and
   /// the schema has disagreed with the database ever since (W16 Day-0 DR12).
   @@unique([orgEntityId, ismsProfileId, versionLabel], map: "isms_profile_versions_org_entity_profile_label_key")
-
   @@index([orgEntityId, retiredAt])
   @@index([ismsProfileId])
   @@map("isms_profile_versions")
@@ -2905,4 +2904,284 @@ model LegalHold {
   @@index([orgEntityId, retiredAt])
   @@index([scopeType, scopeRef])
   @@map("legal_holds")
+}
+
+// ============================================================================
+// W18 / M1 slice 13 — Event skeleton and posture snapshot.
+// ============================================================================
+// Two tables with the same shape — entity-scoped, append-only, zero
+// repositories — and a different reason for every part of it. The content of
+// this slice is which base fields each one DROPS and on whose authority, so the
+// two model headers below are the part worth reading.
+// ============================================================================
+
+/// Severity of a security event.
+///
+/// ⚠️ A WAVE 1 TABLE BORROWING A WAVE 2 DOCUMENT'S VALUE DOMAIN, recorded
+/// rather than resolved. 02a:38 puts Event in Wave 1; 02a:58 puts "extended
+/// into the incident record by 11" in Wave 2 — so the column is built here
+/// while the only specification of what it may hold (11:35-39, three levels
+/// with distinct reporting SLAs) lives there. ⛔ 02a §2's enum registry has no
+/// row for this column at all, which is the gap to close rather than the
+/// dependency (AD-EventSeverityUnregistered-1). 已確認參數 #9 settles the
+/// direction: digitise the company's existing template, and 11 is what quotes
+/// it.
+///
+/// ⚠️ LOWERCASED — this phase's judgement, not the source's spelling. 11:37-39
+/// writes S1/S2/S3 in caps; all 33 enums predating this slice are lowercase,
+/// and CiaType { c i a ci } is a precedent for lowercasing an acronym rather
+/// than an argument by analogy. What was ruled on 2026-08-17 was three graded
+/// levels; the casing was not part of it, and user-facing text is the i18n
+/// layer's job (guardrail 9). Overturnable.
+enum EventSeverity {
+  s1
+  s2
+  s3
+
+  @@map("event_severity")
+}
+
+/// The nine governed posture metrics, transcribed verbatim from 02a:482-483 —
+/// deliberately NOT from 08's metric table, which names them in prose ("Total
+/// risks", "High / critical") and would have had me invent the identifiers.
+///
+/// An enum rather than TEXT because 02a:477 calls the set "fixed, governed …
+/// not free-form" and :485 asks for "governed configuration with a review
+/// step" — a migration IS that review step. The cost of the alternative is
+/// stated at 02a:479-480 and is not tidiness: a free-form key means the
+/// comparison matrix silently changes shape when someone adds one, and every
+/// entity's row must carry the same metrics to be comparable at all.
+enum PostureMetricKey {
+  total_risks
+  high_critical_count
+  control_coverage_risk
+  control_coverage_effective
+  overdue_tests
+  open_critical_issues
+  rcsa_completion
+  policy_attestation
+  posture_rag
+
+  @@map("posture_metric_key")
+}
+
+/// The RAG band a metric fell into at capture time.
+///
+/// ⚠️ THE SPEC DISAGREES WITH ITSELF ON THE LITERAL (Day-0 D6): 08:35's table
+/// header writes Green / Amber / Red, 08:45's rule writes "red … amber … else
+/// green", and 02a:472 gives no domain at all — it says only "derived band at
+/// capture time". With no authority to copy, the house convention decides.
+///
+/// ⚠️ The type name `posture_rag` is also a VALUE of posture_metric_key above.
+/// Not a collision — PostgreSQL keeps type names and enum labels in separate
+/// namespaces — and not a coincidence either: the ninth metric IS the overall
+/// band (08:31). ⛔ What metric_value holds on such a row is UNSPECIFIED, and
+/// this slice does not decide it: 02a:471 says numeric and 08 never says how a
+/// band becomes one. Inventing an encoding would answer a question 02a did not
+/// ask (AD-PostureRagMetricValueUndefined-1); the first writer is the scheduled
+/// job at M8.
+///
+/// ⚠️ The bands themselves are CONFIGURATION, not code — 08:44 gives the second
+/// line ownership of the thresholds. This enum fixes the three names a band can
+/// have, never where the boundaries sit.
+enum PostureRag {
+  green
+  amber
+  red
+
+  @@map("posture_rag")
+}
+
+/// A security event / incident, at exactly the size 02a:233 specifies: six
+/// columns and no more.
+///
+/// ⛔ WHAT IS ABSENT IS THE CONTENT OF THIS MODEL. 11 specifies a full incident
+/// record — business_unit, ticket_number, incident_type, location,
+/// damage_impact, iso_clause_refs, awareness_related, a permission-gated
+/// restricted block, and three child entities. None of it is built, and the
+/// line is not mine to draw or move: 02a:38 marks Event Wave 1, 02a:58 marks
+/// the incident extension Wave 2. The restricted block additionally cannot be
+/// expressed today — 11:87-89 gates it on CISO/HR roles and Role is an M4
+/// entity that 02a:71 says "must not be built until specified"
+/// (AD-Incident-1).
+///
+/// ⛔ NO `status`, and Day-0 D1 replaced the reason this comment was drafted
+/// with. The draft said "status is not on 02a:233's field list" — but 02a:157
+/// says §3 shows only entity-specific fields and that every entity ALSO carries
+/// the §1.1 base fields, of which status is one. That argument would hold for
+/// every base field on every entity, which is how you can tell it is not an
+/// argument.
+///
+/// What survives is narrower, and it is a JUDGEMENT rather than a structural
+/// fact: two authorities give this entity incompatible lifecycles. 02a:417 has
+/// five states (Reported → Triaged → Investigating → Resolved → Closed);
+/// 11:45-58 has eight named ones (… → RCA / ActionPlanning → Remediating →
+/// Review → Approved → Closed). Four are common to both, nobody has ruled, and
+/// 已確認參數 #9 forbids inventing the vocabulary. ⚠️ This is the MIRROR IMAGE
+/// of Attestation's omission (:2228): there §4 gives no lifecycle at all, so
+/// there is no domain to draw from; here there are two and they disagree.
+/// Unblocked at M6, before the form is built.
+model Event {
+  id String @id @default(uuid()) @db.Uuid
+
+  /// ⚠️ Nothing issues this yet — the same standing as legal_holds (:2851) and
+  /// W16's five tables. Present because 02a:91 makes it a base field and this
+  /// table has an org_entity_id to issue against; the prefix constant belongs
+  /// to a repository and this slice ships none. The integration seed supplies
+  /// literals.
+  refCode String @unique @map("ref_code")
+
+  orgEntityId String @map("org_entity_id") @db.Uuid
+
+  title String
+
+  /// TWO timestamps kept apart because the source form keeps them apart —
+  /// 11:75, verbatim: "Distinguish occurred vs discovered — the template does".
+  ///
+  /// ⚠️ NAMED `detected_at` while 11:75 calls the same concept
+  /// `discovered_at`. This slice follows 02a:233: it is the higher authority
+  /// (CLAUDE.md 權威排序) and it is the document that puts the column in Wave 1
+  /// at all. ⛔ MARKED OVERTURNABLE — the Wave 2 extension is written against
+  /// 11's vocabulary, and if the form says "discovered" to users while the
+  /// column says "detected", the rename belongs to that phase.
+  occurredAt DateTime @map("occurred_at") @db.Timestamptz(6)
+  detectedAt DateTime @map("detected_at") @db.Timestamptz(6)
+
+  severity EventSeverity
+
+  description String
+
+  /// ⚠️ THIS COLUMN CANNOT BE READ MEANINGFULLY TODAY, for two INDEPENDENT
+  /// reasons, and it is built anyway on an explicit ruling (2026-08-17):
+  ///
+  ///   1. Nothing writes it — zero repositories, zero endpoints, so every row
+  ///      is NULL until M6. That is the AP-3 shape and this phase records it as
+  ///      one in its anti-pattern audit rather than filing it under N/A.
+  ///   2. ⛔ NO CURRENCY COLUMN, and 02a:233 specifies none. Thirteen OpCos
+  ///      across eleven jurisdictions do not share a currency, so a bare amount
+  ///      is uninterpretable even once something does write it.
+  ///
+  /// ⇒ Building the pair (amount + currency) would be inventing a field 02a
+  /// does not have (已確認參數 #9); building the amount alone is what was
+  /// ruled. Both facts are recorded here so that whoever wires M6 SEES the gap
+  /// instead of discovering it (AD-LossAmountNoCurrency-1). ⚠️ 11 has no `loss`
+  /// anywhere at all — its nearest concept is `Damage/Impact`, free text
+  /// (11:13), which is a Wave 2 extension field. Precision is this phase's
+  /// judgement: 02a:233 gives only "nullable" and no type.
+  lossAmount Decimal? @map("loss_amount") @db.Decimal(18, 2)
+
+  createdBy String? @map("created_by") @db.Uuid
+  updatedBy String? @map("updated_by") @db.Uuid
+
+  version    Int  @default(1)
+  extensions Json @default("{}") @db.JsonB
+
+  orgEntity OrgEntity @relation(fields: [orgEntityId], references: [id])
+
+  createdAt DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt DateTime  @updatedAt @map("updated_at") @db.Timestamptz(6)
+  retiredAt DateTime? @map("retired_at") @db.Timestamptz(6)
+
+  /// ⛔ ONE index, and no index on occurred_at / severity however obvious they
+  /// look. There is no consumer to shape them for — an index chosen for a query
+  /// nobody has written yet is AP-5, and the first real one arrives with M6's
+  /// form. This one is not speculative: it serves the RLS predicate itself,
+  /// which every read of this table passes through.
+  @@index([orgEntityId, retiredAt])
+  @@map("events")
+}
+
+/// Per-entity, per-period metric values — the flagship roll-up dashboard's only
+/// data source (02a:459, 08:56). Written by a scheduled job at M8; nothing
+/// writes it today.
+///
+/// ⭐ THE BASE-FIELD ENVELOPE HERE IS AuditLog's, NOT Attestation's, and that
+/// is Day-0 D3's finding rather than a style choice. 02a:465-473 lists seven
+/// columns and stops; the reasons AuditLog gives for its own omissions
+/// (:2063-2072) each land on this table independently, which is why the
+/// seven-column list and the reasoning agree without either being derived from
+/// the other:
+///
+///   - no `ref_code` — rows arrive in batches from a scheduled job (thirteen
+///     OpCos × nine metrics = 117 rows per period) and are read as a matrix,
+///     never cited individually. AuditLog's phrasing transfers verbatim: "a
+///     ref_code counter is one more write on the hottest path in the system".
+///   - no `version`, `updated_at`, `updated_by` — nothing updates a snapshot.
+///     02a:475 is explicit: "snapshots are historical record — do not
+///     retro-edit them".
+///   - ⛔ no `retired_at` — on an append-only record this IS A REDACTION
+///     MECHANISM (:2069): a supported way to make a past posture stop showing
+///     up. A trend line whose points can be quietly withdrawn is not evidence,
+///     and the board reporting at 08:51 is exactly what would be reading it.
+///   - no `status` / `owner_user_id` — 02a §4 gives this entity no lifecycle
+///     (Attestation's reason at :2228), and a machine-generated row has no
+///     accountable owner to name.
+///
+///   - no `extensions` — ⚠️ JUDGEMENT, and explicitly NOT retention_policies'
+///     MECHANICAL reason (:2765). That one is "validate_extensions() reads
+///     NEW.org_entity_id unconditionally and there is none" — this table HAS an
+///     org_entity_id, so the trigger would run fine and borrowing that argument
+///     would be AD-BorrowedRefusal-1's exact shape. The real reason is narrower
+///     and specific to this table: extensions are the free-form door, and
+///     02a:477-486 governs this table's key set precisely so that no one can
+///     widen it without a review step. Adding a JSONB column beside a governed
+///     enum would reopen by the side what the enum closes at the front.
+///
+/// ⚠️ Also NOT BUILT: the five residency columns (source_region,
+/// replicated_to_region, replicated_at, transfer_approved_by/_at). 02a:488's
+/// banner is explicit — with a single deployment region (ADR-0010) nothing
+/// replicates and they have no consumer. guardrail 8 names building them AP-5.
+/// They unblock only if ADR-0010 is overturned.
+model PostureSnapshot {
+  id String @id @default(uuid()) @db.Uuid
+
+  orgEntityId String @map("org_entity_id") @db.Uuid
+
+  /// TEXT, not a date or an enum, because 02a:469 gives two shapes for it —
+  /// "e.g. 2026-Q3 or month key" — and no rule for choosing between them. A
+  /// type that admits one would silently rule on a question the spec left open;
+  /// 08:50's period filter is the consumer that will need the answer.
+  period String
+
+  metricKey PostureMetricKey @map("metric_key")
+
+  /// numeric per 02a:471. One column carries both counts (total_risks) and
+  /// percentages (rcsa_completion), which is what the spec asks for — the four
+  /// decimal places exist so a percentage does not arrive pre-rounded. The
+  /// precision is this phase's judgement; 02a says only "numeric".
+  metricValue Decimal @map("metric_value") @db.Decimal(18, 4)
+
+  /// The band AT CAPTURE TIME — 02a:472. Stored rather than derived on read,
+  /// and that is the whole point of the table: 08:44 lets governance move the
+  /// thresholds, so recomputing an old row's band under today's thresholds
+  /// would silently rewrite history that the board already saw.
+  rag PostureRag
+
+  capturedAt DateTime @default(now()) @map("captured_at") @db.Timestamptz(6)
+
+  orgEntity OrgEntity @relation(fields: [orgEntityId], references: [id])
+
+  /// ⛔ NO separate `created_at`. It would hold the same instant as captured_at
+  /// on every row — a second truth that can only ever disagree by being wrong,
+  /// which is the reason 02a:98's is_active was never built either (:306).
+  ///
+  /// ⭐ THE UNIQUE KEY INCLUDES org_entity_id, and AD-UniqueKeyOracle-1's
+  /// predicate was RUN against this table rather than cited (Day-0 D8). The
+  /// predicate is "is this tuple caller-supplied?" — period and metric_key both
+  /// are, since the scheduled job passes them. A key of (period, metric_key)
+  /// alone would therefore be an existence oracle: a unique index is not
+  /// subject to RLS and fires before any policy, so colliding with another
+  /// entity's row would report 23505 while a fresh combination succeeds, and
+  /// those two outcomes are distinguishable. ⚠️ W11 corrected the AD's own
+  /// wording here — the test is "two distinguishable outcomes", not "two
+  /// different SQLSTATEs"; success counts as one.
+  ///
+  /// org_entity_id is redundant on legitimate rows, exactly as it is on
+  /// rm_report_versions (W10's fix) and statements_of_applicability (W11's).
+  /// That redundancy is the mechanism, not a flaw in it.
+  ///
+  /// No second index: (org_entity_id, period) reads use this key's prefix, and
+  /// anything else is AP-5 until M8 writes the first query.
+  @@unique([orgEntityId, period, metricKey])
+  @@map("posture_snapshots")
 }
