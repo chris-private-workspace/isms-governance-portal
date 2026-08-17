@@ -325,8 +325,13 @@
 - [x] ⭐ **順帶修掉兩個不是死控件、但默默少做事的地方**
       · 儀表板最高殘餘風險列連到清單頁而非該筆風險（`dc.html:5166` 的 `onOpen` 明確帶 id）
       · 儀表板標題不跟著 scope 走（fragment 寫死 `APAC Region`，是我們加的鑽取製造了新狀態）
-- [ ] 🚧 **並排比對 27 頁（fidelity gate 本身）尚未做** —— Day 3 做的是行為層 drive-through。
-      解封：Day 4 逐頁 fragment vs page.tsx 比對 → `page-inventory.md`
+- [x] **並排比對 27 頁（fidelity gate 本身）** —— 代碼層，我自己做（未委派，plan §8 risk 1）
+      · 方法：元素計數（**移除註解後才數**）+ **每個 fragment 可見字串逐字比對 en 字典**
+      · 規模：fragment **3,299 行** → page **23,102 行**（×7.0）· 可見字串 **719**
+      · 疑似缺漏 **44** → **逐筆追查後真實漏抄 0**（8 刻意算出 · 11 星號誤報 ·
+        9 供應商設定刻意留空 · 7 句子被擷取器切斷 · 8 住在 fixture · 1 已記錄改詞）
+      · ⚠️ **覆蓋聲明**：本次是**代碼層**比對，**視覺像素 diff 未做**；zh-Hant 譯文品質未稽核
+      · 產出 → `docs/02-architecture/page-inventory.md`
 
 ---
 
@@ -338,7 +343,10 @@
       （Problem / Root Cause / Solution / Verification / Impact —— 含 drive-through PASS +
       關掉的 `AD-CssToken-1` / `AD-Mockup-3` / `AD-Port-BFSI`）
       + §關鍵設計細節 + §Drive-through 抓到而 gate 沒抓到的
-- [ ] **`docs/02-architecture/page-inventory.md`** —— 30 條路由的 parity 狀態
+- [x] **`docs/02-architecture/page-inventory.md`** —— 27 個 screen 的 parity 狀態
+      · 含**覆蓋聲明**（掃了什麼 / 沒掃到什麼 / 方法的已知弱點）與 44 筆疑似缺漏的逐筆判定
+      · 🚧 **shell（`02-app-shell`）與 `30-ai-drawer` 未納入** ——
+        前者是規則來源本身、後者是元件不是畫面。解封：若要補，比對基準要另外定義
 - [ ] **`docs/02-architecture/design-system.md`** —— primitive index + drift incident log
       + 記下「`components.css` 未被 fragment 使用」這個事實與量測日期
       （避免下一片重新推導 —— playbook §7.5）

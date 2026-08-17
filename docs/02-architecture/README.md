@@ -64,6 +64,7 @@
 |---|---|
 | `COMPONENT_CATALOG.md` | 所有 component 一覽（id / 職責 / 依賴 / 技術 / 狀態）—— change/bug 標 `affects` 的權威來源 |
 | [`design-system.md`](./design-system.md) | 前端設計系統 + primitive index + **drift incident log** |
+| [`page-inventory.md`](./page-inventory.md) | 27 個畫面的 fragment ↔ `page.tsx` **保真度對照**與每一處偏離的依據（W19）|
 | `design-notes/` | Spike extract（見下）|
 | `gate-check/` | 「架構階段完成」的檢查點 checklist（選用）|
 | `audit-*.md` | 對 spec 的 audit（實際 vs 宣稱）|
