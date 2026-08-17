@@ -91,6 +91,14 @@ ALIASES: dict[str, str] = {
     # line is naming ENTITIES rather than tables. Renaming the table to singular
     # would instead break the convention all 24 other tables follow.
     "RetentionPolicy": "retention_policy",
+    # model PostureSnapshot / table posture_snapshots / index posture_snapshot (W18).
+    # The same singular/plural mismatch as RetentionPolicy above, resolved the
+    # same way and for the same reason. ⚠️ Note the index is inconsistent with
+    # ITSELF: 02a:42 writes this one in snake_case while :50 writes RetentionPolicy
+    # in PascalCase. That inconsistency is exactly why this is a list of measured
+    # mismatches rather than a rule -- no single convention would match both.
+    # Event needs no entry: 02a:38 writes `Event`, which is the model name.
+    "PostureSnapshot": "posture_snapshot",
 }
 
 # The four subsections of 02a §0. The first three carry a Wave column; the

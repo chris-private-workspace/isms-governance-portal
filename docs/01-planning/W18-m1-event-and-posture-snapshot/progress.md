@@ -80,3 +80,44 @@ D11 是記錄項。唯一待確認的 D7 是一個 enum 的大小寫，**不阻�
 ⭐ **本次 Day-0 的最高價值產出是 D1 與 D3** —— 兩者都不是「plan 漏了什麼」，
 而是「plan 給的理由撐不住／不夠硬」。D1 若沒抓到，`Event.status` 的省略會用一個
 **對任何 base field 都成立**的假理由寫進 migration banner，成為下一個 phase 抄襲的模板。
+
+---
+
+## Day 1 — 2026-08-17 — schema + migration + seed + int spec
+
+### 交付
+
+| 檔案 | 動作 | 內容 |
+|---|---|---|
+| `apps/api/prisma/schema.prisma` | EDIT | 3 enum + 2 model + `OrgEntity` 兩個反向關聯 |
+| `apps/api/prisma/migrations/20260817033944_event_and_posture_snapshot/migration.sql` | NEW | 3 enum · 2 表 · 3 index · 2 FK · RLS ENABLE+FORCE ×2 · **4 條 policy** · 2 GRANT · 2 COMMENT |
+| `apps/api/test/int-global-setup.js` | EDIT | seed 3 events + 5 posture snapshots + 2 個計數守衛 |
+| `apps/api/src/core-model/event-and-posture.int.spec.ts` | NEW | **17 個測試** |
+| `scripts/lint/check_entity_index.py` | EDIT | +1 ALIAS（`PostureSnapshot` → `posture_snapshot`）|
+| `docs/02-architecture/02a-data-model-spec.md` | EDIT | ⚠️ **偏離 plan §4 的 UNTOUCHED**，見 D13 |
+
+### 新的 drift / 發現
+
+| ID | Finding | 處置 |
+|----|---------|------|
+| **D12** | ⚠️ **`prisma format` 順帶重排了 11 行既有內容** —— `StatementOfApplicability:2011` · `Attestation:2285-2286` · `ISMSProfile` 的四個 `@db.Date` 欄位對齊，加 4 個空行。全部**與本片無關** | **保留，不還原**。那是 formatter 的**確定性輸出**（任何人跑同一指令都得到它），不是品味編輯 —— 還原它等於維持一個已知的不一致狀態，並讓下一個 phase 再撞一次（`AD-DevDbChecksumDrift-1` 那種「每次繞開都很便宜」的形狀）。⇒ 新 AD：**schema 沒有 format gate**，提議把 `prisma format --check` 加進 lint（另開 CH，本片不做 —— 節流閘）|
+| **D13** | ⭐ **plan §4 把 `02a` 標成 UNTOUCHED，那個標記過度了。** 它對「不需新增索引列」是對的，對「列的內容」是錯的：`02a:42` 的 note 寫著 *"the table is not built yet"*，本片建了它之後那句話就是 **AP-7 orphan claim** | 改該列的**事實陳述**（已建 / 未建），不動設計內容；residency 五欄未建的資訊保留。⚠️ 這是對 plan §4 的偏離，記在此處而非默默做掉 |
+| **D14** | ⚠️ **`loss_amount` 有第二個獨立的不可用理由，plan 只記了一個。** plan 記「今天永遠 NULL」（AP-3）；Day 1 讀 `02a:233` 時發現**沒有幣別欄位**，而 13 OpCo 跨 11 管轄區不共用幣別 ⇒ **就算 M6 開始寫入，那個數字仍然無法解讀** | 兩個理由都寫進 schema docstring 與 migration banner。新 AD `AD-LossAmountNoCurrency-1`。⛔ **不自行補 currency 欄位** —— `02a` 沒有它，補了就是自行發明欄位（已確認參數 #9）|
+| **D15** | 🔴 **我的第一版測試 3 預測錯了排序** —— 它用 `ORDER BY ref_code` 並預測 `s2,s1,s3`，資料庫回 `s3,s2,s1`（`EVT-HK1` 字典序在 `EVT-SG1` 之前）| 改成 **JS sort + 集合斷言**。⭐ 真正的教訓不是預測錯，是**這個斷言本來就不該依賴 SQL 排序**：W17 test 1 的註解已記過 collation 決定標點怎麼排，而測試要證明的是「三個值都可達」——那是集合。**第一次跑就抓到，這是測試在做它該做的事** |
+
+### Gate（逐項實際輸出，非「都過了」）
+
+| Gate | 結果 |
+|---|---|
+| `npx prisma validate` | ✅ `The schema at apps\api\prisma\schema.prisma is valid 🚀` |
+| `format:check -w apps/api` | ✅ `All matched files use Prettier code style!` |
+| `lint -w apps/api` | ✅ EXIT=0 |
+| `type-check -w apps/api` | ✅ EXIT=0 |
+| `build -w apps/api` | ✅ EXIT=0 |
+| `lint -w apps/web` · `type-check -w apps/web` | ✅ EXIT=0 · EXIT=0 |
+| `test -w apps/web` | ✅ **10 passed / 1 file** |
+| `test:cov -w apps/api` | ✅ **480 passed / 40 suites** · coverage **92.14 / 91.77 / 98.98 / 93.56** —— ⭐ **四項逐位等於 baseline**，且 **Day-0 標為未驗的 stmts 92.14 在此補齊**（這次用落檔 + Grep 取 `All files`，不再用 `tail` 截斷）。⚠️ 小修正：Day-0 我從 clover 算出 lines 93.57，jest 報 **93.56**（捨入差）—— 以 jest 為準 |
+| `lint:negative`（root） | ✅ `boundaries/dependencies rejected audit-trail -> core-model` · `60 file(s) scanned, 0 bypasses` |
+| `run_all.py` | ✅ **9 / 9** |
+| `check_entity_index.py` | ✅ **34 / 36**（models 33 → 35）—— **AC-1 達成** |
+| `test:int -w apps/api` | ✅ **265 passed / 21 suites**（248 baseline + **17 新**），227.4 s。⚠️ 第一輪是 **264 / 265** —— 測試 3 依 D15 修正後重跑 |

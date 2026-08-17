@@ -39,7 +39,7 @@ not on this list; adding an entity means adding a row here in the same change. �
 | `Attestation` | 1 | |
 | `RiskManagementReport` · `RMReportVersion` | 1 | §3.1 — versioned snapshot over the live register |
 | `extension_field_catalog` | 1 | §1.3 |
-| `posture_snapshot` | 1 | §7 — dashboard data source. ⚠️ **Specified** without the replication columns (`CH-008`); the table is not built yet |
+| `posture_snapshot` | 1 | §7 — dashboard data source. **Built in W18** with the seven columns §7 lists; ⚠️ the five replication columns stay **unbuilt** (`CH-008`, §7's banner, ADR-0010) |
 
 ### Foundation services — specified in this document (§3.2), described in `05`
 
