@@ -195,9 +195,10 @@
 
 ### 2.2 27 個 screen page.tsx（US-3）— **agent 平行**
 
-- [ ] **27 個 `page.tsx` + 共用 primitive** —— **進度 20 / 27**（build 路由表實測）
-      · 剩 7 個重畫面：`risks/[id]` `controls/[id]` `admin` `incidents/[ref]`
-      `risk-programme` `isms-profiles` `audit-issues/[ref]`
+- [ ] **27 個 `page.tsx` + 共用 primitive** —— **進度 24 / 27**（build 路由表實測）
+      · 🚧 剩 3 個：`controls/[id]` · `admin` · `isms-profiles`
+      · 解封：三者的 fixture（`data/extended/`）與字典（`i18n/{admin,deep,profiles}.*.json`）
+        **都已寫好**，剩下的是照 fragment 寫 JSX。中斷交接見 `progress.md` §Day 2 中斷交接
   - DoD: 每頁 inline style 原封不動、`<sc-if>`/`<sc-for>` 正確轉譯、
         SVG icon 直接搬、`hint-*` drop、文案走 `t()`（en=原文 / zh-Hant=譯文）、
         無對應行為的控件**不掛 handler 也不做成看似可點**
