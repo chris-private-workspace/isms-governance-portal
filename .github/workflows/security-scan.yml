@@ -144,21 +144,30 @@ jobs:
         with:
           node-version: "22"
 
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
       - name: 掃描
         run: |
-          # `--audit-level=low` 是**目前最嚴且仍為綠**的門檻（W01 實測 0 findings）。
-          # 從最嚴開始，之後才不會有東西靜靜退步；真的擋到路時走上面那條逐條豁免，
-          # 不是一刀切調高 severity。
+          # 門檻仍是 `--audit-level=low`（**最嚴**），只是不再直接由 `npm audit`
+          # 決定紅綠 —— 它是一個 pass/fail，沒有逐條豁免的辦法，
+          # 而本檔上面自己寫的分流是「修 / **豁免（寫理由 + 到期日）** / 誤報」。
+          # 缺了中間那個手段，被擋住時就只剩兩條路：整體調鬆門檻（假綠），
+          # 或讓 job 長期紅（侵蝕「紅 = 有東西壞了」）。本檔把兩者都列為錯的。
+          #
+          # 所以改由 `check_sca_allowlist.py` 收尾：它跑同一條 `npm audit --json`，
+          # 扣掉 `.sca-allowlist.json` 裡**逐條**接受的 advisory，其餘一律紅。
+          #
+          # ⭐ 真正的機制是**到期日**，不是白名單：
+          #    過期的接受條目**本身就是硬失敗**，與該漏洞是否仍存在無關。
+          #    閘門會在「這個決定該重新檢視」的那一天變紅，而不是安靜地續期。
           #
           # 含 devDependencies 是刻意的：建置期供應鏈同樣在 guardrail 7 的範圍內。
-          SCA_CMD='npm audit --audit-level=low'
-          case "$SCA_CMD" in
-            '' | '<'*)
-              echo "SCA 指令未設定 — 在 .github/workflows/security-scan.yml 填 SCA_CMD"
-              echo "常見選擇：pip-audit / pnpm audit --audit-level=low / cargo audit / govulncheck"
-              ;;
-            *) sh -c "$SCA_CMD" ;;
-          esac
+          #
+          # ⚠️ 這一條只在 CI 跑，**沒有進 `run_all.py`** —— `npm audit` 需要網路，
+          #    把它放進本機那道快速閘會讓 `run_all` 在離線時失敗。
+          python scripts/lint/check_sca_allowlist.py
 
       # ⚠️ 定門檻時的三條規矩（血淚換來的）：
       #
