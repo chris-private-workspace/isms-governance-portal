@@ -497,3 +497,72 @@ Day 1 記錄過一次「60.07s、`environment 0ms`、無法重現」。今天**�
 
 - **7 個重畫面** —— 使用者已裁決全做，需先補 `data/extended/` fixture
 - **Day 3 drive-through** —— 目前全部畫面都是 **gate-only verified**，一個都沒開過車
+
+---
+
+## 🛑 2026-08-17 — Day 2 中斷交接（使用者要關機／斷網）
+
+**中斷點：24 / 27 個畫面完成，工作區乾淨且全綠。**
+
+### 發生了什麼
+
+三個 agent 在做最後 7 個重畫面，跑到第 19 分鐘時使用者告知要關機。
+⇒ **主動 `TaskStop` 三個 agent**，而不是讓它們被斷電砍在寫檔中途。
+
+它們的最後一句話正好標出進度：全部剛做完 fixture、**正要開始寫主頁面**。
+實際盤點後比預期好得多 —— **4 個頁面已完整寫完**（33–73 KB），只有格式化沒跑到。
+
+### 停下來時的實測狀態
+
+| Gate | 結果 |
+|---|---|
+| `type-check` | **0** errors |
+| `lint` | EXIT=0 |
+| `format:check` | 修掉 4 個新頁面後 **All matched files use Prettier code style** |
+| `build` | ✓ Compiled · **28 條路由 / 24 個畫面** |
+| `test` | **8 檔 / 76 測試通過** |
+| `check_mockup_fidelity` | **OK** —— ⭐ 含 `hovers resolve`，代表新的 4 頁**沒有** hover 靜默失效。守衛在 agent 產出上生效了 |
+
+### ✅ 已完成（24 個畫面）
+
+`dashboard` `risks` `risks/new` **`risks/[id]`** `controls` `policies` `policies/[id]`
+`issues` `issues/[id]` `assessments` `ai-assistant` `incidents` `incidents/new`
+**`incidents/[ref]`** **`risk-programme`** `suppliers` `suppliers/[ref]` `suppliers/new`
+`os-portfolio` `audit-issues` **`audit-issues/[ref]`** `my-profile` `preferences`
+`switch-entity-role` + `login` + `api/demo-session`
+
+（**粗體** = 這次中斷前搶救回來的 4 個）
+
+### ⬜ 未完成 —— 下次 session 的第一件事
+
+**只剩 3 個畫面**：
+
+| 畫面 | fragment | 路由 | fixture 狀態 |
+|---|---|---|---|
+| 控制項詳情 | `08-control-detail.html`（175 行）| `/controls/[id]` | ⭐ **`extended/controlDetail.ts` 已寫好** |
+| 系統管理 | `14-admin.html`（343 行，最大）| `/admin` | ⭐ **6 個 extended 檔已寫好**：`adminSections` `adminUsers` `integrations` `permKey` `recentExports` `systemAudit` `taxonomy` |
+| ISMS 概況 | `23-apac-isms-profiles.html`（275 行，37 個 sc-if）| `/isms-profiles` | ⭐ **`extended/ismsProfiles.ts` 已寫好** |
+
+⭐⭐ **最重的部分已經做完了** —— 那三個 agent 花掉的 19 分鐘幾乎全在
+「從 800 KB 的 `design/*.dc.html` grep + 轉錄集合」，而 **14 個 `data/extended/*.ts` 全部落地**，
+字典也幾乎寫滿（`admin` 12 KB · `deep` 17 KB · `profiles` 17 KB，中英兩份都在）。
+剩下的是照 fragment 寫 JSX，**不需要再挖 `dc.html`**。
+
+### 重開時怎麼接（照這個順序）
+
+1. `git log --oneline -1` → 應為本次 commit；`git status` 應為 clean
+2. 派 1 個 agent 做那 3 個畫面，prompt 直接沿用本檔上面那三份的結構，
+   但**必須加一句**：fixture 與字典已存在於 `data/extended/` 與 `i18n/{admin,deep,profiles}.*.json`，
+   **先讀再用，不要重寫**
+3. ⚠️ **字典所有權**：`admin.*` 給 admin 畫面、`deep.*` 給 controls/[id]、`profiles.*` 給 isms-profiles
+   —— 已寫入的 key 不要動，只補缺的
+4. 我自己做 27 頁並排比對（保真度 gate 本身，不可委派）
+5. Day 3 drive-through
+
+### ⚠️ 重開時已知待處理
+
+- **`GLOSSARY.md` 術語**：`control` = **控制項**。若再派 agent，prompt 裡**不要**再寫 控制措施
+- **`data-hov` 只能用 `globals.css` 已定義的 10 個值** —— 現在有機械守衛，但 prompt 仍要講
+- **i18n key 一律字面**，不用樣板字串組
+- **Day 3 需要真瀏覽器** —— 先前記錄擴充未連線，這是 drive-through 的前置相依
+- 3 個未寫的畫面**沒有留下半成品檔案**（目錄都沒開），所以不必清理殘骸

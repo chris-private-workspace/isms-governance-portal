@@ -46,6 +46,10 @@ import zhHantDeep from './deep.zh-Hant.json';
 import enDeep from './deep.en.json';
 import zhHantAuth from './auth.zh-Hant.json';
 import enAuth from './auth.en.json';
+import zhHantAdmin from './admin.zh-Hant.json';
+import enAdmin from './admin.en.json';
+import zhHantProfiles from './profiles.zh-Hant.json';
+import enProfiles from './profiles.en.json';
 
 export const LOCALES = ['zh-Hant', 'en'] as const;
 
@@ -73,6 +77,8 @@ const zhHant = {
   ...zhHantSettings,
   ...zhHantDeep,
   ...zhHantAuth,
+  ...zhHantAdmin,
+  ...zhHantProfiles,
 };
 
 const en = {
@@ -83,6 +89,8 @@ const en = {
   ...enSettings,
   ...enDeep,
   ...enAuth,
+  ...enAdmin,
+  ...enProfiles,
 };
 
 /** zh-Hant is the source of truth for the key set; every other locale mirrors it. */

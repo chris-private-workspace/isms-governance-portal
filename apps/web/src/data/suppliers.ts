@@ -5,7 +5,7 @@
  * Scope: Phase W19
  *
  * Description:
- *   Verbatim copy of the handoff file of the same name. Exports `suppliers`, 7 rows,
+ *   Verbatim copy of the handoff file of the same name. Exports `suppliers`, 8 rows,
  *   covering ref, date, party, asset, access, cls, dur, people, reason, adequate,
  *   tpAdequate, newCtl, by, opco, review, and status.
  *
