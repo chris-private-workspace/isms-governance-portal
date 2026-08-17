@@ -163,29 +163,39 @@ _中性化實測是這一層的等價物 —— 它回答「拿掉這條約束�
 
 ### 3.1 預測先行
 
-- [ ] **把 ≥ 4 條中性化的預測寫進 progress.md 並先 commit**
-  - DoD: ⛔ **預測的 commit 必須早於執行** —— 事後寫的預測不是預測
-  - DoD: 每條註明：改什麼 · 預測哪幾個測試轉紅 · 紅的形狀（SQLSTATE / 斷言訊息）
+- [x] **把 ≥ 4 條中性化的預測寫進 progress.md 並先 commit** —— **5 條**，commit `726f8cc`
+  - DoD: ⛔ **預測的 commit 必須早於執行** —— 事後寫的預測不是預測 ✅ `726f8cc` 早於第一次執行
+  - DoD: 每條註明：改什麼 · 預測哪幾個測試轉紅 · 紅的形狀（SQLSTATE / 斷言訊息）✅
 
 ### 3.2 逐次執行
 
-- [ ] **N1 刪 `events_insert` policy** — 預期**恰 1 紅**（測試 6），而測試 5 **仍綠**
-- [ ] **N2 刪 `posture_snapshots` 的 `FORCE`** — 預期**恰 1 紅**（測試 8）
-- [ ] **N3 加回 `GRANT UPDATE` on `events`** — 預期**恰 2 紅**（測試 7、17）
-- [ ] **N4 把 `org_entity_id` 從 posture 唯一鍵拿掉**（⚠️ **依 Day-0 D8 改設計**，
+- [x] **N1 刪 `events_insert` policy** — 預期**恰 1 紅**（測試 6），而測試 5 **仍綠**
+      → ✅ **1 failed / 264 passed**，測試 6。⭐ **W17 同一個中性化是 0 轉紅**
+- [x] **N2 刪 `posture_snapshots` 的 `FORCE`** — 預期**恰 1 紅**（測試 8）
+      → ✅ **1 failed / 264 passed**，測試 8
+- [x] **N3 加回 `GRANT UPDATE` on `events`** — 預期**恰 2 紅**（測試 7、17）
+      → ✅✅ **2 failed / 263 passed**，且測試 7 **以 `resolved instead of rejected` +
+      `rowCount: 0` 轉紅** —— 紅的形狀也命中
+- [x] **N4 把 `org_entity_id` 從 posture 唯一鍵拿掉**（⚠️ **依 Day-0 D8 改設計**，
       不是「刪 unique 約束」）— 預期 **setup 崩潰**（seed 的 rows 1 & 4 衝突，23505），
       **不是**單一測試轉紅
-- [ ] **N5 刪 `events_read` policy** — 預期**恰 2 紅**（測試 2、4）
-  - DoD: 每次**只改一處**，跑完整 int suite，記錄實際轉紅集合
+      → ✅ `Got error running globalSetup … duplicate key value violates unique constraint
+      "posture_snapshots_org_entity_id_period_metric_key_key"`
+- [x] **N5 刪 `events_read` policy** — 預期**恰 2 紅**（測試 2、4）
+      → ✅ **2 failed / 263 passed**，測試 2、4
+  - DoD: 每次**只改一處**，跑完整 int suite，記錄實際轉紅集合 ✅ 五次各一處
   - DoD: ⛔ **零轉紅 = 揭露真缺口**，必須補測試（W17 的 N4 先例），不是「符合預期」
-  - DoD: ⛔ **紅得比預測多也要解釋** —— 多出來的紅若不能由該改動解釋，就是測試在互相依賴
-  - Verify: 每次 `npm run test:int -w apps/api` 的實際輸出貼進 progress.md
+        —— ✅ 本輪**無零轉紅**
+  - DoD: ⛔ **紅得比預測多也要解釋** —— ✅ **無超出**，五條的紅集合逐一等於預測
+  - Verify: 每次 `npm run test:int -w apps/api` 的實際輸出貼進 progress.md ✅
 
 ### 3.3 復原驗證
 
-- [ ] **全部中性化復原後 int suite 回到全綠**
-  - DoD: `git diff` 對 migration / spec 為空
+- [x] **全部中性化復原後 int suite 回到全綠**
+  - DoD: `git diff` 對 migration / spec 為空 —— ✅ `git status --porcelain apps/api` 與
+    `git diff --stat apps/api` **皆為空輸出**
   - Verify: `git status --porcelain apps/api` + `npm run test:int -w apps/api`
+    → ✅ **265 passed / 21 suites**
 
 ---
 
