@@ -35,7 +35,10 @@
 5. ❌ **以「production 簡化版」名義裁剪 mockup widget / 改 layout**
 6. ❌ **後端沒有就刪 widget** —— 後端權威只管資料契約，不管視覺元素存不存在。
    照 mockup 渲染，資料用 fixture 但**必須標示 DEMO**（未標示的 fixture = Potemkin）
-7. ❌ **在組件裡寫死色值** —— 一律 `oklch(var(--token))`
+7. ❌ **在組件裡寫死色值** —— 一律 `var(--token)`
+   （⚠️ **本專案不是 `oklch(var(--token))`** —— 交付物 token 是 HEX（`styles/tokens.css:24`
+   `--primary: #2A5BD7`），包一層 `oklch()` 會產生**無效 CSS 且靜默失效**。
+   W19 實測：同一句錯誤建議還藏在 `check_mockup_fidelity.py` 的違規訊息裡。關閉 `AD-CssToken-1`）
 
 ---
 

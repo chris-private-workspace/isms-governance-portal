@@ -14,9 +14,16 @@ Description:
          subjective eye-comparison into a deterministic diff.
 
       2. NO HARDCODED COLOURS — components must consume design tokens
-         (oklch(var(--token))), never an inline arbitrary colour. Any hit means
+         (var(--token)), never an inline arbitrary colour. Any hit means
          somebody eyeballed a colour into a component, which is exactly the
          lossy translation step the playbook exists to delete.
+
+         NOTE (W19, AD-CssToken-1): the wrapper form depends on what the
+         tokens hold. This project's tokens are HEX (tokens.css:24 is
+         `--primary: #2A5BD7`), so `oklch(var(--token))` would produce
+         INVALID CSS that fails silently — the page renders, the colour is
+         simply wrong. Only wrap in oklch() when the token stores bare
+         L C H components.
 
     NOT CONFIGURED = SKIP. Backend-only / no-mockup projects stay green without
     carrying a stub config.
@@ -213,7 +220,7 @@ def check_hardcoded_colors(cfg: Config, repo_root: Path) -> list[Violation]:
                             Violation(
                                 "hardcoded-color",
                                 f"{rel}:{lineno}",
-                                f"{line.strip()[:100]}  <- use oklch(var(--token))",
+                                f"{line.strip()[:100]}  <- use var(--token)",
                             )
                         )
                         break

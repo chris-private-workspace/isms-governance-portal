@@ -100,6 +100,84 @@
 
 ### Remaining for Next Day
 
-- plan 修訂（§3.3 / §3.4 / §3.x / §5 AC-4 / §7 / §8 / §9）+ checklist 對應調整
-- 開 branch `feature/W19-mockup-port`
+- plan 修訂（§3.3 / §3.4 / §3.x / §5 AC-4 / §7 / §8 / §9）+ checklist 對應調整 ✅
+- 開 branch `feature/W19-mockup-port` ✅（`bf2a2dd`）
 - Day 1：三支 CSS verbatim copy → self-host 字型 → detector config + **負面測試** → 紅線 7 修正 → app shell
+
+---
+
+## 2026-08-17 — Day 1（設計系統落地）
+
+### Today's Accomplishments
+
+**1.1-1.4 完成**（1.5 app shell / 1.6 vitest-jsdom 未做）。
+
+- 三支 CSS 以 **`cp` 機械複製** —— 不用 Read+Write。理由：後者讓內容經過我的手，
+  那**就是一個 drift 注入點**，而 playbook §4.2 的整個論證是「複製有 0 個注入點」。
+  複製後立即 `diff` 三對：**全部 `IDENTICAL`**。
+- `base.css:6` 的 Google Fonts `@import` 改為一行註解（唯一的聲明差異）。
+- `globals.css` 新建 —— 本 app **唯一自撰的 CSS**，其餘全是 Layer 2 複製品。
+- `layout.tsx` 掛 `data-grc` + `data-theme="light"` 於 `<html>`，移除 W01 的 inline style
+  （改由 base.css 的 `body` 規則接管），並更新那段已成 orphan claim 的 header
+  （原文寫「tokens.css 與 components.css **NOT copied here**」）。
+
+### 兩個原 plan 未預見的決策
+
+| # | 決策 | 理由 |
+|---|---|---|
+| 1 | **`@fontsource` 而非 `next/font/google`** | tokens.css 寫死**家族真名**（`--sans: 'IBM Plex Sans'`）。`next/font/google` 產生雜湊家族名（`__IBM_Plex_Sans_xxx`）⇒ 那個字面名**解析不到**，靜默 fallback 到 system-ui，**頁面不報錯只是字型全錯**。`@fontsource` 註冊真名 ⇒ **tokens.css 零修改**。⚠️ 與 D12 同一種失效模式 |
+| 2 | **不載入 IBM Plex Sans JP** | `--sans` 鏈是 `'IBM Plex Sans', 'IBM Plex Sans JP', system-ui`。繁中在拉丁字面無覆蓋 ⇒ 會落到 **JP 字型並以日式漢字字形渲染**（骨／直／戶 這類字母語者一眼可辨），而 guardrail 9 規定 UI 是繁中 ⇒ 略過 JP 讓繁中落到 `system-ui`。**這是有理由的偏離不是遺漏**，已寫進 `globals.css` 檔頭 |
+
+### 負面測試（三條，預測寫在執行之前，**3/3 命中**）
+
+| # | 中性化 | 預測 | 實測 |
+|---|---|---|---|
+| **N1** | `--primary: #2A5BD7` → `#2A5BD8` | 1 個 `css-drift`，**2 differing lines**（一減一加），allowance 0 | ✅ 逐項相符，且訊息把兩行印出來；EXIT=1 |
+| **N2** | 組件加未豁免的 `#123456` | 1 個 `hardcoded-color`，**指名檔案與行號** | ✅ `[hardcoded-color] apps/web/src/app/layout.tsx:45`；EXIT=1 |
+| **N3** | 換成**已豁免**的 `#fff` | **零 violation** | ✅ 綠；EXIT=0 |
+
+⭐ **N2 與 N3 必須成對讀**：單看 N2 只證明「檢查會紅」，單看 N3 只證明「這個值不紅」——
+**兩者合起來**才證明豁免清單是**窄的**，而不是把整個檢查關掉。
+（這正是 `AD-VacuousScopeTest-1` 要防的形狀：一條綠燈、有斷言、卻什麼都沒守。）
+
+### ⭐ N2 當場暴露了 `AD-CssToken-1` 的第二個藏身處
+
+違規訊息本身寫著 `<- use oklch(var(--token))` —— 而本專案 token 是 hex，照做會產生
+**無效 CSS 且靜默失效**。它硬編碼在 `check_mockup_fidelity.py` 裡。
+
+⛔ **這一處比那份 md 更危險**：md 是「規則文件」，要人主動去讀；而這句話是在**你違規的當下**
+跳出來告訴你怎麼修。plan §3.1 只寫了改 md ⇒ 只修一處會留下一個**會主動教人犯錯**的 gate。
+兩處都已修（訊息 + module docstring）。
+
+### Gate（實測）
+
+| Gate | 結果 |
+|---|---|
+| `run_all.py` | **9/9** —— ⭐ 第 5 項由 `SKIP` 變 `OK`（**數字沒變，組成變了**）|
+| `check_mockup_fidelity` | **OK (verbatim copy intact, no hardcoded colours)** |
+| web lint / type-check | EXIT=0 / EXIT=0 |
+| web test | **10 passed / 1 file**（不得回歸 —— 未回歸）|
+| web build | **EXIT=0**，Next 16.3.0 Turbopack，3/3 static pages |
+
+### Bundle 實證（build 綠 ≠ CSS 有進去，所以逐項查了）
+
+| 檢查 | 結果 |
+|---|---|
+| `--primary` | `--primary:#2a5bd7` ✅（⚠️ 首次 grep 報 MISSING 是**我的大小寫錯**，minify 轉了小寫）|
+| CSS custom properties | **43 個** |
+| dark theme | `data-theme=dark]` + dark-only 值 `#151a22` ✅（minify 移除了引號）|
+| `@font-face` 實際宣告 | **只有** `IBM Plex Sans` / `IBM Plex Mono` ✅ —— **JP 未載入**，符合決策 2 |
+| `IBM Plex Sans JP` 字串 | 僅出現在 `--sans` 的 **fallback 鏈**裡 ✅（tokens.css 逐字複製的內容，本該在）|
+| woff2 出貨 | **39 個** |
+| bundle 大小 | 24,398 bytes |
+
+⚠️ **兩次差點下錯結論，都是我的檢查方法不精確**：(a) `#2A5BD7` 大小寫；
+(b) 把 fallback 鏈裡的字串當成「JP 字型被載入了」。⇒ 兩者都靠**換一種問法重查**才分辨出來，
+而不是靠第一次 grep 的數字。
+
+### Remaining for Next Day
+
+- 1.5 App shell（`02-app-shell.html` 222 行 —— 全 repo 最密：33 個 `style-hover` / 30 SVG / 31 onClick）
+- 1.6 vitest 改 jsdom + 組件測試
+- ⚠️ **`data-grc` 掛載點的負面驗證**（拿掉屬性確認顏色真的垮）留到 Day 3 drive-through ——
+  它需要真瀏覽器，而本機的瀏覽器擴充目前未連線

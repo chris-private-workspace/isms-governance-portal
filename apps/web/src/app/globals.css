@@ -1,0 +1,66 @@
+/* ============================================================
+   File: apps/web/src/app/globals.css
+   Purpose: The one stylesheet this app authors. Everything else under
+       src/styles/ is a verbatim copy of the design handoff and must not
+       be edited here (see .mockup-fidelity.json).
+   Category: UI / design system
+   Scope: Phase W19
+
+   Description:
+       Load order matters and is not arbitrary:
+         1. @fontsource   -- registers the real family names the tokens ask for
+         2. tokens.css    -- defines every custom property (Layer 2, verbatim)
+         3. base.css      -- reset + type scale; its own header says "load after tokens"
+         4. components.css-- the 77 named classes (Layer 2, verbatim)
+
+   Why @fontsource and not next/font/google:
+       tokens.css hardcodes the FAMILY NAMES -- `--sans: 'IBM Plex Sans', ...`
+       and `--mono: 'IBM Plex Mono', ...`. next/font/google emits a hashed
+       family (__IBM_Plex_Sans_xxx), so those literal names would resolve to
+       nothing and silently fall back to system-ui. Nothing would error; the
+       page would just be wrong. @fontsource registers the real names, so
+       tokens.css needs no edit at all.
+
+   Why IBM Plex Sans JP is deliberately NOT loaded:
+       The canonical --sans chain is
+           'IBM Plex Sans', 'IBM Plex Sans JP', system-ui, sans-serif
+       Traditional Chinese has no coverage in the Latin face, so it would fall
+       through to the JP face and render with JAPANESE glyph forms. This UI is
+       zh-Hant (guardrail 9) and the difference is visible to native readers
+       in characters such as 骨 / 直 / 戶. Skipping the JP face lets zh-Hant
+       fall through to system-ui, which resolves correctly on every target OS.
+       This is a declared, reasoned divergence -- not an omission.
+
+   Created: 2026-08-17 (Phase W19)
+   Last Modified: 2026-08-17
+
+   Modification History (newest-first):
+       - 2026-08-17: Initial creation (Phase W19) -- design system landing
+
+   Related:
+       - docs/06-reference/mockup-to-production-frontend-playbook.md 4.2
+       - docs/rules-on-demand/mockup-fidelity.md
+   ============================================================ */
+
+@import '@fontsource/ibm-plex-sans/400.css';
+@import '@fontsource/ibm-plex-sans/500.css';
+@import '@fontsource/ibm-plex-sans/600.css';
+@import '@fontsource/ibm-plex-sans/700.css';
+@import '@fontsource/ibm-plex-mono/400.css';
+@import '@fontsource/ibm-plex-mono/500.css';
+@import '@fontsource/ibm-plex-mono/600.css';
+
+@import '../styles/tokens.css';
+@import '../styles/base.css';
+@import '../styles/components.css';
+
+/* The design tokens hang off [data-grc], not :root (tokens.css:4,7), so the
+   attribute must be present on an element that ENCLOSES everything painted.
+   It is set on <html> in layout.tsx. Losing it does not raise -- every colour
+   simply falls back -- so Day 1 verifies it by removing the attribute and
+   confirming the page really does break. */
+
+html,
+body {
+  min-height: 100%;
+}
