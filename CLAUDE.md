@@ -76,7 +76,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 | Attribute | Value |
 |-----------|-------|
 | **Stage** | Wave 1 backbone — 建立共用骨幹，並用 Policy + Risk/Control 兩個最小模組端到端證明它 |
-| **Current Phase** | **W18**（**MERGED PR #77**，`d370f8c`）`closed` —— M1 slice 13：`events`（`02a:233` 六欄骨架）+ `posture_snapshots`（旗艦儀表板的唯一資料來源）**34 / 36**，零端點。⭐⭐ 核心是一個**區分**：兩表構造相同而 append-only 的理由不可互換 —— 快照是**規格明文且無解封**，事件是**能力尚不可表達且 M6 解封**。⭐ Day-0 **D1 推翻 plan 自己的理由**（`02a:157`：§3 只列 entity-specific 欄位 ⇒「不在清單上」對任何 base field 都成立）。⭐ 中性化 **5/5 命中含紅的形狀** |
+| **Current Phase** | **W19**（PR-pending）`closed` —— mockup port：**30 / 30 個畫面**落地 `apps/web`（build 31 條路由）。⭐⭐ 核心是**三層驗證互相看不見**：gate 綠 · 保真度比對 719 字串**漏抄 0** ·而 **drive-through 抓到 25 個死控件**（無 handler、未停用、4 個會 hover 發亮）——**它們通過了每一項 gate，含本片當天新加的 hover 守衛**。⭐ 停用前先問「能不能真的做到」：2 個變成真的能用 |
 | **History** | See [`MEMORY.md`](./MEMORY.md) + 各 phase 的 `retrospective.md` |  <!-- doc-links: ignore — MEMORY.md 由 bootstrap 複製到專案根 -->
 | **Pending / Next** | See [`docs/01-planning/BACKLOG.md`](./docs/01-planning/BACKLOG.md)（**有什麼**）· [`ROADMAP.md`](./docs/01-planning/ROADMAP.md)（**先做哪個**）|
 | **跨來源狀態** | See [`docs/01-planning/STATUS_AUDIT.md`](./docs/01-planning/STATUS_AUDIT.md) —— 問「現在全項目怎樣」時跑 `/status-audit`，**不要只讀 BACKLOG** |
@@ -510,6 +510,6 @@ python scripts/lint/run_all.py
 
 ---
 
-**Last Updated**: 2026-08-17（W18 closeout）
+**Last Updated**: 2026-08-17（W19 closeout）
 **Project Start**: 2026-08-07
 **Template Version**: 2.6.1 (claude-code-dev-template)

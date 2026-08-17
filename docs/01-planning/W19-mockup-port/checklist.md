@@ -289,8 +289,9 @@
 
 ### 2.x Full gate
 
-- [ ] web lint · type-check · build · test（10 條不得回歸）·
-      api 全套不得回歸（int 265/21 · unit 480/40）· `run_all` **9/9**
+- [x] web lint · type-check · build · test（10 條不得回歸 —— **未回歸，現為 88 條 / 9 檔**）·
+      api 全套不得回歸（**unit 480/40 ✅** · **int 265/21 ✅ 於重跑**，首跑 1 紅已查證為負載 flake）·
+      `run_all` **9/9**
 
 ---
 
@@ -339,7 +340,7 @@
 
 ### 4.1 Change record
 
-- [ ] **`docs/03-implementation/changes/CH-NNN-w19-mockup-port.md`**
+- [x] **`docs/03-implementation/changes/CH-038-w19-mockup-port.md`**
       （Problem / Root Cause / Solution / Verification / Impact —— 含 drive-through PASS +
       關掉的 `AD-CssToken-1` / `AD-Mockup-3` / `AD-Port-BFSI`）
       + §關鍵設計細節 + §Drive-through 抓到而 gate 沒抓到的
@@ -347,19 +348,31 @@
       · 含**覆蓋聲明**（掃了什麼 / 沒掃到什麼 / 方法的已知弱點）與 44 筆疑似缺漏的逐筆判定
       · 🚧 **shell（`02-app-shell`）與 `30-ai-drawer` 未納入** ——
         前者是規則來源本身、後者是元件不是畫面。解封：若要補，比對基準要另外定義
-- [ ] **`docs/02-architecture/design-system.md`** —— primitive index + drift incident log
+- [x] **`docs/02-architecture/design-system.md`** —— primitive index + drift incident log
+      · ⭐ 撰寫時查證出**我引用的守衛是錯的**：`i18n.test.ts` check 3 比對兩參數 `t(locale,'key')`，
+        27 畫面全用單參數 `tr('key')` ⇒ 它看得到 13 個 key、看不到 718 個 → `AD-I18nScannerCoverage-1`
+      · ⭐ 並指出 `posture.ts` 的 `THRESHOLD` docstring 仍留著「Invented」這句假話（Day 2 只修了檔頭）—— 已修
       + 記下「`components.css` 未被 fragment 使用」這個事實與量測日期
       （避免下一片重新推導 —— playbook §7.5）
 
 ### 4.2 Closeout
 
-- [ ] `retrospective.md` Q1-Q7 + calibration（`mockup-port` 0.55 × agent 0.45，**第 1 個資料點**；
+- [x] `retrospective.md` Q1-Q7 + calibration（`mockup-port` 0.55 × agent 0.45，**第 1 個資料點**；
       ratio 出 band 就標記 re-point）
-- [ ] `calibration-matrix.md` 新增一行 —— **≤ 1 行 ~250 字元**（lint 上限 400；完整敘述 → `calibration-log.md`）
-- [ ] Final gate sweep: web lint/type/build/test · api int 265/21 · api unit 480/40 · `run_all` **9/9**
-- [ ] 導航檔: `CLAUDE.md` Current-Phase + Last-Updated · `MEMORY.md` pointer + subfile ·
-      `BACKLOG.md`（CLOSE 三條 AD + `AD-Mockup-2` 改為「已渲染，結構問題仍開」）
-- [ ] Anti-pattern 自檢（retro Q5）：AP-1..AP-7 → 違規數
+      · ratio **0.40-0.47 UNDER** —— actual 記為**區間**（無逐日工時 + 窗口內有關機中斷）
+      · **不 re-point**；預先判準寫入 log：假設是**平行度**（3 agent 同跑）而非 agent_factor 本身
+- [x] `calibration-matrix.md` 新增一行（257 字元）+ 完整敘述進 `CALIBRATION-LOG.md` §1
+- [x] Final gate sweep: web format/lint/type **exit 0** · test **9 檔 / 88 通過** · build **31 條路由** ·
+      api unit **480 / 40 suites** · `run_all` **9/9**
+      · ⚠️ **api int 第一次跑 264/265** —— `policy.int.spec.ts › forty contending reference codes` 紅
+        （Prisma 7 建構子驗證）。查證：本分支 `git diff main...HEAD -- apps/api` **為空**；
+        單獨跑該測試 **PASS**；完整重跑 **265/265 全綠** ⇒ **不可重現的負載 flake**，非回歸
+        → `AD-IntSuiteConcurrencyFlake-1`（本 phase 第 2 個負載相關 flake）
+- [x] 導航檔: `CLAUDE.md` **只動 2 行**（超預算 30,210 bytes 後壓回）· `MEMORY.md` pointer + subfile ·
+      `BACKLOG.md` **CLOSE 4 條** + `AD-Mockup-2` **P0→P1**「已渲染，滾升聚合規則仍開」+ 新增 8 條
+      · `RISK_REGISTER.md` 已複查：**新增 E4**（R5 的新形狀 —— E1 是守衛壞了，**E4 是根本沒有守衛**）
+- [x] Anti-pattern 自檢（retro Q5）：**發生 37 · 處置後 1**（AP-2 `answerFor` 重複，已記錄未修）
+      · ⚠️ AP-3 的 25 與 AP-7 的 11 **都只在 drive-through 之後才可見** —— 停在 gate 全綠這張表會是假的 0
 - [ ] **Commit** → ⏳ PR push + open → CI → merge: **PENDING USER CONFIRMATION**
       （push 是 outward-facing）→ merge 經 `gh` 驗證後翻狀態標籤
-- [ ] `plan.md` frontmatter `status:` → `closed`，內文 `**Status**` 一起翻（R9）
+- [x] `plan.md` frontmatter `status: closed` + 內文 `**Status**` 一起翻（R9），`check_status_markers` 綠

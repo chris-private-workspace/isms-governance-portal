@@ -1,5 +1,5 @@
 ---
-status: draft   # draft | active | closed | closed_partial —— 機器可讀的唯一權威
+status: closed  # draft | active | closed | closed_partial —— 機器可讀的唯一權威
 ---
 
 # Phase W19 Plan — Port the design handoff into apps/web
@@ -11,7 +11,7 @@ detector 從 SKIP 接成會叫的守衛。關掉 `AD-CssToken-1` / `AD-Mockup-3`
 部分關掉 `AD-Mockup-2`。**Drive-through MANDATORY**（全部是 user-facing）。
 非 spike（playbook 已是既有方法論）⇒ 不產 design note。
 
-**Status**: Draft（待使用者核可；2026-08-17 起草。使用者已裁決：30 個畫面全做 · persona 選擇器 ·
+**Status**: **Closed**（2026-08-17 收尾。30 / 30 個畫面交付、drive-through PASS、保真度比對真實漏抄 0）
 Azure demo 走 rcitest 訂閱 → 切為 W20 · 時程 7 天以上）
 
 **Branch**: `feature/W19-mockup-port`

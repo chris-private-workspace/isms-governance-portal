@@ -611,6 +611,48 @@ W10 的分界線把污染從兩類降到一類，**沒有降到零**。→ 回�
 
 ---
 
+### `mockup-port`
+
+**現行乘數**: 0.55 | **資料點**: 1 | **agent_factor**: 0.45（sub-class `greenfield-port-style`）
+
+#### Phase W19 — ratio **0.40–0.47**（UNDER band）
+
+- Bottom-up **69 hr** → class-calibrated **38 hr** (mult 0.55) → agent-adjusted **17 hr** (factor 0.45)
+  → actual **6.9–8.0 hr**
+- **這個 class 是本片新建的**。plan 已論證現有三個 class 都不合：非 `pattern-reuse-feature`
+  （repo 內無前端藍本可抄）、非 `spike`（playbook 已是既有方法論）、
+  非 `greenfield-scaffold`（不是建骨架）。取 `greenfield-feature` 的 0.55 mid-band 起手。
+
+- **⚠️ actual 是區間不是單值，理由要留著**：`progress.md` 全程沒有逐任務工時，
+  數字由 commit 時間戳量。而窗口內部有一段 **17:58–19:03 的關機中斷**，
+  其中**確有 agent 在跑**（三個平行 agent 寫最後三個畫面），
+  所以既不能整段計入也不能整段排除。
+  - 排除整段：6.86 hr（分支點 13:47 → 21:44，扣 1.08 hr）
+  - 計入整段：7.95 hr
+  - ⇒ **兩端都記**。這比挑一個看起來精確的數字誠實。
+
+- **ratio 為什麼這麼低 —— 假設**：`agent_factor` 0.45 描述的是
+  「**一個** agent 依明確 spec 實作比人快多少」，
+  而本片實際發生的是**三個 agent 同時做三件互不相干的事**（27 個畫面分三批、
+  最後三頁分三批、25 個死控件分三批）。
+  **壓縮 wall-clock 的是平行度，不是委派本身** —— 這兩件事在 matrix 裡沒有分開。
+
+- **這是這個 class 的結構特徵，不是雜訊**：`mockup-port` 天然可切成互不相干的畫面，
+  所以它幾乎總是能平行化。⇒ 若這個假設成立，本欄未來的資料點會**系統性偏低**，
+  而修正的對象是 `agent_factor` 的維度設計，不是 class 乘數。
+
+- **是雜訊還是訊號**：**單一資料點，且量測有兩個瑕疵**（無逐日工時 · 窗口含中斷）。
+  ⚠️ 與 `AD-CalibrationT0PlacementShift-1`（W18）相鄰但不同：那條是 **T0 落在哪裡**，
+  本片新增的是 **窗口內部有閒置區段** —— matrix 現有欄位兩者都表達不了。
+
+- **行動**：**KEEP 0.55，等更多資料點。不 re-point。**
+  **預先判準（寫下來才算數）**：第 2 個 `mockup-port` 資料點若
+  **同樣是多 agent 平行且 ratio < 0.7**，則 re-point 的對象是
+  **`agent_factor` 的維度**（增加平行度軸：1 agent / 2-3 / 4+），**不是 class mult 0.55**。
+  若第 2 點是**單 agent** 且 ratio 回到 IN band，則本點的低 ratio 由平行度解釋，假設成立。
+
+---
+
 ## §2 — Agent Delegation 觀察
 
 <!-- 記錄 agent_factor 的實際表現，特別是「隱藏成本」的實測值 -->

@@ -52,6 +52,7 @@ Bottom-up ~X hr → class-calibrated ~Y hr (mult Z) → agent-adjusted ~Y' hr (a
 |-------------|------|---------------|--------------|
 | `greenfield-scaffold` | 0.60 | n/a (1 pt) | KEEP (W01 ratio ~0.35 UNDER band; 工時未逐項記錄，數字由 commit 時間戳回推故品質打折; if 2nd <0.70 → 0.40; → calibration-log) |
 | `pattern-reuse-feature` | 0.50 | n/a (11 pt, 跨 0.23~1.24) | KEEP (W18 ratio **0.545 UNDER**, 第 11 點, ⭐ **第一個乾淨 UNDER** —— T0 蓋在**讀第一個檔案前**故分子完整; ⛔ W17 判準寫 0.7-0.85 而本點更低 ⇒ 字面不觸發; ⚠️ ratio 對分子方向與直覺相反 ⇒ 舊 UNDER 部分是量測 artifact; 新判準: 第 12 點**同量法**再 <0.7 則 re-point 0.45; 3-phase 平均不得跨量法; → calibration-log) |
+| `mockup-port` | 0.55 | n/a (1 pt) | KEEP (W19 ratio **0.40-0.47 UNDER**, 第 1 點, 區間非單值 —— 窗口內含關機中斷且比例不可量; ⭐ 疑因 **3 agent 平行**而非 agent_factor 0.45 本身; 單點不 re-point; 若第 2 點同為多 agent 且 <0.7 → 改動 `agent_factor` 而非 class mult; → `AD-AgentParallelismFactor-1`) |
 | `spike` | 0.65 | n/a (6 pt, 跨 0.30~1.03) | KEEP (W12 ratio **1.025 IN —— 本欄第一個 IN 點**; ⭐ `actual/bottom-up` **0.667** 首次高於 0.4 下限，但 bottom-up 是 Day-0 後**重估**的故非事前證據; 無等待間隙; 單點不調乘數; → calibration-log) |
 
 ### 常見 scope class 起始建議值
