@@ -38,6 +38,7 @@ function renderScreen(setScope = vi.fn()) {
     scopeLabel: 'APAC',
     entity: null,
     setScope,
+    setLocale: () => {},
     periodLabel: '2026-Q3',
   };
 

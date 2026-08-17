@@ -645,3 +645,156 @@ High/critical risks `≤5 / 6–9 / ≥10` 寫成 `4 / 7`。
 
 ⭐ 真正擋住這兩次的不是我的自律，是 prompt 裡那句「**回報衝突而不是自行消化**」——
 三個 agent 全部照做。這條要求本身值得升級成派工的預設項。
+
+---
+
+# Phase W19 Progress — 2026-08-17（Day 3）
+
+## Day 3 — Drive-through（真 UI + 真後端）
+
+工具：Playwright MCP。這是本 phase 第一次**實際開車**，先前 27 個畫面全部只是 gate-only。
+
+### 3.1 Clean restart
+
+3200 埠實測 **FREE（無 listener）**，全機唯二 node 進程是使用者剛啟動的 Playwright MCP ——
+**沒有陳舊 Next 程序**（Risk Class C 不成立，不需要清）。
+`next dev` startup log：`▲ Next.js 16.3.0 (Turbopack)` · **`✓ Ready in 2.6s`** · `http://localhost:3200`。
+`DEMO_AUTH` 不需設定 —— `demo-session.ts:60` 在 `NODE_ENV !== 'production'` 時直接放行。
+
+---
+
+## 🔴 Day 3 的核心發現：25 個死控件，全部通過了每一項 gate
+
+**這是本 phase 最重要的一筆，也是 drive-through 存在的全部理由。**
+
+15 個畫面上有 **25 個按鈕**：沒有 `onClick`、沒有 `disabled`、`cursor: pointer`、`opacity: 1`，
+其中 4 個還帶 `data-hov` **會在滑鼠移過時亮起來**。它們看起來完全是活的，按下去什麼都不會發生。
+
+它們通過了：`format` · `lint` · `type-check` · `build` · **76 個測試** · **`run_all` 9/9**
+（含這個 phase 自己新加的 `check_hover_rules`）。**沒有任何一項機械檢查看得到它們。**
+
+違反的是 checklist DoD 那句「無對應行為的控件不掛 handler **也不做成看似可點**」的後半段，
+以及 `verification-discipline.md` 列在第一條的禁止項。
+
+### 修法：先問「能不能真的做到」，做不到才停用
+
+| 處置 | 數量 | 說明 |
+|---|---|---|
+| **接上，變成真的能用** | 2 | `/preferences` 語言卡 —— 見下 |
+| **停用**（`disabled` + `not-allowed` + `opacity .5` + 說明 title，**移除 `data-hov`**）| 24 鈕 + 2 span | 需要本 port 沒有的後端 |
+| **移除假的可點外觀** | 3 列 | `/ai-assistant` 對話歷程 —— 見下 |
+
+⭐ **語言卡是唯一「能力早就存在、只是沒接上」的一個。** `AppShell:231` 一直有 `setLocale`，
+topbar 的切換器也一直在用 —— 只是 `ShellState` 沒把它暴露出去。加上去之後**卡片真的會切換語言**
+（實測：H1「偏好設定」→「Preferences」、整個側邊欄跟著換、`aria-pressed` 正確更新）。
+這與 `setScope` 當初存在的理由完全相同，所以不是新設計而是補完既有模式。
+順帶修掉 `prefs.language.note` —— 它原本寫「此清單僅顯示目前使用中的語言」，改完就變成假話。
+
+⭐ **`/ai-assistant` 對話歷程是保真度與反 Potemkin 正面衝突的一處。**
+fragment `:127` **自己**就給了 `cursor:pointer` + `style-hover` 而**沒有 onClick` ——
+缺陷源自交付物。而交付物的資料是 `{title, meta}`、**沒有訊息內容**，
+所以「接上」永遠不可能誠實達成（替 AI 畫面編造對談內容比空著更糟）。
+⇒ 判 guardrail 優先，移除 pointer 與 hover，並在程式碼中完整記錄理由與復原條件。
+**這正是 `verification-discipline.md` 開頭那個真實案例的形狀**（聊天 session 列表點了沒反應）。
+
+### 驗證修正（我自己開車，不採信 agent 回報）
+
+15 條路由逐一實測：**24 個停用鈕 + 2 個 inert span，零違規** ——
+每一個都是 `cursor: not-allowed`、**`data-hov` 為 null**、`title` 正確解析到 `shell.inert`。
+補掃後 **27 條路由全部 `deadButtons: []`**（含展開分頁後的狀態）。
+
+---
+
+## Drift findings（承 Day 2）
+
+**D23 — 我的第一次死控件 sweep 有兩個射程漏洞，是 agent 找出來的，不是我。**
+
+我只掃了 `<button>`、且只掃每頁的**預設分頁**。實際漏掉：
+（a）`<span>` 帶 `cursor:pointer` 而無 handler（`risks/[id]`、`controls/[id]` 各一組）；
+（b）**非預設分頁後面的控件** —— `audit-issues/[ref]` 證據分頁的「開啟」鈕，預設分頁上根本不存在。
+
+⇒ 補掃改成走完整祖先鏈 + 逐分頁點擊。⚠️ 補掃第一版又誤報了一大批（把可點 `<tr>` 的子 `<td>`
+全算成死控件，因為我只排除 `<a>`/`<button>` 祖先而沒排除**帶 onClick 的任何祖先**）——
+修正後真實命中從「數百」降到 **9 個，全在 `/ai-assistant`**。
+**同一個 session 內第 5 次「拿便宜的代理指標回答需要讀內容的問題」。**
+
+**D24 — 儀表板最高殘餘風險列連到清單頁而不是那一筆風險。**
+`dc.html:5166` 的 `onOpen` 明確帶 id（`setState({screen:'risks', selectedRisk: r.id})`），
+而 port 寫的是 `href="/risks"` —— 不是死控件（真的會導航），但**默默丟掉使用者剛表達的選擇**。
+`/risks/[id]` 在 Day 2 才落地，所以這是路由補齊後才浮現的。已修為 `href={`/risks/${r.id}`}`。
+
+**D25 — 儀表板標題不跟著 scope 走。** 鑽取單一實體後，KPI、矩陣、麵包屑的管轄區數全部重算了，
+但 H1 仍寫「ISMS 態勢 —— 亞太區」。fragment `:12,:14` **把 `APAC Region` 寫死**，
+所以 port 是忠實的 —— 是**我們自己加的鑽取功能**製造了 fragment 從未有過的狀態。
+已加 scope 變體（區域狀態的原文一字未動）。⚠️ 第一版用 `entity.name`（法定全名
+「Ricoh (Malaysia) Sdn Bhd」），與矩陣列顯示的「Ricoh Malaysia」不一致 ——
+改用 `entityPosture` 的短名，因為使用者點的是那一個。
+
+---
+
+## 逐項驗收（checklist §3.2）
+
+| 要求 | 實測結果 |
+|---|---|
+| 27 畫面 + shell 走過 | ✅ 28 條路由（含 login）逐一載入，**console error 全部 0** |
+| Persona 登入主路徑 | ✅ 選 persona → `/dashboard`、topbar 顯示「AK A. Kumar 平台管理員」 |
+| 切換實體/角色 | ✅ `switch-entity-role` 選 Ricoh Thailand → topbar 變 `RTH Thailand` |
+| 登出 | ✅ cookie `isms_demo_persona` **登出後為空**、導回 `/login` |
+| **負面測試（我加的）** | ⭐ **無 session 直接開 `/dashboard` → 被擋回 `/login`** |
+| DEMO 標記逐頁目視 | ✅ `(app)` **27 / 27** 頁 `<DemoBadge/>` **實際可見**（量 bounding box 不只查存在）；`login` 用明文「本示範不使用也不接受密碼」 |
+| 13 OpCo / 11 管轄區 | ✅ 矩陣 13 列、麵包屑「11 個管轄區」；實際 SG·HK 各 2 家 ⇒ 13 實體 / 11 管轄區 |
+| 看不到 India / Japan-as-OpCo / BFSI | ✅ 全 app grep：India/DPDP **只出現在說明為何刪除的檔頭註解**、Japan 無 OpCo 列、**BFSI 0 命中** |
+| 截圖 | ✅ 6 張存於 `artifacts/`（login · dashboard · dashboard 鑽取 · admin · admin 使用者 · isms-profiles）|
+
+### 順帶實測的活功能（都不是 Potemkin）
+
+- **儀表板鑽取**：點 Ricoh Malaysia → 六張 KPI 全部重算（84%→74% · 75→8 · 10/13→0/1）、
+  整體態勢 A→R、最高殘餘風險只剩該實體兩筆
+- **`/isms-profiles` 編輯流程**：編輯 → 16 個欄位出現 → 存成新版本 →
+  **v2.1→v2.2 出現在版本歷程與 rail 卡** → toast「前一版本仍保留並標記為已被取代」
+- **`/incidents/new` 漸進啟用**：填表前送出鈕 `disabled`，填完 17 欄後解除；
+  按下去回「**僅為示範 —— 未送出任何資安事件、未發出任何通知，也未儲存任何資料**」
+- **深色主題**：`data-theme` light→dark，背景 `rgb(245,246,248)`→`rgb(12,16,22)`
+- **`/ai-assistant` 自我標示**：「示範模式 · 未連接任何模型」
+
+### ⭐ 門檻修正在畫面上得到確認
+
+Day 2 修的 `posture.ts` 兩組門檻，在 `/admin` 的 RAG 門檻表上**逐格等於 `dc.html:5088`**
+（RCSA 75–89% · 高風險 ≤5 / 6–9 / ≥10）。儀表板矩陣同步：高/重大欄 ≤5 綠、6–9 琥珀 ——
+修正前 `{4,7}` 會讓 5 變琥珀、8/9 變紅。**這是修正生效的視覺證據，不是推論。**
+
+### Runtime 安全姿態（guardrail 7）
+
+`localStorage` **0 鍵** · `sessionStorage` **0 鍵** · 唯一 cookie `isms_demo_persona`
+（**httpOnly: true** · SameSite Lax · 值是 `platform-admin` 這個 persona id，
+**不是 token、不是憑證、不是個資**）· 管理畫面 **0 個密碼欄位**。
+
+### a11y / responsive
+
+a11y：`aria-current="page"` ×1 · landmark 齊全（nav/main/banner）· 單一 h1 ·
+**0 個未標籤的圖示按鈕** · 表格有 `<th>`。
+
+responsive：**1440 / 1366 溢出 0**，1300 溢出 23px，**1280 溢出 43px**（英文 49px，與語言無關）。
+交付物 `README.md:445` 宣告 ≥1280px ⇒ 差 28px。使用者裁決：**記錄不修**（→ `AD-ShellMinWidth-1`）。
+
+---
+
+## 使用者裁決
+
+**「變更密碼」保留** —— 我提出它與已採納的 ADR-0007 衝突（認證走 Entra ID、登入頁無密碼欄位），
+使用者裁決**本地帳號密碼流程應保留，作為本機開發與備用路徑**。
+
+⚠️ **這是架構級決定，載體必須是 ADR-0007 的修訂而不是任何一次實作**（R5）。
+本 phase **不實作** —— 沒有認證後端，密碼欄位疊在沒有後端之上就是這一輪花整輪在移除的 Potemkin。
+現況：按鈕保留、停用、檔頭記錄裁決。→ **`AD-LocalPasswordFallback-1`（P0）**，
+修訂必須先回答「break-glass 還是一般登入」。
+
+---
+
+## Gate（全部我自己跑的）
+
+`format:check` **All matched files use Prettier code style** · `lint` **exit 0** ·
+`type-check` **exit 0** · `test` **8 檔 / 76 通過** · `build` **✓ Compiled / 31 條路由** ·
+`run_all` **9 / 9**
+
+⚠️ api 端**零檔案變動**，本次未重跑（Day 4 closeout 會跑全套）。

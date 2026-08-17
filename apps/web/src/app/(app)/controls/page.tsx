@@ -28,8 +28,11 @@
  *   caret colour. The two screens are NOT normalised onto one button.
  *
  *   "New control" has no destination: there is no /controls/new route in this
- *   port. It renders, does nothing, and is reported as unwired rather than
- *   given an empty handler that would make it look alive.
+ *   port. It therefore renders DISABLED — opacity .5 + not-allowed, which is
+ *   components/controls.md's own disabled state — with shell.inert saying why
+ *   on hover. Day-3 found the earlier treatment (drawn live, no handler)
+ *   indistinguishable from a working button, which is the worse of the two
+ *   failures an empty handler was being avoided for.
  *
  * Key Components:
  *   - ControlsPage: the screen
@@ -39,6 +42,7 @@
  * Last Modified: 2026-08-17
  *
  * Modification History (newest-first):
+ *   - 2026-08-17: Disable server-backed actions (Phase W19) — Day-3 dead controls
  *   - 2026-08-17: Initial creation (Phase W19)
  *
  * Related:
@@ -96,6 +100,14 @@ const TH_LEFT = {
   color: 'var(--text-3)',
   borderBottom: '1px solid var(--border)',
 } as const;
+
+/**
+ * components/controls.md:7 — disabled is opacity .5 with cursor not-allowed.
+ *
+ * Applied to New control, which would need a route and a write path. Not an
+ * invented visual: it is the design system's own disabled state.
+ */
+const INERT: React.CSSProperties = { cursor: 'not-allowed', opacity: 0.5 };
 
 /**
  * Fixed for the whole register, not for the current view. Computed from the
@@ -290,9 +302,11 @@ export default function ControlsPage() {
           );
         })}
         <div style={{ flex: 1 }} />
-        {/* Unwired: there is no /controls/new route in this port. */}
+        {/* Inert: there is no /controls/new route in this port. */}
         <button
           type="button"
+          disabled
+          title={tr('shell.inert')}
           style={{
             height: '34px',
             padding: '0 14px',
@@ -307,6 +321,7 @@ export default function ControlsPage() {
             alignItems: 'center',
             gap: '7px',
             cursor: 'pointer',
+            ...INERT,
           }}
         >
           <svg

@@ -33,6 +33,10 @@
  *   repopulate the page per quarter. Inventing four more quarters of numbers
  *   would make the control look real while being no more true.
  *
+ *   THE EXPORT BUTTON RENDERS DISABLED for the same reason: producing the file
+ *   needs a server this port does not have. Day-3 found it looking live and
+ *   doing nothing, which is the failure the period note above avoids.
+ *
  * Key Components:
  *   - DashboardPage: the screen
  *   - KPIS: the six cards, each a reduction over the entity rows
@@ -41,6 +45,7 @@
  * Last Modified: 2026-08-17
  *
  * Modification History (newest-first):
+ *   - 2026-08-17: Disable server-backed actions (Phase W19) — Day-3 dead controls
  *   - 2026-08-17: Initial creation (Phase W19) — first screen on the shell
  *
  * Related:
@@ -65,6 +70,14 @@ import { tok } from '@/lib/tok';
 const avg = (ns: number[]) =>
   ns.length ? Math.round(ns.reduce((a, b) => a + b, 0) / ns.length) : 0;
 const sum = (ns: number[]) => ns.reduce((a, b) => a + b, 0);
+
+/**
+ * components/controls.md:7 — disabled is opacity .5 with cursor not-allowed.
+ *
+ * Applied to the export action, which would need a server to render a file.
+ * Not an invented visual: it is the design system's own disabled state.
+ */
+const INERT: React.CSSProperties = { cursor: 'not-allowed', opacity: 0.5 };
 
 /**
  * The five graded columns for one entity.
@@ -97,6 +110,13 @@ export default function DashboardPage() {
   const rows = entity ? entityPosture.filter((e) => e.code === entity.code) : entityPosture;
   const matrix = rows.map((e) => ({ e, l: bandsFor(e) }));
   const jurisdictions = new Set(rows.map((e) => e.juris)).size;
+  /**
+   * The heading names the entity the way the matrix row does, not by its legal
+   * name. entityPosture:59 keeps a short display name because the legal one does
+   * not fit the scorecard cell; using opcos.name here would have the title say
+   * 'Ricoh (Malaysia) Sdn Bhd' about a row the user clicked as 'Ricoh Malaysia'.
+   */
+  const scopeName = rows[0]?.name ?? entity?.name ?? '';
 
   const region = regionPosture(rows.map((e) => e.overall));
   const regionTok = tok(region);
@@ -249,7 +269,10 @@ export default function DashboardPage() {
               marginBottom: '7px',
             }}
           >
-            <span>{tr('dash.eyebrow.region')}</span>
+            {/* Follows the scope: the fragment hardcoded the region because the
+                prototype had no drilled-in state. Day-3 drive-through found the
+                heading still saying APAC while one entity was displayed. */}
+            <span>{entity ? scopeName : tr('dash.eyebrow.region')}</span>
             <span style={{ color: 'var(--border-strong)' }}>/</span>
             <span>{periodLabel}</span>
             <span style={{ color: 'var(--border-strong)' }}>/</span>
@@ -264,12 +287,12 @@ export default function DashboardPage() {
               lineHeight: 1.1,
             }}
           >
-            {tr('dash.title')}
+            {entity ? trf('dash.titleEntity', { entity: scopeName }) : tr('dash.title')}
           </h1>
           <div
             style={{ marginTop: '5px', fontSize: '13px', color: 'var(--text-2)', fontWeight: 500 }}
           >
-            {tr('dash.subtitle')}
+            {entity ? trf('dash.subtitleEntity', { entity: scopeName }) : tr('dash.subtitle')}
           </div>
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
@@ -323,9 +346,13 @@ export default function DashboardPage() {
           </div>
           <div style={{ width: '1px', height: '38px', background: 'var(--border)' }} />
           <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+            {/* Inert: rendering a posture export needs a server. data-hov is
+                dropped on purpose — [data-hov='s3']:hover still fires on a
+                disabled element, and a hover response reads as "this is live". */}
             <button
               type="button"
-              data-hov="s3"
+              disabled
+              title={tr('shell.inert')}
               style={{
                 display: 'flex',
                 alignItems: 'center',
@@ -340,6 +367,7 @@ export default function DashboardPage() {
                 fontSize: '12.5px',
                 fontWeight: 600,
                 cursor: 'pointer',
+                ...INERT,
               }}
             >
               <IconDownload width="14" height="14" stroke="currentColor" strokeWidth="1.8" />
@@ -1021,10 +1049,14 @@ export default function DashboardPage() {
             {topRisks.map((r) => {
               const b = riskBand(r.residual);
               const bt = tok(b.rating);
+              // dc.html:5166 — the design's onOpen carries the id:
+              // setState({screen:'risks', selectedRisk: r.id}). Pointing at the
+              // register instead discards the choice the click just made. Found
+              // on the Day-3 drive-through, after the detail route landed.
               return (
                 <Link
                   key={r.id}
-                  href="/risks"
+                  href={`/risks/${r.id}`}
                   data-hov="s2"
                   style={{
                     display: 'flex',

@@ -35,6 +35,7 @@
  * Last Modified: 2026-08-17
  *
  * Modification History (newest-first):
+ *   - 2026-08-17: Disable server-backed actions (Phase W19) — Day-3 dead controls
  *   - 2026-08-17: Initial creation (Phase W19)
  *
  * Related:
@@ -70,6 +71,9 @@ const STATUS: Record<string, { key: TranslationKey; rating: Rating }> = {
   Overdue: { key: 'issues.status.overdue', rating: 'R' },
   Closed: { key: 'issues.status.closed', rating: 'G' },
 };
+
+/** components/controls.md:7 — disabled is opacity .5 with cursor not-allowed. */
+const INERT: React.CSSProperties = { cursor: 'not-allowed', opacity: 0.5 };
 
 const TH_LEFT = {
   textAlign: 'left',
@@ -275,9 +279,13 @@ export default function IssuesPage() {
           );
         })}
         <div style={{ flex: 1 }} />
-        {/* Unwired: there is no /issues/new route in this port. */}
+        {/* Disabled: logging an issue creates a record, which needs a server
+            this port does not have. There is no /issues/new route to send the
+            click to either. controls.md:7 is the disabled state. */}
         <button
           type="button"
+          disabled
+          title={tr('shell.inert')}
           style={{
             height: '34px',
             padding: '0 14px',
@@ -292,6 +300,7 @@ export default function IssuesPage() {
             alignItems: 'center',
             gap: '7px',
             cursor: 'pointer',
+            ...INERT,
           }}
         >
           <svg

@@ -42,6 +42,7 @@
  * Last Modified: 2026-08-17
  *
  * Modification History (newest-first):
+ *   - 2026-08-17: Disable server-backed actions (Phase W19) — Day-3 dead controls
  *   - 2026-08-17: Initial creation (Phase W19)
  *
  * Related:
@@ -96,6 +97,14 @@ const FILTERS: { id: string; key: TranslationKey; test: (i: AuditIssue) => boole
 
 /** The grid track list, written once because header and rows must not drift. */
 const COLUMNS = '118px minmax(0,2.4fr) 104px 150px 84px 92px 120px 96px';
+
+/**
+ * components/controls.md:7 — disabled is opacity .5 with cursor not-allowed.
+ *
+ * Not an invented visual: it is the design system's own disabled state, and the
+ * only honest rendering of an action this port has no backend to perform.
+ */
+const INERT: React.CSSProperties = { cursor: 'not-allowed', opacity: 0.5 };
 
 const KPI_CARD = {
   background: 'var(--surface)',
@@ -197,9 +206,14 @@ export default function AuditIssuesPage() {
             {tr('audit.subtitle')}
           </div>
         </div>
-        {/* Unwired: there is no /audit-issues/new route in this port. */}
+        {/* Disabled, not merely unwired: there is no /audit-issues/new route in
+            this port, and raising a finding writes a register record. The six
+            filter pills below genuinely filter, so a live-looking button here
+            would be indistinguishable from the controls that do work. */}
         <button
           type="button"
+          disabled
+          title={tr('shell.inert')}
           style={{
             display: 'inline-flex',
             alignItems: 'center',
@@ -214,6 +228,7 @@ export default function AuditIssuesPage() {
             fontSize: '13px',
             fontWeight: 600,
             cursor: 'pointer',
+            ...INERT,
           }}
         >
           <svg

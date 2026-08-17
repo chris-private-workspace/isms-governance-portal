@@ -32,6 +32,17 @@
  *   from the prototype's own clamp — the prose in that doc says 60-200/20% and
  *   the code disagrees; the code is what the design actually does.
  *
+ *   ALL FOUR FILE ACTIONS ARE DISABLED, and the facsimile is why. Open in new
+ *   tab, Download, Print and Download original every one act on the ATTACHED
+ *   FILE — the toolbar names it, sizes it and calls it 12 pages. That file does
+ *   not exist here. Print is the one that looks rescuable, since window.print()
+ *   needs no server; it is disabled anyway, because what it would print is the
+ *   4-page facsimile this screen labels a rendered preview, not the 12-page
+ *   document the button sits beside. A backend would not fix these four — the
+ *   document itself is what is missing. Rendered disabled per controls.md:7,
+ *   with title=shell.inert saying so, and their hover declarations dropped: a
+ *   hover response is the signal that a control is live.
+ *
  *   TWO COLLECTIONS ARE DERIVED, and both had to be, because policies.ts holds
  *   neither: attestation-by-entity is computed over entityPosture (so it lists
  *   13 entities, not the fragment's 6 placeholders), and linked controls are
@@ -46,6 +57,7 @@
  * Last Modified: 2026-08-17
  *
  * Modification History (newest-first):
+ *   - 2026-08-17: Disable server-backed actions (Phase W19) — Day-3 dead controls
  *   - 2026-08-17: Initial creation (Phase W19) — policy detail port
  *
  * Related:
@@ -101,6 +113,14 @@ const ICON_BUTTON: React.CSSProperties = {
 };
 
 const PAGER_BUTTON: React.CSSProperties = { ...ICON_BUTTON, width: '28px', height: '28px' };
+
+/**
+ * components/controls.md:7 — disabled is opacity .5 with cursor not-allowed.
+ *
+ * Merged into the four FILE actions, never into PAGER_BUTTON: the pager and the
+ * zoom controls drive the facsimile and genuinely work.
+ */
+const INERT: React.CSSProperties = { cursor: 'not-allowed', opacity: 0.5 };
 
 /** dc.html:3887 — published is green, in review amber, anything else neutral. */
 const STATUS: Record<
@@ -570,12 +590,14 @@ export default function PolicyDetailPage() {
               </h1>
             </div>
             <div style={{ display: 'flex', alignItems: 'center', gap: '9px' }}>
-              {/* Both unwired: there is no document service behind this yet, so
-                  neither opening nor downloading the original has anything to
-                  reach. Rendered as designed, listed on the drive-through. */}
+              {/* Both disabled: they act on the ATTACHED FILE, and there is no
+                  file — the sheet below is a facsimile the screen itself labels
+                  a rendered preview. No backend could be swapped in to fix that
+                  here; the document itself is what is missing. */}
               <button
                 type="button"
-                data-hov="s3"
+                disabled
+                title={tr('shell.inert')}
                 style={{
                   height: '36px',
                   padding: '0 14px',
@@ -590,6 +612,7 @@ export default function PolicyDetailPage() {
                   display: 'inline-flex',
                   alignItems: 'center',
                   gap: '7px',
+                  ...INERT,
                 }}
               >
                 <svg
@@ -610,6 +633,8 @@ export default function PolicyDetailPage() {
               </button>
               <button
                 type="button"
+                disabled
+                title={tr('shell.inert')}
                 style={{
                   height: '36px',
                   padding: '0 14px',
@@ -624,6 +649,7 @@ export default function PolicyDetailPage() {
                   display: 'inline-flex',
                   alignItems: 'center',
                   gap: '7px',
+                  ...INERT,
                 }}
               >
                 <svg
@@ -750,12 +776,15 @@ export default function PolicyDetailPage() {
                 {policy.file.fmt}
               </span>
               <div style={{ display: 'flex', gap: '7px', flexShrink: 0 }}>
-                {/* Unwired for the same reason as the header pair. */}
+                {/* Disabled for the same reason as the header pair. The action
+                    label moves to aria-label because title is now the inert
+                    explanation, and these buttons carry no text of their own. */}
                 <button
                   type="button"
-                  title={tr('policyDetail.action.print')}
-                  data-hov="s3"
-                  style={ICON_BUTTON}
+                  disabled
+                  aria-label={tr('policyDetail.action.print')}
+                  title={tr('shell.inert')}
+                  style={{ ...ICON_BUTTON, ...INERT }}
                 >
                   <svg
                     width="15"
@@ -774,9 +803,10 @@ export default function PolicyDetailPage() {
                 </button>
                 <button
                   type="button"
-                  title={tr('policyDetail.action.downloadOriginal')}
-                  data-hov="s3"
-                  style={ICON_BUTTON}
+                  disabled
+                  aria-label={tr('policyDetail.action.downloadOriginal')}
+                  title={tr('shell.inert')}
+                  style={{ ...ICON_BUTTON, ...INERT }}
                 >
                   <svg
                     width="15"

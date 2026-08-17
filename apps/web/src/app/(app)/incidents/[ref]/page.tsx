@@ -50,6 +50,7 @@
  * Last Modified: 2026-08-17
  *
  * Modification History (newest-first):
+ *   - 2026-08-17: Disable server-backed actions (Phase W19) — Day-3 dead controls
  *   - 2026-08-17: Initial creation (Phase W19) — incident detail port
  *
  * Related:
@@ -102,6 +103,9 @@ const CARD: React.CSSProperties = {
   borderRadius: '12px',
   boxShadow: 'var(--shadow)',
 };
+
+/** components/controls.md:7 — disabled is opacity .5 with cursor not-allowed. */
+const INERT: React.CSSProperties = { cursor: 'not-allowed', opacity: 0.5 };
 
 const PANEL_HEADING: React.CSSProperties = { fontSize: '12px', fontWeight: 700 };
 
@@ -372,12 +376,14 @@ export default function IncidentDetailPage() {
           </div>
         </div>
         <div style={{ display: 'flex', gap: '8px' }}>
-          {/* Both unwired: there is no report generator and no update channel
-              behind this screen yet. Rendered as designed, listed on the
-              drive-through rather than given an onClick that does nothing. */}
+          {/* Both disabled: generating a report and publishing an update each
+              need a server this port does not have. Rendered as designed but
+              shown disabled per controls.md:7, and the export button's hover
+              declaration is dropped — a hover response reads as 'live'. */}
           <button
             type="button"
-            data-hov="s3"
+            disabled
+            title={tr('shell.inert')}
             style={{
               height: '34px',
               padding: '0 14px',
@@ -389,12 +395,15 @@ export default function IncidentDetailPage() {
               fontSize: '12.5px',
               fontWeight: 600,
               cursor: 'pointer',
+              ...INERT,
             }}
           >
             {tr('incidentDetail.export')}
           </button>
           <button
             type="button"
+            disabled
+            title={tr('shell.inert')}
             style={{
               height: '34px',
               padding: '0 14px',
@@ -406,6 +415,7 @@ export default function IncidentDetailPage() {
               fontSize: '12.5px',
               fontWeight: 600,
               cursor: 'pointer',
+              ...INERT,
             }}
           >
             {tr('incidentDetail.issueUpdate')}

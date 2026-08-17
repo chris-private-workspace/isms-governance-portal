@@ -860,15 +860,28 @@ export default function AiAssistantPage() {
             >
               {tr('assistant.threads.title')}
             </div>
-            {/* No handler: the deliverable stores thread titles and no bodies. */}
+            {/*
+              DOCUMENTED DEVIATION, found on the Day-3 drive-through.
+
+              The fragment (:127) gives this row `cursor:pointer` and a hover,
+              and gives it NO onClick — an affordance with no action defined.
+              The deliverable's own data is `{title, meta}` with no bodies, so
+              selecting a thread could never show one; inventing conversations
+              for an AI screen would be fabricating answers, not porting.
+
+              Fidelity says copy the style verbatim; verification-discipline.md
+              forbids making something look clickable when it is not, and its
+              founding example is precisely a chat thread list that did nothing.
+              The guardrail wins: the pointer and hover are dropped so the rows
+              read as the history list they actually are. Restore both the
+              moment a thread carries messages.
+            */}
             {aiThreads.map((t) => (
               <div
                 key={t.title}
-                data-hov="s2"
                 style={{
                   padding: '10px 15px',
                   borderBottom: '1px solid var(--border)',
-                  cursor: 'pointer',
                 }}
               >
                 <div

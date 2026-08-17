@@ -55,6 +55,13 @@ export type ShellState = {
    * clickable and are not.
    */
   setScope: (code: string) => void;
+  /**
+   * Change the language from a screen, for the same reason setScope exists.
+   * The preferences screen draws a card per locale; without this they are cards
+   * that look selectable and are not — the topbar owns the only working
+   * switcher, and a second one that silently does nothing is worse than none.
+   */
+  setLocale: (locale: Locale) => void;
   /** What the fragments call {{ periodLabel }}. */
   periodLabel: string;
 };
