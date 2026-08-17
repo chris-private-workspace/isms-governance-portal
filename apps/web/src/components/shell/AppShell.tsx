@@ -56,7 +56,7 @@
  */
 
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import {
   useEffect,
   useMemo,
@@ -98,6 +98,7 @@ import {
 import { ShellStateContext, type ShellState } from '@/components/shell/shell-state';
 import { opcos } from '@/data/opcos';
 import { LOCALES, t, tf, type Locale } from '@/i18n';
+import type { Persona } from '@/lib/personas';
 import { tok } from '@/lib/tok';
 
 type IconCmp = ComponentType<SVGProps<SVGSVGElement>>;
@@ -222,17 +223,27 @@ const NOTIFICATIONS = [
 
 type MenuId = 'scope' | 'search' | 'notif' | 'lang' | 'user';
 
-export function AppShell({ children }: { children: ReactNode }) {
+export function AppShell({ children, persona }: { children: ReactNode; persona: Persona }) {
   const pathname = usePathname();
+  const router = useRouter();
   const [collapsed, setCollapsed] = useState(false);
   const [theme, setTheme] = useState<'light' | 'dark'>('light');
   const [locale, setLocale] = useState<Locale>('zh-Hant');
   const [openMenu, setOpenMenu] = useState<MenuId | null>(null);
-  const [scopeCode, setScopeCode] = useState<string>('APAC');
+  // The seat decides the opening scope. A Regional ISO lands on APAC; an OpCo
+  // admin lands on their own entity, which is what entity scoping means.
+  const [scopeCode, setScopeCode] = useState<string>(persona.scope);
   const [period, setPeriod] = useState<string>(PERIODS[0] ?? '');
 
   const tr = (key: string) => t(locale, key as Parameters<typeof t>[1]);
   const toggle = (id: MenuId) => setOpenMenu((cur) => (cur === id ? null : id));
+
+  async function signOut() {
+    setOpenMenu(null);
+    await fetch('/api/demo-session', { method: 'DELETE' }).catch(() => undefined);
+    router.push('/login');
+    router.refresh();
+  }
 
   // The tokens hang off [data-grc][data-theme] on <html> (tokens.css:7,67),
   // which this component does not render. Without this the toggle would swap
@@ -1079,7 +1090,7 @@ export function AppShell({ children }: { children: ReactNode }) {
                   fontWeight: 700,
                 }}
               >
-                ML
+                {persona.initials}
               </span>
               <span style={{ textAlign: 'left', lineHeight: 1.2 }}>
                 <span
@@ -1090,10 +1101,10 @@ export function AppShell({ children }: { children: ReactNode }) {
                     color: 'var(--text)',
                   }}
                 >
-                  Mei Lin Tan
+                  {persona.name}
                 </span>
                 <span style={{ display: 'block', fontSize: '10.5px', color: 'var(--text-3)' }}>
-                  Regional Governance
+                  {tr(persona.roleKey)}
                 </span>
               </span>
               <span style={{ fontSize: '9px', color: 'var(--text-3)' }}>▼</span>
@@ -1137,13 +1148,11 @@ export function AppShell({ children }: { children: ReactNode }) {
                       flexShrink: 0,
                     }}
                   >
-                    ML
+                    {persona.initials}
                   </span>
                   <div style={{ minWidth: 0 }}>
-                    <div style={{ fontSize: '13px', fontWeight: 700 }}>Mei Lin Tan</div>
-                    <div style={{ fontSize: '11px', color: 'var(--text-3)' }}>
-                      mei.lin.tan@group.com
-                    </div>
+                    <div style={{ fontSize: '13px', fontWeight: 700 }}>{persona.name}</div>
+                    <div style={{ fontSize: '11px', color: 'var(--text-3)' }}>{persona.email}</div>
                   </div>
                 </div>
                 <div style={{ padding: '6px' }}>
@@ -1177,9 +1186,12 @@ export function AppShell({ children }: { children: ReactNode }) {
                     </Link>
                   ))}
                   <div style={{ height: '1px', background: 'var(--border)', margin: '5px 4px' }} />
-                  <Link
-                    href="/login"
-                    onClick={() => setOpenMenu(null)}
+                  {/* A link to /login would leave the cookie set, so the next
+                      visit walks straight back in — a sign-out that does not
+                      sign anything out. It has to clear the session first. */}
+                  <button
+                    type="button"
+                    onClick={() => void signOut()}
                     data-hov="r-bg"
                     style={{
                       display: 'flex',
@@ -1191,12 +1203,16 @@ export function AppShell({ children }: { children: ReactNode }) {
                       fontWeight: 600,
                       color: 'var(--rag-r-ink)',
                       cursor: 'pointer',
-                      textDecoration: 'none',
+                      width: '100%',
+                      border: 'none',
+                      background: 'transparent',
+                      fontFamily: 'inherit',
+                      textAlign: 'left',
                     }}
                   >
                     <IconSignOut width="15" height="15" stroke="currentColor" strokeWidth="1.7" />
                     {tr('user.signOut')}
-                  </Link>
+                  </button>
                 </div>
               </div>
             )}

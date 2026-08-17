@@ -41,7 +41,12 @@ export default defineConfig({
   // Next both read and Vitest does not. The 10 pre-existing tests all import
   // relatively, so nothing had ever asked Vitest to resolve it.
   resolve: {
-    alias: { '@': fileURLToPath(new URL('./src', import.meta.url)) },
+    alias: {
+      '@': fileURLToPath(new URL('./src', import.meta.url)),
+      // See test/server-only.stub.ts — the real package throws on import
+      // unless the `react-server` condition is set, which only Next sets.
+      'server-only': fileURLToPath(new URL('./test/server-only.stub.ts', import.meta.url)),
+    },
   },
   // Next compiles JSX for the app; Vitest does not inherit that. tsconfig sets
   // `jsx: preserve` because Next wants the raw syntax, so a .test.tsx reaches
@@ -56,6 +61,17 @@ export default defineConfig({
     environment: 'jsdom',
     include: ['src/**/*.test.ts', 'src/**/*.test.tsx'],
     setupFiles: ['./vitest.setup.ts'],
+    // Capped because the suite intermittently died with "Failed to start forks
+    // worker" — twice now, both times with the same signature: ~60s wall clock
+    // and `environment 0ms`, i.e. it never got as far as building a DOM. A
+    // green retry each time made it look like noise on the first sighting.
+    //
+    // The cause is visible in a passing run: `environment 224s` across 8 files.
+    // Every file builds its own jsdom, ~28s each, and starting that many at
+    // once is what Windows refuses. Capping concurrency is the containment;
+    // the real fix is making jsdom opt-in per file so pure-logic suites stop
+    // paying for a DOM they never touch. Logged for the phase closeout.
+    poolOptions: { forks: { maxForks: 4 } },
     coverage: {
       include: ['src/i18n/**'],
       thresholds: { statements: 80, branches: 80, functions: 80, lines: 80 },

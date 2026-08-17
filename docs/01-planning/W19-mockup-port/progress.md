@@ -395,3 +395,105 @@ fragment 盤點顯示，有一批畫面消費的集合**在 `data/*.js` 裡根�
 是「**先發明一份 fixture，再照抄 fragment**」。plan §7 的工時是以「port」估的。
 
 **這是要使用者裁決的事，不是我自行吸收的事。** 三個選項與建議寫在今天的回覆裡。
+→ **使用者裁決：全做，補齊 fixture**（期間選擇器維持現狀 + 明確標示）。
+
+---
+
+## 2026-08-17 — Day 2（續：19 個畫面平行委派 + auth）
+
+### 委派結構
+
+4 個 agent，各 3-8 個畫面，**各自擁有一份字典**（`registers` / `forms` / `details` / `settings`）。
+字典分檔不是組織偏好，是**並行寫入的正確性**：共用一對 JSON 必然互相覆蓋，
+而遺失的合併**看起來像少一個 key、不像衝突**。
+
+實測進度：build 路由表 **20 個畫面 + `/login` + `/api/demo-session`**。
+
+### 🔴 三個 agent 各自獨立標記同一件事：我的 prompt 給錯術語
+
+我在四份 prompt 裡都寫「Control = 控制措施」。`GLOSSARY.md:45` 訂的是 **控制項**，
+並明文「不要用 控制、管制」；已上線的 `nav.controls` 就是 控制項。
+⇒ **同一個詞在同一個畫面上兩種譯法**（nav 寫 控制項，內容寫 控制措施）。
+
+- **43 個值已修**（6 份字典），殘留 0
+- 保留不動三處：`已控制`（Contained 是另一個詞）· `風險與控制自我評估`（RCSA 慣用展開）·
+  `網路存取控制`（那是一項控制的**名稱**）
+
+⭐ 值得記的是**它們的行為**：三個 agent 都**照我的指示做、同時把衝突升級**，
+而沒有一個默默選一邊。`GLOSSARY.md:20` 要求的就是這個。
+⚠️ 但也要看清楚：**它們是照著我給的錯誤指示做的** —— 委派把我的錯誤放大了 3 倍，
+唯一擋住它的是「回報衝突」這條要求，不是 agent 自己會發現。
+
+### 🔴 D17 —— 我的 worked example 上有 7 個 hover 靜默失效
+
+`registers` agent 回報 `dashboard/page.tsx` 用了 `data-hov="surface-3"` / `"surface-2"` /
+`"scorecard-row"`，而 `globals.css` 定義的是 `s3` / `s2` / `bs-s2`。
+
+⚠️ **我第一次驗證時差點自己得出錯誤結論** —— 用 `grep -oE 'data-hov="[^"]+"'` 掃 CSS，
+只找到 2 個「已定義」值，因為 CSS 選擇器用的是**單引號** `[data-hov='s3']`。
+pattern 不匹配被讀成「沒定義」。改用逐字讀檔才拿到真正的 10 個。
+**這正是「證據不支持結論」的第 6 次**：pattern 沒命中 ≠ 東西不存在。
+
+真實情況：定義 10 個，使用中有 3 個值無規則 ⇒ **7 處 hover 什麼都不會發生**
+（dashboard 4 · login 3）。全部已修。
+
+⛔ **最糟的部分是位置**：那是 27 個畫面被指定去抄的範本。
+而我寫給 agent 的規則第 2 條就是「用 globals.css **已有的**值」——
+**我自己沒遵守我自己寫的規則**，四個 agent 全部遵守了。
+
+### ⭐ 這一次做了結構性解法而不只是修 7 處
+
+`check_mockup_fidelity.py` 新增 **`check_hover_rules`**：
+掃所有組件的 `data-hov` 值，比對 `globals.css` 實際定義的規則集合，
+無對應規則即 fail 並印出 `file:line` + 合法值清單。
+
+**負面測試（`AD-NegativeGate-1`）**：故意把一個值改成 `surface-2` →
+`[hover-no-op] apps/web/src/app/(app)/dashboard/page.tsx:791` + EXIT=1；改回 → OK + EXIT=0。
+
+> 為什麼這個守衛值得存在：這種失效**在 diff 上看起來是對的**。
+> fragment 寫 `var(--surface-3)`，所以 `data-hov="surface-3"` 逐字比對時完全合理 ——
+> 只有比對「值 vs 規則集合」才看得出來。
+
+### ⭐ D18 —— vitest 的 fork 失敗不是雜訊，是負載
+
+Day 1 記錄過一次「60.07s、`environment 0ms`、無法重現」。今天**同一個簽名再次出現**。
+
+通過的那一次露出了原因：**`environment 224.82s` / 8 個檔** —— 每個測試檔各起一次 jsdom，
+每次約 28 秒，同時啟動這麼多是 Windows 拒絕的原因。
+
+`poolOptions.forks.maxForks = 4` 之後：
+
+| | 前 | 後 |
+|---|---|---|
+| 總時間 | 42.24s | **20.45s** |
+| environment | 224.82s | **66.81s** |
+
+⭐ **爭用本身就是成本** —— 限制並行不只是穩定，而是快了一倍。
+真正的解法是讓 jsdom 變成 per-file opt-in（純邏輯測試不該付 DOM 的錢），記入 closeout。
+
+### agent 回報中值得保留的判斷
+
+| 來源 | 內容 |
+|---|---|
+| `details` | 交付物的 logic class **不是遺失的**，它嵌在 `design/*.dc.html` 裡。所謂「缺的集合」全部在那 ⇒ 它**轉錄並標註 `dc.html:NNNN`**，而不是發明，並**明確拒絕**我要它寫「invented」的指示，因為那句話會是假的 |
+| `forms` | 風險表單的**單一 impact 值**是 `15-design-alignment.md:180` 的 open item #6，仍未關。它照 fragment port 並記錄偏離，**沒有即興發明五維 UI** |
+| `forms` | 風險分級：prototype 是 `>=15`，憲章參數 #7 是 **>=16**。它用了憲章 ⇒ 3×5=15 在原型讀「High」在這裡讀「Medium」，**看起來會像 bug** |
+| `forms` | `22-supplier-form.html` **完全沒有 entity 欄位**，而 `suppliers.ts` 每一列都有 `opco` ⇒ 從這張表建的記錄沒有所屬實體，違反 guardrail 4。它**沒有自行加欄位**（參數 #9 禁止），標為缺口 |
+| `settings` | 偏好設定**沒有任何一項會持久化**。它在畫面上說出來，並寫了 `Storage.prototype.setItem` 的間諜測試 —— 一個承諾換成一道機器守衛 |
+| `registers` | 交付物自己的 prose 計數已對不上自己的資料（43 users vs 8 列等），全部改為算出來 |
+
+### Gate（實測，合併後）
+
+| Gate | 結果 |
+|---|---|
+| `format:check -w apps/web` | All matched files use Prettier code style |
+| `lint -w apps/web` | EXIT=0 |
+| `type-check -w apps/web` | **0** errors |
+| `build -w apps/web` | ✓ Compiled · **22 條路由**（20 畫面 + `/login` + `/api/demo-session`）|
+| `test -w apps/web` | **8 檔 / 76 測試通過** |
+| `run_all.py` | **9/9**（`mockup-fidelity` 訊息現在多一句 `hovers resolve`）|
+
+### Remaining
+
+- **7 個重畫面** —— 使用者已裁決全做，需先補 `data/extended/` fixture
+- **Day 3 drive-through** —— 目前全部畫面都是 **gate-only verified**，一個都沒開過車
