@@ -19,12 +19,28 @@
  *   hint-placeholder-count said 6; this renders 13, because the deliverable's
  *   sample was six entities and the charter's scope is thirteen.
  *
- *   THREE BUTTONS HAVE NO HANDLER and are reported rather than wired: 'Edit
- *   profile', 'Change password' and 'Manage sessions'. The middle one is not
- *   merely unimplemented — ADR-0007 puts identity with Entra ID, so this product
- *   holds no credential to change and renders no password field at all. It is
- *   drawn because the fragment draws it, and flagged because a password action
- *   on an SSO platform is a design question, not a missing handler.
+ *   THREE BUTTONS ARE RENDERED DISABLED — 'Edit profile', 'Change password' and
+ *   'Manage sessions'. All three write to a directory or a session store this
+ *   port does not reach, so they carry controls.md:7's disabled state and
+ *   shell.inert on hover. Their data-hov is deliberately dropped: the s3 hover
+ *   rule still fires on a disabled element, and a hover response would undo the
+ *   disable by re-asserting that the control is live.
+ *
+ *   'CHANGE PASSWORD' IS KEPT, DISABLED, BY AN EXPLICIT RULING (2026-08-17).
+ *   The Day-3 drive-through raised it as a contradiction: ADR-0007 is adopted,
+ *   identity is Entra ID, and the login screen has no password field because the
+ *   persona picker replaced it — so the control asserts a credential this
+ *   platform does not hold. The stakeholder ruled the other way: a local account
+ *   flow should survive as a local-development and fallback path.
+ *
+ *   That ruling is architecture-level, so it does not land here. It needs an
+ *   ADR-0007 amendment (AD-LocalPasswordFallback-1), and the amendment has to
+ *   settle whether the path is break-glass — MFA, vaulted, audited, time-boxed —
+ *   or a general login, because guardrail 2 governs this platform by its own
+ *   controls and a general local password path is what those controls flag.
+ *   Until that lands the button stays disabled: this port has no auth backend,
+ *   and a password field over no backend is the Potemkin control this same
+ *   drive-through spent its time removing.
  *
  *   The permissions list is the design's own four-line summary. data/permMatrix
  *   is the spec-grade source — eleven modules by six roles — but reading it needs
@@ -39,6 +55,7 @@
  * Last Modified: 2026-08-17
  *
  * Modification History (newest-first):
+ *   - 2026-08-17: Disable server-backed actions (Phase W19) — Day-3 dead controls
  *   - 2026-08-17: Initial creation (Phase W19)
  *
  * Related:
@@ -51,6 +68,14 @@ import { IconCheck, IconShield } from '@/components/icons';
 import { useShell } from '@/components/shell/shell-state';
 import { entityPosture } from '@/data/entityPosture';
 import { profile } from '@/data/extended/profile';
+
+/**
+ * components/controls.md:7 — disabled is opacity .5 with cursor not-allowed.
+ *
+ * Not an invented visual: it is the design system's own disabled state, and the
+ * only honest rendering of an action this port has no backend to perform.
+ */
+const INERT: React.CSSProperties = { cursor: 'not-allowed', opacity: 0.5 };
 
 export default function MyProfilePage() {
   const { tr } = useShell();
@@ -134,10 +159,12 @@ export default function MyProfilePage() {
                 <div style={{ fontSize: '18px', fontWeight: 700 }}>{profile.name}</div>
                 <div style={{ fontSize: '13px', color: 'var(--text-2)' }}>{profile.role}</div>
               </div>
-              {/* No handler — reported. */}
+              {/* Disabled: editing the profile writes to a directory this port
+                  does not reach. Every field below it is read-only fixture. */}
               <button
                 type="button"
-                data-hov="s3"
+                disabled
+                title={tr('shell.inert')}
                 style={{
                   height: '34px',
                   padding: '0 14px',
@@ -149,6 +176,7 @@ export default function MyProfilePage() {
                   fontWeight: 600,
                   color: 'var(--text-2)',
                   cursor: 'pointer',
+                  ...INERT,
                 }}
               >
                 {tr('profile.edit')}
@@ -392,8 +420,10 @@ export default function MyProfilePage() {
                 <div style={{ fontSize: '12.5px', fontWeight: 600 }}>{profile.sessions}</div>
               </div>
             </div>
-            {/* Both unwired. 'Change password' additionally contradicts ADR-0007 —
-                see the file header; no password field is rendered anywhere. */}
+            {/* Both disabled. 'Change password' is KEPT by an explicit 2026-08-17
+                ruling — a local account path is wanted for local development and
+                as a fallback — but it needs an ADR-0007 amendment before it can
+                do anything. See the file header. */}
             <div
               style={{
                 display: 'flex',
@@ -407,7 +437,8 @@ export default function MyProfilePage() {
                 <button
                   key={key}
                   type="button"
-                  data-hov="s3"
+                  disabled
+                  title={tr('shell.inert')}
                   style={{
                     flex: 1,
                     height: '34px',
@@ -419,6 +450,7 @@ export default function MyProfilePage() {
                     fontWeight: 600,
                     color: 'var(--text-2)',
                     cursor: 'pointer',
+                    ...INERT,
                   }}
                 >
                   {tr(key)}

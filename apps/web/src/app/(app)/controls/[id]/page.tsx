@@ -37,6 +37,12 @@
  *   Partial -> Partial. Ported as written rather than suppressed: hiding the row
  *   would edit an append-only ledger to make it look tidier.
  *
+ *   INERT BY DESIGN: three affordances would write to or read from a server
+ *   this port does not have — Record test, Download on each evidence artefact,
+ *   and Export evidence over the ledger. They render disabled (opacity .5 +
+ *   not-allowed, components/controls.md's own disabled state) and shell.inert
+ *   says why on hover. Day-3 found all three looking live.
+ *
  * Key Components:
  *   - ControlDetailPage: the screen, its three tabs, and its not-found state
  *   - obligations / linkedRisks: the two derivations described above
@@ -45,6 +51,7 @@
  * Last Modified: 2026-08-17
  *
  * Modification History (newest-first):
+ *   - 2026-08-17: Disable server-backed actions (Phase W19) — Day-3 dead controls
  *   - 2026-08-17: Initial creation (Phase W19) — control detail port
  *
  * Related:
@@ -114,6 +121,14 @@ const TH: React.CSSProperties = {
 const TH_MID: React.CSSProperties = { ...TH, padding: '9px 12px' };
 
 const TH_CENTER: React.CSSProperties = { ...TH_MID, textAlign: 'center' };
+
+/**
+ * components/controls.md:7 — disabled is opacity .5 with cursor not-allowed.
+ *
+ * Applied to every action that would need a server. Not an invented visual:
+ * it is the design system's own disabled state.
+ */
+const INERT: React.CSSProperties = { cursor: 'not-allowed', opacity: 0.5 };
 
 /**
  * riskBand()'s four band words, as keys.
@@ -386,11 +401,12 @@ export default function ControlDetailPage() {
               {tr(result.labelKey)}
             </span>
           </span>
-          {/* Unwired: recording a test needs a write path and a workpaper store,
-              neither of which exists in this port. Rendered as designed, listed
-              on the drive-through. */}
+          {/* Inert: recording a test needs a write path and a workpaper store,
+              neither of which exists in this port. */}
           <button
             type="button"
+            disabled
+            title={tr('shell.inert')}
             style={{
               height: '36px',
               padding: '0 14px',
@@ -402,6 +418,7 @@ export default function ControlDetailPage() {
               fontSize: '12.5px',
               fontWeight: 600,
               cursor: 'pointer',
+              ...INERT,
             }}
           >
             {tr('controlDetail.recordTest')}
@@ -716,15 +733,18 @@ export default function ControlDetailPage() {
                         })}
                       </div>
                     </div>
-                    {/* Unwired: no document service stands behind the artefact.
-                        Rendered as designed, listed on the drive-through. */}
+                    {/* Inert: no document service stands behind the artefact.
+                        A <span>, so there is no `disabled` to set — the pointer
+                        cursor was the whole of its liveness and it is what goes. */}
                     <span
+                      title={tr('shell.inert')}
                       style={{
                         fontSize: '11px',
                         color: 'var(--primary-ink)',
                         fontWeight: 600,
                         cursor: 'pointer',
                         flexShrink: 0,
+                        ...INERT,
                       }}
                     >
                       {tr('controlDetail.evidence.download')}
@@ -1113,9 +1133,17 @@ export default function ControlDetailPage() {
               }}
             >
               <span>{tr('controlDetail.audit.chain')}</span>
-              {/* Unwired: exporting evidence needs a signing and packaging
-                  service that does not exist yet. Rendered as designed. */}
-              <span style={{ color: 'var(--primary-ink)', fontWeight: 600, cursor: 'pointer' }}>
+              {/* Inert: exporting evidence needs a signing and packaging
+                  service that does not exist yet. */}
+              <span
+                title={tr('shell.inert')}
+                style={{
+                  color: 'var(--primary-ink)',
+                  fontWeight: 600,
+                  cursor: 'pointer',
+                  ...INERT,
+                }}
+              >
                 {tr('controlDetail.audit.export')}
               </span>
             </div>

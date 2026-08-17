@@ -274,6 +274,7 @@ export function AppShell({ children, persona }: { children: ReactNode; persona: 
       scopeLabel,
       entity: scopeEntity,
       setScope: setScopeCode,
+      setLocale,
       periodLabel: period,
     }),
     // `tr` and `scopeEntity` are omitted deliberately: both are pure functions

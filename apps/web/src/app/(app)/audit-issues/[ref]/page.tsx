@@ -46,6 +46,7 @@
  * Last Modified: 2026-08-17
  *
  * Modification History (newest-first):
+ *   - 2026-08-17: Disable server-backed actions (Phase W19) — Day-3 dead controls
  *   - 2026-08-17: Initial creation (Phase W19) — audit issue detail port
  *
  * Related:
@@ -155,6 +156,16 @@ const GHOST_BUTTON: React.CSSProperties = {
   fontWeight: 600,
   cursor: 'pointer',
 };
+
+/**
+ * components/controls.md:7 — disabled is opacity .5 with cursor not-allowed.
+ *
+ * Not an invented visual: it is the design system's own disabled state, and the
+ * only honest rendering of an action this port has no backend to perform. Every
+ * action on this screen is one — attach, update, export and open all need a
+ * store this port does not have — so only the tabs remain live.
+ */
+const INERT: React.CSSProperties = { cursor: 'not-allowed', opacity: 0.5 };
 
 export default function AuditIssueDetailPage() {
   const { tr, trf } = useShell();
@@ -419,18 +430,23 @@ export default function AuditIssueDetailPage() {
           </div>
         </div>
         <div style={{ display: 'flex', gap: '8px' }}>
-          {/* Both unwired: there is no evidence store and no CAP workflow behind
-              this screen yet. Rendered as designed, listed on the drive-through
-              rather than given an onClick that does nothing. */}
+          {/* Both disabled: there is no evidence store and no CAP workflow
+              behind this screen yet. The attach button's data-hov is dropped
+              deliberately — [data-hov='s3']:hover still fires on a disabled
+              element, and a hover response is the strongest claim a control can
+              make that it is live. */}
           <button
             type="button"
-            data-hov="s3"
-            style={{ ...GHOST_BUTTON, height: '34px', padding: '0 14px' }}
+            disabled
+            title={tr('shell.inert')}
+            style={{ ...GHOST_BUTTON, height: '34px', padding: '0 14px', ...INERT }}
           >
             {tr('auditDetail.attachEvidence')}
           </button>
           <button
             type="button"
+            disabled
+            title={tr('shell.inert')}
             style={{
               height: '34px',
               padding: '0 14px',
@@ -442,6 +458,7 @@ export default function AuditIssueDetailPage() {
               fontSize: '12.5px',
               fontWeight: 600,
               cursor: 'pointer',
+              ...INERT,
             }}
           >
             {tr('auditDetail.updateCap')}
@@ -816,11 +833,13 @@ export default function AuditIssueDetailPage() {
                         {e.note}
                       </div>
                     </div>
-                    {/* Unwired: nothing hosts the file, so there is nothing to
-                        open. Rendered as designed and reported. */}
+                    {/* Disabled: nothing hosts the file, so there is nothing to
+                        open. This one sits behind the evidence tab, which is
+                        why the Day-3 sweep of the default tab did not see it. */}
                     <button
                       type="button"
-                      data-hov="s3"
+                      disabled
+                      title={tr('shell.inert')}
                       style={{
                         ...GHOST_BUTTON,
                         height: '30px',
@@ -828,6 +847,7 @@ export default function AuditIssueDetailPage() {
                         borderRadius: '7px',
                         fontSize: '12px',
                         flexShrink: 0,
+                        ...INERT,
                       }}
                     >
                       {tr('auditDetail.evidence.open')}
@@ -958,8 +978,15 @@ export default function AuditIssueDetailPage() {
             </div>
           ))}
           <div style={{ height: '1px', background: 'var(--border)', margin: '4px 0' }} />
-          {/* Unwired: no export pipeline exists yet. Reported, not faked. */}
-          <button type="button" data-hov="s3" style={{ ...GHOST_BUTTON, height: '34px' }}>
+          {/* Disabled: no export pipeline exists yet. Not faked with a
+              client-side file build either — that would be inventing a
+              capability the design does not describe. */}
+          <button
+            type="button"
+            disabled
+            title={tr('shell.inert')}
+            style={{ ...GHOST_BUTTON, height: '34px', ...INERT }}
+          >
             {tr('auditDetail.exportFinding')}
           </button>
         </div>

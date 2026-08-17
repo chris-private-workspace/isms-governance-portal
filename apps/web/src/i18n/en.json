@@ -14,24 +14,21 @@
   "locale.label": "Language",
   "locale.zh-Hant": "繁體中文",
   "locale.en": "English",
-
   "demo.badge": "DEMO DATA",
   "demo.title": "This screen shows demonstration data",
   "demo.body": "Content is illustrative and does not reflect any OpCo's real ISMS posture.",
-
   "shell.brand.name": "ISMS Governance Platform",
   "shell.brand.tagline": "APAC · Information Security",
   "shell.collapse": "Collapse sidebar",
   "shell.expand": "Expand sidebar",
   "shell.env.name": "Demonstration · SG-1",
   "shell.env.meta": "v2.4 · SOC 2 Type II",
-
+  "shell.inert": "This action writes to a server. This port has no backend that can perform it, so it renders disabled — a button that looks live and does nothing is worse.",
   "nav.group.intelligence": "Intelligence",
   "nav.group.oversight": "Oversight",
   "nav.group.operations": "Operations",
   "nav.group.compliance": "Compliance",
   "nav.group.system": "System",
-
   "nav.assistant": "ISMS AI Agent",
   "nav.assistant.badge": "AI",
   "nav.dashboard": "Dashboard",
@@ -47,7 +44,6 @@
   "nav.ismsProfiles": "ISMS profiles",
   "nav.osPortfolio": "OS portfolio",
   "nav.admin": "Admin",
-
   "topbar.scope.heading": "Scope",
   "topbar.search.placeholder": "Search risks, controls, policies…",
   "topbar.search.quickNav": "Quick navigation",
@@ -61,22 +57,18 @@
   "topbar.language": "Language",
   "topbar.theme.toLight": "Switch to light theme",
   "topbar.theme.toDark": "Switch to dark theme",
-
   "user.myProfile": "My profile",
   "user.preferences": "Preferences",
   "user.switchRole": "Switch entity role",
   "user.signOut": "Sign out",
-
   "role.platformAdmin": "Platform admin",
   "role.regionalIso": "Regional ISO",
   "role.opcoAdmin": "OpCo admin",
   "role.controlOwner": "Control owner",
   "role.opcoOs": "OpCo OS",
   "role.auditor": "Auditor",
-
   "fixture.badge.tag": "DEMO",
   "fixture.badge.text": "Sample data for demonstration — not a real ISMS position.",
-
   "rag.good": "Good",
   "rag.watch": "Watch",
   "rag.critical": "Critical",
@@ -87,11 +79,12 @@
   "ctlResult.effective": "Effective",
   "ctlResult.partial": "Needs improvement",
   "ctlResult.ineffective": "Ineffective",
-
   "dash.eyebrow.region": "APAC Region",
   "dash.eyebrow.jurisdictions": "{n} jurisdictions",
   "dash.title": "ISMS posture — APAC region",
   "dash.subtitle": "Information security management posture across the APAC operating companies",
+  "dash.titleEntity": "ISMS posture — {entity}",
+  "dash.subtitleEntity": "Information security management posture for {entity}",
   "dash.overallPosture": "Overall posture",
   "dash.export": "Export",
   "dash.updated": "Updated 2h ago",

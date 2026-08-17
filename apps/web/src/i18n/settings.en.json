@@ -33,7 +33,6 @@
   "assessments.autosaved": "Autosaved 1 min ago",
   "assessments.saveDraft": "Save draft",
   "assessments.submit": "Submit assessment",
-
   "assistant.eyebrow": "ISMS AI Agent",
   "assistant.title": "Ask anything across the APAC ISMS",
   "assistant.subtitle": "Grounded on policies, the Risk Management Report, controls, incident records, external-party assessments and ISMS profiles. Every answer cites its source and respects document classification.",
@@ -61,7 +60,6 @@
   "assistant.cfg.unset": "Not configured",
   "assistant.cfg.note": "No model provider is selected for this platform, and this screen calls none. These values stay empty until that decision is recorded.",
   "assistant.threads.title": "Recent threads",
-
   "profile.eyebrow": "My profile",
   "profile.title": "Profile",
   "profile.edit": "Edit profile",
@@ -78,12 +76,11 @@
   "profile.changePassword": "Change password",
   "profile.manageSessions": "Manage sessions",
   "profile.permissions": "Permissions",
-
   "prefs.eyebrow": "Preferences",
   "prefs.title": "Preferences",
   "prefs.language": "Language",
   "prefs.language.sub": "Interface language for menus, labels and reports.",
-  "prefs.language.note": "In this demonstration the language is changed from the topbar switcher; this list shows which one is active.",
+  "prefs.language.note": "A language change applies to this browsing session only — nothing is written to browser storage, and a reload returns to Traditional Chinese. The topbar switcher changes the same setting.",
   "prefs.lang.zhHant": "Traditional Chinese",
   "prefs.lang.zhHant.sub": "Default · Hong Kong · Taiwan",
   "prefs.lang.en": "English",
@@ -110,7 +107,6 @@
   "prefs.notify.policy": "Policy review due",
   "prefs.notify.policy.sub": "30 / 14 / 7 days before",
   "prefs.persistNote": "Preferences apply to this browsing session only and are not saved.",
-
   "switchRole.eyebrow": "Switch entity role",
   "switchRole.title": "Switch entity role",
   "switchRole.subtitle": "Change the entity you are acting for. Your permissions and scope adjust to the selected role.",

@@ -38,6 +38,7 @@
  * Last Modified: 2026-08-17
  *
  * Modification History (newest-first):
+ *   - 2026-08-17: Disable server-backed actions (Phase W19) — Day-3 dead controls
  *   - 2026-08-17: Initial creation (Phase W19) — issue detail port
  *
  * Related:
@@ -70,6 +71,9 @@ const CARD: React.CSSProperties = {
   boxShadow: 'var(--shadow)',
   padding: '18px',
 };
+
+/** components/controls.md:7 — disabled is opacity .5 with cursor not-allowed. */
+const INERT: React.CSSProperties = { cursor: 'not-allowed', opacity: 0.5 };
 
 /** dc.html:3888 — High and Critical are one red band, Medium amber, Low green. */
 const SEVERITY: Record<string, { rating: string; labelKey: TranslationKey }> = {
@@ -266,11 +270,14 @@ export default function IssueDetailPage() {
               {tr(st.labelKey)}
             </span>
           </span>
-          {/* No handler: changing an issue's status needs a workflow the API
-              does not have yet. Rendered because the design has it; left
-              unwired rather than given an onClick that does nothing. */}
+          {/* Disabled: changing an issue's status writes to a workflow the API
+              does not have yet. Rendered because the design has it, but shown
+              disabled per controls.md:7 rather than looking live and doing
+              nothing. */}
           <button
             type="button"
+            disabled
+            title={tr('shell.inert')}
             style={{
               height: '36px',
               padding: '0 14px',
@@ -282,6 +289,7 @@ export default function IssueDetailPage() {
               fontSize: '12.5px',
               fontWeight: 600,
               cursor: 'pointer',
+              ...INERT,
             }}
           >
             {tr('issueDetail.updateStatus')}

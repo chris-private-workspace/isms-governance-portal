@@ -29,6 +29,10 @@
  *   a progress bar is ambiguous in a way the design plainly did not intend, and
  *   the sibling coverage column writes its unit out (07-controls-list.html:42).
  *
+ *   "New policy" RENDERS DISABLED: there is no /policies/new route in this port
+ *   and no write path behind it. Day-3 found it drawn live with no handler,
+ *   which is indistinguishable from a working button.
+ *
  * Key Components:
  *   - PoliciesPage: the screen
  *   - STATUS: publication state onto RAG
@@ -37,6 +41,7 @@
  * Last Modified: 2026-08-17
  *
  * Modification History (newest-first):
+ *   - 2026-08-17: Disable server-backed actions (Phase W19) — Day-3 dead controls
  *   - 2026-08-17: Initial creation (Phase W19)
  *
  * Related:
@@ -71,6 +76,14 @@ const TH_LEFT = {
   color: 'var(--text-3)',
   borderBottom: '1px solid var(--border)',
 } as const;
+
+/**
+ * components/controls.md:7 — disabled is opacity .5 with cursor not-allowed.
+ *
+ * Applied to New policy, which would need a route and a write path. Not an
+ * invented visual: it is the design system's own disabled state.
+ */
+const INERT: React.CSSProperties = { cursor: 'not-allowed', opacity: 0.5 };
 
 export default function PoliciesPage() {
   const { tr, trf } = useShell();
@@ -238,9 +251,11 @@ export default function PoliciesPage() {
           );
         })}
         <div style={{ flex: 1 }} />
-        {/* Unwired: there is no /policies/new route in this port. */}
+        {/* Inert: there is no /policies/new route in this port. */}
         <button
           type="button"
+          disabled
+          title={tr('shell.inert')}
           style={{
             height: '34px',
             padding: '0 14px',
@@ -255,6 +270,7 @@ export default function PoliciesPage() {
             alignItems: 'center',
             gap: '7px',
             cursor: 'pointer',
+            ...INERT,
           }}
         >
           <svg

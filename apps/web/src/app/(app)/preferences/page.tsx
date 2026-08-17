@@ -32,10 +32,12 @@
  *     and the logic class is what the prototype actually renders.
  *   - Notification toggles genuinely toggle, and reach nothing. There is no
  *     notification service in this codebase.
- *   - The language rows are NOT wired. Locale lives in AppShell state and
- *     ShellState exposes no setter, so this screen can read the current language
- *     and cannot change it. Rendered with the fragment's markup, no handler, and
- *     a line pointing at the topbar switcher that does work.
+ *   - The language rows genuinely switch, as of the Day-3 drive-through. They
+ *     were ported with the fragment's markup and no handler, which left them
+ *     carrying cursor:pointer and a hover rule while doing nothing — a dead
+ *     control by the project's own definition. The capability was never missing:
+ *     the topbar switcher calls the same setter, it just was not on ShellState.
+ *     Adding setLocale there is the same move setScope made for the dashboard.
  *
  *   THE LANGUAGE LIST IS THE APP'S, NOT THE FRAGMENT'S. The deliverable offered
  *   five languages (dc.html:3724-3730) including Simplified Chinese for China,
@@ -98,7 +100,7 @@ const NOTIFY = [
 ] as const;
 
 export default function PreferencesPage() {
-  const { tr, locale } = useShell();
+  const { tr, locale, setLocale } = useShell();
   const [theme, setTheme] = useState<'light' | 'dark'>('light');
   const [density, setDensity] = useState<string>('compact');
   const [notify, setNotify] = useState<Record<string, boolean>>(() =>
@@ -171,12 +173,17 @@ export default function PreferencesPage() {
             {tr('prefs.language.sub')}
           </div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-            {/* No handler: ShellState exposes locale but no setter — see header. */}
+            {/* Day-3 drive-through: these carried cursor:pointer and a hover rule
+                with no handler, so they read as selectable and were not. The
+                capability existed all along — the topbar's switcher calls the same
+                setter — it simply was not on ShellState. */}
             {langs.map((l) => (
               <button
                 key={l.code}
                 type="button"
                 data-hov="s3"
+                onClick={() => setLocale(l.code)}
+                aria-pressed={locale === l.code}
                 style={{
                   display: 'flex',
                   alignItems: 'center',

@@ -47,6 +47,7 @@
  * Last Modified: 2026-08-17
  *
  * Modification History (newest-first):
+ *   - 2026-08-17: Disable server-backed actions (Phase W19) — Day-3 dead controls
  *   - 2026-08-17: Initial creation (Phase W19) — risk programme port
  *
  * Related:
@@ -73,6 +74,9 @@ const CARD: React.CSSProperties = {
   borderRadius: '12px',
   boxShadow: 'var(--shadow)',
 };
+
+/** components/controls.md:7 — disabled is opacity .5 with cursor not-allowed. */
+const INERT: React.CSSProperties = { cursor: 'not-allowed', opacity: 0.5 };
 
 /** Fragment :72,:108,:174,:198 — the tinted strip above a scrolling table. */
 const CARD_HEAD: React.CSSProperties = {
@@ -315,12 +319,14 @@ export default function RiskProgrammePage() {
           </div>
         </div>
         <div style={{ display: 'flex', gap: '8px' }}>
-          {/* No handler: exporting the workbook needs a backend this port does
-              not have. Rendered because the design says the capability exists;
-              left inert because a click that silently does nothing is worse. */}
+          {/* Both disabled: generating the .xlsx workbook and submitting it to
+              the committee each need a backend this port does not have. Shown
+              disabled per controls.md:7, and the export button's hover
+              declaration is dropped — a hover response reads as 'live'. */}
           <button
             type="button"
-            data-hov="s3"
+            disabled
+            title={tr('shell.inert')}
             style={{
               height: '34px',
               padding: '0 14px',
@@ -335,6 +341,7 @@ export default function RiskProgrammePage() {
               display: 'inline-flex',
               alignItems: 'center',
               gap: '7px',
+              ...INERT,
             }}
           >
             <IconDownload />
@@ -342,6 +349,8 @@ export default function RiskProgrammePage() {
           </button>
           <button
             type="button"
+            disabled
+            title={tr('shell.inert')}
             style={{
               height: '34px',
               padding: '0 14px',
@@ -353,6 +362,7 @@ export default function RiskProgrammePage() {
               fontSize: '12.5px',
               fontWeight: 600,
               cursor: 'pointer',
+              ...INERT,
             }}
           >
             {tr('riskProg.submit')}

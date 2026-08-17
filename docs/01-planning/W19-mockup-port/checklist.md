@@ -298,18 +298,35 @@
 
 ### 3.1 Clean restart
 
-- [ ] 殺掉 3200 上所有陳舊 Next 程序（含 reload 子程序 —— 它的 cmdline 可能沒有 server 名字），
+- [x] 殺掉 3200 上所有陳舊 Next 程序（含 reload 子程序 —— 它的 cmdline 可能沒有 server 名字），
       確認新程序是該 port 的**唯一擁有者**，擷取 startup log（`task-workflow.md` §Risk Class C）
+      · 實測 3200 **FREE（無 listener）**、全機唯二 node 進程是 Playwright MCP ⇒ **無陳舊程序可殺**
+      · startup log：`▲ Next.js 16.3.0 (Turbopack)` · **`✓ Ready in 2.6s`**
 
 ### 3.2 Drive-through（MANDATORY — 不是 gate-only）
 
-- [ ] **走完 30 個畫面**（3 shell + 27 screens），每頁逐控件確認：
+- [x] **走完 30 個畫面**（3 shell + 27 screens），每頁逐控件確認：
       可點嗎 / 有效果嗎 / 標籤真實嗎 / 結果真的渲染嗎
-- [ ] **Persona 登入主路徑**：選 persona → 進 shell → 切換實體/角色 → 登出
-- [ ] **DEMO 標記逐頁目視確認**（AC-5）
-- [ ] **13 OpCo / 11 管轄區在儀表板上目視確認**，且畫面上**看不到** India / Japan-as-OpCo / BFSI 字樣
-- [ ] 截圖 + observed-vs-intended 對照 → progress.md Day 3
-- [ ] 發現的 Potemkin **當場修到能用**才算 done
+      · 28 條路由逐一載入，**console error 全部 0**；控件層用 React fiber 逐一判定有無 handler
+- [x] **Persona 登入主路徑**：選 persona → 進 shell → 切換實體/角色 → 登出
+      · ⭐ 加驗**負面路徑**：無 session 直接開 `/dashboard` → **被擋回 `/login`**、cookie 清空
+- [x] **DEMO 標記逐頁目視確認**（AC-5）
+      · `(app)` **27 / 27** 頁量 bounding box 確認**實際可見**；`login` 用明文標示
+- [x] **13 OpCo / 11 管轄區在儀表板上目視確認**，且畫面上**看不到** India / Japan-as-OpCo / BFSI 字樣
+      · 矩陣 13 列 · 麵包屑 11 管轄區 · 全 app grep：**BFSI 0 命中**、India 僅存在於「為何刪除」的註解
+- [x] 截圖 + observed-vs-intended 對照 → progress.md Day 3
+      · 6 張存於 `artifacts/`
+- [x] 發現的 Potemkin **當場修到能用**才算 done
+      · 🔴 **找到 25 個死控件 / 15 個畫面**（無 handler + `cursor:pointer` + `opacity:1`，4 個還會 hover 發亮），
+        **全部通過了每一項 gate**。處置：2 個**接上變成真的能用**（語言卡）·
+        24 鈕 + 2 span 停用 · 3 列移除假的可點外觀（`/ai-assistant`，含記錄的偏離理由）
+      · 複驗：15 條路由實測**零違規**（`not-allowed` / 無 `data-hov` / `title` 正確）；
+        補掃 27 條路由 **`deadButtons: []`**（含分頁展開狀態）
+- [x] ⭐ **順帶修掉兩個不是死控件、但默默少做事的地方**
+      · 儀表板最高殘餘風險列連到清單頁而非該筆風險（`dc.html:5166` 的 `onOpen` 明確帶 id）
+      · 儀表板標題不跟著 scope 走（fragment 寫死 `APAC Region`，是我們加的鑽取製造了新狀態）
+- [ ] 🚧 **並排比對 27 頁（fidelity gate 本身）尚未做** —— Day 3 做的是行為層 drive-through。
+      解封：Day 4 逐頁 fragment vs page.tsx 比對 → `page-inventory.md`
 
 ---
 

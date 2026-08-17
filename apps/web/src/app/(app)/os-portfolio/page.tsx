@@ -40,6 +40,7 @@
  * Last Modified: 2026-08-17
  *
  * Modification History (newest-first):
+ *   - 2026-08-17: Disable server-backed actions (Phase W19) — Day-3 dead controls
  *   - 2026-08-17: Initial creation (Phase W19) — OS portfolio port
  *
  * Related:
@@ -63,6 +64,14 @@ const CARD: React.CSSProperties = {
   borderRadius: '12px',
   boxShadow: 'var(--shadow)',
 };
+
+/**
+ * components/controls.md:7 — disabled is opacity .5 with cursor not-allowed.
+ *
+ * Not an invented visual: it is the design system's own disabled state, and the
+ * only honest rendering of an action this port has no backend to perform.
+ */
+const INERT: React.CSSProperties = { cursor: 'not-allowed', opacity: 0.5 };
 
 /** The six columns, identical on the header strip and every row (fragment :33,:37). */
 const COLUMNS = '82px minmax(0,2fr) 116px 96px 110px 92px';
@@ -243,11 +252,14 @@ export default function OsPortfolioPage() {
             {tr('osPortfolio.subtitle')}
           </div>
         </div>
-        {/* No handler: adding a service means creating a catalogue record and an
-            ISMS scope question, neither of which exists yet. Rendered as the
-            design has it, deliberately unwired. */}
+        {/* Disabled, not merely unwired: adding a service means creating a
+            catalogue record and an ISMS scope question, neither of which exists
+            yet. The filter chips beside it genuinely work, so a live-looking
+            button here would be indistinguishable from the ones that do. */}
         <button
           type="button"
+          disabled
+          title={tr('shell.inert')}
           style={{
             display: 'inline-flex',
             alignItems: 'center',
@@ -262,6 +274,7 @@ export default function OsPortfolioPage() {
             fontSize: '13px',
             fontWeight: 600,
             cursor: 'pointer',
+            ...INERT,
           }}
         >
           <svg

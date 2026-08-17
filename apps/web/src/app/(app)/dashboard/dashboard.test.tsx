@@ -56,6 +56,7 @@ const shell: ShellState = {
   scopeLabel: 'APAC',
   entity: null,
   setScope: () => {},
+  setLocale: () => {},
   periodLabel: '2026-Q3',
 };
 

@@ -41,6 +41,12 @@
  *   Cyber & InfoSec risks share one sentence about unpatched software. Carried
  *   across rather than improved, and recorded here so it is not read as a bug.
  *
+ *   INERT BY DESIGN: three affordances would write to or read from a server
+ *   this port does not have — Edit risk, the workpaper reference on the control
+ *   tests tab, and Export evidence over the ledger. They render disabled
+ *   (opacity .5 + not-allowed, components/controls.md's own disabled state) and
+ *   shell.inert says why on hover. Day-3 found all three looking live.
+ *
  * Key Components:
  *   - RiskDetailPage: the screen, its three tabs, and its not-found state
  *   - matrixRows: the 5x5 grid with the I / R / T markers
@@ -49,6 +55,7 @@
  * Last Modified: 2026-08-17
  *
  * Modification History (newest-first):
+ *   - 2026-08-17: Disable server-backed actions (Phase W19) — Day-3 dead controls
  *   - 2026-08-17: Initial creation (Phase W19) — risk detail port
  *
  * Related:
@@ -121,6 +128,14 @@ const TH: React.CSSProperties = {
 const TH_MID: React.CSSProperties = { ...TH, padding: '9px 12px' };
 
 const TH_CENTER: React.CSSProperties = { ...TH_MID, textAlign: 'center' };
+
+/**
+ * components/controls.md:7 — disabled is opacity .5 with cursor not-allowed.
+ *
+ * Applied to every action that would need a server. Not an invented visual:
+ * it is the design system's own disabled state.
+ */
+const INERT: React.CSSProperties = { cursor: 'not-allowed', opacity: 0.5 };
 
 /** dc.html:3885 — Open is red, Treatment amber, Monitored green, Accepted neutral. */
 const STATUS: Record<string, { rating: string; labelKey: TranslationKey }> = {
@@ -522,11 +537,12 @@ export default function RiskDetailPage() {
               {tr(status.labelKey)}
             </span>
           </span>
-          {/* Unwired: there is no /risks/[id]/edit route in this port, and the
-              register is read-only until a write path exists. Rendered as
-              designed, listed on the drive-through. */}
+          {/* Inert: there is no /risks/[id]/edit route in this port, and the
+              register is read-only until a write path exists. */}
           <button
             type="button"
+            disabled
+            title={tr('shell.inert')}
             style={{
               height: '36px',
               padding: '0 14px',
@@ -538,6 +554,7 @@ export default function RiskDetailPage() {
               fontSize: '12.5px',
               fontWeight: 600,
               cursor: 'pointer',
+              ...INERT,
             }}
           >
             {tr('riskDetail.edit')}
@@ -1435,9 +1452,12 @@ export default function RiskDetailPage() {
                           </span>
                         </td>
                         <td style={{ padding: '11px 18px' }}>
-                          {/* Unwired: no document service stands behind the
-                              workpaper reference. Rendered as designed. */}
+                          {/* Inert: no document service stands behind the
+                              workpaper reference. A <span>, so there is no
+                              `disabled` to set — the pointer cursor was the
+                              whole of its liveness and it is what goes. */}
                           <span
+                            title={tr('shell.inert')}
                             style={{
                               display: 'inline-flex',
                               alignItems: 'center',
@@ -1446,6 +1466,7 @@ export default function RiskDetailPage() {
                               color: 'var(--primary-ink)',
                               fontWeight: 600,
                               cursor: 'pointer',
+                              ...INERT,
                             }}
                           >
                             <svg
@@ -1749,9 +1770,17 @@ export default function RiskDetailPage() {
               }}
             >
               <span>{tr('riskDetail.audit.chain')}</span>
-              {/* Unwired: exporting evidence needs a signing and packaging
-                  service that does not exist yet. Rendered as designed. */}
-              <span style={{ color: 'var(--primary-ink)', fontWeight: 600, cursor: 'pointer' }}>
+              {/* Inert: exporting evidence needs a signing and packaging
+                  service that does not exist yet. */}
+              <span
+                title={tr('shell.inert')}
+                style={{
+                  color: 'var(--primary-ink)',
+                  fontWeight: 600,
+                  cursor: 'pointer',
+                  ...INERT,
+                }}
+              >
                 {tr('riskDetail.audit.export')}
               </span>
             </div>

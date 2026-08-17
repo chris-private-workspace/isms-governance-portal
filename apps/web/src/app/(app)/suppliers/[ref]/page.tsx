@@ -36,6 +36,7 @@
  * Last Modified: 2026-08-17
  *
  * Modification History (newest-first):
+ *   - 2026-08-17: Disable server-backed actions (Phase W19) — Day-3 dead controls
  *   - 2026-08-17: Initial creation (Phase W19) — supplier detail port
  *
  * Related:
@@ -68,6 +69,14 @@ const CARD: React.CSSProperties = {
 };
 
 const SMALL_CARD: React.CSSProperties = { ...CARD, padding: '16px 18px' };
+
+/**
+ * components/controls.md:7 — disabled is opacity .5 with cursor not-allowed.
+ *
+ * Not an invented visual: it is the design system's own disabled state, and the
+ * only honest rendering of an action this port has no backend to perform.
+ */
+const INERT: React.CSSProperties = { cursor: 'not-allowed', opacity: 0.5 };
 
 /** dc.html:4630 — Approved is green, Remediation red, everything else amber. */
 const STATUS: Record<string, { rating: string; labelKey: TranslationKey }> = {
@@ -437,11 +446,14 @@ export default function SupplierDetailPage() {
             </div>
           ))}
           <div style={{ height: '1px', background: 'var(--border)', margin: '4px 0' }} />
-          {/* No handler: starting a re-assessment creates a record and opens a
-              workflow, neither of which exists yet. Rendered, deliberately
-              unwired, and listed on the drive-through checklist. */}
+          {/* Disabled, not merely unwired: starting a re-assessment creates a
+              record and opens a workflow, neither of which exists yet. A live
+              primary button that does nothing is the dead control
+              verification-discipline.md forbids. */}
           <button
             type="button"
+            disabled
+            title={tr('shell.inert')}
             style={{
               height: '36px',
               border: 'none',
@@ -452,6 +464,7 @@ export default function SupplierDetailPage() {
               fontSize: '12.5px',
               fontWeight: 600,
               cursor: 'pointer',
+              ...INERT,
             }}
           >
             {tr('supplierDetail.startReassessment')}
