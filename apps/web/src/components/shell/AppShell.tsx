@@ -103,6 +103,7 @@ import { opcos } from '@/data/opcos';
 import { LOCALES, t, tf, type Locale } from '@/i18n';
 import type { Persona } from '@/lib/personas';
 import { tok } from '@/lib/tok';
+import { useBreakpoint } from '@/lib/useBreakpoint';
 
 type IconCmp = ComponentType<SVGProps<SVGSVGElement>>;
 
@@ -224,12 +225,17 @@ const NOTIFICATIONS = [
   { rating: 'N', title: 'Surveillance audit scheduled', meta: 'RTH · 2026-08-08', time: '3d' },
 ];
 
-type MenuId = 'scope' | 'search' | 'notif' | 'lang' | 'user';
+type MenuId = 'scope' | 'period' | 'search' | 'notif' | 'lang' | 'user';
 
 export function AppShell({ children, persona }: { children: ReactNode; persona: Persona }) {
   const pathname = usePathname();
   const router = useRouter();
-  const [collapsed, setCollapsed] = useState(false);
+  const band = useBreakpoint();
+  // null = follow the viewport; true/false = the user has said so and keeps saying
+  // so. Without the null state the toggle would be a dead control below 1440px:
+  // every re-render would recompute the collapse from the width and overwrite
+  // whatever the user just chose. W19 shipped 25 controls with that shape.
+  const [manualCollapsed, setManualCollapsed] = useState<boolean | null>(null);
   const [theme, setTheme] = useState<'light' | 'dark'>('light');
   const [locale, setLocale] = useState<Locale>('zh-Hant');
   const [openMenu, setOpenMenu] = useState<MenuId | null>(null);
@@ -254,6 +260,12 @@ export function AppShell({ children, persona }: { children: ReactNode; persona: 
   useEffect(() => {
     document.documentElement.dataset.theme = theme;
   }, [theme]);
+
+  // The rail collapses itself below `wide` (plan §3.1) — but only while the
+  // user has expressed no preference. 64px is the deliverable's own collapsed
+  // width (components.css:113), so this reuses a state the design already has
+  // rather than inventing a narrow-screen rail.
+  const collapsed = manualCollapsed ?? band !== 'wide';
 
   // {{ navW }} / {{ navJustify }} / {{ navText }} — the fragment's three
   // collapse-derived holes. 64px is components.css:113.
@@ -449,7 +461,7 @@ export function AppShell({ children, persona }: { children: ReactNode; persona: 
           </div>
           <button
             type="button"
-            onClick={() => setCollapsed((c) => !c)}
+            onClick={() => setManualCollapsed(!collapsed)}
             title={tr(collapsed ? 'shell.expand' : 'shell.collapse')}
             data-hov="nav"
             style={{
@@ -603,42 +615,134 @@ export function AppShell({ children, persona }: { children: ReactNode; persona: 
 
           <div style={{ width: '1px', height: '24px', background: 'var(--border)' }} />
 
-          <div
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: '2px',
-              background: 'var(--surface-3)',
-              borderRadius: '8px',
-              padding: '3px',
-            }}
-          >
-            {PERIODS.map((p) => (
+          {/*
+            Five segmented buttons are ~320px of unshrinkable row. Below `wide`
+            they become one button that opens the same five options.
+
+            ⚠️ NOT stowed into the user menu, which plan §3.2 suggested: the
+            period is a scope control, not a user setting, and burying it there
+            would make it unfindable rather than merely smaller. Recorded as a
+            plan deviation in progress.md Day 1.
+          */}
+          {band === 'wide' ? (
+            <div
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '2px',
+                background: 'var(--surface-3)',
+                borderRadius: '8px',
+                padding: '3px',
+              }}
+            >
+              {PERIODS.map((p) => (
+                <button
+                  key={p}
+                  type="button"
+                  onClick={() => setPeriod(p)}
+                  style={{
+                    height: '28px',
+                    padding: '0 12px',
+                    border: 'none',
+                    borderRadius: '6px',
+                    background: period === p ? 'var(--surface)' : 'transparent',
+                    color: period === p ? 'var(--text)' : 'var(--text-3)',
+                    fontFamily: 'var(--mono)',
+                    fontSize: '12px',
+                    fontWeight: period === p ? 700 : 500,
+                    cursor: 'pointer',
+                  }}
+                >
+                  {p}
+                </button>
+              ))}
+            </div>
+          ) : (
+            <div style={{ position: 'relative', flexShrink: 0 }}>
               <button
-                key={p}
                 type="button"
-                onClick={() => setPeriod(p)}
+                onClick={() => toggle('period')}
+                title={tr('topbar.period.heading')}
+                data-hov="chip"
                 style={{
-                  height: '28px',
-                  padding: '0 12px',
-                  border: 'none',
-                  borderRadius: '6px',
-                  background: period === p ? 'var(--surface)' : 'transparent',
-                  color: period === p ? 'var(--text)' : 'var(--text-3)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '7px',
+                  height: '34px',
+                  padding: '0 10px',
+                  border: '1px solid var(--border-strong)',
+                  borderRadius: '9px',
+                  background: 'var(--surface)',
+                  color: 'var(--text)',
                   fontFamily: 'var(--mono)',
                   fontSize: '12px',
-                  fontWeight: period === p ? 700 : 500,
+                  fontWeight: 700,
                   cursor: 'pointer',
                 }}
               >
-                {p}
+                {period}
+                <span style={{ fontSize: '9px', color: 'var(--text-3)' }}>▼</span>
               </button>
-            ))}
-          </div>
+              {openMenu === 'period' && (
+                <div
+                  style={{
+                    position: 'absolute',
+                    top: '40px',
+                    left: 0,
+                    width: '160px',
+                    background: 'var(--surface)',
+                    border: '1px solid var(--border-strong)',
+                    borderRadius: '10px',
+                    boxShadow: '0 8px 28px rgba(16,24,40,.16)',
+                    padding: '6px',
+                    zIndex: 40,
+                  }}
+                >
+                  {PERIODS.map((p) => (
+                    <button
+                      key={p}
+                      type="button"
+                      onClick={() => {
+                        setPeriod(p);
+                        setOpenMenu(null);
+                      }}
+                      data-hov="row"
+                      style={{
+                        display: 'block',
+                        width: '100%',
+                        textAlign: 'left',
+                        height: '32px',
+                        padding: '0 10px',
+                        border: 'none',
+                        borderRadius: '7px',
+                        background: period === p ? 'var(--surface-3)' : 'transparent',
+                        color: period === p ? 'var(--text)' : 'var(--text-2)',
+                        fontFamily: 'var(--mono)',
+                        fontSize: '12px',
+                        fontWeight: period === p ? 700 : 500,
+                        cursor: 'pointer',
+                      }}
+                    >
+                      {p}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
 
           <div style={{ flex: 1 }} />
 
-          <div style={{ position: 'relative', minWidth: '230px' }}>
+          {/*
+            230px is the row's hard floor: the spacer above yields first, and
+            once it reaches zero this is what refuses to shrink.
+
+            ⚠️ plan §3.2 prescribed `min(230px, 100%)`, which does nothing —
+            the percentage resolves against the flex container, and at 768px
+            that container is ~732px wide, so min(230, 732) is still 230.
+            The floor has to come down by band instead. Recorded in progress.md.
+          */}
+          <div style={{ position: 'relative', minWidth: band === 'narrow' ? '120px' : '230px' }}>
             <div
               style={{
                 display: 'flex',
@@ -1096,21 +1200,25 @@ export function AppShell({ children, persona }: { children: ReactNode; persona: 
               >
                 {persona.initials}
               </span>
-              <span style={{ textAlign: 'left', lineHeight: 1.2 }}>
-                <span
-                  style={{
-                    display: 'block',
-                    fontSize: '12.5px',
-                    fontWeight: 600,
-                    color: 'var(--text)',
-                  }}
-                >
-                  {persona.name}
+              {/* Both lines live in the dropdown below, so this is a duplicate
+                  the narrow row can afford to drop — not a removal. */}
+              {band === 'wide' && (
+                <span style={{ textAlign: 'left', lineHeight: 1.2 }}>
+                  <span
+                    style={{
+                      display: 'block',
+                      fontSize: '12.5px',
+                      fontWeight: 600,
+                      color: 'var(--text)',
+                    }}
+                  >
+                    {persona.name}
+                  </span>
+                  <span style={{ display: 'block', fontSize: '10.5px', color: 'var(--text-3)' }}>
+                    {tr(persona.roleKey)}
+                  </span>
                 </span>
-                <span style={{ display: 'block', fontSize: '10.5px', color: 'var(--text-3)' }}>
-                  {tr(persona.roleKey)}
-                </span>
-              </span>
+              )}
               <span style={{ fontSize: '9px', color: 'var(--text-3)' }}>▼</span>
             </button>
             {openMenu === 'user' && (
@@ -1156,6 +1264,21 @@ export function AppShell({ children, persona }: { children: ReactNode; persona: 
                   </span>
                   <div style={{ minWidth: 0 }}>
                     <div style={{ fontSize: '13px', fontWeight: 700 }}>{persona.name}</div>
+                    {/*
+                      The role is here because the topbar stops showing it below
+                      `wide`. Without this line, hiding that text block would make
+                      the seat's role unreachable at every width under 1440px —
+                      which is hiding dressed up as fixing (AP-3), not a fix.
+                    */}
+                    <div style={{ fontSize: '11px', color: 'var(--text-2)', fontWeight: 600 }}>
+                      {tr(persona.roleKey)}
+                    </div>
+                    {/*
+                      The role is here because the topbar stops showing it below
+                      `wide`. Without this line, hiding that text block would make
+                      the seat's role unreachable at every width under 1440px —
+                      which is hiding dressed up as fixing (AP-3), not a fix.
+                    */}
                     <div style={{ fontSize: '11px', color: 'var(--text-3)' }}>{persona.email}</div>
                   </div>
                 </div>
