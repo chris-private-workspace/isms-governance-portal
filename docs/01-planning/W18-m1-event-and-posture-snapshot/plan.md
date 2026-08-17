@@ -1,5 +1,5 @@
 ---
-status: active  # draft | active | closed | closed_partial —— 機器可讀的唯一權威
+status: closed  # draft | active | closed | closed_partial —— 機器可讀的唯一權威
 ---
 
 # Phase W18 Plan — Event skeleton and posture snapshot
@@ -12,7 +12,7 @@ status: active  # draft | active | closed | closed_partial —— 機器可讀�
 Wave 2 ⇒ 本片只建 `02a:233` 那 6 欄，`11` 的 10+ 個欄位、`status`、`business_unit`、
 restricted block **全部不在本片**。⚪ 無 user-facing surface ⇒ **gate-only verified**，非 spike ⇒ 無 design note。
 
-**Status**: Active（使用者核可 2026-08-17）
+**Status**: Closed（2026-08-17 —— AC-1~AC-9 全數達成，見 [retrospective.md](./retrospective.md) Q1）
 **Branch**: `feature/W18-event-and-posture-snapshot`
 **Base**: `main` HEAD `fd6472a`（CH-036 post-merge —— `sha-anchors` detector 進 `run_all`，9/9）
 **Slice**: M1 slice 13 / N —— 關掉實體索引的 2 格；`AccessRequest` / `AccessReviewCampaign` 是 slice 14

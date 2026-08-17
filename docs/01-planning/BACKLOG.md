@@ -30,12 +30,13 @@
 > **本檔回答「有什麼工作」，不回答「先做哪個」。**
 > 順序層 [`ROADMAP.md`](./ROADMAP.md) **已於 2026-08-10 啟用**（CH-016）——
 > 啟用當時本檔 §Open 達 48 條，超過「讀完仍不知道下一步」的門檻
-> （**現為 131 條 —— P0 7 / P1 72 / P2 52**，⛔ **不要手數也不要 grep** ——
-> 2026-08-17 **W18 closeout**：新增 6 條（`AD-EventStatusUnruled-1` 🟡 **兩份互斥 lifecycle，
+> （**現為 132 條 —— P0 7 / P1 73 / P2 52**，⛔ **不要手數也不要 grep** ——
+> 2026-08-17 **W18 closeout**：新增 **7** 條（`AD-EventStatusUnruled-1` 🟡 **兩份互斥 lifecycle，
 > 而 plan 原本要用的理由被 Day-0 D1 推翻** · `AD-EventSeverityUnregistered-1` 🟡 ·
 > `AD-LossAmountNoCurrency-1` 🟡 **第二個獨立的不可用理由，在 M6 之後仍成立** ·
 > `AD-PostureRagMetricValueUndefined-1` 🟢 · `AD-SchemaNoFormatGate-1` 🟢 ·
-> `AD-AuditModuleStaleCount-1` 🟢）、關閉 0 條、更新 **1** 條
+> `AD-AuditModuleStaleCount-1` 🟢 · `AD-CalibrationT0PlacementShift-1` 🟡
+> **量法改變讓新舊點不在同一個尺上，而 ratio 對分子的方向與直覺相反**）、關閉 0 條、更新 **1** 條
 > （`AD-UniqueKeyOracle-1` **第 4 個資料點、第 2 個正面的，且判準是跑過的不是引用的**）。
 > ⭐ 另有一條**已關閉**的 AD 取得事後驗證，記在 §Shipped 的 W18 列而非本表：
 > `AD-VacuousScopeTest-1`（W13 關閉）的修法「補一個正面測試」首次有**對照實測** ——
@@ -309,6 +310,7 @@
 | AD-PostureRagMetricValueUndefined-1 | **`posture_metric_key` 的第九個值 `posture_rag` 是一個 band，而 `metric_value` 是 numeric —— 那一列該存什麼數字，規格沒說** | W18 Day 1 | 🟢 P2 | `02a:471` 只說 numeric，`08:31` 說 overall posture 由 configurable roll-up rule 導出，兩者都沒有把 band 對應到數字。本片**不決定**（發明一個編碼等於回答 `02a` 沒問的問題）。⚠️ 同一列的 `rag` 欄位**會**帶那個 band，所以資訊不會遺失 —— 未定的只是 `metric_value` 的語義。**解封**：M8 的排程 job 是第一個寫入者，屆時必須連同 `08` 的 roll-up rule 一起定案 |
 | AD-SchemaNoFormatGate-1 | **`schema.prisma` 沒有任何東西在檢查它是否為 `prisma format` 的正規形式** —— W18 跑一次 format 就順帶重排了 **11 行**與本片無關的既有內容（`StatementOfApplicability:2011` · `Attestation:2285-2286` · `ISMSProfile` 四個 `@db.Date` 欄位 + 4 個空行）| W18 Day 1 | 🟢 P2 | ⇒ **每個動 schema 的 phase 都會付一次這個成本**，而且是以「無關重排混進本片 diff」的形式。本片**保留**那 11 行（那是 formatter 的確定性輸出，不是編輯；還原只會讓下一個 phase 再撞一次）。候選解法：把 `npx prisma format --check`（或跑完後 `git diff --exit-code`）加進 `run_all` 或 CI。⚠️ 先確認該旗標在 Prisma 7 存在 —— 未驗證。與 `AD-DevDbChecksumDrift-1` 同族：**每次繞開都很便宜，那正是它會活很久的原因** |
 | AD-AuditModuleStaleCount-1 | **`audit.module.ts:48-57` 的推導註解已過期 10 個 model** —— 它寫 *"grep -c '^model' → **23**"* 與 *"⛔ FIVE MODELS ARE ABSENT: OrgEntity, User, ExtensionField, Threat, Vulnerability"*，實際今天是 **35 models、19 個無寫入路徑**（W18 後）| W18 Day 0 | 🟢 P2 | AP-7 orphan claim 形狀。⛔ **不當場修**（Step 0.0 節流閘：順路發現 → 記錄）。⚠️ 註解陳舊本身不會讓任何 gate 紅 —— `audit-coverage.int.spec.ts:515-546` 的守衛是從 `client.X.<write>(` 呼叫點導出的，**與這段註解無關**，所以守衛全綠而註解全錯可以並存。⭐ 這正是 `AD-SchemaHeaderStale-1` 那條要求「數字改為自我可重現」的同一形狀，修法應該一致：把數字改成由指令產生而非手寫 |
+| AD-CalibrationT0PlacementShift-1 | ⭐⭐ **量法改變讓新舊資料點落在不同的尺上，而 matrix 的 3-phase 移動平均會直接跨過去平均它們** —— W18 是 `pattern-reuse-feature` **第一個 T0 蓋在「讀第一個檔案之前」的點**，分子首次涵蓋整段工作；前十點多數的分子是**下限**（起草段在窗口外） | W18 Day 4 | 🟡 P1 | ⛔ **這一條的核心是一個方向錯誤，我自己在 retro 初稿就寫反過一次**：`ratio = actual / committed`，**分子變大則 ratio 變大**。所以 W17 的 0.78 是**下限**，真值 **> 0.78** 而非 < 0.78 ⇒ **本欄歷史上的 UNDER 有一部分是量測 artifact（actual 被低估），不是真的高估工時**。⇒ W18 的 0.545 因此**更有訊號**而非更少：分子完整而仍然這麼低，這個 UNDER 不可能用「起草段沒量到」解釋掉。⚠️ **W17 留下的預先判準因此失效**：它寫「若第 11 點落 **0.70-0.85** 且分子更完整 → re-point 0.45」，而本點分子確實更完整卻落在 **0.545**，**低於**該區間 ⇒ 字面不觸發。原判準隱含「若再偏低會偏在 0.7-0.85」，實際偏得更多。**修法**：(a) matrix 需要一欄記 **T0 落點**（不含起草 / 含起草），與 `AD-CalibrationDay0InOrOut-1` 要求的「窗口含不含 Day 0」是**兩個獨立維度**；(b) ⛔ **3-phase 移動平均不得跨量法計算** —— 否則是在平均兩種不同的量，與 W10 發現的那個問題同構；(c) 新判準：第 12 點**同量法**下再落 < 0.7 則 re-point 0.45 |
 
 **優先度判準**：
 
