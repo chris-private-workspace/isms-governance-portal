@@ -1,6 +1,6 @@
 # W18 — `events` + `posture_snapshots`（M1 slice 13）
 
-**Closed**: 2026-08-17 · **PR**: PR-pending · **Status**: `closed`
+**Closed**: 2026-08-17 · **PR**: **MERGED (PR #77, `d370f8c`)** · **Status**: `closed`
 **權威來源**: [`retrospective.md`](../docs/01-planning/W18-m1-event-and-posture-snapshot/retrospective.md)
 · [`CH-037`](../docs/03-implementation/changes/CH-037-w18-event-and-posture-snapshot.md)
 

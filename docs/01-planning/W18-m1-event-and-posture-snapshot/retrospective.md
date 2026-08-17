@@ -3,7 +3,7 @@
 **Phase**: W18 — M1 slice 13: `events` + `posture_snapshots`
 **Period**: 2026-08-17 ~ 2026-08-17
 **Plan**: [plan.md](./plan.md)
-**PR**: PR-pending
+**PR**: **MERGED (PR #77, `d370f8c`)** — 2026-08-17T05:40:31Z，CI 6/6，經 `gh` 驗證
 **Change record**: `docs/03-implementation/changes/CH-037-w18-event-and-posture-snapshot.md`
 
 ---
@@ -26,7 +26,7 @@
 | AC-3 GRANT 集合逐表斷言 `SELECT, INSERT` only | ✅ 測試 17，`toEqual` 非 `toContain` |
 | AC-4 跨實體 INSERT 被拒 **且** 範疇內 INSERT 成功 | ✅ 測試 5/6（events）· 11/12（posture）—— **四個測試，兩表各兩個方向** |
 | AC-5 逐欄位對照 + 缺席證明 + **先跑陽性對照** | ✅ 測試 16：先 `toEqual` 七欄，**再**斷言 residency 五欄缺席 |
-| AC-6 中性化 ≥ 4 次，預測先 commit | ✅ **5 次**，預測 commit `726f8cc` 早於第一次執行 |
+| AC-6 中性化 ≥ 4 次，預測先 commit | ✅ **5 次**，預測 commit `4837316` 早於第一次執行 |
 | AC-7 `AD-UniqueKeyOracle-1` 判準已跑過並記錄 | ✅ Day-0 D8，第 4 個資料點 |
 | AC-8 Drive-through N/A（gate-only verified），明記非省略 | ✅ CH-037 §Verification + 本檔 |
 | AC-9 三個「不建」各自在 banner + docstring 寫明理由與解封點 | ✅ residency 五欄 · `Event.status` · restricted block |
@@ -49,18 +49,18 @@
 
 | 段 | 區間 | 分鐘 |
 |---|------|------|
-| 1 | T0 `10:47:33` → `5d459ce` | **45.60** |
-| 2 | `5d459ce` → `7b104f1` | 25.08 |
-| 3 | `7b104f1` → `726f8cc` | 1.18 |
-| 4 | `726f8cc` → `e80cd57` | 19.95 |
-| 5 | `e80cd57` → `3a23e70` | 6.18 |
+| 1 | T0 `10:47:33` → `3f69e08` | **45.60** |
+| 2 | `3f69e08` → `0dc410a` | 25.08 |
+| 3 | `0dc410a` → `4837316` | 1.18 |
+| 4 | `4837316` → `d8179af` | 19.95 |
+| 5 | `d8179af` → `3ec5f0b` | 6.18 |
 | | **總計** | **98.0** |
 
 ⚠️ **> 30 min 的段必須逐條說明（量法宣告的要求）**：段 1 為 **45.60 min**。
 它**不是**等待間隙，是單一段連續工作 —— Day-0 三-prong（讀 on-demand 規則、派 2 個 agent、
 讀 5 份規格段落、跑 3 組 baseline、寫 11 條 drift、建 checklist）。⇒ **計入**。
 
-⚠️ **未計入的最後一段**：本檔與 calibration 回填、導航檔更新發生在 `3a23e70` **之後**，
+⚠️ **未計入的最後一段**：本檔與 calibration 回填、導航檔更新發生在 `3ec5f0b` **之後**，
 估 ~20 min。含它的話 **118 min = 1.97 hr ⇒ ratio 0.656**。
 ⭐ **兩端同 band（皆 < 0.7）** ⇒ band 判定穩健，這個結論不依賴我怎麼算最後一段（W13 的做法）。
 
@@ -136,7 +136,7 @@ W17 的 0.78 是**下限**（起草段在窗口外沒被量到）⇒ 它的真�
 
 - ⭐ **T0 蓋在讀第一個檔案之前** —— W17 retrospective 指定的改進，本片首次執行。
   結果是本 class 第一個分子涵蓋整段工作的資料點（見 Q2）。
-- ⭐ **預測先 commit，且 commit 內容包含「我對哪兩條沒把握」** —— `726f8cc` 明寫
+- ⭐ **預測先 commit，且 commit 內容包含「我對哪兩條沒把握」** —— `4837316` 明寫
   N2 與 N3 是關於**機制**的預測，並說明它們若錯代表我的哪個模型錯。
   ⇒ 這讓「五條全中」有意義；若預測只寫「會紅」，全中不證明任何事。
 - ⭐ **委派 agent 做機械掃描，但自己複核它們引用的每一處程式碼** ——
