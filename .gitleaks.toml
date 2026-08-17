@@ -1,0 +1,59 @@
+# gitleaks 誤報白名單
+#
+# Purpose: 記錄本專案已逐條查證過的 gitleaks 誤報，以及豁免的理由與射程。
+# Created: 2026-08-17 (Phase W19)
+# Status: Active
+#
+# Modification History (newest-first):
+#   - 2026-08-17: Initial creation (Phase W19) — i18n key 觸發 generic-api-key
+#
+# ─────────────────────────────────────────────────────────────────────────────
+# ⚠️ 這個檔案會放寬一個安全閘。`security-scan.yml` 自己寫著：
+#    「一個靜靜生效的白名單是最容易被遺忘的安全缺口。」
+#    所以這裡的每一條都必須說清楚 **豁免什麼、為什麼、以及為什麼它不可能藏住真憑證**。
+#
+# 判準：豁免綁在**被匹配到的值的形狀**上，**不綁路徑**。
+# 綁路徑等於把整個檔案變成盲區 —— 那個檔案日後放進真的憑證時，沒有東西會叫。
+# ─────────────────────────────────────────────────────────────────────────────
+
+[extend]
+useDefault = true
+
+[[rules]]
+id = "generic-api-key"
+
+  [rules.allowlist]
+  # ── W19 實測：11 個命中，全部是 i18n 的翻譯 key ────────────────────────────
+  #
+  # gitleaks 的 generic-api-key 對「識別字以 Key 結尾 + 一個有熵的字串」開火，
+  # 而本專案的 i18n 慣例正好長這樣：
+  #
+  #     labelKey: 'incidentDetail.sev.s1.label'      (incidentWorkflow.ts:92)
+  #     defKey:   'incidentDetail.sev.s1.def'        (incidentWorkflow.ts:93)
+  #     cycleKey: 'riskDetail.cycle.q3'              (riskDetail.ts:288)
+  #
+  # 這個慣例不是可選的：port 規則要求 i18n key **一律字面**
+  # （樣板字串組出來的 key 型別會過、會渲染，而掃描器看不到），
+  # 所以 `xxxKey: '<字面>'` 會持續出現在每一個新畫面上。
+  #
+  # ── 射程：為什麼它不可能藏住真憑證 ────────────────────────────────────────
+  #
+  # regex 有**兩道**限制，缺一不可：
+  #   (1) 必須以下列 41 個**實際存在於字典中的 top-level 命名空間**之一開頭
+  #       —— 新增命名空間時**必須動這個檔**，因此不會靜靜擴大；
+  #   (2) 其餘片段只能是 `.` 分隔的純英數 —— 不含 `- _ + / = :` 或任何
+  #       base64 / hex / PEM / URL 會用到的字元。
+  #
+  # 負面測試（2026-08-17 實跑，15 個真實憑證形狀）：
+  #   ✅ 仍會讓 job 紅：sk-proj-… · ghp_… · xoxb-… · JWT · AKIA… · AWS secret ·
+  #      md5 摘要 · `-----BEGIN RSA PRIVATE KEY-----` · postgres://user:pw@host ·
+  #      base64（含 +/=）· my.secret.password123 · company.internal.apitoken
+  #   ⚠️ 仍會被放行：`admin.secret` / `user.password` / `shell.token.value`
+  #      —— 這三個是合成字串，形狀上**就是 i18n key**（點分隔識別字），
+  #      而憑證洩漏的是**值**不是**鍵名**。可接受的殘留射程，明寫在此不隱瞞。
+  #
+  # ── 到期日：沒有，因為這是誤報不是豁免 ──────────────────────────────────
+  #
+  # 到期日對「暫時接受一個真風險」才有意義；這裡被匹配的東西從來就不是憑證。
+  # 若 i18n 慣例改掉（例如 key 不再以 `Key` 結尾），這條應該**刪除**而非續期。
+  regexes = ['''^(admin|app|assessments|assistant|audit|auditDetail|auth|controlDetail|controls|ctlResult|dash|demo|fixture|health|incidentDetail|incidentForm|incidents|ismsProfile|issueDetail|issues|locale|nav|osPortfolio|policies|policyDetail|prefs|profile|rag|riskDetail|riskForm|riskProg|risks|role|sev|shell|supplierDetail|supplierForm|suppliers|switchRole|topbar|user)(\.[a-zA-Z0-9]+)+$''']

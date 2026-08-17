@@ -109,6 +109,7 @@ jobs:
           # 還沒有白名單檔時，把 --config 那行拿掉即可。
           ./gitleaks detect \
             --source . \
+            --config .gitleaks.toml \
             --redact \
             --no-banner \
             --report-format json \
