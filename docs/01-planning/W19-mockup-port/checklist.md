@@ -195,7 +195,9 @@
 
 ### 2.2 27 個 screen page.tsx（US-3）— **agent 平行**
 
-- [ ] **27 個 `page.tsx` + 共用 primitive** —— **進度 1 / 27**（`/dashboard`）
+- [ ] **27 個 `page.tsx` + 共用 primitive** —— **進度 20 / 27**（build 路由表實測）
+      · 剩 7 個重畫面：`risks/[id]` `controls/[id]` `admin` `incidents/[ref]`
+      `risk-programme` `isms-profiles` `audit-issues/[ref]`
   - DoD: 每頁 inline style 原封不動、`<sc-if>`/`<sc-for>` 正確轉譯、
         SVG icon 直接搬、`hint-*` drop、文案走 `t()`（en=原文 / zh-Hant=譯文）、
         無對應行為的控件**不掛 handler 也不做成看似可點**
@@ -219,23 +221,67 @@
 
 ### 2.3 Persona 登入（US-5）
 
-- [ ] **`login/page.tsx` + `api/demo-session/route.ts` + `lib/demo-session.ts`**
+- [x] **`login/page.tsx` + `api/demo-session/route.ts` + `lib/demo-session.ts`**（+ `lib/personas.ts`）
   - DoD: 無密碼欄位；httpOnly+Secure+SameSite cookie；`NODE_ENV=production` 啟動即 throw；
         entity scope 只從 cookie 取不從請求參數取
-  - Verify: `grep -rE "localStorage|sessionStorage" apps/web/src` → **0 命中**
+  - Verify: `grep -rE "localStorage|sessionStorage" apps/web/src` → **命中 1 行，是 `demo-session.ts` 檔頭
+        在聲明自己沒用它**；資料行 0
   - Verify: 檢查 `Set-Cookie` 標頭實際含三個屬性
+        → ⭐ **做成 gate 而不是 curl 一次**：`demo-session.test.ts` **5/5 通過**，
+        直接對 handler 產生的 `Set-Cookie` 斷言 `HttpOnly` / `SameSite=Lax` / `Secure`，
+        並斷言 cookie **只帶 persona id**、不帶姓名 / email / scope，
+        未知 id 回 **404 而非 400**（與 guardrail 4「查無資料回 404」同一條規則）
+  - ⚠️ **「啟動即 throw」改為「請求時 throw + 明確 opt-in」，這是有理由的偏離**：
+        `next build` 本身就跑在 `NODE_ENV=production`，module 層 throw 會讓**每一個
+        production build 失敗**，保護不到任何東西。改為 `assertDemoAuthAllowed()` 在
+        route handler 與 session reader 內執行，且 production 必須顯式設 `DEMO_AUTH=enabled`
+        —— 沉默即拒絕。W20 部 demo 時必須刻意打開那個變數，這正是目的
+  - ⭐ **entity 身分真的只能從 cookie 來**：`(app)/layout.tsx` 改為 server component，
+        在伺服器端讀 cookie → 解析 persona → 無則 `redirect('/login')`。
+        cookie 只存 **persona id**，姓名 / 角色 / scope 由伺服器查表 ⇒
+        手改 cookie 換不到更大的 scope
+  - ⭐ **登出原本是 `<Link href="/login">`** —— 那會留著 cookie，下次進來直接走回去，
+        是一個**不會登出的登出**。改為先 `DELETE /api/demo-session` 再導向
+  - ⭐ `server-only` 在 jsdom 下拋錯 —— **那是它在做事**。測試改跑 `node` 環境仍拋
+        （它靠 `react-server` 條件，只有 Next 會設），最後在 vitest alias 成 stub，
+        並在 stub 檔頭寫明：**build 期的保護沒有被拿掉，只有測試期繞過**
 
-- [ ] **auth 四個狀態**（Day-0 D1 修訂 —— 原以為是 1 個畫面，實為 7 個狀態）
+- [x] **auth 四個狀態**（Day-0 D1 修訂 —— 原以為是 1 個畫面，實為 7 個狀態）
   - DoD: LOGIN **變體 A · split** · REGISTER（修正三處）· MFA · SSO 四者 port 完成；
         **FORGOT / RESET 不 port**，理由寫進 `page-inventory.md` 與 CH-038
-  - Verify: `grep -rE "type=\"password\"" apps/web/src` → **0 命中**（ADR-0007）
+  - Verify: `grep -rE "type=\"password\"" apps/web/src` → **命中 1 行，是 `login/page.tsx` 檔頭
+        在列舉「不 port 的五件事」**；資料行 0（ADR-0007）
   - Verify: REGISTER 的 Entity 選項 = 13 家 OpCo、Role 選項 = 已確認六角色 ⇒ 關 `AD-Auth-1`
+        → Entity 由 `opcos.map()` 產生；Role = **Platform admin · Regional ISO · OpCo admin ·
+        Control owner · OpCo OS · Auditor**（`15-design-alignment.md:101`）。
+        ⭐ fragment 那四個（Risk Owner / Control Owner / Auditor (read-only) / Regional Governance）
+        **不是本專案的角色，是交付物自己編的** —— 參數 #11：領域邏輯以程序為準不以 mockup 為準
+  - ⭐ **另外三處不 port，各有理由**（全寫進 `login/page.tsx` 檔頭）：
+        (a) SSO 畫面原列 **Okta / Entra ID / Google Workspace** 三家 —— 本平台整合 Entra ID，
+        把兩家沒用的列成可選是**對產品的不實陳述**，只留 Entra ID；
+        (b) 浮動的 **"Layout explorations"** 切換器是設計比稿工具，不是產品 UI；
+        (c) 左欄 footer 原寫 **"Production SG-1 · v2.4"** —— 示範版寫 Production
+        正是截圖脫離脈絡後最會出事的那種細節
+  - ⭐ **MFA 六格原本預填 4-1-9** —— 讀起來像「打到一半的真驗證碼」。改為空白可輸入：
+        既誠實，也才真的能 drive
 
 ### 2.4 i18n 字典
 
-- [ ] **`zh-Hant.json` + `en.json`**
+- [x] **`zh-Hant.json` + `en.json`**
   - DoD: 兩份 key 集完全鏡像；zh-Hant 為預設 locale
-  - Verify: 現有 parity 測試通過（它會抓 key 集不一致）
+  - Verify: 現有 parity 測試通過（它會抓 key 集不一致）→ **8 檔 / 76 測試綠**
+  - ⭐ **改為每批一份字典，在 `index.ts` 合併**（`registers` / `forms` / `details` /
+        `settings` / `deep` / `auth` + 原本的 shell）。理由不是組織偏好而是**並行寫入**：
+        19 個畫面同時落地，共用一對 JSON 必然互相覆蓋，而遺失的合併**看起來像少一個 key
+        不像衝突**。parity 測試讀的是 `DICTIONARIES`，所以它不需要改
+  - 🔴 **我在 agent prompt 裡給錯術語，三個 agent 各自獨立標記** ——
+        我寫「Control = 控制措施」，而 `GLOSSARY.md:45` 訂的是 **控制項**，
+        且明文「不要用 控制、管制」，已上線的 `nav.controls` 就是 控制項
+        ⇒ 同一個詞在同一畫面上出現兩種譯法。**43 個值已修**（6 份字典），殘留 0。
+        保留不動的三處：`已控制`（Contained，另一個詞）· `風險與控制自我評估`（RCSA 慣用展開）·
+        `網路存取控制`（那是一項控制的**名稱**不是術語）
+  - ⭐ 順帶修掉 `shell.env.name` = **「生產環境 · SG-1」** —— 與 login footer 同一個問題：
+        示範版在畫面上宣稱 Production，截圖脫離脈絡就變成不實陳述
 
 ### 2.x Full gate
 

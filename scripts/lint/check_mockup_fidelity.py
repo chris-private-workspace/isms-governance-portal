@@ -119,6 +119,7 @@ class Config(NamedTuple):
     ignore_diff_patterns: list[str]
     component_globs: list[str]
     color_patterns: list[str]
+    hover_css: Path | None
 
 
 class Violation(NamedTuple):
@@ -140,6 +141,7 @@ def load_config(repo_root: Path) -> Config | None:
         ignore_diff_patterns=list(raw.get("ignore_diff_patterns", [])),
         component_globs=list(raw.get("component_globs", [])),
         color_patterns=list(raw.get("hardcoded_color_patterns", DEFAULT_COLOR_PATTERNS)),
+        hover_css=(repo_root / raw["hover_css"]) if raw.get("hover_css") else None,
     )
 
 
@@ -228,6 +230,52 @@ def check_hardcoded_colors(cfg: Config, repo_root: Path) -> list[Violation]:
     return violations
 
 
+def check_hover_rules(cfg: Config, repo_root: Path) -> list[Violation]:
+    """Every data-hov value a component uses must have a rule that fires.
+
+    Why this exists: the fragments express hover with a `style-hover` attribute,
+    and inline style cannot express :hover in any technology, so the port swaps
+    the mechanism for a `data-hov` attribute plus one CSS rule per distinct
+    value. That swap has a failure mode nothing else catches -- a value with no
+    matching rule renders, type-checks, lints and builds, and simply does
+    nothing on hover. The declaration is not wrong; it is absent.
+
+    Found the hard way: seven such attributes shipped in the first two screens
+    of W19, four of them in the very file the remaining screens were told to
+    copy from. `surface-3` instead of `s3` looks right in a diff against the
+    fragment, because the fragment says `var(--surface-3)`.
+    """
+    if not cfg.hover_css:
+        return []
+    if not cfg.hover_css.is_file():
+        return [Violation("hover-css-missing", cfg.hover_css.name, "hover_css path does not exist")]
+
+    defined = set(re.findall(r"\[data-hov=['\"]([^'\"]+)['\"]\]", cfg.hover_css.read_text("utf-8")))
+    violations: list[Violation] = []
+    seen: set[Path] = set()
+
+    for glob in cfg.component_globs:
+        for src in sorted(repo_root.glob(glob)):
+            if not src.is_file() or src in seen:
+                continue
+            seen.add(src)
+            rel = src.relative_to(repo_root).as_posix()
+            for lineno, line in enumerate(_lines(src), start=1):
+                for value in re.findall(r'data-hov="([^"]+)"', line):
+                    if value not in defined:
+                        violations.append(
+                            Violation(
+                                "hover-no-op",
+                                f"{rel}:{lineno}",
+                                f'data-hov="{value}" has no rule in '
+                                f"{cfg.hover_css.name} -- the hover silently does nothing. "
+                                f"Defined: {', '.join(sorted(defined)) or '(none)'}",
+                            )
+                        )
+
+    return violations
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description="Design-mockup fidelity guards.")
     parser.add_argument("--root", default=str(Path(__file__).resolve().parents[2]))
@@ -251,9 +299,13 @@ def main(argv: list[str] | None = None) -> int:
         print(f"mockup-fidelity: SKIP (no {CONFIG_NAME}; run --init if this project has a mockup)")
         return 0
 
-    violations = check_verbatim_copy(cfg, repo_root) + check_hardcoded_colors(cfg, repo_root)
+    violations = (
+        check_verbatim_copy(cfg, repo_root)
+        + check_hardcoded_colors(cfg, repo_root)
+        + check_hover_rules(cfg, repo_root)
+    )
     if not violations:
-        print("mockup-fidelity: OK (verbatim copy intact, no hardcoded colours)")
+        print("mockup-fidelity: OK (verbatim copy intact, no hardcoded colours, hovers resolve)")
         return 0
 
     print(f"mockup-fidelity: {len(violations)} violation(s):")

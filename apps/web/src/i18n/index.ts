@@ -32,12 +32,58 @@
  * Modification History (newest-first):
  *   - 2026-08-08: Initial creation (Phase W01) — zh-Hant + en
  */
-import zhHant from './zh-Hant.json';
-import en from './en.json';
+import zhHantShell from './zh-Hant.json';
+import enShell from './en.json';
+import zhHantRegisters from './registers.zh-Hant.json';
+import enRegisters from './registers.en.json';
+import zhHantForms from './forms.zh-Hant.json';
+import enForms from './forms.en.json';
+import zhHantDetails from './details.zh-Hant.json';
+import enDetails from './details.en.json';
+import zhHantSettings from './settings.zh-Hant.json';
+import enSettings from './settings.en.json';
+import zhHantDeep from './deep.zh-Hant.json';
+import enDeep from './deep.en.json';
+import zhHantAuth from './auth.zh-Hant.json';
+import enAuth from './auth.en.json';
 
 export const LOCALES = ['zh-Hant', 'en'] as const;
 
 export type Locale = (typeof LOCALES)[number];
+
+/**
+ * One file per screen batch, merged here.
+ *
+ * Not an organisational preference — a concurrency one. W19 ports 27 screens,
+ * and several are written in parallel; a single pair of dictionaries makes
+ * every one of those writers collide on the same two files, and a lost merge
+ * shows up as a missing key rather than as a conflict. Splitting by batch
+ * gives each writer a file nobody else touches, and this spread is the only
+ * place that has to know they exist.
+ *
+ * Merge order is last-wins, so a batch cannot silently shadow a shell key
+ * without the parity test staying quiet — but it would show up here, in one
+ * place, rather than as a mystery at a call site.
+ */
+const zhHant = {
+  ...zhHantShell,
+  ...zhHantRegisters,
+  ...zhHantForms,
+  ...zhHantDetails,
+  ...zhHantSettings,
+  ...zhHantDeep,
+  ...zhHantAuth,
+};
+
+const en = {
+  ...enShell,
+  ...enRegisters,
+  ...enForms,
+  ...enDetails,
+  ...enSettings,
+  ...enDeep,
+  ...enAuth,
+};
 
 /** zh-Hant is the source of truth for the key set; every other locale mirrors it. */
 export type TranslationKey = keyof typeof zhHant;

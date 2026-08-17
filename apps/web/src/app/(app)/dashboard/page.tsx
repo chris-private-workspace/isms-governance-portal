@@ -325,7 +325,7 @@ export default function DashboardPage() {
           <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
             <button
               type="button"
-              data-hov="surface-3"
+              data-hov="s3"
               style={{
                 display: 'flex',
                 alignItems: 'center',
@@ -636,7 +636,7 @@ export default function DashboardPage() {
                     <tr
                       key={e.code}
                       onClick={() => setScope(e.code)}
-                      data-hov="surface-2"
+                      data-hov="s2"
                       style={{ cursor: 'pointer', borderBottom: '1px solid var(--border)' }}
                     >
                       <td
@@ -788,7 +788,7 @@ export default function DashboardPage() {
                 <div
                   key={e.code}
                   onClick={() => setScope(e.code)}
-                  data-hov="scorecard-row"
+                  data-hov="bs-s2"
                   style={{
                     display: 'flex',
                     alignItems: 'stretch',
@@ -1025,7 +1025,7 @@ export default function DashboardPage() {
                 <Link
                   key={r.id}
                   href="/risks"
-                  data-hov="surface-2"
+                  data-hov="s2"
                   style={{
                     display: 'flex',
                     alignItems: 'center',
