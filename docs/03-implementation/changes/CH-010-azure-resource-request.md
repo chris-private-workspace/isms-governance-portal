@@ -142,3 +142,7 @@ audit issues）；時程改為四個 task（8 月底前上線 → Phase 2-4 於 
 - **推進**: `AD-DAST-1` —— 申請單第 8 點請 RIT 給 VNet 內的 DAST 路徑（self-hosted runner 或代跑）
 - **產生的待辦**: `AD-StaleRecordRef-1` → `docs/01-planning/BACKLOG.md`
 - **下游**: M0 DoD 第 5 項（TLS／憑證／管理埠）在環境佈建後才能收
+- ⛔ **被取代（2026-08-18, W21）**: 上表「**IaC 工具 —— 兩個都不選，本專案不寫 IaC**」那一格
+  **已不成立**。使用者手上的身分自己建得起 ACR / ACA / Container App，本專案於是有了
+  `infra/azure/provision.sh`。**那一格的文字刻意不改** —— 它記錄的是 2026-08-08 為真的東西。
+  後繼記錄：[`CH-041`](./CH-041-project-writes-its-own-iac.md)

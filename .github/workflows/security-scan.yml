@@ -226,12 +226,17 @@ jobs:
           # `p/default` + `p/typescript`：策展規則集，不用 `--config auto`（後者會依帳號行為變動）。
           # `--error`：有 finding 就非零退出，否則 job 會綠著印出 finding。
           # 排除 generated：Prisma client 是產生物，不是我們的攻擊面。
-          # 掃描目標是**我們寫的東西**：apps / packages / scripts。
+          # 掃描目標是**我們寫的東西**：apps / packages / scripts / infra。
+          # `infra` 自 W21 才有內容 —— guardrail 7「IaC 也要掃描」在此之前
+          # 結構上沒有標的（`AD-IaCEvidence-1` 的原始前提）。現在有了。
+          # ⚠️ **本機量不到這一項**：semgrep 只在 CI 裡跑，所以「加進去之後
+          #    bash 到底有沒有被覆蓋」的答案只能在 CI log 的 `Scanned` 行讀。
+          #    加了目標 ≠ 產生了覆蓋 —— 別把前者寫成後者。
           # 刻意不掃 `.`：`docs/06-reference/design_handoff_*` 是外部交付物，
           # 內含 vendored JS bundle；約束 6 規定它逐字複製、不得修改，
           # 所以掃到了也不能改 —— 那種 finding 只會訓練大家忽略這份報告。
           # 產生物（Prisma client）同理排除。
-          SAST_CMD='semgrep scan --config p/default --config p/typescript --error --metrics=off --exclude node_modules --exclude "**/generated/**" apps packages scripts'
+          SAST_CMD='semgrep scan --config p/default --config p/typescript --error --metrics=off --exclude node_modules --exclude "**/generated/**" apps packages scripts infra'
           case "$SAST_CMD" in
             '' | '<'*)
               echo "SAST 指令未設定 — 在 .github/workflows/security-scan.yml 填 SAST_CMD"

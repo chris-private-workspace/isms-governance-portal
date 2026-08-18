@@ -55,6 +55,7 @@ Bottom-up ~X hr → class-calibrated ~Y hr (mult Z) → agent-adjusted ~Y' hr (a
 | `mockup-port` | 0.55 | n/a (1 pt) | KEEP (W19 ratio **0.40-0.47 UNDER**, 第 1 點, 區間非單值 —— 窗口內含關機中斷且比例不可量; ⭐ 疑因 **3 agent 平行**而非 agent_factor 0.45 本身; 單點不 re-point; 若第 2 點同為多 agent 且 <0.7 → 改動 `agent_factor` 而非 class mult; → `AD-AgentParallelismFactor-1`) |
 | `greenfield-feature` | 0.55 | n/a (0 pt) | W20 **aborted at Day 1 —— 無資料點** (前提被推翻並全數回退, 部分工時 ÷ 完整承諾不可比; ⚠️ 逐任務計時只有 Day 1 有 ⇒ `AD-CalibrationNoTimeRecord-1` 第 2 次; 起手值 0.55 未經驗證; → calibration-log) |
 | `spike` | 0.65 | n/a (6 pt, 跨 0.30~1.03) | KEEP (W12 ratio **1.025 IN —— 本欄第一個 IN 點**; ⭐ `actual/bottom-up` **0.667** 首次高於 0.4 下限，但 bottom-up 是 Day-0 後**重估**的故非事前證據; 無等待間隙; 單點不調乘數; → calibration-log) |
+| `integration-with-external` | 0.70 | n/a (1 pt, **CONTAMINATED**) | KEEP (W21 ratio **0.58 UNDER** 第 1 點但**不可用**: ⛔ phase 為 `closed_partial`，分母含未做的 CI 3 hr ⇒ 已交付範圍 ratio **0.79 IN**; 分子四段由 author date 反推 = `AD-CalibrationNoTimeRecord-1` 第 3 次; 起手值 0.70 未經驗證; → `AD-PartialPhaseRatioArtifact-1` · calibration-log) |
 
 ### 常見 scope class 起始建議值
 
