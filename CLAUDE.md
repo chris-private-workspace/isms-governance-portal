@@ -76,7 +76,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 | Attribute | Value |
 |-----------|-------|
 | **Stage** | Wave 1 backbone — 建立共用骨幹，並用 Policy + Risk/Control 兩個最小模組端到端證明它 |
-| **Current Phase** | **W20**（未開 PR）`closed_partial` —— responsive layout **全片回退**（`6f2c712`，淨產出 **0 行**）。⭐⭐ gate 全綠 · drive-through 有做 · AP 全 0，而**做的不是使用者要的東西** —— Day-0 三-prong 驗**斷言**不驗**目的**。⛔ 交付物自我矛盾未解（README 規定 1400px，`class="page"` 兩邊皆 0 次）⇒ 「和 mockup 一樣」尚無可驗收定義 |
+| **Current Phase** | **W20**（未開 PR）`closed_partial` —— responsive layout **全片回退**（`6f2c712`，淨產出 **0 行**）。⭐⭐ gate 全綠 · drive-through 有做 · AP 全 0，而**做的不是使用者要的東西** —— Day-0 驗**斷言**不驗**目的**。⛔ 「和 mockup 一樣」尚無可驗收定義 |
 | **History** | See [`MEMORY.md`](./MEMORY.md) + 各 phase 的 `retrospective.md` |  <!-- doc-links: ignore — MEMORY.md 由 bootstrap 複製到專案根 -->
 | **Pending / Next** | See [`docs/01-planning/BACKLOG.md`](./docs/01-planning/BACKLOG.md)（**有什麼**）· [`ROADMAP.md`](./docs/01-planning/ROADMAP.md)（**先做哪個**）|
 | **跨來源狀態** | See [`docs/01-planning/STATUS_AUDIT.md`](./docs/01-planning/STATUS_AUDIT.md) —— 問「現在全項目怎樣」時跑 `/status-audit`，**不要只讀 BACKLOG** |
@@ -144,7 +144,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
    TLS 憑證、安全標頭、管理埠**不得沿用平台預設值** —— 要明確設定。
 8. **隱私 by design。** 資料最小化與目的限制是**架構層關注點，不是事後補丁**。
    ⚠️ **在地化能力不建** —— 中國移出後無在範圍內的管轄區要求它（ADR-0010），建了就是 AP-5。
-9. **語言。** 程式碼／註解／技術文件用**英文**；任何終端使用者可見文字與 UI copy 用**繁體中文**。
+9. **語言。** 程式碼／註解／技術文件用**英文**；使用者可見文字**雙語且 key 等價**（`en` + `zh-Hant`，parity test 強制），**預設 `en`** —— 11 管轄區僅台港以繁中為主（CH-040）。
 
 > ⚠️ `reference/` 與 `docs/reference/`（公司程序、掃描衍生指引、授權 ISO 標準）  <!-- path-check: ignore — 刻意不在版控中；CI checkout 後不存在 -->
 > **刻意排除於版控之外**，只存在本機磁碟。不要把它們加回 git。

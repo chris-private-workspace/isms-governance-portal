@@ -17,19 +17,23 @@
  *   假綠: nothing errors, CI is green, and only someone who switches language
  *   ever sees it.
  *
- *   zh-Hant is the default because guardrail 9 makes it the user-facing
- *   language. English ships alongside it so that both the switcher and the
- *   key-parity test have something real to act on — a parity test over a
- *   single dictionary asserts nothing.
+ *   English is the default (CH-040): of the 11 jurisdictions in scope only
+ *   Taiwan and Hong Kong work primarily in Traditional Chinese, so guardrail 9
+ *   now requires both dictionaries at key parity and defaults to `en`.
+ *
+ *   Note that the default locale and the type source are separate decisions.
+ *   TranslationKey still derives from zh-Hant: one decides which keys exist,
+ *   the other decides which dictionary renders first.
  *
  * Key Components:
  *   - Locale / TranslationKey: the two types every caller uses
  *   - t(locale, key): resolve one string
  *
  * Created: 2026-08-08 (Phase W01)
- * Last Modified: 2026-08-08
+ * Last Modified: 2026-08-18
  *
  * Modification History (newest-first):
+ *   - 2026-08-18: Default locale zh-Hant -> en (CH-040) — guardrail 9 rewritten
  *   - 2026-08-08: Initial creation (Phase W01) — zh-Hant + en
  */
 import zhHantShell from './zh-Hant.json';
@@ -96,7 +100,7 @@ const en = {
 /** zh-Hant is the source of truth for the key set; every other locale mirrors it. */
 export type TranslationKey = keyof typeof zhHant;
 
-export const DEFAULT_LOCALE: Locale = 'zh-Hant';
+export const DEFAULT_LOCALE: Locale = 'en';
 
 export const DICTIONARIES: Record<Locale, Record<string, string>> = {
   'zh-Hant': zhHant,

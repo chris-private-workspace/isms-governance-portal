@@ -69,9 +69,9 @@ import { PERSONAS, ROLE_KEYS } from '@/lib/personas';
  * No locale switcher here.
  *
  * The fragment has none, and adding a control the design does not carry is the
- * kind of small invention that constraint 6 exists to stop. zh-Hant is the
- * user-facing language by guardrail 9; the switcher lives in the topbar, one
- * screen later.
+ * kind of small invention that constraint 6 exists to stop. Copy resolves
+ * through DEFAULT_LOCALE — `en` since CH-040 — and the switcher lives in the
+ * topbar, one screen later.
  */
 const tr = (key: TranslationKey) => t(DEFAULT_LOCALE, key);
 const trf = (key: TranslationKey, vars: Record<string, string | number>) =>

@@ -15,16 +15,18 @@
  *   `data-theme` selects the light/dark token block (tokens.css:67). Static
  *   "light" for now; the switcher is a W19 shell control.
  *
- *   `lang` is zh-Hant per guardrail 9. Static here because the locale switcher
- *   is client-side in this shell; real per-locale routing arrives with L1.
+ *   `lang` is `en`, the default locale since CH-040. Static here because the
+ *   locale switcher is client-side in this shell; real per-locale routing
+ *   arrives with L1, at which point this attribute follows the route.
  *
  *   Body styling now comes from base.css (margin/font/colour/background), so
  *   the W01 inline style block is gone rather than competing with it.
  *
  * Created: 2026-08-08 (Phase W01)
- * Last Modified: 2026-08-17
+ * Last Modified: 2026-08-18
  *
  * Modification History (newest-first):
+ *   - 2026-08-18: Set lang to en (CH-040) — default locale flipped from zh-Hant
  *   - 2026-08-17: Mount data-grc + load globals.css (Phase W19) — design system lands
  *   - 2026-08-08: Initial creation (Phase W01)
  *
@@ -41,7 +43,7 @@ export const metadata = {
 
 export default function RootLayout({ children }: { children: ReactNode }) {
   return (
-    <html lang="zh-Hant" data-grc data-theme="light">
+    <html lang="en" data-grc data-theme="light">
       <body>{children}</body>
     </html>
   );
