@@ -81,7 +81,10 @@
 
 ### 1.x partial gate
 
-- [ ] 資源清單截圖 / `az` 輸出 → progress.md；**逐任務記時間**（plan §7 的 ⚠️）
+- [x] 資源清單截圖 / `az` 輸出 → progress.md；**逐任務記時間**（plan §7 的 ⚠️）
+  - ⚠️ **半綠**：資源清單與 `az` 輸出有做（Day 0 §已建立的資源 · Day 1 §部署結果）；
+        **逐任務時間五格裡有四格是從 commit author date 反推的**，不是當下記的
+        ⇒ `AD-CalibrationNoTimeRecord-1` 第 3 次，retro Q2 不得用它當乾淨資料點
 
 ---
 
@@ -127,15 +130,17 @@
 
 ### 3.2 負面測試
 
-> 🚧 **待使用者同意**（2026-08-18）—— 需要移除 Container App 的環境變數並產生新 revision，
-> 會讓剛確認可用的示範網址中斷約 1–2 分鐘。
+> ✅ **使用者 2026-08-18 同意，已執行並復原**（progress.md Day 4）。
 > ⭐ **價值比原本設想高**：全域搜尋顯示 `DEMO_AUTH` 與 `assertDemoAuthAllowed`
 > **只出現在 `demo-session.ts` 自己**，零測試覆蓋 ⇒ 這個守衛從未被證明會擋任何東西
 > （`AD-DemoAuthGuardUntested-1`）。
 
-- [ ] ⭐ **未設 `DEMO_AUTH=enabled` 時登入必須失敗**
+- [x] ⭐ **未設 `DEMO_AUTH=enabled` 時登入必須失敗**
   - DoD: 暫時移除該環境變數 → 示範登入被拒 → 復原
   - ⛔ 這是本片的反 Potemkin 項：那個守衛從來沒有在真環境被行使過
+  - **實測**：陽性對照 200+cookie → 移除後 `POST` **500 無 cookie**（`DELETE` 同）→ 復原後 200+cookie；
+        中性化期間 `/` 與 `/login` **仍 200**（對照組，排除「容器沒起來」）；復原後 smoke probe PASS
+  - ⚠️ **陽性對照第一次回 404 是我自己的 JSON 跳脫壞掉** —— 先跑負面測試的話那會是假通過
 
 ### 3.3 證據
 
@@ -147,21 +152,41 @@
 
 ### 4.1 固化與記錄
 
-- [ ] **`infra/azure/provision.sh`**（冪等）+ **`infra/azure/README.md`**
+- [x] **`infra/azure/provision.sh`**（冪等）+ **`infra/azure/README.md`**
   - DoD: 在乾淨 RG 上重跑產生等價資源；第二次執行為 no-op
-- [ ] **`CH-041`** —— 分工變更記錄：`CH-010:51`「本專案不寫 IaC」已不成立
+  - ⚠️ **半綠**：第二次執行實跑 **created 0 / existing 4** ✅；
+        「乾淨 RG」半邊 ⛔ **無法驗證** —— `D-rg-map` 量到 southeastasia 只有一個可寫 RG
+        ⇒ **create 分支從未被執行過**（Day 1 是手打 `az`，腳本是事後固化）
+- [x] **`CH-041`** —— 分工變更記錄：`CH-010:51`「本專案不寫 IaC」已不成立
   - DoD: 同時處理 `AD-IaCEvidence-1` 的狀態（它的前提是「沒有 IaC 可掃」）
-- [ ] **`.env.example`** 補 5 個變數
+  - **結果**：AD **不關閉，分裂成兩半** —— (a) RIT 資源仍等對方證據；
+        (b) 本 repo 的 IaC 今天才存在，且實測**零掃描器覆蓋** ⇒ semgrep 目標加 `infra`
+        （使用者 2026-08-18 核可改 CI）→ `AD-IaCScanCoverageUnmeasured-1`
+- [x] **`.env.example`** 補 5 個變數
+  - 五個全部先 grep 確認**已有消費者**：`main.ts:59` · `security.ts:137` ·
+        `dev-principal.ts:100,109` · `demo-session.ts:61`
 
 ### 4.2 Closeout
 
-- [ ] `retrospective.md` Q1-Q7 + calibration（`integration-with-external` 0.70，**第 1 個資料點**）
-- [ ] `calibration-matrix.md` 那一行（**≤ 1 行 ~250 字元**，敘述 → `calibration-log.md`）
-- [ ] Final gate sweep + **gate 射程聲明**（`AD-LocalGateSetIncomplete-1`：哪些只在 Azure 上成立）
-- [ ] 導航檔: `CLAUDE.md` Current-Phase + Last-Updated · `MEMORY.md` pointer + subfile
-- [ ] BACKLOG 同步（新 AD + 關閉的）
-- [ ] Anti-pattern 自檢（retro Q5）
-- [ ] ⭐⭐ **ROADMAP 9b —— `required_linear_history` 重審**
+- [x] `retrospective.md` Q1-Q7 + calibration（`integration-with-external` 0.70，**第 1 個資料點**）
+  - ⛔ **該資料點作廢**：ratio 0.58 UNDER 但分母含未做的 CI 3 hr（已交付範圍 **0.79 IN**），
+        且分子四段由 author date 反推 ⇒ 標 `CONTAMINATED`，乘數不動
+- [x] `calibration-matrix.md` 那一行（**≤ 1 行 ~250 字元**，敘述 → `calibration-log.md`）
+- [x] Final gate sweep + **gate 射程聲明**（`AD-LocalGateSetIncomplete-1`：哪些只在 Azure 上成立）
+  - retro §gate 射程聲明：**3 項只在 CI 成立**（image-smoke · security-scan · semgrep 對 `infra`）
+        · **1 項在任何地方都未成立**（`provision.sh` 的 create 分支）
+- [x] 導航檔: `CLAUDE.md` Current-Phase + Last-Updated · `MEMORY.md` pointer + subfile
+- [x] BACKLOG 同步（新 AD + 關閉的）
+  - detector 導出 total 153→**160** / P1 81→**84** / P2 66→**70**，照抄未手數
+- [x] Anti-pattern 自檢（retro Q5）
+  - **總計 2** —— AP-3 ×1（`provision.sh` create 分支，環境限制）· AP-7 ×1（`demoAuthAllowed()`
+        orphan export，**繼承自 W19**，由本片 drive-through 抓到）
+- [x] ⭐⭐ **ROADMAP 9b —— `required_linear_history` 重審**
   - ⛔ **已被漏掉 3 次**（W17 第 9 次 · W18 第 10 次 · W20 本要接手而被回退）
-- [ ] **M0 DoD #5 狀態更新** —— TLS／憑證／管理埠終於有標的了，記錄它現在是什麼狀態
+  - **裁決（使用者 2026-08-18）：維持 rebase。** 理由：一條直線比 DAG 容易對稽核人員證明
+        「什麼時候發生了什麼」。配套：跨 merge 存活的引用改錨 **author date + subject**
+- [x] **M0 DoD #5 狀態更新** —— TLS／憑證／管理埠終於有標的了，記錄它現在是什麼狀態
+  - **✅ 關閉**（三項都是明確選的：ACR admin 關閉 / scoped pull token / `allowInsecure: false`；
+        六條標頭真實網址複驗）。⚠️ **仍缺 CSP**（`AD-NoCspHeader-1`）。
+        順帶 **#3 從「結構上無標的」變成「有標的，覆蓋未量測」** —— 仍不得打勾
 - [ ] **Commit** → ⏳ PR push + open → CI → merge: **PENDING USER CONFIRMATION**

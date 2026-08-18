@@ -1,5 +1,5 @@
 ---
-status: draft   # draft | active | closed | closed_partial —— 機器可讀的唯一權威
+status: closed_partial   # draft | active | closed | closed_partial —— 機器可讀的唯一權威
 ---
 
 # Phase W21 Plan — deploy the web demonstration to Azure Container Apps
@@ -11,8 +11,10 @@ status: draft   # draft | active | closed | closed_partial —— 機器可讀�
 (c) `DEMO_AUTH=enabled` 明確標示為示範部署。**Drive-through 為 MANDATORY**（整片就是為了讓人能開）。
 非 spike，**不產出 design note**。
 
-**Status**: **Draft —— 等待使用者核可**。§3.6 有 **4 個決策點（D1–D4）必須先拍板**，
-其中 D1 與 D2 會改變交付物本身而不只是實作方式。
+**Status**: **`closed_partial`**（2026-08-18）—— US-1 / US-4 交付；**US-2（CI 自動部署）未開始**，
+阻塞在「CI 沒有可用的 Azure 身分」，使用者裁定另開一片；US-3 半綠（冪等已驗、乾淨-RG 未驗）。
+詳見 [retrospective.md](./retrospective.md)。
+D1–D4 已於 Day 0 拍板（progress.md §決策拍板）。
 
 **Branch**: `feature/W21-azure-deploy`
 **Base**: `main` HEAD `65b29f2`（CH-040 smoke probe 修正 —— PR #82 rebase-merge 後的 HEAD）

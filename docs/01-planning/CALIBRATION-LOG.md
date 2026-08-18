@@ -42,6 +42,39 @@ Log 是**歷史紀錄** —— 只有在要調整某個乘數、或要理解某�
 - **行動**：KEEP / re-point to <new> / 等更多資料點
 -->
 
+### `integration-with-external`
+
+**現行乘數**: 0.70 | **資料點**: 1（**且這一點不可用於調整乘數** —— 兩個獨立的汙染源，
+見下方。這一節的存在是為了記錄「為什麼第 1 個資料點被作廢」，不是為了記一個數字）
+
+#### Phase W21 — ratio **0.58 (UNDER)** ⛔ 作廢：`closed_partial` 的分母含未做的範圍
+
+- Bottom-up **11.0 hr** → committed **7.7 hr** (mult 0.70) → actual **~4.45 hr**
+- **逐段**：Day 0–3 **~3.15 hr**（`a401215` 2026-08-18T08:54:13+08:00 →
+  `a3bdce9` 12:03:08，**由 author date 反推**）· Day 4 **~1.3 hr**（本 session 實測，
+  五段裡**唯一真的量到的一段**）
+- **發生了什麼**：兩件事同時汙染這個點，而第二件比第一件重要。
+  **(1) 分子是下限** —— 五段有四段來自 commit author date，
+  `AD-CalibrationNoTimeRecord-1` **第 3 次**；plan §7 寫了「這次改在每個 Day 收尾當下記」
+  然後照樣沒做到。**(2) ⭐ 分母涵蓋了沒做的東西** —— bottom-up 的 11 hr 裡有 **3 hr 是 CI**，
+  而 CI 因為「GitHub Actions 沒有 Azure 身分」一行未寫。
+  拿掉它：committed = 8 × 0.70 = **5.6 hr** ⇒ ratio **0.79，落在 band 內**。
+- **是雜訊還是訊號**：**兩者皆非 —— 是一個結構性的量測缺陷。**
+  `closed_partial` 的 phase 照公式算 ratio 會**系統性地看起來很快**，因為
+  **分子跟著縮減的範圍縮，分母不縮**。這與 W20 的情況不同：W20 是整片回退、
+  部分工時÷完整承諾「不可比」所以直接不記點；W21 是**部分交付**，
+  可比但必須換分母。⇒ 新規則：`closed_partial` 一律同時算兩個 ratio
+  （全範圍 + 已交付範圍），且**只有後者能進 3-phase 窗口**。
+  → `AD-PartialPhaseRatioArtifact-1`
+- ⚠️ **順帶一個對 Day-0 的觀察**：本 class 的變異來源在 repo 外面。
+  三-prong grep 產出 **0 條** drift，五條全部來自 plan §8 R1 排的**權限實測**
+  （空 RG 建了再刪）。若這在第 2 個資料點重現，Day-0 的 prong 組合應該跟著 scope class 走
+  → `AD-Day0ProngsMismatchScopeClass-1`
+- **行動**：**KEEP 0.70，本點標 CONTAMINATED 不計入窗口。**
+  下一個 `integration-with-external` 的點若為完整交付且逐日記時，才是本 class 的第 1 個真資料點。
+
+---
+
 ### `pattern-reuse-feature`
 
 **現行乘數**: 0.50 | **資料點**: 11（跨 0.23~1.24；**W18 是第一個「乾淨的 UNDER」——

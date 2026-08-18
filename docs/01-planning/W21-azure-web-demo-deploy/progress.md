@@ -244,3 +244,65 @@ checklist 3.2 要求「未設 `DEMO_AUTH=enabled` 時登入必須失敗」。
 - `demo-session.ts:29` 的檔頭寫「The **W20** demo deployment therefore has to set that
   variable on purpose」—— W19 當時預期部署會發生在 W20。W20 被回退，實際發生在 W21。
   輕微的過期引用，不影響行為
+
+---
+
+## 2026-08-18 — Day 4（`DEMO_AUTH` 負面測試 + closeout）
+
+### ✅ AC-6 —— `DEMO_AUTH` 守衛在真環境被行使過了
+
+使用者 2026-08-18 同意承受 1–2 分鐘中斷。三段式執行，**每一段都對真實網址**：
+
+| 段 | 動作 | revision | `POST /api/demo-session` | 判讀 |
+|---|---|---|---|---|
+| **陽性對照** | 現狀 | `ca-isms-web-demo--ggicxpu` | **200** + `Set-Cookie: isms_demo_persona=regional-iso; … Secure; HttpOnly; SameSite=lax` | 儀器有效 |
+| **中性化** | `az containerapp update --remove-env-vars DEMO_AUTH` | `ca-isms-web-demo--0000001`（traffic **100%**） | **500**，**無 `Set-Cookie`**，body 空 | ⭐ **守衛開火** | <!-- sha-check: ignore — Azure revision 後綴，不是 git SHA -->
+| **復原** | `--set-env-vars DEMO_AUTH=enabled` | `ca-isms-web-demo--0000002`（traffic **100%**） | **200** + `Set-Cookie` | 已復原 | <!-- sha-check: ignore — 同上 -->
+
+> ⚠️ 上表兩個 revision 後綴帶 `sha-check: ignore` pragma —— **純數字的七位後綴符合 SHA 的字形**，
+> 而它們是 Azure 產生的 revision 名稱，從來不是 git 物件。
+> ⇒ 這是 detector 對「長得像 SHA 的東西」的誤判，`check_sha_anchors.py:97-99` 已預期這種情況：
+> 能用散文說「它死了」就用散文，說不出來的才用 pragma。**這裡說不出來** —— 它沒有死，它不是 SHA。
+
+`DELETE /api/demo-session`（守衛的另一個呼叫端）在中性化期間同樣 **500**。
+復原後 `smoke-probe.mjs` 對真實網址 **PASS**（9 個 chunk 全可取得）。
+
+⭐ **同時跑了一個對照組**：中性化期間 `GET /` 與 `GET /login` **仍是 200**。
+沒有它，500 可以是「守衛擋住了」也可以是「容器根本沒起來」——
+`az containerapp update` 的 exit code 對這兩者一樣沉默（plan §8 R4 的形狀）。
+
+⭐ **500 的 body 是空的** —— 守衛的錯誤訊息（含「Set DEMO_AUTH=enabled」）**沒有外洩**到回應裡。
+
+### ⚠️ 第四個「工具說謊」，而這次說謊的是我自己
+
+陽性對照的**第一次**執行回 **404**。若我先跑負面測試，那個 404 會被讀成「守衛生效」——
+而它其實是 PowerShell 把 `'{\"persona\":…}'` 的反斜線原樣傳給 `curl`，
+body 不是合法 JSON ⇒ `route.ts:46` 的 `.catch(() => null)` ⇒ `findPersona(null)` ⇒ 404。
+**伺服器完全正常，守衛一次都沒被呼叫到。**
+
+⇒ 前三個實例是**外部工具**騙我；這個是**我自己的指令**騙我，而且它會產生
+「**負面測試通過**」這個最不會被回頭質疑的結果。
+⇒ 判準補一句：**負面測試必須先跑陽性對照**，否則你分不清「守衛擋住了」與「請求根本沒走到守衛」。
+
+### ⭐ 順帶量到一個 orphan export
+
+`demoAuthAllowed()`（`demo-session.ts:70`）的 docstring 寫 "For layouts"，
+而全 `apps/web` 搜尋顯示它**零呼叫端**。
+
+它要填的正是這次量到的缺口：中性化期間 `/login` **仍回 200 並照常渲染六個 persona 按鈕**，
+點下去才 500。守衛擋住了後端，前端不知道 —— 而那個「讓前端知道」的函式已經寫好放在那裡沒人用。
+→ `AD-DemoAuthGuardUntested-1` 關閉，`AD-DemoAuthUiUnguarded-1` 開立。
+
+### 逐任務時間（`AD-CalibrationNoTimeRecord-1` —— 見 retro Q2 的誠實聲明）
+
+| 區段 | 量法 | 時間 |
+|---|---|---|
+| Day 0（plan 起草後 → Day-0 完成） | commit author date `8196da0` → `115ec78` | ~32 min |
+| Day 1（建置 + 部署） | `115ec78` → `e85362f` | ~12 min |
+| Day 3（29 路由 drive-through） | `e85362f` → `593a5b1` | ~14 min |
+| checklist 回填 | `593a5b1` → `a3bdce9` | ~126 min |
+| Day 4（負面測試 + closeout） | 本 session 實測 | 見 retro Q2 |
+
+⛔ **這五格裡只有最後一格是量出來的，其餘四格是從 commit author date 反推的下限** ——
+與 W15 同一個代用品。`AD-CalibrationNoTimeRecord-1` 因此是**第 3 次**，且 plan §7
+寫了「這次改在每個 Day 收尾當下記」然後**照樣沒做到**。詳見 retro Q2。
