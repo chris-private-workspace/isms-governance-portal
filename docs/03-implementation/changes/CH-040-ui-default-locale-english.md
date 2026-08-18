@@ -154,6 +154,47 @@ const other = LOCALES.find((l) => l !== DEFAULT_LOCALE)!;
 修法：`prefs.lang.zhHant.sub` 拿掉「Default／預設」、`prefs.lang.en.sub` 改為
 「Default／預設」、`prefs.language.note` 的回退語言改成英文（兩本字典各一處）。
 
+### ⛔ 第四個硬編碼點，本機 gate 抓不到（CI 才紅）
+
+PR #82 的 `映像 build + 啟動探測` **FAIL**：
+
+```
+[smoke:web] FAIL — http://127.0.0.1:3200/ answered 200 but the page
+does not contain the zh-Hant title.
+  Expected (from apps/web/src/i18n/zh-Hant.json): APAC ISMS 治理平台
+```
+
+`scripts/smoke-probe.mjs` 是第四個把預設語言寫死的地方，而我在上面只修了三個。
+
+⭐ **它的檔頭第 30 行早就寫著防禦措施**：
+
+> Expected copy is read from the zh-Hant dictionary rather than hard-coded,
+> so rewording the UI does not turn this into a false red.
+
+**那個防禦是真的，但只做了一半** —— 它避免了「改文案」的脆弱，卻**寫死了讀哪一本字典**。
+同一個錯誤形狀，往上一層。
+
+修法與前三處一致：從 `i18n/index.ts` 抽出 `DEFAULT_LOCALE` 決定讀哪本字典，
+抽不到就**明確 fail**（不 fallback 猜測）。
+
+⛔ **刻意沒採用的兩個做法**：
+- 把 `zh-Hant.json` 換成 `en.json` —— 只是把同一顆地雷埋到下次
+- 兩本字典任一命中就算過 —— 那會**摧毀這支探測存在的鑑別力**：服務錯語言就會通過
+
+中性化驗證：把 `DEFAULT_LOCALE` 改回 `'zh-Hant'`，probe 立刻期待「APAC ISMS 治理平台」；
+改回 `'en'` 期待「APAC ISMS Governance Platform」。**derived 是實測的**。
+`--self-test` 3 個案例仍 PASS。
+
+### ⚠️ 我說「gate 全綠」時，那句話的射程比它聽起來小
+
+上面 §Verification 那張表是**本機能跑的 gate**。`image-smoke.yml` 需要 `docker build`
+兩個 image 再起容器，**只在 CI 跑** —— 所以「format / lint / type-check / test / build /
+run_all 全綠」是真的，而它**不涵蓋這一項**。
+
+⇒ 同形狀第 2 次（第 1 次是 `lint --silent` 本機全綠、CI 30 秒爆 28 個錯，
+記在 `task-workflow.md` §Before Commit Checklist item 2）。
+→ `AD-LocalGateSetIncomplete-1`
+
 ### Drive-through 走過的路徑
 
 `localhost:3200`（⚠️ 不是 `127.0.0.1` —— Next.js 16 的 dev origin 檢查會回 403）
