@@ -190,9 +190,18 @@ Day 0 的權限實測**確實失敗了**（且失敗內容與使用者的宣稱�
 **這個 phase 改變狀態的**：
 
 - **M0 DoD #5**（TLS／憑證／管理埠不得沿用預設）—— 從「⛔ 20 個 phase 無標的」變成
-  **✅ 有標的且三項都是明確選的**：ACR admin 關閉（既有那個是開的）·
-  scoped pull token（不是 admin credential，也不是不可能的 managed identity）·
-  `allowInsecure: false`。六條安全標頭**對真實網址複驗**過。**仍缺 CSP**（`AD-NoCspHeader-1`）
+  **🟡 有標的，兩個子項明確設定、憑證那個子項仍是平台給的**。
+  ⛔ **本節第一版寫「✅ 三項都是明確選的」，那是過度宣稱，同日於 status audit #7 自我更正**：
+  - ✅ **明確設定的**：`allowInsecure: false`（拒絕明文）· HSTS `max-age=31536000; includeSubDomains`
+    **對真實網址複驗**（連同其餘五條標頭）· ACR `adminUserEnabled: false`（既有那個是**開的**）·
+    scoped pull token（不是 admin credential，也不是權限上不可能的 managed identity）
+  - ⛔ **憑證是平台預設，而那正是本條原文禁止的東西**：實測 `customDomains: null`、
+    environment 上 `certificate list` 回 **`[]`** ⇒ TLS 憑證是 Azure 為
+    `*.azurecontainerapps.io` 自動簽的，**我們沒有做過任何選擇**
+  - ⚠️ **而「沒選」在這裡不等於「懈怠」**：預設網域上結構性地沒有第二個選項，
+    要自帶憑證得先有自訂網域。⇒ 這一半是 **R7 的形狀**（不是本專案單方面能關的），
+    不是紀律問題。**判讀因此仍是「部分」，不是「關閉」** → `AD-AcaManagedCertIsPlatformDefault-1`
+  - **仍缺 CSP**（`AD-NoCspHeader-1`）
 - **M0 DoD #3**（IaC skeleton scanned）—— 從「⛔ 結構上無標的」變成
   **「有標的，覆蓋未量測」**。⛔ 仍不得打勾，但**不再是外部阻塞**：這一半是我們自己的工作
 - `AD-IaCEvidence-1` —— **不關閉，分裂成兩半**（詳見 `CH-041` §相關）

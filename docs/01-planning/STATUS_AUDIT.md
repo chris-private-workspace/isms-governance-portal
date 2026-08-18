@@ -1,7 +1,7 @@
 ---
 artifact: status-audit-living
 status: active
-last_audit: 2026-08-15
+last_audit: 2026-08-18
 ---
 
 # 全項目狀態審計（Status Audit）
@@ -10,10 +10,11 @@ last_audit: 2026-08-15
 
 **Category**: Planning / Living document
 **Created**: 2026-08-07
-**Last Modified**: 2026-08-15
+**Last Modified**: 2026-08-18
 **Status**: Active
 
 > **Modification History**
+> - 2026-08-18: Audit #7 (post-W15..W21) — AD-27–44; eight sit in the ADR layer, which no closeout checks
 > - 2026-08-15: Audit #6 (post-W13+W14) — AD-21–26; four contradict their own row or paragraph
 > - 2026-08-14: Audit #5 (post-W12) — AD-17–20; two of the four were made hours earlier by closeout
 > - 2026-08-13: Recover the 2026-08-10 (#3) audit that never merged; renumber post-W07 to #4
@@ -68,123 +69,211 @@ code 內的 `TODO(` / `FIXME` / `HACK(` · 各 track 自己的 `TRACKER.md` ·
 
 ---
 
-## 2. 最新快照 — 2026-08-15（**#6**，W13 + W14 收尾後）
+## 2. 最新快照 — 2026-08-18（**#7**，W15 ~ W21 收尾後）
 
-**基準**：branch `main` · `c403522` · **開著的 PR = 0** · 本機分支 **1**（`main`）· 遠端分支 **1**
-**當前 active phase / change / bug = 0** —— `check_status_markers.py` 掃 **20 個 pre-doc**，
-`E1/E2/E3/E4 clean`；`run_all` **8 / 8**
-**本次跨兩個 phase**：W13（PR #61 `91bd789` · post-merge #62 `9ae6166`）·
-W14（PR #63 `e9ab83a` · post-merge #64 `c403522`）—— **四個 PR 皆以 `gh pr list --state merged`
-逐個驗證為 MERGED 並取得 mergeCommit**，非採信回報
+**基準**：branch `feature/W21-azure-deploy` · `ae33e24` · **開著的 PR = 1**（**#84**，六個 check 全綠、
+未 merge）· 本機分支 **4** · 遠端分支 **5**
+**當前 active phase / change / bug = 0** —— `check_status_markers.py` 掃 **28 個 pre-doc**，
+`E1/E2/E3/E4 clean`；`run_all` **9 / 9**
+⛔ **本次跨七個 phase**（W15 · W16 · W17 · W18 · W19 · W20 · W21）——
+**這是本檔歷來最大的一次落差**，前六次最多跨兩個。落差本身就是第一個發現：
+`STATUS_AUDIT.md` 是一份 living 文件，而**沒有任何東西會在它落後時叫**。
 
-⚠️ **工作樹不是 clean**：`W14-m1-attestation/handoff-20260815.md` 為 **untracked**。
-那是刻意的（session 交接產物，branch protection 要求走 PR 才能進 `main`），
-⭐ 但它同時是 `AD-UnpushedWorkInvisible-1` 的**活體實例** ——
-本次能看到它是因為 `git status` 掃到，**沒有任何追蹤文件提到它存在**。
+⚠️ **基準不在 `main` 上，這是歷來第一次。** 前六次都以 merge 後的 `main` 為基準；
+本次 W21 的 closeout 仍在 PR #84 上。⇒ 本快照描述的是**即將成為 `main` 的狀態**，
+而 §6 第 5 條說得很清楚：**沒有 merge 的審計等於沒發生過**。本份必須連同 #84 一起進 `main`。
+
+✅ **工作樹 clean，且每個本機分支都已推上去** —— `git status --porcelain --untracked-files=all`
+零行；四個本機分支的 `origin/<branch>..<branch>` 皆為空。
+⇒ **`AD-UnpushedWorkInvisible-1` 的形狀本次未再現**（審計 #6 有一個活體實例）。
 
 ### 涵蓋聲明
 
-**掃了**（§1 全部 8 個來源）：`BACKLOG.md`（detector 導出 + 我自己逐列解析對照）· `ROADMAP.md`
-（逐列比對主線 / 死線 / 等外部 / 押後四張表對 P0 的收容情況）· `DEFERRED_REGISTER.md`（D001–D005 逐條）·
-`RISK_REGISTER.md`（R1–R8 + `Last Reviewed` + 逐列「最後複查」欄）· `docs/14-adr/` 全部 `**Status**:`
-+ `14-adr/README.md` §尚待撰寫 · 三軌 pre-doc（跑腳本）· `docs/` 全部非終態 `status:` ·
-`decision-form.md`（開放表 + 已拍板表 + 表下敘述段**逐句**讀）。
-補充：`git status` / `git log` / `gh pr list --state open`（**0**）· `gh pr view 61`（驗 W13 的 merge 狀態）·
-`check_entity_index.py`（**22 / 35**，`models in schema.prisma: 23`）· `check_backlog_counts.py` ·
-`check_status_markers.py` · `run_all.py`（8/8）· **`AUDITED_MODELS` 逐個名字讀出**（16）·
-全 repo `TODO(` / `FIXME` / `HACK(`（`{py,ts,tsx,js,mjs,sql,yml,yaml}`，**0 命中**）·
-`docs/03-implementation/changes/` 目錄列舉（CH-001..031 **無空缺**）· `bugs/`（仍只有 `.gitkeep`）·
-⭐ **M0 DoD 第 5 項首度取得實據**（`security.ts:103-123` · `next.config.ts:33` · `main.ts:58-60` ·
-`Dockerfile:97,111` 逐處讀）。
+⚠️ **本次的掃描以四個平行 subagent 執行**（來源分組：BACKLOG+ROADMAP · 三個登記冊 ·
+ADR 全套 · pre-doc/repo/code-debt），我保留跨來源比對與判讀。
+⛔ **agent 的回報一律當作未經驗證** —— 下表每一條進入 §2.7 的發現，**我都自己重讀過那一處原文**。
+實測代價：**agent A 有一條是錯的**（宣稱 `CLAUDE.md` 仍寫 `Current Phase = W20`；
+實際 `CLAUDE.md:79` 已是 W21 —— 它讀到的是本 session 更新前的狀態）。**該條未採用。**
+
+**掃了**（§1 全部 8 個來源）：`BACKLOG.md`（detector 導出 + 160 列的 ID／優先度全表）·
+`ROADMAP.md`（**156 行逐行**，四張表 + §刻意不進排序的 P0）· `DEFERRED_REGISTER.md`（D001–D005
+逐條，且**每條的解封條件都去找它指名的那個東西**）· `RISK_REGISTER.md`（R1–R8 + header + 逐列日期欄）·
+`docs/14-adr/` **13 個檔全文**（12 ADR + README + template）· 三軌 pre-doc（跑腳本）·
+`docs/` 全部非終態 `status:` · `decision-form.md`（開放表 + 已拍板表 + **表下敘述段逐句**）。
+補充：`git status --untracked-files=all`（**0 行**）· `git log` · `gh pr list --state open`（**1**：#84）·
+`gh pr checks 84`（**6 綠**）· **PR #84 的 CI log 逐行讀 semgrep 的 language 表** ·
+`check_entity_index.py`（**34 / 36**）· `check_backlog_counts.py` · `check_status_markers.py` ·
+`run_all.py`（**9/9**，我自己跑的）· **`AUDITED_MODELS` 逐個名字讀出**（**16**）·
+`^model` 計數（**35**）· 全 repo `TODO(`/`FIXME`/`HACK(`（**0 命中**，且附**對照 grep 證明搜對地方**：
+同一組 glob 對 `export|def |function |SELECT|steps:` 命中 **293 檔**）·
+`changes/` 目錄列舉（**CH-001..041 無空缺**）· `bugs/`（仍只有 `.gitkeep`）·
+⭐ **Azure ingress 實況**（`customDomains: null` · `certificate list` → `[]`）。
 
 **沒掃到 / 不在範圍**：`docs/02-architecture/` 19 份設計文件的內文一致性（非追蹤來源）·
-`reference/` 與 `docs/reference/`（刻意不在版控）· **`security-scan.yml` 連續第 3 次未重驗**
-（`AD-DAST-1` / `AD-IaCEvidence-1` 沿用審計 #4 的結論）· branch protection API（本次未重查；
-PR #63 / #64 實測擋與放皆正常）· **W13 / W14 兩個 phase 的 int spec 未逐條讀測試標題**
-（審計 #5 對 `asset.int` / `security.spec` 做過，本次沒有對新增的 `attestation.int` 做同一件事）。
+`reference/` 與 `docs/reference/`（刻意不在版控）· branch protection API（本次未重查）·
+W15–W21 七個 phase 的 int spec 未逐條讀測試標題 ·
+⚠️ **`BACKLOG.md:86–218`（審計歷史前言）未全文讀**，只用 pattern 掃過
+（`AD-*` / `ROADMAP` / `W20` / `🔴 P0`）—— **一條只活在那段散文裡、且不含上述任一 pattern 的矛盾，本次會漏掉**。
 
 | 層級 | 數量 | 一句話 |
 |---|---|---|
-| 🔴 上線硬關卡 | **7** | **−1** —— `AD-AuditCoverageOneTable-1` **由 W13 關閉**，是十個 phase 以來第一條被關掉的 P0。⛔ **但其中 2 條在 `ROADMAP` 上完全沒有落點** —— 見 **AD-21** |
-| 🟠 已規劃、未執行 | **61** | P1（+5，自審計 #5 的 56）—— W13 + W14 兩個 phase 的產物 |
-| 🟢 持續技術債 | **40** | P2（+4）|
-| ⚫ 卡使用者 / 卡外部 | **2** | `AD-DAST-1` · `AD-IaCEvidence-1` —— **連續第 3 次未重驗**，見涵蓋聲明 |
-| ⚪ 已實證 defer | **5** | D001–D005；D002 已於 2026-08-12 恢復，其餘四條**本次逐條複查皆未成立**（含 D005 —— W14 的兩個 PR 是**序列**：#63 於 10:51:18Z、#64 於 11:03:59Z）|
-| ⚠️ 漂移發現 | **6** | **AD-21 ~ AD-26**，見 §2.7。⭐ **其中 4 條的共同形狀是「一個手寫的摘要值，與它自己那一列／那一份文件的內文相矛盾」** |
+| 🔴 上線硬關卡 | **6** | **−1**（7 → 6）：`AD-Mockup-3` 由 W19 關閉 · `AD-Mockup-2` **降為 P1** · 新增 `AD-LocalPasswordFallback-1`。⛔ **而那條新的在 `ROADMAP` 上零落點** —— 見 **AD-34**，`AD-21` 的失效模式換一個成員再演一次 |
+| 🟠 已規劃、未執行 | **84** | P1（+23，自審計 #6 的 61）—— 七個 phase 的產物 |
+| 🟢 持續技術債 | **70** | P2（+30）|
+| ⚫ 卡使用者 / 卡外部 | **1.5** | `AD-DAST-1` 仍全卡外部；⭐ **`AD-IaCEvidence-1` 今天裂成兩半** —— RIT 那半仍卡外部，**我們自己的 IaC 那半不再是外部阻塞**（見 §2.6）|
+| ⚪ 已實證 defer | **5** | D001–D005；D002 已於 2026-08-12 恢復，其餘四條**本次逐條去找它指名的東西**，皆未成立。⭐ 但 D002 的**論據悄悄變成三倍強**，見 §2.3 |
+| ⚠️ 漂移發現 | **18** | **AD-27 ~ AD-44**，見 §2.7。⭐ **共同形狀：ADR 層完全沒有跟上 W15–W21** —— 沒有任何 ADR 檔在 2026-08-14 之後被改過，而這七個 phase 蓋了 12 張表、一支 IaC 腳本與一個公開網址 |
 
-> 上表數字由 **`check_backlog_counts.py` 導出**：**108 列**（P0 **7** / P1 **61** / P2 **40**），
+> 上表數字由 **`check_backlog_counts.py` 導出**：**160 列**（P0 **6** / P1 **84** / P2 **70**），
 > 宣告值與 §Open 逐列解析相符。**逐項細節一律回該檔看** —— 本檔不複製（§5）。
 >
-> ⚠️ **本次我自己寫了一個臨時解析器去對照，而它答錯了**（得 7 / 59 / 38，4 列的優先度欄解析失敗）——
-> 因為它用固定欄位索引取倒數第二欄，而 §Open 有儲存格內含**裸 pipe**。
-> ⛔ **那個坑就寫在我正在解析的那份檔案裡**（`BACKLOG.md:88-91`，CH-027 的枚舉結果）。
-> ⇒ detector 是對的，我的對照工具是錯的。**記在這裡而不是靜靜丟掉** ——
-> 這是 `AD-NarrowPatternWideClaim-1` 在審計自身的又一次再現，而這次它**沒有**造成錯誤結論，
-> 因為有一個機械真值可以對照。**那正是 `check_backlog_counts.py` 存在的價值第一次以這個方向顯現。**
+> ⚠️ **P0 的「6」有一個定義分歧藏在裡面**：`BACKLOG` 把 `AD-NegativeGate-1` ·
+> `AD-UniqueKeyOracle-1` · `AD-NarrowPatternWideClaim-1` 三條標為 **`🔴 P0 候選`**，
+> 而 `ROADMAP:82` 明文寫「**它已經不是候選**」。**兩份文件對數字一致、對「P0 是什麼意思」不一致。**
+> detector 數的是 emoji，所以它對這個分歧結構性沉默 → **AD-35** 的同族。
 
-### 2.1 資料模型：**22 / 35**（機械導出）
+### 2.1 資料模型：**34 / 36**（機械導出）· 稽核覆蓋 **16 / 34**
 
-`schema.prisma` 有 **23 個 model**；`check_entity_index.py` 回報 **22 / 35**，
-排除 `RefCodeCounter`（**刻意**，detector 自己印出 `excluded (deliberate)`）。
-⭐ 審計 #4 的 AD-12 / AD-13 **已由該 detector 結構性關閉**，連續第 3 次複驗未再漂移。
+`check_entity_index.py` 回報 **34 / 36**；`schema.prisma` 的 `^model` = **35**。
+⭐ **審計 #4 的 AD-12 / AD-13 連續第 4 次複驗未再漂移** —— 那條 detector 的結構性關閉撐過了七個 phase。
 
-### 2.1b 稽核覆蓋：**16 / 22** —— 而 `RISK_REGISTER` 上寫的是 **15 / 21**
+稽核覆蓋兩邊都是當場導出：`AUDITED_MODELS` **逐個名字讀出 = 16** · 分母 = 35 − 1（`AuditLog` 自身）
+= **34**。⭐ **`RISK_REGISTER` R4 這次是對的** —— 審計 #6 的 `AD-23` 處置（不寫死分數、改寫兩條可重跑的
+導出指令）**經七個 phase 驗證有效**，那是本檔目前最健康的一列。
 
-機械導出（兩邊都可重跑）：`AUDITED_MODELS` **逐個名字讀出 = 16**（W14 加了 `Attestation`）·
-業務表 = `schema.prisma` 的 23 個 model 減去 `AuditLog`（稽核表自身）= **22**。
+⛔ **而同一組數字在 `ADR-0003` 上錯了一個數量級** —— `0003:127-128` 仍寫
+「`AUDITED_MODELS` holds **exactly one** name … coverage is **1 of 21**」。見 **AD-28**。
+⚠️ **偏差的方向是「讀起來比實際安全」的反面** —— 它把一個已達 16/34 的守衛描述成 1/21，
+所以不會誤導人放心，**會誤導人低估已經蓋住的範圍而重做**。
 
-⛔ **`RISK_REGISTER.md` R4 的狀態欄仍寫「1 / 21 → 15 / 21」，而同一列的內文已經寫了
-「新增第 16 個模型」「16 個寫入仍全是 create」** —— 見 **AD-23**。
-⚠️ 這是 `AD-RiskTableCountManual-1` 的**第 2 次實地擊中**，而這次兩個矛盾的值
-**住在同一列的兩個欄位裡**，不需要跨文件比對就能看見。
+### 2.1b W15–W21 交付了什麼（本檔不複製細節，只給導航）
 
-### 2.2 ADR
+| Phase | 一句話 | 權威 |
+|---|---|---|
+| W15–W18 | M1 slice 10–13，實體 20 → **34 / 36**；零端點零 repository | 各 `retrospective.md` |
+| **W19** | ⭐ **前端首次落地** —— 30 個畫面，drive-through 抓到 **25 個死控件**（通過每一項 gate）| `CH-038` |
+| **W20** | ⛔ **全片回退**，淨產出 0 行 —— gate 全綠、開過車、AP 全 0，而做的不是使用者要的東西 | `W20/retrospective.md` |
+| **W21** | ⭐ **首次部署** —— 29 路由對真實網址走查；`DEMO_AUTH` 守衛首次被證明會擋 | `CH-041` · `infra/azure/README.md` |
 
-**10 份已採納**（0001 · 0003 · 0004 · 0005 · 0007 · 0010 · 0011 · 0012 · 0013 · 0014）·
-**1 份已被取代**（0006 → 0010）· **無 `提案中` 未拍板**。
-編號空缺 **0002 / 0008 / 0009** —— `14-adr/README.md:103` 記為「剩餘 **3** 份」且表格恰好 3 列，
-`CLAUDE.md` 記為「待 spike / 待 Wave 3」。**是有解釋的空缺，不是漂移。**
+⭐ **W19 是「約束 3（drive-through）連續 14 個 phase 零次」這條紀錄的終結點**
+（審計 #6 §2.9 把它列為結構性事實）。**而它第一次執行就抓到 25 個死控件** ——
+那正是審計 #6 預測的：中性化實驗只能在你已經想到要問的地方進行，drive-through 抓的是你沒想到要問的。
 
-⭐ **審計 #5 的 AD-17 有一半已處置**：`14-adr/README.md` 的「尚待撰寫 4 → 3」已改。
-⛔ **另一半沒有** —— `BACKLOG.md:300` 仍寫「其餘 **3** 項開放決策（OQ-4/7/8）」，見 §2.3。
+### 2.2 ADR —— ⭐⭐ **本次最大的一塊，而它的形狀是「整層沒有跟上」**
+
+**11 份已採納** · **1 份已被取代**（0006 → 0010）· **無 `提案中` 未拍板** ·
+編號空缺 **0002 / 0008 / 0009** 三條**全部有解釋**（`README.md:106-110`）。
+0006 ↔ 0010 的取代**雙向完整**，照 `README.md:140-144` 的流程走。以上**零漂移**。
+
+⛔⭐ **而沒有任何一個 ADR 檔在 2026-08-14 之後被修改過。**
+最新的 `**Date**` 是 ADR-0003 的 2026-08-14。**整套 ADR 早於 W15–W21 全部七個 phase**，
+而那七個 phase 蓋了 12 張表、一支進版控的 IaC 腳本、與一個公開可達的網址。
+
+本次 18 條漂移裡 **8 條落在 ADR 層**（AD-27 · 28 · 29 · 30 · 40 · 42 · 43 · 44）。
+⇒ **這不是八個各自獨立的疏忽，是一個結構事實**：phase closeout 的檢查表涵蓋
+`CLAUDE.md` / `MEMORY.md` / `BACKLOG` / `ROADMAP` / `RISK_REGISTER` / calibration ——
+**沒有一格是 ADR**。`retrospective.md.tpl:120` 有「⭐ `RISK_REGISTER.md` 已複查」那一列，
+是審計 #3 的 `AD-12b@#3` 加上去的；**ADR 從來沒有拿到等價的那一列**。
+
+⚠️ 最尖銳的一條是 **AD-27**：`CH-041`（今天寫的）在自己的表格裡**列出** `ADR-0011:119`
+是受影響處，**然後沒有修它**。一次修復動作列出了自己的漏網。
 
 ### 2.3 開放決策
 
-`decision-form.md` **開放 2 項**（OQ-7 workflow → ADR-0002 · OQ-8 AI agent → ADR-0008/0009）·
-**已拍板 6 項**。兩項的「誰能決定」欄**仍全是 ⚠️ 未指定**，自 2026-08-07 起**十二個 phase 未變**。
+`decision-form.md` **開放 2 項** · **已拍板 6 項**。兩項的「誰能決定」欄**仍全是 ⚠️ 未指定**，
+自 2026-08-07 起**二十個 phase 未變**。⭐ 審計 #6 的 `AD-17` / `AD-22`（那個「3」）
+**已於 2026-08-16 處置且未再漂移** —— 處置方式是**改結構不是改數字**（該格不再寫數字也不列 OQ 編號），
+與審計 #2 `AD-8` 同一招，連續驗證有效。
 
-⛔ **同一個「3」現在錯在兩個地方，而審計 #5 只抓到一個**：
+⛔ **而本次在同一份文件抓到兩條新的，形狀比上次更難看**：
 
-| 位置 | 原文 | 真值 |
-|---|---|---|
-| `BACKLOG.md:300` | 「其餘 **3** 項開放決策（**OQ-4**/7/8）…OQ-4 需 M3 的稽核軌跡落點」| 2 項；OQ-4 已於 2026-08-14 拍板（ADR-0003）|
-| **`decision-form.md:22`** | 「⚠️ **剩下三項**的「誰能決定」仍未指定」—— 而**同一段的下兩行自己寫著**「OQ-4 於 2026-08-14 由 W12 spike 拍板」，**同一份文件的表格只有 2 列** | 2 項 |
+- **AD-31** —— `decision-form.md:31-34` 說 `03` §Questions for Legal 的四個法律問題
+  「中國移出範圍後這四個問題是否仍成立…**均未經複查**」，而**同一句話裡連結的**
+  `ADR-0010:115-116`（**已採納**）寫著「The four questions for Legal at `03:152` are **moot**.
+  … `AD-Decider-1` closes.」⇒ **它引用了那份文件，然後宣稱那份文件裡的事沒有發生。**
+- **AD-41** —— OQ-8 的「為什麼現在要決定」欄寫「ADR-0009 與 **OQ-1 耦合** —— 推論地點是主權控制。
+  若 OQ-1 選了分區，agent 也必須能分區」，而 **OQ-1 早在 2026-08-08 改為單一區域**，
+  就記在**同一份文件下方四列**（`:44`）。**沒有分區可讓 agent 跟隨了。**
 
-⇒ 前者是 **AD-17 未處置**（跨 W13 / W14 兩個 phase）；後者是 **AD-22**，
-**審計 #5 的掃描範圍過窄** —— 它從 `BACKLOG` 查起，沒有回頭掃 `decision-form.md` 自己的敘述段。
-⚠️ 這正是審計 #4 的 **AD-16** 同一族（從一個引用查起、沒有全 repo 反查），發生在審計自己身上的第 2 次。
+⭐ 這兩條與審計 #6 的 `AD-22` 是**同一族的第四層**：一份文件同時是某事實的權威來源、
+又對同一事實記錯 —— 而這次它甚至**把正確答案的連結放在錯誤陳述的同一句裡**。
 
-### 2.4 ⏰ 死線
+### 2.4 ⏰ 死線：**零** —— 而這是本專案第一次
 
-`AD-TrivyExempt-1` **2026-09-07 —— 剩 23 天**（審計 #5 時剩 24 天，中間過了兩個 phase 沒有動作）。
-`容器映像 — trivy` 是 required check，到期時**所有 PR 停止可 merge**。
-本次無其他寫死日期的觸發條件，亦無已過期未執行者。
+`AD-TrivyExempt-1`（2026-09-07）**已由 CH-032 於 2026-08-15 關閉** —— runtime base 移到
+`nodejs22-debian13`，六條 `libssl3` 豁免的標的不再存在，`.trivyignore.yaml` 現為
+`vulnerabilities: []`（**檔案刻意保留** —— trivy 對缺檔的 `--ignorefile` 會 FATAL，
+CH-032 在 PR #66 實測過：兩個 image 在 13 秒內 FATAL，**掃描根本沒跑而 job 是紅的**）。
 
-⚠️ **`AD-StrategyBSunset-1` 的「Wave 1 結束前」仍不是一個日期**，且 Wave 1 的結束仍未定義在任何地方
-—— `AD-DeferralUnwatched-1` 的形狀，審計 #5 已記，**兩個 phase 後未變**。
+⭐ `ROADMAP.md:103` 已同步（該列以刪除線保留，並明寫「**不要刪掉上面那一列** ——
+『表是空的』與『從來沒有東西進過這張表』在三個月後看起來一模一樣」）。**本節零漂移。**
+
+⚠️ **`AD-StrategyBSunset-1` 的「Wave 1 結束前」仍不是一個日期**，Wave 1 的結束仍未定義在任何地方。
+**審計 #5 記過、#6 記過、本次是第三次未變** —— 而 `ADR-0003:161-162` 對它下了一個
+「若未於 Wave 1 結束前重測就刪掉策略 B」的指令，**沒有任何機械承載**。
 
 ### 2.5 真空白（未規劃亦未設計）
 
 | 缺口 | 狀態變化 |
 |---|---|
-| **`16` 28 點的自動化 —— 實作** | **未變**。ROADMAP 第 2b / 7 項仍 ⬜。連續 **12 個 phase** |
-| **`16` #11–15 的責任邊界拍板** | **未變** —— ROADMAP 第 2c 項仍 ⬜ |
-| **Bug 軌從未被使用** | **未變**。`docs/03-implementation/bugs/` 仍只有 `.gitkeep`。**31 個 CH 與 14 個 phase 之後仍為 0** —— 判準至今未被實測 |
-| **UI drive-through** | **未變，零次**。W01–W14 全部無 user-facing surface，**已連續十四個 phase**。⚠️ 每一份 phase 報告都寫了 `gate-only verified`，紀律成立 —— 但**約束 3 至今零次被執行過**。⭐ **這不再只是「未知數」** —— 見 §2.8 |
+| **`16` 28 點的自動化 —— 實作** | **未變**。ROADMAP 第 2b / 7 項仍 ⬜。連續 **19 個 phase**。實測佐證：`scripts/lint/` 的 10 個 detector 無一對應這三點；`security-scan.yml:239` 只跑 registry 規則集；`.github/` 內 `localStorage`/`sessionStorage` 規則**零命中** |
+| **`16` #11–15 的責任邊界拍板** | **未變** —— ROADMAP 第 2c 項仍 ⬜。⚠️ 而 W19 開了 `AD-LocalPasswordFallback-1`（🔴 P0，stakeholder 要保留本地密碼登入 vs ADR-0007 已採納），**那條與本項相鄰但不等價**，且它在 ROADMAP 上零落點（**AD-34**）|
+| **Bug 軌從未被使用** | **未變**。`bugs/` 仍只有 `.gitkeep`。**41 個 CH 與 21 個 phase 之後仍為 0** —— 而這期間發生過 W19 的 25 個死控件與 W20 的全片回退，**兩者都走了別的軌**。⇒ 這已經不是「還沒用到」，是**判準在實務中沒有被選中過**，值得一次處置決定而不是繼續記為零 |
+| **UI drive-through** | ✅⭐ **紀錄終結** —— W19 執行了本專案第一次（30 個畫面），W21 執行了第一次**對真實網址**的（29 路由）。⛔ **而第一次就抓到 25 個死控件**，它們通過了每一項 gate 含 W19 自己新加的 hover 守衛 ⇒ 審計 #6 §2.9 的預測**被實測證實**|
+| **⭐ 新：ADR 不在任何 closeout 檢查表上** | **本次新識別**。七個 phase 零 ADR 更新，8 條漂移落在該層 —— 見 §2.2 |
 
-### 2.6 M0 DoD 六項（`07:31`）—— ⭐ **十二個 phase 以來第一次取得新實據**
+### 2.6 M0 DoD 六項（`07:31`）—— ⭐⭐ **第 3 項的性質變了：它不再是外部阻塞**
 
-**判讀不變（3 關閉 / 2 部分 / 1 無標的），但第 5 項的內部結構本次被拆開了。**
+**判讀：3 關閉 / 2 部分 / 1 待裁決。** 上一次是 3 / 2 / **1 無標的** ——
+變的那一項是第 3 項（IaC skeleton scanned）。
+
+| # | 項目 | 判定 | 本次變化 |
+|---|---|---|---|
+| 1 | ADR-0001 settled | ✅ | 未變 |
+| 2 | CI 含 SCA / SAST / DAST / secret-scanning + `16` 自動化 | ⛔ 部分 | 未變 —— **DAST 仍卡外部**（`AD-DAST-1`）· `16` 自動化連續 19 個 phase 未做 |
+| 3 | **IaC skeleton scanned** | ⚠️ **待裁決** | ⭐⭐ **從「結構上無標的」變成「有標的且已量測」** —— 見下 |
+| 4 | 部署拓撲（ADR-0010）+ 計算平台（ADR-0011） | ✅ | 未變 |
+| 5 | TLS/cert · 安全標頭 · 管理埠**明確設定** | 🟡 部分 | ⭐ 三個子項裡兩個**在真環境**確認，**憑證那個仍是平台預設** —— 見下 |
+| 6 | i18n scaffolding | ✅ | 未變（CH-040 把預設語言改為 en）|
+
+#### 第 3 項 —— 需要你裁決一次
+
+`CH-041` 讓 `CH-010:51`「本專案不寫 IaC」不成立：`infra/azure/provision.sh` 進了版控。
+PR #84 的 CI log 量到 semgrep **`bash 4 rules / 1 file`、0 findings**，而 `provision.sh`
+是四個掃描目錄下**唯一**的 `.sh` ⇒ **那一個檔就是它，覆蓋是真的。**
+
+⛔ **而「掃了」與「DoD 說的那種掃了」不是同一件事**，這需要人來判：
+
+- 支持打勾：我們有 IaC skeleton，它被掃了，0 findings
+- 反對打勾：**4 條規則**（TypeScript 有 164、Python 有 243）；且 `trivy config` ——
+  這個專案真正的 IaC 掃描器 —— **讀不懂 shell**（它支援 Terraform / CFN / K8s / Helm / ARM / Dockerfile）。
+  一支 `az` shell 腳本是不是 `04:73` 所指的 IaC，是一個定義問題不是量測問題
+
+⇒ **審計不代為判定。** 但可以確定的是：**這一半不再是 RIT 的事**（`AD-IaCScanCoverageUnmeasured-1`
+的量測部分今天已完成 ⇒ 該 AD 可降級為「厚度是否足夠」的問題）。
+
+#### 第 5 項 —— ⛔ **本 session 自我更正的一條**
+
+W21 的 retrospective 第一版寫「✅ 關閉，三項都是明確選的」。**那是過度宣稱。**
+
+| 子項 | 實據 | 判定 |
+|---|---|---|
+| **security headers** | 六條**對真實網址複驗**（W21 Day 3），無 `x-powered-by` / `server` | ✅ 明確設定 |
+| **management-port** | `main.ts:59` `API_HOST ?? '127.0.0.1'` · 容器 target port 3200 單一暴露 | ✅ 明確設定 |
+| **TLS 政策** | `allowInsecure: false` · HSTS `max-age=31536000; includeSubDomains` | ✅ 明確設定 |
+| **憑證** | 實測 `customDomains: **null**` · `az containerapp env certificate list` → **`[]`** | ⛔ **平台預設** |
+
+⇒ 憑證是 Azure 為 `*.azurecontainerapps.io` 自動簽的，**我們沒有做過任何選擇** ——
+而「never platform defaults」正是本條的原文。
+⚠️ **「沒選」在這裡不是懈怠**：預設網域上結構性地沒有第二個選項（要自帶憑證得先有自訂網域）
+⇒ **R7 的形狀**，不是紀律的形狀 → `AD-AcaManagedCertIsPlatformDefault-1`。
+
+⭐⭐ **而 `ADR-0011:110-111` 早就寫了「Custom domain + certificate is **mandatory**（`04:93`）…
+**it must be built**」** —— 那條義務**沒有被建**，而 ADR 自己不知道。這一條由 agent 掃出、我複驗過。
+
+<!-- 以下為審計 #6 的第 5 項拆解，保留作為「連續四次『未取得實據』其實涵蓋兩件不同的事」的原始論證 -->
+
+<details><summary>審計 #6（2026-08-15）對第 5 項的拆解 —— 原文保留</summary>
 
 第 5 項原文是三個子項綁在一格：「TLS/cert, security headers and management-port exposure
 configured explicitly (**never platform defaults**)」。審計 #4 / #5 連續把整格記為「未取得實據」。
@@ -204,22 +293,67 @@ configured explicitly (**never platform defaults**)」。審計 #4 / #5 連續�
 **M0 永遠不會靠本專案自己關掉**這個結論**維持不變**（#3 無標的、#2 的 DAST 需 infra team、
 現在再加上 #5 的 TLS 子項）。
 
-### 2.6b 三個 `closed_partial` —— 一個對、一個 stale 未處置、一個新的且是對的
+</details>
+
+⇒ ⭐ **審計 #6 那個結論，本次有一半被推翻**：#3 已經**不是**「本專案結構上無法取得證據」——
+今天它是我們自己的工作。**M0 仍不會靠本專案單方面關掉**（#2 的 DAST + #5 的憑證仍卡外部形狀），
+**但阻塞面從三處縮到兩處。**
+
+### 2.6b 五個 `closed_partial` —— 四個是對的，一個 detector 結構上看不見
 
 | Phase | 判定 | 實據 |
 |---|---|---|
-| **W01** | ✅ **仍然是對的** | checklist `:127`「DoD 第三項 base image 釘 digest —— 現在釘的是 tag」仍未達成（`AD-ImageDigest-1` 在 §Open 上）|
-| **W05** | ⛔ **仍 stale —— AD-19 跨 W13 / W14 兩個 phase 未處置** | 解封條件在 W06 就滿足（`asset.int.spec.ts` 的四項範疇測試），W05 `checklist:185` 自己已標 `🚧→✅ 已於 W06 解封並完成`，而 `plan.md:2` 的 frontmatter 仍 `closed_partial` |
-| **W14** | ✅ **新的，而且是對的** | `checklist` 1.3（`Policy.requires_attestation`）刻意維持 `🚧` 未勾 —— 使用者 2026-08-15 裁定移出 → M6，理由是今天**沒有讀者也沒有寫者**（AP-3），解封條件與追蹤項（`AD-PolicyAttestationFlag-1`）都寫下來了 |
+| **W01** | ✅ 仍然是對的 | `AD-ImageDigest-1` 仍在 §Open（base image 釘的是 tag 不是 digest）|
+| **W14** | ✅ 對的 | `checklist` 1.3 刻意維持 `🚧`，解封條件與 `AD-PolicyAttestationFlag-1` 都寫下來了 |
+| **W15** | ✅ 對的 | 理由只有一個且明寫：**AC-2 從未被驗證** |
+| **W20** | ✅ 對的 | 全片回退，淨產出 0 行 |
+| **W21** | ✅ **新的，且理由具體** | **US-2 / AC-3 一行未寫**（CI 沒有 Azure 身分）+ AC-4 的乾淨-RG 半邊無法驗證 |
 
-⛔ **`check_status_markers` 對 W05 仍是綠的，而它仍然沒有錯** —— E1/E2 比對的是 frontmatter 與內文
-**彼此**是否一致，兩處都寫 `closed_partial`。**detector 抓得到不一致，抓不到「一致地過時」。**
-審計 #5 提的候選守衛（checklist 內若不存在任何 `- [ ] 🚧` 而 plan 是 `closed_partial` 即 fail）
-**仍未建**，而它現在有了第二個資料點可以驗收：W14 是真的有 `🚧`，W05 沒有。
+⭐ **審計 #6 的 `AD-19`（W05 一致地過時）已於 2026-08-16 處置** —— frontmatter 改 `closed`，
+原措辭以刪除線保留並補上逐條解封實據。**本次複驗未再漂移。**
 
-### 2.7 ⚠️ 漂移發現（AD-21 ~ AD-26）
+⛔ **而那條缺口本身仍未關**：`check_status_markers` 的 E1/E2 比對的是 frontmatter 與內文
+**彼此**是否一致 —— **抓得到不一致，抓不到「一致地過時」**。
+審計 #5 提的候選守衛（plan 是 `closed_partial` 而 checklist 內不存在任何未勾的 `[ ]` 即 fail）
+**仍未建**，而它現在有 **5 個資料點**可以驗收，其中 W20 / W21 兩個是新的正面樣本。
 
-> ⚠️ **編號續審計 #5 的 AD-20 之後**（依 §6 第 6 條，取 §3 歷史表的最大號而非上一份快照的）。
+### 2.7 ⚠️ 漂移發現（AD-27 ~ AD-44）
+
+> ⚠️ **編號續審計 #6 的 AD-26 之後**（依 §6 第 6 條，取 §3 歷史表的最大號而非上一份快照的）。
+> ⛔ **每一條都經我自己重讀原文**，agent 的回報不直接採用（見 §2 涵蓋聲明）。
+
+**⭐ 本批的共同形狀：ADR 層完全沒有跟上 W15–W21。** 18 條裡 **8 條**落在 ADR
+（AD-27 · 28 · 29 · 30 · 40 · 42 · 43 · 44），而根因是一個**結構缺口**而非八次疏忽：
+**phase closeout 的檢查表沒有一格是 ADR**（`RISK_REGISTER` 有那一格，是審計 #3 的 `AD-12b@#3` 加的）。
+
+| AD | 漂移 | 實據 |
+|---|---|---|
+| **AD-27** ⭐⭐ | **`ADR-0011:117-119` 仍寫「this project authors **no IaC** and has **nothing of its own to scan**」，而 `CH-041` 今天讓它變成假的 —— 且 CH-041 自己的表格**列出了這一行**當受影響處，然後沒有修它** | `ADR-0011:117-119` 原文 vs `CH-041:21` 的受影響清單含 `ADR-0011:119`。⇒ **一次修復動作列出了自己的漏網**；`CH-010` 拿到了前向指標，ADR-0011 兩者皆無 |
+| **AD-28** ⭐ | **`ADR-0003` 對稽核覆蓋的敘述錯了一個數量級** —— 寫「`AUDITED_MODELS` holds **exactly one** name … coverage is **1 of 21**」 | `0003:127-128` vs 當場導出 **16 / 34**（`audit.module.ts:82-99` 逐名讀出 16 · `^model` 35 減 `AuditLog`）。⚠️ 該 ADR 自己交代「R4 must be read as *first mitigation*」—— 而那句忠告現在建立在一個過期一個數量級的數字上 |
+| **AD-29** ⭐ | **`ADR-0003` FC4 的「現況」欄寫「Cannot happen — no roll-up endpoint exists until M8」，而 roll-up principal 今天就用得到，且拒絕已被逐字量到** | `0003:155` vs `dev-principal.ts:109` `rollUp: process.env.DEV_PRINCIPAL_ROLLUP === 'true'`（`.env.example` 今天也補上了）· `audit.module.ts:66-70` 記錄 `UnattributableWriteError … the scope names 2 entities`。**條件如設計般開火了（好消息），而 ADR 是它自己這件事最不準確的紀錄** |
+| **AD-30** ⭐⭐ | **`ADR-0001` 與 `ADR-0007` 仍以現在式談 Azure China，而它十天前就隨 ADR-0010 移出範圍** —— 附帶損害的取代是**單向的**：0010 知道，兩個被取代的子句不知道 | `0007:90-92`「**Two identity planes** … **M4 must define** how the six roles are provisioned in each」· `0007:21` · `0007:135` · `0001:38` · `0001:149`。ADR-0010 把這筆帳記在**自己**身上（`0010:125-133`），⇒ 只有讀 0010 的人知道。**M4 規劃時讀到 `0007:90` 會得到一條建造兩套身分平面的指令** |
+| **AD-31** ⭐⭐ | **`decision-form.md` 宣稱四個法律問題「均未經複查」，而它在同一句話裡連結的 `ADR-0010`（已採納）寫著那四個問題 moot、`AD-Decider-1` closes** | `decision-form.md:31-34` vs `ADR-0010:115-116` vs `BACKLOG.md:472`（「✅ 已消滅」）。⇒ 審計 #6 `AD-22` 的第四層：**這次它把正確答案的連結放在錯誤陳述的同一句裡** |
+| **AD-32** ⭐ | **`RISK_REGISTER` 的 header 對自己的列做了一個假陳述** —— `:9` 寫「R1/R2/**R5/R6/R7**/R8 仍停在 2026-08-10」，而 R5/R6 是 2026-08-17、R7 是 2026-08-18 | `:5` `Last Reviewed: 2026-08-16（W17 closeout）` vs `git show -U0`：W18 `4cdefc0`、W19 `0d3e7f0`、W21 `ae33e24` **三次都只改列不改 header**。⛔ **最後那一次是我今天做的** —— 本條的最新一個資料點由本 session 貢獻 |
+| **AD-33** ⭐ | **`DEFERRED_REGISTER` 內容自 2026-08-12 未動，跨 9 個 phase** —— 而 `AD-RegisterUpkeep-1` 預測的正是這件事，守衛從未建 | `DEFERRED_REGISTER.md:6` `Last Reviewed: 2026-08-12（審計 #4）`；`git log` 最後一次內容變更 2026-08-12（08-13 那次是審計改號）。⇒ 審計 #5 / #6 兩次都沒碰它 |
+| **AD-34** ⭐⭐ | **一條 🔴 P0 在 ROADMAP 四張表上零落點** —— `AD-LocalPasswordFallback-1`（W19 開立，stakeholder 要保留本地密碼登入 vs **已採納**的 ADR-0007） | `ROADMAP.md` 全檔對該 ID **0 命中**（我自己 grep 過）· `BACKLOG.md:390` 🔴 P0。⇒ **`AD-21` 的失效模式換一個成員再演一次**，而 `ROADMAP:154-155` 自己就寫著「找不到落點的那一條，就是下一次審計的 AD-21」 |
+| **AD-35** | **ROADMAP 的 P0 名單反方向也 stale** —— `AD-Mockup-3` **已由 W19 關閉**卻仍列 🔴 P0；`AD-Mockup-2` **已降 P1** 卻仍列 🔴 P0 | `ROADMAP:134` · `:153` vs `BACKLOG:459`（W19 關閉 `AD-Mockup-3`，§Open 已無此列）· `BACKLOG:270` 優先度欄 `🟡 P1`。**兩個方向的 stale 住在同一列** |
+| **AD-36** ⭐⭐ | **ROADMAP 沒有任何一列對應前端或部署工作流** —— W19（30 畫面）· W20（回退）· W21（部署）在全檔只以**散文**出現在第 9b 列 | `ROADMAP` 主線 10 個編號項全是 M1 資料層 + 治理 detector；第 4 列 slice 歷史正確地停在 W18。⛔ `AD-Mockup-Responsive-1`（**使用者自己提的需求**）全檔 **0 命中**。⇒ **今天讀 ROADMAP 問「先做哪個」，答不出任何跟瀏覽器有關的事** |
+| **AD-37** | **BACKLOG 內部三處「一半說 A、另一半說 B」** | (a) `AD-DesignNoteAnchor-1`：`:338` 說 9b「⬜ 已排定」vs `:461` 說已裁決（ROADMAP 標 ✅）· (b) `AD-IaCEvidence-1`：`:326` 說「本專案沒有 IaC 可掃」vs `:461` 說 `CH-010:51` 已不成立 · (c) ⭐ **檔頭 `:13-15` 說審計 #6 的六條「⏳ 未處置」，而 `:474` 自己記著其中兩條的處置**（審計 #5 `AD-17` / #6 `AD-22`，2026-08-15），`ROADMAP:12` 亦記著 `AD-21` 的處置 ⇒ **本檔 §2.7b 複驗六條皆已處置**。⚠️ **本次刻意不修**（§5：審計只揪不修）|
+| **AD-38** | **W20 在 §Shipped Phases Pointer Index 上完全沒有列**，而該節規則是「每個完成的 phase 一行」 | `BACKLOG:423-462` 逐列：W01–W15 · W18 · W19 · W21 有列，**W20 沒有**；而 W20 在同檔 `:53`/`:58`/`:241` 等處出現 ⇒ 不是不知道它，是**獨獨漏在索引上** |
+| **AD-39** | **ROADMAP 的 header 比自己的內文舊三天三個 phase** | `:7` `Last Modified: 2026-08-15`、MHist 最新一條同日；而 `:88` 帶著 `**W21（2026-08-18）—— 裁決**`。⇒ 與 **AD-32** 同形，發生在另一份追蹤文件上 |
+| **AD-40** ⭐ | **ADR-0008/0009 的「Wave 3」延後標籤已部分失效，而沒有東西在看** —— `CH-010` 已因「ISMS AI agent」把 **Azure OpenAI 由「不需要」改為要申請** | `CH-010:80-82`（並自己註明「**ADR-0008 / 0009 仍未拍板**」）vs `14-adr/README.md:109-110` 只寫 `Wave 3`。⇒ README 自己的 forcing-function 判準第一條就是「**外部動作需要這個答案**」，而資源申請單就是外部動作 = `AD-DeferralUnwatched-1` 的形狀 |
+| **AD-41** | **OQ-8 的「為什麼現在要決定」前提已死** —— 寫「ADR-0009 與 **OQ-1 耦合**，若 OQ-1 選了分區，agent 也必須能分區」，而 OQ-1 早已改為單一區域 | `decision-form.md:20` vs **同檔 `:44`**（2026-08-08 單一區域 × 3 環境）。⇒ 又一條「矛盾兩半住在同一份文件裡」 |
+| **AD-42** | **`ADR-0010:91` 把「scanned IaC」當成保留下來的性質** —— 寫這句時是**空真**（沒有 IaC），今天是一個**可檢查的合規宣稱** | `0010:90-92` vs `CH-041:96-99`（落地當天實測零掃描器覆蓋）。⚠️ 今天已量到 `bash 4 rules / 1 file`，所以宣稱**現在成立**了 —— 但那是巧合不是該 ADR 的功勞，且 4 條規則的厚度未被論證 |
+| **AD-43** | **`ADR-0007` 的可證偽條件一條不可能觸發、一條數字過期** | FC2（`0007:112-113`）以「Azure China instance 無法同步 role 定義」為條件 —— **那個 instance 不存在**，條件永遠不會 fire；FC1（`0007:107-108`）寫 `14 OpCos`，真值 **13**（`0010:106` · CLAUDE.md 已確認參數 4/12）|
+| **AD-44** | **`14-adr/README.md` 的索引衛生** —— (a) header `Last Modified: 2026-08-07` 而索引含 2026-08-14 採納的 ADR-0003，**且全檔無 Modification History**（違反 `file-header-convention.md`）·(b) `:100-101` 說 0003 已採納而 `:117` 仍稱它是「有主題的**預留**」·(c) `:85` 一個空行把索引裂成兩張表，**最新的 ADR-0014 掉在表外** ·(d) 索引未依編號排序（0005 排在 0011 後） | 逐項 `file:line` 如左 |
+
+<!-- 以下為審計 #6 的原始漂移表，保留 —— BACKLOG 檔頭與 `AD-DualLayerHighRisk-1` 的來源欄都引用「§2.7」 -->
+
+### 2.7b 審計 #6 的 AD-21 ~ AD-26 —— **原文保留**
+
+> ⚠️ 六條的處置狀態：**AD-21 於 2026-08-15 同日處置** ·
+> **其餘五條於 2026-08-16 隨 W15 的第一個 commit 夾帶**（兩份裁決見下方引用區塊）。
+> **本次（#7）逐條複驗：六條皆未再漂移。**
 
 **審計 #5 的 AD-17 ~ AD-20 處置複驗** —— ⛔ **四條裡只有一條被處置**：
 
@@ -292,7 +426,7 @@ configured explicitly (**never platform defaults**)」。審計 #4 / #5 連續�
 | **AD-25** | **`RISK_REGISTER.md:5` 的 `Last Reviewed` 把 2026-08-15 的複查歸給「W13 closeout」，而 W14 closeout 也改了 R3 / R4 兩列** —— 兩個 phase 在**同一天**收尾，所以日期是對的、**歸屬是錯的**，而任何日期檢查都發現不了 | `RISK_REGISTER.md:5` = 「2026-08-15（**W13** closeout —— R4 覆蓋 1/21 → 15/21…其餘七條逐條看過無變化）」vs R3 欄內文含「⚠️ **W14 複查**：敞口形狀有一項需要寫下來」· R4 欄內文含「⭐ **W14 是這條緩解的第一次實戰驗證**」· W14 的 `progress.md:484` 明列 closeout 產出含「`RISK_REGISTER.md`（**R3 / R4** 兩列）」 | 🟢 低嚴重度，但**形狀值得記**：這是 AD-20 的變體 —— 那次是「日期沒跟上」，這次是「**日期對了而歸屬錯了**」。⚠️ 連帶一個真的缺口：header 說「其餘七條逐條看過無變化」是 **W13** 的陳述，而 W14 只複查了 R3 / R4；**R1 / R2 / R5 / R6 / R7 / R8 的「最後複查」欄仍是 2026-08-10**，跨 **W05–W14 十個 phase** |
 | **AD-26** | **`BACKLOG.md` §Shipped 的 W13 列缺 MERGED 標記與 merge SHA，而同表其餘 14 列全都有** —— 寫的是「PR #61，`closed`」，而 PR #61 已於 2026-08-15T07:22:07Z merge 為 `91bd789` | `BACKLOG.md:285` = 「— PR #61，`closed`」vs `:286`（W14）= 「— **MERGED (PR #63, `e9ab83a`)**」vs `gh pr view 61` = `MERGED 2026-08-15T07:22:07Z 91bd789`。**同表 15 列逐列比對，只有這一列缺** | 🟢 低嚴重度但**成因值得記**：W13 closeout 寫這一列時 PR #61 **還沒 merge**，所以寫了當時為真的措辭；而 W13 有 post-merge 重指（PR #62 改了 11 個 SHA），**那次回頭卻沒有補這一格** —— 因為重指的 pattern 是「舊 SHA → 新 SHA」，而這一格**根本沒有 SHA 可以被替換**。⭐ **一次「重指」掃不到一個從未存在的引用** —— 這是 `AD-DesignNoteAnchor-1` 的補集，同一個 detector 應該一併看 |
 
-### 2.7b 審計 #4 的 AD-12 ~ AD-16 原始表 —— **刻意留在 §2 而不壓進 §3**
+### 2.7c 審計 #4 的 AD-12 ~ AD-16 原始表 —— **刻意留在 §2 而不壓進 §3**
 
 > §3 的規則是「舊快照精簡成 3-5 行，**不要保留全文**」，本節是**有記錄的例外**：
 > `BACKLOG.md` 有**兩處**引用 `STATUS_AUDIT.md §2.7` 指名 AD-12 / AD-14
@@ -353,6 +487,42 @@ configured explicitly (**never platform defaults**)」。審計 #4 / #5 連續�
 
 ⛔ **這是建議，不是決定。方向的排序權在使用者**（PROCESS R1：沒有 approved 的 pre-doc 不可寫 code）。
 
+⭐ **本次與前六次都不同的地方**：**沒有死線了**（第一次），而且**沒有任何一條漂移會讓下一次判斷出錯**
+（審計 #6 的 `AD-21` 是那種，本次 `AD-34` 雖同形但影響面小得多）。
+⇒ **本次的排序不受任何一條漂移挾持** —— 這是本專案第一次可以純粹依價值排序。
+
+⛔⭐ **而有一個事實必須先講，因為它直接決定使用者已表明的下一步是否可行**：
+
+> **端到端垂直切片今天無法部署。**
+> `apps/api` 在 `NODE_ENV=production` 下**結構上起不來** ——
+> `policy.module.ts:35` 於**模組建構時**呼叫 `assertDevPrincipalAllowed()`，
+> 而 `dev-principal.ts:74-76` 在 production 即 throw。解封點是 **M4（Entra ID）**，
+> 而 M4 的前提是 **RIT 建三個 App Registration**（`ADR-0007` · `CH-010` 第 4 點）。
+>
+> ⇒ 垂直切片可以在**本機**被 drive-through，**但它到不了那個示範網址**。
+> 那不是反對做它，是「做完之後 stakeholder 仍然只看得到 fixture」這件事要事先知道。
+
+| 候選 | 論據 | 反論據 |
+|---|---|---|
+| **A. 端到端垂直切片（`risks`）** —— 使用者已表明 | ⭐ **這是唯一能關掉「30 個畫面全部餵 fixture」這個結構事實的選項**。W19 的 drive-through 抓到 25 個死控件，而那是在**沒有後端**的情況下 —— 接上真 API 會暴露的是另一類（範疇過濾、404 vs 307、錯誤路徑）。`risks` 的兩端最完整：後端有表 + 端點 + RLS + 稽核，前端有列表 + 詳情 + 新增 | ⛔ **只能在本機驗**（見上）· ⚠️ `AD-FrontendMissingIdRedirects-1` 說明白了：接上 API 的那一刻，「307 導回列表」從無害 UX 變成**約束 8 的違反**（洩漏 id 存在與否）—— 那必須同片修掉，不是後續 |
+| **B. ADR 層的追認** | 本批 **8 / 18** 條漂移在這裡，且根因是**一個結構缺口**（closeout 檢查表沒有 ADR 那一格），一次補完 + 加那一格就關掉整族。⭐ 其中 `AD-30` 有實質風險：**M4 規劃會讀到一條建造兩套身分平面的指令** | ⚠️ 治理工作，吃 `CH-017` 每 phase 1 個的配額 · 多數是文字更正，便宜到會誘使人當成「有進度」 |
+| **C. CI 部署身分（US-2）** | 解掉 W21 唯一的未交付項；讓部署不依賴任何一台特定機器 | ⛔ **卡外部或卡使用者** —— 需要 RIT 建 federated credential，或使用者提供 SP secret。**不是工作量問題，等不到就是等不到** |
+| **D. `AD-LocalPasswordFallback-1`（🔴 P0）** | stakeholder 要本地密碼登入 vs **已採納**的 ADR-0007。⭐ **載體必須是 ADR-0007 的修訂**，而在它被裁決之前，任何登入頁的實作都可能白做 | ⚠️ 需要使用者與 stakeholder 的決定，不是執行工作 |
+
+**建議：A 為主，B 夾帶，D 在 A 開工前先問一句。**
+
+- **A 是對的選擇，理由不是「該做了」而是「它會抓到別的東西抓不到的」** ——
+  本專案已經量過三次同一件事：gate 抓零件、中性化抓你想到要問的、**drive-through 抓你沒想到要問的**。
+  接上真後端會產生第四類：**兩端對同一個概念的理解不一致**（範疇、找不到、錯誤碼），
+  而那一類今天**沒有任何機制在看**。
+- **B 夾帶**：`AD-27`（ADR-0011 那行）與 `AD-30`（Azure China）值得在 A 的第一個 commit 一起修；
+  其餘六條可排下一片。**真正要做的是加那一格 closeout 檢查表**，不是修八處文字。
+- **D 先問**：如果 stakeholder 堅持本地密碼，那 `risks` 切片的登入路徑會建在一個將被推翻的前提上。
+  **成本是問一句話，不問的成本是可能重做。**
+- ⛔ **不建議現在做 C** —— 它卡在別人身上，而且**沒有它 A 一樣能做完**。
+
+<details><summary>審計 #6（2026-08-15）的優先序建議 —— 原文保留</summary>
+
 ⭐ **本次與前五次都不同的地方**：前五次的候選都是「下一個能推進的東西」——
 建表、接稽核、關 M0 的分子。**本次清單的第一項不是「能推進什麼」，是「什麼會停下來」。**
 
@@ -377,7 +547,11 @@ configured explicitly (**never platform defaults**)」。審計 #4 / #5 連續�
 
 **⏰ 唯一有日期的死線**：`AD-TrivyExempt-1` **2026-09-07（剩 23 天）**。
 
-### 2.9 一個值得單獨說的觀察
+</details>
+
+### 2.9 一個值得單獨說的觀察 —— **這一次是關於審計自己**
+
+<details><summary>審計 #6 的 §2.9（矛盾兩半住在同一段裡）—— 原文保留</summary>
 
 **本次六條漂移裡有四條（AD-21 · AD-22 · AD-23 · AD-25）的矛盾兩半住在同一列或同一段裡。**
 不需要跨文件比對，不需要 git log，逐句讀完那一段就會看見 —— 而它們仍然活了下來。
@@ -413,12 +587,56 @@ drive-through 抓的正是**你沒想到要問的那些**。
 ⇒ 這不構成「必須現在做 UI」的論證（`AD-Mockup-2` / `AD-Mockup-3` 兩個 P0 真的擋著），
 但它應該進入 §2.8 的 B vs C 排序，**作為 B 的代價而不是 C 的好處**。
 
+</details>
+
+⭐ **審計 #6 那段預測在 W19 兌現了**：它寫「drive-through 抓的正是你沒想到要問的那些」，
+而 W19 第一次執行 drive-through 就抓到 **25 個死控件**，且它們**通過了每一項 gate**，
+含 W19 自己那一片新加的 hover 守衛。**預測與實測都在，這一條可以收了。**
+
+---
+
+#### 本次真正值得單獨說的：**審計自己落後了七個 phase，而沒有任何東西會叫**
+
+前六次審計最多跨兩個 phase。本次跨七個，而觸發它的不是任何機制 —— 是**使用者開口問**。
+
+⛔ **這與本批 18 條漂移裡至少 4 條是同一個病**（`AD-32` `AD-33` `AD-39` 以及 ADR 那整族）：
+**一份 living 文件的「最後更新」欄，沒有任何東西在對照它與最近一次 closeout 的日期。**
+`AD-RegisterUpkeep-1` 早就寫下了正解 ——
+> `可行守衛：detector 比對 Last Reviewed: 與最近一次 phase closeout 的日期`
+
+**那條守衛從 W08 提出至今未建，而本次它自己被同一個病咬了一口。**
+
+⚠️ **而這裡有一個誠實的區分要做**，否則會做出一條沒用的 detector：
+
+| 文件 | 落後是不是問題？ |
+|---|---|
+| `RISK_REGISTER` · `DEFERRED_REGISTER` · `ROADMAP` header | ✅ **是** —— 它們宣稱自己被複查過，而沒有 |
+| `STATUS_AUDIT` 自己 | ⚠️ **不一定** —— 跨來源審計**本來就是按需的**，`/status-audit` 的定位就是「使用者問的時候跑」。**問題不是它落後，是它落後時沒有人知道它落後** |
+
+⇒ 兩者要的守衛不同：前者是「**你說你看過了，證明給我看**」，
+後者是「**下一次有人問全項目狀態時，先告訴他這份快照有多舊**」。
+把它們寫成同一條 detector，會得到一條對第二種情形永遠在響的警報。
+
+---
+
+⭐ **第二件事：本次是第一次把掃描委派出去，而它產生了一個可量測的結論。**
+
+四個 subagent 分四個來源組平行掃，我保留跨來源比對。**代價與收穫都具體**：
+
+- **收穫**：18 條漂移，其中 8 條在 ADR 層 —— 那一層前六次審計都只做「狀態值 + 編號空缺」的淺掃，
+  **從來沒有人逐條讀可證偽條件並問「它觸發了嗎」**。`AD-29`（FC4 已被行使）只有這樣才抓得到。
+- **代價**：**agent 的回報有一條是錯的**（宣稱 `CLAUDE.md` 仍寫 W20，實際已是 W21 —— 它讀到的是
+  本 session 更新前的狀態）。⛔ 若照單全收，這份審計會憑空發明一條不存在的漂移。
+- ⇒ **判準因此明確**：委派可以擴大**掃描**的射程，**不能代替判讀**。
+  每一條進入 §2.7 的發現，都必須由審計者自己重讀那一處原文 —— 這次做了，而且**擋下了一條**。
+
 ## 3. 歷史快照
 
 <!-- 舊快照精簡成 3-5 行放這裡，保 audit trail。不要保留全文。 -->
 
 | 日期 | 基準 sha | 當時 active | 漂移數 | 一句話 |
 |---|---|---|---|---|
+| 2026-08-18 (#7) | `ae33e24` | 0 | **18** | **W15–W21 收尾後 —— 歷來最大落差（跨七個 phase，前六次最多兩個），且觸發它的不是任何機制而是使用者開口問。** 160 條 open AD（P0 **6** ← 7：`AD-Mockup-3` 由 W19 關閉、`AD-Mockup-2` 降 P1、新增 `AD-LocalPasswordFallback-1`）。⭐⭐ **18 條裡 8 條在 ADR 層，而根因是一個結構缺口不是八次疏忽** —— 沒有任何 ADR 檔在 2026-08-14 之後被改過，因為 **phase closeout 的檢查表沒有一格是 ADR**（`RISK_REGISTER` 有那一格，是審計 #3 加的）。最尖銳的三條：`AD-27`（`CH-041` 在自己的表格裡列出 `ADR-0011:119` 是受影響處然後沒修它 —— **一次修復動作列出了自己的漏網**）· `AD-30`（`ADR-0007:90-92` 仍是一條「M4 必須建造兩套身分平面」的現在式指令，而 Azure China 十天前就移出範圍）· `AD-31`（`decision-form` 宣稱四個法律問題未經複查，**而它在同一句話裡連結的 ADR-0010 寫著它們 moot**）。⭐ **死線歸零，本專案第一次**（`AD-TrivyExempt-1` 由 CH-032 拆掉）。⭐ **UI drive-through 連續 14 個 phase 零次的紀錄由 W19 終結，且第一次執行就抓到 25 個死控件**。⭐ **本次首度把掃描委派給四個平行 agent** —— 擴大了射程（ADR 層的可證偽條件前六次從未逐條讀過），**而其中一條回報是錯的**（宣稱 CLAUDE.md 仍寫 W20）⇒ **委派可以擴大掃描，不能代替判讀**。⛔ 基準**不在 `main` 上**（歷來第一次）—— W21 的 closeout 仍在 PR #84 |
 | 2026-08-15 (#6) | `c403522` | 0 | 6 | W13 + W14 收尾後（**首次一次審計跨兩個 phase**）。108 條 open AD（P0 **7** ← 8，`AD-AuditCoverageOneTable-1` 由 W13 關閉 —— **十個 phase 以來第一條被關掉的 P0**）。⭐ **本次六條有四條的矛盾兩半住在同一列或同一段裡**（ROADMAP 的「第 5 條 P0」而真值 7 且兩條 P0 無落點 · `decision-form` 表格 2 列而敘述寫「三項」· R4 狀態欄 15/21 而同列內文寫「第 16 個」· `RISK_REGISTER` header 歸給 W13 而 W14 也改過）—— **跨來源審計的價值不全在「跨」**。⭐⭐ **M0 DoD 第 5 項首度取得實據**：三個子項裡兩個早已做完且有負面測試守著，只有 TLS 是本專案結構上無標的 ⇒ 連續四次的「未取得實據」涵蓋了兩件性質不同的事。⛔ **審計 #5 的四條只處置了一條**（AD-20，而且是被 closeout 順手改對的）|
 | 2026-08-14 (#5) | `91dd1cb` | 0 | 4 | W12 收尾後。100 條 open AD（P0 8 / P1 56 / P2 36，detector 導出）；⭐ **本次四條有兩條是「條件成立了但沒有人回頭翻」**（W05 的 `closed_partial` 早在 W06 解封、`DEFERRED_REGISTER` 停更跨五個 phase），另兩條是**我自己在 W12 closeout 造成的**（同一個錯的表數留在兩份活文件、BACKLOG header 日期沒跟上）。⭐⭐ **兩個「疑似漂移」被實據推翻**：W01 的 `closed_partial` 是**對的**（digest 釘定仍未做），`asset.int.spec.ts` 的四項範疇測試**存在**（我第一次用的 pattern 太窄）。M0 仍 3/2/1 未動（連續**十個** phase）|
 | 2026-08-12 (#4) | `d7733b5` | 0 | 5 | W07 收尾後。69 條 open AD；⭐ **三條漂移是「計數器沒有機械推導」**（實體數在每份文件都錯且互相矛盾、`RefCodeCounter` 不在自稱完整的索引上、審計 #2 自己的 i18n 計數是錯的）；`DEFERRED_REGISTER` 停更四個 phase 且 D002 的恢復條件字面已成立；M0 仍 3/2/1 未動（連續五個 phase）。⚠️ **原標 `#3`，2026-08-13 改號** —— 見 §3.1 |
