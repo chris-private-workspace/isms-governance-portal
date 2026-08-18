@@ -100,27 +100,54 @@
 
 ### 2.1 fetch 層
 
-- [ ] **`apps/web/src/lib/api/risks.ts` —— `list` / `byId` + 型別一處定義**
-  - DoD: 無新增相依（不引資料抓取函式庫 —— AP-5）
-  - Verify: `npm run type-check -w apps/web`
+- [x] **`apps/web/src/lib/api/risks.ts` —— `list` / `byId` + 型別一處定義**
+  - DoD: 無新增相依（不引資料抓取函式庫 —— AP-5）✅ 沿用 `app/page.tsx:45` 的 fetch pattern
+  - Verify: `npm run type-check -w apps/web` → clean
+  - ⚠️ 型別**刻意不放 `packages/types`** —— 只有一邊 import 的契約項目是平行定義
+    → `AD-RiskContractUndeclared-1`
 
 ### 2.2 兩頁換資料源
 
-- [ ] **`risks/page.tsx` 資料源 fixture → API**
-  - DoD: loading / error / empty **三個狀態都有可見 UI**
+- [x] **`risks/page.tsx` 資料源 fixture → API**
+  - DoD: loading / error / empty **三個狀態都有可見 UI** ✅
   - ⛔ **error 不可回退到 fixture**（AP-6：後端掛掉時畫面看起來正常）
-  - Verify: `npm run test -w apps/web` + 手動停掉 API 觀察
-- [ ] **`risks/[id]/page.tsx` 資料源 + `notFound()`**
-  - DoD: 不存在的 id 得到 **404 頁面**，不是 307
-  - Verify: 新增 web 測試斷言 404 路徑
-- [ ] ⭐ **D1 的落差在 UI 上被標示**（若採選項 a）
-  - DoD: 切換 persona **不改變** API 回傳這件事，畫面上說得出來
+  - Verify: `npm run test -w apps/web` → **95 passed**（新增 7）
+  - ✅ AC-5 有**具名測試**：斷言 fixture 第一列的標題（`Unpatched externally-facing systems`）
+    **不在 DOM 裡** —— 若有人補回 `catch { return risks }`，畫面會完美而只有這條會紅
+  - ⚠️ 額外：頂欄 scope 不再過濾此列表（範疇來自伺服器，再濾是演戲）；
+    選項為空的篩選器整個不渲染（死控件 = W19 那 25 個的形狀）
+- [x] **`risks/[id]/page.tsx` —— 只換 risk 表頭的資料源**（Day-0 裁決，plan §3.4 / R7）
+  - ⛔ **Day-2 發現裁決在字面上執行不了**：fixture 區塊全靠 OpCo 碼當 key，API 給 UUID ⇒ 濾成空；
+    且 `risks.find(r => r.id === id)` 用 UUID 找 fixture 必然落空 ⇒ **整頁必須由 API 驅動**。
+    使用者二次裁決：照列表頁同一套用 `NoSource`（空清單不可接受 —— 讀起來是「這筆風險沒有控制」）
+  - ✅ 四個狀態：loading / error / **not-found（兩種 404 同一張卡，零分支）** / unassessed
+  - ~~DoD: 不存在的 id 得到 **404 頁面**，不是 307~~
+    ⛔ **Day-0 證偽**：沒有 307 這回事，那是 `(app)/layout.tsx:50` 的未登入閘門
+  - DoD（改寫後 = AC-6）: **不存在的 id** 與 **跨實體的 id** 渲染**完全相同**的畫面 ——
+    同一張 not-found 卡、同一段文案，不因後者實際存在而有任何差異
+  - ⛔ **兩種都要測**，只測前者證明不了不可分辨
+  - Verify: 新增 web 測試斷言兩條路徑產生相同輸出 ✅ **比對 `innerHTML`**（遮蔽 id 之後
+    必須逐字相同）—— 只斷言「兩者都顯示某種 not-found」抓不到未來新增的分支
+- [x] ⭐ **`DemoBadge` 加「部分真實」變體**（Day-0 新增，plan §4 第 10 列 / R7）
+  - DoD: 詳情頁指名**哪些區塊仍是樣本**（controls / issues / 稽核軌跡 / 簽核 / 階段）✅
+  - ⛔ 沿用現有 badge 就是讓它**反過來說謊** —— 宣稱整頁是樣本，而表頭是真的
+  - Verify: web 測試斷言 `[data-demo-variant="partial"]` 存在且 `"fixture"` 不存在
+  - ⚠️ **列表頁也改用 partial** —— 它的列同樣已經是真實資料了
+- [x] ⭐ **D1 的落差在 UI 上被標示**（若採選項 a）
+  - DoD: 切換 persona **不改變** API 回傳這件事，畫面上說得出來 ✅
   - ⛔ 不標示就是 W19 那 25 個死控件的形狀
+  - ✅ 做法：**移除**頂欄 scope 對列表的過濾（再濾一次是演戲，只能移除伺服器已決定要送的列），
+    並在頁面上以 `risks.partialSource.text` 說明哪些欄位無來源
+  - 🚧 **「切換 persona 不改變回傳」這句話本身尚未在真 UI 上走查** —— 留給 Day 3 drive-through
 
 ### 2.x Full gate
 
-- [ ] `format:check` · `lint` · `type-check` · `test`（api + web）· `build` · `run_all` 9/9
-- [ ] **⏱ 寫入本日耗時到 progress.md**
+- [x] `format:check` · `lint` · `type-check` · `test`（api + web）· `build` · `run_all` 9/9
+  - format clean · lint clean · type clean · api **484** · web **95** · build `✓ Compiled` · run_all **9/9**
+  - ⚠️ `format:check` **第二次**因 python 就地編輯而先紅（4 檔），`--write` 後綠
+  - 🚧 **gitleaks / semgrep 對新檔（plan R3）本機未安裝**，只在 CI 有
+    ⇒ 解封條件：本片 PR 的 CI run
+- [x] **⏱ 寫入本日耗時到 progress.md** —— Day 2 **≈ 36 min**（20:52 → 21:28）
 
 ---
 

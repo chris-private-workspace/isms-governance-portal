@@ -3,6 +3,7 @@
   "riskDetail.locked": "Record locked · tamper-evident ledger active",
   "riskDetail.ownerMeta": "· owner {owner}",
   "riskDetail.edit": "Edit risk",
+  "riskDetail.unassessed.body": "This risk has no assessment recorded. Likelihood and impact have not been entered, so there is no score, no band and no heat map to show — the register keeps NULL rather than a zero, because they are different statements.",
   "riskDetail.notFound.title": "Risk not found",
   "riskDetail.notFound.body": "No risk in the register carries the reference {id}. It may have been closed, or the link may be out of date.",
   "riskDetail.status.open": "Open",

@@ -3,6 +3,7 @@
   "riskDetail.locked": "紀錄已鎖定 · 防篡改軌跡運作中",
   "riskDetail.ownerMeta": "· 負責人 {owner}",
   "riskDetail.edit": "編輯風險",
+  "riskDetail.unassessed.body": "這筆風險尚未評估。可能性與衝擊都還沒填，所以沒有分數、沒有等級、也沒有熱圖可顯示 —— 登錄冊保留 NULL 而不是 0，因為那是兩種不同的陳述。",
   "riskDetail.notFound.title": "找不到這筆風險",
   "riskDetail.notFound.body": "風險登錄冊中沒有編號 {id} 的紀錄。它可能已結案，或這個連結已過期。",
   "riskDetail.status.open": "未處理",

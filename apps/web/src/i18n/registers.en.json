@@ -29,6 +29,13 @@
   "risks.status.treatment": "Treatment",
   "risks.status.monitored": "Monitored",
   "risks.status.accepted": "Accepted",
+  "risks.source.loading": "Loading the risk register…",
+  "risks.source.error.title": "The risk register API is unreachable",
+  "risks.source.error.body": "Nothing is shown rather than sample data in its place. Check that the API service is running.",
+  "risks.source.empty.title": "The risk register is empty for this scope",
+  "risks.source.empty.body": "The API answered and returned no rows.",
+  "risks.noSource.title": "No source in the API yet",
+  "risks.partialSource.text": "Entity, controls, status, owner and role have no source in the API yet and are shown as —. Every other column is live data.",
   "risks.empty.title": "No risks match these filters",
   "risks.empty.body": "Try adjusting or clearing the filters above.",
 

@@ -171,3 +171,82 @@ Tests: 2 failed, 22 passed, 24 total
 | `npm run format:check -w apps/api` | clean —— ⚠️ **第一次紅**：python 就地編輯的三個檔不符 prettier，`--write` 修正後才綠 |
 | `npm run test -w apps/api` | **484 passed / 40 suites** |
 | `npm run test:int -w apps/api` | **269 passed / 21 suites** |
+
+---
+
+## Day 2 — 2026-08-18 — 前端接上去 (US-1, US-4)
+
+### 先取 payload，不從 schema 推
+
+Day 2 一開始就先把 API 跑起來 curl 真實回應，而不是從 `schema.prisma` 推斷欄位。
+那個決定買到了下面整節 —— **從 model 推會得到「欄位名稱不同」，從 payload 看才會發現「五個欄位根本沒有來源」。**
+
+| 探測 | 結果 |
+|---|---|
+| `GET /risks` | **9 列**（SG1 範疇；seed 4 + W05 殘留 5）。HK1 的 3 列**被正確濾掉** —— 範疇過濾在真實 HTTP 上看得見 |
+| `GET /risks/:id` 範疇內 | **200** |
+| `GET /risks/:id` 跨實體 | **404** |
+| `GET /risks/:id` 不存在 | **404**，body 與跨實體**除了 id 以外逐字相同** ⇒ **AC-1 在真實 HTTP 上成立** |
+
+### Day 2 的三個發現
+
+| ID | Finding | Implication |
+|----|---------|-------------|
+| **D-entity-vocab** ⭐⭐ | UI 的 `@/data/opcos` 是 **13 個 OpCo**（`RSG` `RHK` `RKR` …），DB 的 `org_entities` 是 **5 個測試節點**（`APAC` `SG` `HK` `SG1` `HK1`）。**零交集**。且 `GET /risks` 回的是 `org_entity_id` **UUID**，全 repo 無端點可換成 code | 實體欄位、旗標查找、詳情頁的 `controls.filter(c => c.entity === risk.entity)` 全部落空 → `AD-EntityVocabularyMismatch-1` 🟡 P1。**兩層各自都通過自己的 gate，而這是它們第一次在同一個畫面上見面** |
+| **D-five-unsourced** ⭐ | 列表頁 12 個欄位中 **5 個 API 完全沒有來源**：entity code · controls 數 · status（API 是 `identified`，畫面是 Open/Treatment/Monitored/Accepted —— **不同詞彙不是改名**）· owner · role | 使用者裁決：**能填的填真的，填不了的明講**。⇒ `NoSource` 元件 + partial DemoBadge 逐個點名 |
+| **D-imp-recoverable** ⭐ | 設計的單一 `imp` 值**可以從 API 精確反推**：`scoreBefore / lkhBefore = MAX(FIN,BOP,LRY,REP,SIS)`。實測 `RISK-SG1-900003`：`12 / 3 = 4`，而 seed 的 before 是 `{fin:1, bop:4, lry:2, rep:3, sis:1}` → MAX = 4 ✅ | **不是近似，是恆等式** —— 正好是 `15-design-alignment.md` 記錄的那條偏離的另一面。⇒ 熱圖整塊可用真實資料渲染，不需要 fixture |
+
+### 詳情頁：裁決在字面上執行不了
+
+Day 0 裁決是「表頭接真 API，其餘留 fixture」。Day 2 發現**「其餘留 fixture」做不到**：
+那些區塊全部靠 `risk.entity`（OpCo 碼）當 key，而 API 給的是 UUID ⇒ 濾成空的。
+更根本的是 `risks.find(r => r.id === id)` 用 UUID 去找 fixture **必然落空**，整頁只會顯示 not-found 卡。
+
+⇒ 使用者 2026-08-18 二次裁決：**照列表頁同一套，用 `NoSource` 標記**。
+⛔ **空清單不可接受** —— 空的「關聯控制」讀起來是「這筆風險沒有控制」，那是對一筆**真實**風險的假陳述。
+
+### 交付
+
+| 檔案 | 內容 |
+|---|---|
+| `apps/web/src/lib/api/risks.ts` | NEW —— `listRisks` / `getRisk` + `RiskRow` + `ApiUnavailableError`。**零新依賴**（沿用 `app/page.tsx:45` 的 fetch pattern）。⚠️ 型別**刻意不放 `packages/types`** → `AD-RiskContractUndeclared-1` |
+| `apps/web/src/components/NoSource.tsx` | NEW —— 兩頁共用，避免 AP-2 |
+| `apps/web/src/components/DemoBadge.tsx` | EDIT —— 加 `partial` 變體 |
+| `risks/page.tsx` · `risks/[id]/page.tsx` | EDIT —— 資料源、loading / error / not-found / unassessed 四狀態 |
+| `risks.test.tsx` | NEW —— 7 條 |
+| i18n × 6 檔 | 新增 16 個 key（en / zh-Hant 等價，parity test 通過）|
+
+**三個非顯而易見的決定**：
+**(1)** 拿掉了頂欄 scope 對列表的過濾 —— 範疇現在來自伺服器（D1），再濾一次是**演戲**，
+只能移除伺服器已經決定要送的列；代價（切換 persona 不改變這些列）**寫在畫面上**而不是留給人發現。
+**(2)** 選項為空的篩選器**整個不渲染** —— 只會說「全部」的下拉是死控件，W19 出過 25 個。
+**(3)** 未評估的風險**停在表頭** —— 每個區塊都要除以或分帶那些數字，讓 0 傳下去會畫出一個
+從來沒人量過的熱圖格子。
+
+### 2.x Full gate
+
+| Gate | 結果 |
+|---|---|
+| `format:check`（api + web）| clean —— ⚠️ **第二次踩同一個坑**：python 就地編輯後 4 個檔不符 prettier |
+| `lint`（api + web）| clean |
+| `type-check`（api + web）| clean |
+| `test -w apps/api` | **484 passed** |
+| `test -w apps/web` | **95 passed**（88 → 95，新增 7）|
+| `build`（api + web）| clean —— `✓ Compiled successfully`，25 個靜態頁 |
+| `run_all` | **9/9** |
+| gitleaks · semgrep（plan R3）| 🚧 **本機未安裝**，只在 CI 有 ⇒ 解封條件：本片 PR 的 CI run |
+
+> ⭐⭐ **這一天最該記住的一件事**：我把兩個產品畫面從 fixture 整個換成 API，
+> 期間跑了三次 `npm run test -w apps/web`，**每次都是 88 passed**。
+> **沒有任何一個既有測試碰到我改的東西。** 這與 Day 1 那個「21 條單元測試看不見範疇失效」
+> 是同一個形狀，而且是同一天的第二次 —— 綠燈的數量與被覆蓋的風險無關。
+> 新增的 7 條測試全部針對「會長得像正常畫面的失敗」：fixture 回退、兩種 404 可分辨、
+> 無來源欄位變空白。
+
+### 本日耗時
+
+| 項目 | 實際 |
+|---|---|
+| Day 2（20:52 → 21:28）| **≈ 36 min** |
+
+> ⚠️ Day 1 commit 是 16:20，Day 2 開工是 20:52 —— 中間 4.5 小時是等待，不是工時。

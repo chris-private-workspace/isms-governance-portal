@@ -22,13 +22,22 @@
  *   passing test that skipped an entire class of results — the test certified
  *   the gap. So this is on the Day 3 checklist as a per-screen visual check.
  *
+ *   ⚠️ W22 added the SECOND failure mode, which is this rule inverted. Once the
+ *   risks detail screen reads its header from the API, a badge saying the whole
+ *   page is sample is no longer a cautious overstatement — it is false in the
+ *   other direction, and a marker that is wrong is a marker people stop reading.
+ *   Hence `variant`: `fixture` still means every figure here is invented,
+ *   `partial` names which blocks are and leaves the rest alone.
+ *
  * Key Components:
  *   - DemoBadge: one banner, placed as the first child of every screen
+ *   - variant: 'fixture' (default, unchanged) | 'partial' (some of this is live)
  *
  * Created: 2026-08-17 (Phase W19)
- * Last Modified: 2026-08-17
+ * Last Modified: 2026-08-18
  *
  * Modification History (newest-first):
+ *   - 2026-08-18: Add the partial variant (Phase W22) — a page that is half live
  *   - 2026-08-17: Initial creation (Phase W19)
  *
  * Related:
@@ -37,12 +46,16 @@
 
 import { useShell } from '@/components/shell/shell-state';
 
-export function DemoBadge() {
+export type DemoBadgeVariant = 'fixture' | 'partial';
+
+export function DemoBadge({ variant = 'fixture' }: { variant?: DemoBadgeVariant } = {}) {
   const { tr } = useShell();
+  const partial = variant === 'partial';
 
   return (
     <div
       data-demo-badge
+      data-demo-variant={variant}
       role="note"
       style={{
         display: 'flex',
@@ -74,10 +87,10 @@ export function DemoBadge() {
           color: 'var(--rag-a-ink)',
         }}
       >
-        {tr('fixture.badge.tag')}
+        {tr(partial ? 'fixture.badge.partial.tag' : 'fixture.badge.tag')}
       </span>
       <span style={{ fontSize: '12px', fontWeight: 500, color: 'var(--rag-a-ink)' }}>
-        {tr('fixture.badge.text')}
+        {tr(partial ? 'fixture.badge.partial.text' : 'fixture.badge.text')}
       </span>
     </div>
   );
