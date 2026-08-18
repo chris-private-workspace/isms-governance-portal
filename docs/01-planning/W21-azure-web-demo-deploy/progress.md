@@ -51,3 +51,98 @@ M0 DoD 第 5 項要求「不得沿用平台預設值」，而 admin user 正是�
 ### Remaining for Next Day
 
 - Day 1 剩餘：image 推送完成 → 建 Container App → **對真實網址跑 `smoke-probe.mjs`** → 交付網址
+
+---
+
+## 2026-08-18 — Day 1（建置與部署）
+
+### 拉取憑證：ACR token，不是 admin user 也不是 managed identity
+
+Day 0 把 ACR 的 admin 關掉之後，Container App 要用什麼身分拉 image 成了真問題。
+三條路，前兩條都不通：
+
+| 路徑 | 結果 |
+|---|---|
+| **admin credential** | ⛔ 已刻意關閉（M0 DoD #5「不得沿用平台預設值」） |
+| **system-assigned managed identity + AcrPull** | ⛔ **權限上不可能** —— 指派 role 需要 `Microsoft.Authorization/*/Write`，而那**正是 Contributor 的 `notActions` 第一條**（Day 0 D-perm-scope 量到的） |
+| **ACR token + scope map** | ✅ 採用 —— data-plane 認證，**不經過 RBAC role assignment** |
+
+建立 `isms-web-pull`，綁內建 scope map `_repositories_pull`。
+
+⭐ **這比 admin user 好，不只是「能動」**：範圍限定為 pull、可獨立撤銷、
+且它是**明確設定的**而非平台開好放在那裡的預設帳號 —— 那正是 M0 DoD #5 要求的形狀。
+password 存在 repo 之外的 scratchpad，只作為 Container App 的 registry credential
+（存在 Azure 端，不進版控）。
+
+### ⚠️ 一個看起來像失敗而其實不是的錯誤
+
+`az acr build` 的串流 log 在 Step 11（`npm run build -w apps/web`）噴出：
+
+```
+ERROR: The command failed with an unexpected error. Here is the traceback:
+ERROR: 'charmap' codec can't encode character '▲' in position 74
+```
+
+`▲` 是 **▲**，Next.js 建置輸出的符號。**這是本機 az CLI 在 Windows cp1252 console
+印 log 時崩潰**，不是雲端 build 失敗 —— 同一時間 `az acr task list-runs` 回報 `Running`。
+
+⇒ **本機工具的故障被呈現成遠端工作的失敗**。與 W20 的
+「`127.0.0.1` 拿到 403 而 curl 看到 200」同形：**觀測工具本身壞了，而輸出讀起來像被觀測對象壞了**。
+判準一樣：**找一個獨立的觀測管道**（這裡是 run status，那裡是帶 Origin header 的 curl）。
+
+⇒ 之後對 az CLI 一律加 `PYTHONIOENCODING=utf-8`。
+
+### 部署結果
+
+| 項目 | 值 |
+|---|---|
+| **網址** | `https://ca-isms-web-demo.wonderfulsmoke-9097eb48.southeastasia.azurecontainerapps.io` |
+| Container App | `ca-isms-web-demo` · min 1 / max 2 · 0.5 CPU / 1.0 GiB |
+| Image | `acrismsgovdemo.azurecr.io/isms-web:115ec78`（digest `sha256:4e17a871…`）|
+| ingress | **external: true** · **allowInsecure: false**（AC-5 達成）|
+| 環境變數 | `DEMO_AUTH=enabled`（Dockerfile 已內建 `NODE_ENV=production`）|
+
+⭐ **image tag 用 commit SHA 而非只有 `latest`** —— 「線上跑的是哪一版」必須答得出來。
+
+### 驗證（checklist 1.3 —— `az containerapp create` 成功**不算**部署成功）
+
+```
+[smoke:web] PASS — https://ca-isms-web-demo…azurecontainerapps.io/
+            serves the en page and all 9 referenced assets.
+```
+
+| 路徑 | 回應 | 判讀 |
+|---|---|---|
+| `/` | 200 | W01 骨架頁 |
+| `/login` | 200 + 含 `Regional ISO` / `Platform admin` / `Welcome back` | **`DEMO_AUTH=enabled` 生效** |
+| `/dashboard` · `/risks` · `/ai-assistant` | 307 | 未登入導向 `/login`，**正確行為** |
+
+⭐ 頁面標題是 `APAC ISMS Governance Platform`（英文）⇒ **CH-040 的預設語言在真環境生效**。
+
+### ⚠️ 本機看不到它，而應用程式沒有問題 —— 第三次同形
+
+`smoke-probe` 第一次對真實網址跑出 **FAIL**：`TypeError: fetch failed (SELF_SIGNED_CERT_IN_CHAIN)`，
+`curl` 回 `000`。
+
+**而 `curl -k` 回 200，耗時 0.29 秒。**
+
+⇒ 這台機器有 **TLS 攔截 proxy**（企業防火牆做 SSL inspection，自簽 CA 不被 Node/curl 的憑證庫信任）。
+它同時解釋了 Day 0 的 `*.azurecr.io` 全部不可達。
+
+**這是本次第三個「工具壞了而輸出讀起來像被觀測對象壞了」的實例**：
+
+| # | 症狀 | 真相 | 揭穿它的獨立管道 |
+|---|---|---|---|
+| 1 | `127.0.0.1:3200` 回 403（W20） | Next.js dev origin 檢查 | 帶 `Origin` header 的 curl |
+| 2 | `az acr build` 噴 `charmap codec` ERROR | 本機 log 串流崩潰 | `az acr task list-runs` 的 status |
+| 3 | 真實網址 `fetch failed` / `curl 000` | 企業 TLS 攔截 | **`curl -k`** |
+
+⇒ 判準收斂成一句：**在宣告「遠端壞了」之前，先換一個不經過同一個本機元件的觀測管道。**
+
+⚠️ `NODE_TLS_REJECT_UNAUTHORIZED=0` **只用於本機這一次診斷** —— 不進任何檔案、不進 CI、不進腳本。
+Day 2 的 CI 在 GitHub runner 上執行，沒有這個 proxy，probe 會走正常憑證驗證。
+
+### Remaining for Next Day
+
+- Day 2：CI 自動部署（D4 —— 身分方式在此拍板）
+- Day 3：真實網址的 30 畫面 drive-through（⚠️ 瀏覽器需處理同一個憑證攔截）

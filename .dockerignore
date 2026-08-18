@@ -12,16 +12,25 @@ node_modules/
 **/.next/
 **/coverage/
 
-# The same exclusions again without `**/`. Docker treats these as duplicates and
-# ignores them; `az acr build` does not — its packer matches with fnmatch, where
-# `**/` never matches a nested path. W21 measured that: the upload stalled past
-# 10 minutes because apps/web/node_modules and apps/web/.next were both being
-# packed, and the first attempt failed outright on apps/web/.next/dev/lock.
-apps/*/node_modules/
-packages/*/node_modules/
-apps/*/dist/
-apps/*/.next/
-apps/*/coverage/
+# The same exclusions restated for `az acr build`, whose packer matches with
+# fnmatch rather than Docker's normaliser. Two differences bite:
+#   - `**/` never matches a nested path
+#   - a trailing slash is not stripped, so `node_modules/` matches nothing
+# Docker treats every line below as a duplicate of one above and ignores it.
+#
+# W21 measured the cost of assuming otherwise: the first upload died reading
+# apps/web/.next/dev/lock (line 12's `**/.next/` unapplied), and the second
+# stalled past fifteen minutes packing the 839 MB / 49,825-file root
+# node_modules, which line 9 only excludes if the trailing slash is stripped.
+node_modules
+apps/*/node_modules
+packages/*/node_modules
+apps/*/dist
+apps/*/.next
+apps/*/coverage
+docs
+memory
+scripts
 
 .env
 .env.*
