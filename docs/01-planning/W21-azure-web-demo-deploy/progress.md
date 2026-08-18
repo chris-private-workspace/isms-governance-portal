@@ -146,3 +146,101 @@ Day 2 的 CI 在 GitHub runner 上執行，沒有這個 proxy，probe 會走正�
 
 - Day 2：CI 自動部署（D4 —— 身分方式在此拍板）
 - Day 3：真實網址的 30 畫面 drive-through（⚠️ 瀏覽器需處理同一個憑證攔截）
+
+---
+
+## 2026-08-18 — Day 3（真實網址 drive-through）
+
+### 路由覆蓋：29 / 29
+
+以 `regional-iso` 身分登入（`POST /api/demo-session` 取得 `isms_demo_persona` cookie），
+逐頁抓取真實網址。
+
+| 類別 | 數量 | 結果 |
+|---|---|---|
+| 靜態路由 | **22** | 全部 **200**，內容 36–81 KB，H1 皆為英文 |
+| 動態詳情路由 | **7** | 全部 **200**，H1 是真實實體名稱而非 placeholder |
+
+動態路由抽樣：`RSK-1042`（Unpatched externally-facing systems）· `POL-301`（Information
+Security Policy）· `ISS-5490` · `AF-2026-014` · `INC-2026-0148` · `EPR-024`（Fortalis Security
+Advisory）· `CTL-2201`（MFA on all administrator accounts）。
+
+⭐ **DEMO 標示在 28 / 29 頁存在**。唯一沒有的是 `/`，而那是 W01 骨架驗證頁 ——
+它有自己的聲明（"This page verifies the W01 scaffold. It is not a product screen."），
+不是遺漏。
+
+### ⚠️ 一個零命中差點被誤讀
+
+從 `/risks` `/controls` `/policies` `/issues` 的 HTML **抓不到任何 `href="/risks/…"` 形式的連結**。
+
+⛔ 若就此結論「詳情頁沒有入口」，那會是錯的 —— grep 抓不到是因為那些列表用
+**`onClick={() => router.push(...)}`**（`risks/page.tsx:452` · `controls/page.tsx:374`），
+不是 `<a href>`。它們有真的 handler。
+
+⇒ `verification-discipline.md` §證據層的「零命中要先證明搜對了地方」在這裡真的擋下一次誤判。
+
+### 安全標頭（M0 DoD #5 —— 20 個 phase 以來第一次有標的）
+
+`next.config.ts:27` 定義 6 條，真實網址**全部到達**：
+
+```
+x-content-type-options: nosniff
+x-frame-options: DENY
+referrer-policy: no-referrer
+cross-origin-opener-policy: same-origin
+permissions-policy: camera=(), microphone=(), geolocation=()
+strict-transport-security: max-age=31536000; includeSubDomains
+```
+
+且**沒有** `x-powered-by`（`poweredByHeader: false` 生效）、**沒有** `server` header。
+ingress `allowInsecure: false`。
+
+⚠️ **我自己差點做出錯誤結論**：第一次的 grep pattern 漏了 `cross-origin`，
+輸出只有 5 條，而我當下的讀法是「6 條裡少了一條」。**是重抓完整 headers 才發現漏的是我的 pattern。**
+—— 與上面那個零命中同一天、同一種錯誤：**用一個不完整的觀測去下完整的結論**。
+
+⚠️ **沒有 CSP** —— 但那是 `SECURITY_HEADERS` 本來就沒有，不是部署掉的。既有缺口 → BACKLOG。
+
+### Revision 斷言（plan §8 R4）
+
+| 項目 | 值 |
+|---|---|
+| revision | `ca-isms-web-demo--ggicxpu` · **Healthy** · traffic **100%** |
+| image | `acrismsgovdemo.azurecr.io/isms-web:115ec78` |
+| env | `DEMO_AUTH=enabled`（確認在容器內，不是只寫在指令裡） |
+
+⇒ **在服務的 image 就是這次推的那個** —— 不是靠 `az containerapp create` 的 exit code 推論。
+
+### 不存在的資源
+
+| 路徑 | 回應 |
+|---|---|
+| `/nonexistent-page` | **404** ✅ |
+| `/controls/NOPE-9999` · `/risks/RSK-0000` | **307**（導回列表） |
+
+前端 fixture 沒有範疇洩漏風險，導回列表是合理 UX。
+⚠️ **但 API 接上之後這個行為必須改** —— 那時「找不到」與「不在你的範疇內」的區別有安全意義
+（CLAUDE.md 約束 8：查無資料一律回 404，回 403 等於確認 ID 猜對了）→ BACKLOG。
+
+⚠️ **一次工具導致的假結果**：第一次測 `/controls/NOPE-9999` 回 **200** ——
+那是 Git Bash 的 MSYS 路徑轉換把 URL 改成了 `C:/…/Git/controls/NOPE-9999`。
+加 `MSYS_NO_PATHCONV=1` 重測才得到真值。**本日第三個工具說謊的實例。**
+
+### 🚧 未完成：`DEMO_AUTH` 的真環境負面測試
+
+checklist 3.2 要求「未設 `DEMO_AUTH=enabled` 時登入必須失敗」。
+
+⛔ **尚未執行** —— 它需要移除 Container App 的環境變數並產生新 revision，
+會讓使用者剛確認可用的示範環境**短暫中斷**。等使用者同意再做。
+
+⭐ **而這個測試的價值比原本設想的高**：全域搜尋顯示 `DEMO_AUTH` 與 `assertDemoAuthAllowed`
+**只出現在 `demo-session.ts` 自己** —— **零測試覆蓋**。
+那個守衛從來沒有被證明會擋任何東西，既沒有單元測試，也沒有在任何環境被行使過。
+⇒ 與 W19 那 25 個死控件同形：**守衛存在、條件成立、沒有人驗證過它真的會擋。**
+→ `AD-DemoAuthGuardUntested-1`
+
+### Notes
+
+- `demo-session.ts:29` 的檔頭寫「The **W20** demo deployment therefore has to set that
+  variable on purpose」—— W19 當時預期部署會發生在 W20。W20 被回退，實際發生在 W21。
+  輕微的過期引用，不影響行為
