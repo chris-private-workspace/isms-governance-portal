@@ -22,9 +22,10 @@
  *   indistinguishable from one that cannot fail.
  *
  * Created: 2026-08-08 (Phase W01)
- * Last Modified: 2026-08-09
+ * Last Modified: 2026-08-18
  *
  * Modification History (newest-first):
+ *   - 2026-08-18: Derive the locale under test (CH-040) — hardcoded en broke on flip
  *   - 2026-08-09: CH-012 — assert the parity check both ways
  *   - 2026-08-08: Initial creation (Phase W01)
  */
@@ -85,21 +86,33 @@ describe('the parity check itself', () => {
   // exercised it on screen, so a failure here has a visible counterpart.
   const SAMPLE_KEY = 'health.state.down';
 
+  /*
+   * Break a NON-reference locale, for the same reason the t() fallback test
+   * derives its locale: parityViolations() reads DEFAULT_LOCALE as the
+   * reference, so damaging the reference itself reports every OTHER locale as
+   * violating — a real failure, naming the wrong dictionary. Hardcoding `en`
+   * here was correct only while zh-Hant was the default (CH-040 flipped it).
+   */
+  const OTHER = LOCALES.find((locale) => locale !== DEFAULT_LOCALE)!;
+
   it('reports nothing for the dictionaries we actually ship', () => {
     expect(parityViolations(DICTIONARIES)).toEqual([]);
   });
 
   it('names the locale and the key when one goes missing', () => {
-    const violations = parityViolations(withoutKey('en', SAMPLE_KEY));
+    const violations = parityViolations(withoutKey(OTHER, SAMPLE_KEY));
 
-    expect(violations).toEqual([{ locale: 'en', missing: [SAMPLE_KEY], extra: [] }]);
+    expect(violations).toEqual([{ locale: OTHER, missing: [SAMPLE_KEY], extra: [] }]);
   });
 
   it('catches a key that exists only outside the reference locale', () => {
-    const drifted: Dictionaries = { ...DICTIONARIES, en: { ...DICTIONARIES.en, 'stray.key': 'x' } };
+    const drifted: Dictionaries = {
+      ...DICTIONARIES,
+      [OTHER]: { ...DICTIONARIES[OTHER], 'stray.key': 'x' },
+    };
 
     expect(parityViolations(drifted)).toEqual([
-      { locale: 'en', missing: [], extra: ['stray.key'] },
+      { locale: OTHER, missing: [], extra: ['stray.key'] },
     ]);
   });
 });
@@ -146,16 +159,32 @@ describe('t()', () => {
     expect(t('zh-Hant', 'health.state.up')).toBe('正常');
   });
 
+  /*
+   * The locale under test is derived, not written literally.
+   *
+   * This assertion needs a locale that is NOT the default: t() reads the
+   * requested dictionary and then the default one, so deleting a key from the
+   * default locale makes both lookups the same miss and there is no fallback
+   * left to observe. The test would still fail — but for the wrong reason,
+   * reporting a broken fallback when what actually broke is the test's premise.
+   *
+   * CH-040 walked into exactly that by flipping DEFAULT_LOCALE from zh-Hant to
+   * en while this test had `en` hardcoded. Deriving the locale means the next
+   * change of default cannot repeat it.
+   */
   it('falls back to the default locale rather than leaking the key name', () => {
-    const partial = { ...DICTIONARIES.en };
+    const other = LOCALES.find((locale) => locale !== DEFAULT_LOCALE);
+    if (!other) throw new Error('needs a second locale to have a fallback to observe');
+
+    const partial = { ...DICTIONARIES[other] };
     delete partial['health.state.up'];
-    const original = DICTIONARIES.en;
-    DICTIONARIES.en = partial;
+    const original = DICTIONARIES[other];
+    DICTIONARIES[other] = partial;
 
     try {
-      expect(t('en', 'health.state.up')).toBe(DICTIONARIES[DEFAULT_LOCALE]['health.state.up']);
+      expect(t(other, 'health.state.up')).toBe(DICTIONARIES[DEFAULT_LOCALE]['health.state.up']);
     } finally {
-      DICTIONARIES.en = original;
+      DICTIONARIES[other] = original;
     }
   });
 });

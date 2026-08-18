@@ -23,8 +23,8 @@
  *      placeholder counts were read first — they say how many rows the
  *      designer intended each list to show.
  *   5. Copy goes through t(), never inline. en holds the fragment's original
- *      wording so fidelity stays checkable; zh-Hant is the default per
- *      guardrail 9.
+ *      wording so fidelity stays checkable, and is the default locale since
+ *      CH-040.
  *
  *   WHERE THE VALUES COME FROM when the fragment leaves a hole:
  *   the nav item's active style is a {{ nav.x.c }} hole in the fragment, so
@@ -46,9 +46,10 @@
  *   - AiDrawer: the third shell region, mounted here so it is on every screen
  *
  * Created: 2026-08-17 (Phase W19)
- * Last Modified: 2026-08-17
+ * Last Modified: 2026-08-18
  *
  * Modification History (newest-first):
+ *   - 2026-08-18: Seed locale from DEFAULT_LOCALE (CH-040) — was a hardcoded zh-Hant
  *   - 2026-08-17: Mount AiDrawer (Phase W19) — the shell fragment closeout found missing
  *   - 2026-08-17: Initial creation (Phase W19) — first ported screen
  *
@@ -100,7 +101,7 @@ import {
 import { AiDrawer } from '@/components/shell/AiDrawer';
 import { ShellStateContext, type ShellState } from '@/components/shell/shell-state';
 import { opcos } from '@/data/opcos';
-import { LOCALES, t, tf, type Locale } from '@/i18n';
+import { DEFAULT_LOCALE, LOCALES, t, tf, type Locale } from '@/i18n';
 import type { Persona } from '@/lib/personas';
 import { tok } from '@/lib/tok';
 
@@ -231,7 +232,7 @@ export function AppShell({ children, persona }: { children: ReactNode; persona: 
   const router = useRouter();
   const [collapsed, setCollapsed] = useState(false);
   const [theme, setTheme] = useState<'light' | 'dark'>('light');
-  const [locale, setLocale] = useState<Locale>('zh-Hant');
+  const [locale, setLocale] = useState<Locale>(DEFAULT_LOCALE);
   const [openMenu, setOpenMenu] = useState<MenuId | null>(null);
   // The seat decides the opening scope. A Regional ISO lands on APAC; an OpCo
   // admin lands on their own entity, which is what entity scoping means.
