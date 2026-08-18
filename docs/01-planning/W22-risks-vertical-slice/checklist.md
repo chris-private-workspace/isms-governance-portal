@@ -9,39 +9,51 @@
 
 ## Day 0 — Plan-vs-Repo Verify（三-prong）+ Branch
 
-### 0.1 三-prong Day-0 verify（對照 `main` HEAD `<PR #84 merge 後的 sha>`）
+### 0.1 三-prong Day-0 verify（對照 `main` HEAD **`e17464e`** —— PR #85 merge 後）
 
 > 完整程序：`docs/rules-on-demand/day0-plan-verify.md`
 > ⛔ **本片的 recon 做在 PR #84 merge 之前的分支上，SHA 已被 rebase 改寫**
 > （`f3511c8` → **`700ef62`**，author date `2026-08-18T14:47:10+08:00` 逐秒不變）——
 > 錨點已重指，但**內容仍須全部重驗**：重指的是指標，不是事實。
 
-- [ ] **Prong 1 — path verify**：`apps/web/src/lib/api/` 不存在 · `apps/api/prisma/seed.ts` 不存在 ·
+- [x] **Prong 1 — path verify**：`apps/web/src/lib/api/` 不存在 · `apps/api/prisma/seed.ts` 不存在 ·
       八個 EDIT 目標全部存在 · **`CH-042` 未被佔用**
   - Verify: `Glob apps/api/prisma/**` + 列 `docs/03-implementation/changes/` 取最大號
+  - ✅ **四項預測全中**。`prisma/` 只有 `migrations/` + `schema.prisma`；changes/ 最大號 `CH-041`，bugs/ 空
 - [ ] **Prong 2 — content verify**（drift → progress.md）:
-  - [ ] **D-no-byid** — `risk.controller.ts` 確認**只有** `@Get()`，無 `@Get(':id')`
-  - [ ] **D-policy-shape** — `policy.controller.ts:89-102` 的 `byId` 仍是 list-then-find
-  - [ ] **D-fixture-import** — `risks/page.tsx` 仍 import `@/data/risks`；**並確認詳情頁的 import**
-  - [ ] **D-no-seed** — 全 repo 仍零個 seed 檔
-  - [ ] **D-threat-vuln-endpoints** — `Threat` / `Vulnerability` 仍**零 controller**（§9 的前提）
-  - [ ] **D-307** — 詳情頁對不存在的 id 仍是 307 而非 404
-- [ ] **Prong 2.5 — child component tree** —— ⭐ **本片必做**：
+  - [x] **D-no-byid** — ✅ 如預期：`:77 @Controller('risks')` · `:91 @Get()` · `:97 @Post()`，無 `@Get(':id')`
+  - [x] **D-policy-shape** — ✅ 如預期：`:89 @Get(':id')` · `:90 async byId` · `:98 NotFoundException`，list-then-find，且註解已寫明「回 403 等於得先知道那列存在」
+  - [x] **D-fixture-import** — ⚠️ **半中**：兩頁都仍 import `@/data/risks`（`page.tsx:56` · `[id]/page.tsx:92`），但詳情頁**另有四個 fixture 來源** → 見 plan R7 `D-detail-hybrid`
+  - [x] **D-no-seed** — ✅ 如預期：`find` 零命中，`package.json` 無 `prisma:seed`
+  - [x] **D-threat-vuln-endpoints** — ✅ 如預期，且**比預期更強**：`modules/` 底下 13 個目錄**連 threat / vulnerability 目錄都沒有**，全 repo 零 `*.controller.ts` 提及它們
+  - [x] **D-307** — ❌ **證偽**：`apps/web` 無 middleware；307 來自 `(app)/layout.tsx:50` 的未登入閘門，與 id 無關。已登入 + 不存在的 id → **200 + 行內 not-found 卡**（`[id]/page.tsx:218-228`，中英 key 皆備）→ 見 plan R8，AC-6/AC-8 已改寫
+- [x] **Prong 2.5 — child component tree** —— ⭐ **本片必做**：
       `risks/page.tsx` 與 `[id]/page.tsx` **的子元件**是否也直接 import fixture？
       （entry 元件改對了不代表子元件跟著改 —— W20 的教訓）
   - Verify: 從兩頁的 import 逐層往下 grep `@/data/`
-- [ ] **Prong 3 — schema verify**：**N/A** —— 本片零 schema 變更。
+  - ✅ 兩頁的直接子元件（`DemoBadge` · `icons` · `shell-state`）零 risk fixture；
+    `shell-state.ts:37` 只 import **type**。⚠️ 但 shell 層 `AppShell.tsx:103` 吃 `@/data/opcos` ——
+    那是實體切換器，即 D1「切換 persona 不改變 API 回傳」會在畫面上長出來的地方 → checklist 2.2
+- [x] **Prong 3 — schema verify**：**N/A** —— 本片零 schema 變更。
       ⚠️ **但要確認 `isms_dev` 的 migration head 是最新的**（`AD-DevDbChecksumDrift-1` 已 5 次）
-  - Verify: `npm run prisma:migrate -w apps/api` 的 status 輸出
-- [ ] **D-baselines** — api test 480 · web test 88 · lint clean · type clean · build clean · `run_all` 9/9
-- [ ] **Catalog drift** — progress.md Day-0 表格
-- [ ] **Go/no-go** — ≤20% 繼續 / 20-50% 修訂 §5 §7 並回報 / >50% 中止重寫
-- [ ] **D1 / D2 拍板已取得**（plan §3.6）—— ⛔ D1 未定不可寫 fetch 層
-- [ ] **⏱ 寫入本日耗時到 progress.md**
+  - ~~Verify: `npm run prisma:migrate -w apps/api` 的 status 輸出~~
+    ⛔ **Day-0 更正**：該 script = `prisma migrate dev`，它**套用**遷移、偵測 drift 時要求 reset dev DB，
+    而本項 DoD 只要 status。**一個 Verify 指令比它要驗的東西危險** → plan R10
+  - Verify（更正後，唯讀）: `cd apps/api && npx prisma migrate status`
+  - ❌ **落後一個**：25 個 migration 中 `20260817033944_event_and_posture_snapshot` **未套用**
+    → `AD-DevDbChecksumDrift-1` **第 6 次**。Day 1 開工前跑 `prisma migrate deploy`（不是 `dev`）→ plan R9
+- [x] **D-baselines** — ✅ **六項逐項實測，全部與 plan 宣稱相符**：
+    api test **480 passed / 40 suites** · web test **88 passed / 9 files** · lint clean（api+web）·
+    type-check clean（api+web）· format:check clean · build clean（`/risks` 與 `/risks/[id]` 皆 `ƒ` 動態）·
+    `run_all` **9/9**（於 `e17464e`）
+- [x] **Catalog drift** — progress.md Day-0 表格（4 條 drift：`D-detail-hybrid` · `D-307` · `D-migration-lag` · `D-verify-cmd`）
+- [x] **Go/no-go** — **20-50% 帶** → 已修訂 plan §3.4 / §4 / §5 / §7 / §8 並回報；**使用者 2026-08-18 裁決後 GO**
+- [x] **D1 / D2 拍板已取得**（plan §3.6）—— ⛔ D1 未定不可寫 fetch 層
+- [x] **⏱ 寫入本日耗時到 progress.md** —— Day 0 **≈ 20 min**（est 30 min，ratio ≈ 0.67）
 
 ### 0.2 Branch
 
-- [ ] `git checkout -b feature/W22-risks-slice`（從 merge 後的 `main`）
+- [x] `git checkout -b feature/W22-risks-slice`（從 merge 後的 `main` `e17464e`）
 
 ---
 
