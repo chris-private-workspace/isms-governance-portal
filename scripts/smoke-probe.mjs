@@ -27,8 +27,11 @@
  *   database is present, which is exactly the shape a broken Prisma engine
  *   produces too. Requiring "up" is what separates those two.
  *
- *   Expected copy is read from the zh-Hant dictionary rather than hard-coded,
- *   so rewording the UI does not turn this into a false red.
+ *   Expected copy is read from a dictionary rather than hard-coded, so
+ *   rewording the UI does not turn this into a false red — and WHICH dictionary
+ *   is derived from DEFAULT_LOCALE, because pinning one is the same mistake one
+ *   level up (CH-040 proved it: the default moved and this went red in CI while
+ *   the image was fine).
  *
  * Key Components:
  *   - extractChunkPaths(html): the one piece of parsing, self-tested below
@@ -41,9 +44,10 @@
  *     node scripts/smoke-probe.mjs --self-test
  *
  * Created: 2026-08-09 (CH-013)
- * Last Modified: 2026-08-09
+ * Last Modified: 2026-08-18
  *
  * Modification History (newest-first):
+ *   - 2026-08-18: Derive the dictionary from DEFAULT_LOCALE (CH-040) — was pinned to zh-Hant
  *   - 2026-08-09: Initial creation (CH-013)
  */
 import { readFileSync } from 'node:fs';
@@ -53,7 +57,43 @@ import { join } from 'node:path';
 // fileURLToPath, not URL.pathname: on Windows the latter yields "/C:/..."
 const ROOT = fileURLToPath(new URL('..', import.meta.url));
 
-const DICTIONARY = join(ROOT, 'apps', 'web', 'src', 'i18n', 'zh-Hant.json');
+const I18N_INDEX = join(ROOT, 'apps', 'web', 'src', 'i18n', 'index.ts');
+
+/*
+ * Which dictionary to expect is derived, not named.
+ *
+ * The header below already says the copy is read from a dictionary rather than
+ * hard-coded, so rewording the UI cannot turn this red. That defence was real
+ * but partial: it hard-coded WHICH dictionary. CH-040 changed the default
+ * locale from zh-Hant to en, the page started serving English, and this probe
+ * failed in CI for a reason that had nothing to do with the image being broken.
+ *
+ * Reading DEFAULT_LOCALE keeps the probe pointed at whatever the app actually
+ * serves. Parsing TypeScript with a regex is not lovely, but the alternatives
+ * are worse: importing the TS module from a plain .mjs needs a build step this
+ * script deliberately avoids, and accepting EITHER dictionary would destroy the
+ * very discrimination the probe exists for — serving the wrong language would
+ * then pass.
+ *
+ * If the declaration is ever reshaped, the match fails loudly rather than
+ * falling back to a guess.
+ */
+function defaultLocale() {
+  const source = readFileSync(I18N_INDEX, 'utf8');
+  const match = source.match(/export const DEFAULT_LOCALE\s*:\s*Locale\s*=\s*'([^']+)'/);
+  if (!match) {
+    fail(
+      'web',
+      `could not read DEFAULT_LOCALE from ${I18N_INDEX}.\n` +
+        '  The probe derives which dictionary to expect from that declaration.\n' +
+        '  If its shape changed, update the pattern here rather than pinning a locale.',
+    );
+  }
+  return match[1];
+}
+
+const DEFAULT_LOCALE = defaultLocale();
+const DICTIONARY = join(ROOT, 'apps', 'web', 'src', 'i18n', `${DEFAULT_LOCALE}.json`);
 // 90s covers a cold container plus a cold database. Overridable because the
 // meta-verification runs deliberately-broken images, where the whole point is
 // that nothing will ever answer and waiting the full window is dead time.
@@ -142,7 +182,7 @@ async function probeWeb(base) {
   const expectedCopy = dictionary['app.title'];
 
   if (!expectedCopy) {
-    fail('web', `the zh-Hant dictionary has no "app.title" key — ${DICTIONARY}`);
+    fail('web', `the ${DEFAULT_LOCALE} dictionary has no "app.title" key — ${DICTIONARY}`);
   }
 
   const { html } = await retryUntil(
@@ -157,7 +197,7 @@ async function probeWeb(base) {
   if (!html.includes(expectedCopy)) {
     fail(
       'web',
-      `${root} answered 200 but the page does not contain the zh-Hant title.\n` +
+      `${root} answered 200 but the page does not contain the ${DEFAULT_LOCALE} title.\n` +
         `  Expected (from ${DICTIONARY}): ${expectedCopy}\n` +
         '  Either the app is serving something else, or the dictionary is not the one it built with.',
     );
@@ -191,7 +231,7 @@ async function probeWeb(base) {
   }
 
   console.log(
-    `[smoke:web] PASS — ${root} serves the zh-Hant page and all ${chunks.length} referenced assets.`,
+    `[smoke:web] PASS — ${root} serves the ${DEFAULT_LOCALE} page and all ${chunks.length} referenced assets.`,
   );
   console.log(`[smoke:web]   assets checked: ${chunks.join(', ')}`);
 }
