@@ -66,13 +66,13 @@
 
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 
 import { DemoBadge } from '@/components/DemoBadge';
 import { IconChevronLeft } from '@/components/icons';
+import { NoSource } from '@/components/NoSource';
 import { useShell } from '@/components/shell/shell-state';
-import { controls } from '@/data/controls';
-import { entityPosture } from '@/data/entityPosture';
+
 import {
   RISK_ASSESSMENT_CYCLES,
   RISK_CATEGORY_FALLBACK,
@@ -88,9 +88,8 @@ import {
   riskSignOff,
   type TrailText,
 } from '@/data/extended/riskDetail';
-import { issues } from '@/data/issues';
-import { risks } from '@/data/risks';
 import type { TranslationKey } from '@/i18n';
+import { getRisk, type RiskRow } from '@/lib/api/risks';
 import { riskBand } from '@/lib/posture';
 import { tok } from '@/lib/tok';
 
@@ -187,7 +186,65 @@ export default function RiskDetailPage() {
   // dc.html:4911 — the prototype opens on the assessment history.
   const [tab, setTab] = useState<TabId>('assess');
 
-  const risk = risks.find((r) => r.id === id) ?? null;
+  // ⚠️ Both "no such risk" and "that risk belongs to another entity" arrive here
+  // as null, and that is the point (AC-6). The API refuses to tell them apart,
+  // so this screen must not either — one state, one card, no branch.
+  const [source, setSource] = useState<{ row: RiskRow | null; failed: boolean; loading: boolean }>({
+    row: null,
+    failed: false,
+    loading: true,
+  });
+
+  useEffect(() => {
+    if (typeof id !== 'string') {
+      setSource({ row: null, failed: false, loading: false });
+      return;
+    }
+    let cancelled = false;
+    void (async () => {
+      try {
+        const answer = await getRisk(id);
+        // ⛔ No fixture fallback (AC-5): a dead backend must not render as a risk.
+        if (!cancelled) setSource({ row: answer?.data ?? null, failed: false, loading: false });
+      } catch {
+        if (!cancelled) setSource({ row: null, failed: true, loading: false });
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [id]);
+
+  const api = source.row;
+
+  // dc.html:4976 recovered the inherent likelihood by dividing the stored score
+  // by impact. The same identity runs the other way here, and it is exact rather
+  // than a reconstruction: the database stores lkh and lkh × MAX(impacts), so
+  // MAX(impacts) — which IS the single `imp` the design uses (15-design-alignment.md)
+  // — is the quotient. Verified against the seed: 12 / 3 = 4, and the row's
+  // impacts are {1,4,2,3,1}.
+  const scored =
+    api !== null && api.lkhBefore !== null && api.lkhBefore > 0 && api.scoreBefore !== null;
+
+  const risk =
+    api === null
+      ? null
+      : {
+          id: api.refCode,
+          routeId: api.id,
+          title: api.title,
+          category: api.category ?? RISK_CATEGORY_FALLBACK,
+          updated: api.updatedAt,
+          imp: scored ? api.scoreBefore! / api.lkhBefore! : 0,
+          lik: api.lkhBefore ?? 0,
+          inh: api.scoreBefore ?? 0,
+          scoreAfter: api.scoreAfter,
+          // No source in the API. lib/api/risks.ts documents which and why.
+          entity: null as string | null,
+          owner: null as string | null,
+          role: null as string | null,
+          status: null as string | null,
+        };
 
   const back = (
     <Link
@@ -215,17 +272,81 @@ export default function RiskDetailPage() {
     </Link>
   );
 
+  if (source.loading) {
+    return (
+      <div data-screen-label="Risk detail">
+        <DemoBadge variant="partial" />
+        <div style={{ marginBottom: '14px' }}>{back}</div>
+        <div style={{ ...PAD_CARD, maxWidth: '560px' }} data-source-state="loading">
+          <div style={{ fontSize: '13px', color: 'var(--text-2)' }}>
+            {tr('risks.source.loading')}
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (source.failed) {
+    return (
+      <div data-screen-label="Risk detail">
+        <DemoBadge variant="partial" />
+        <div style={{ marginBottom: '14px' }}>{back}</div>
+        <div style={{ ...PAD_CARD, maxWidth: '560px' }} data-source-state="error">
+          <div style={{ fontSize: '15px', fontWeight: 700, marginBottom: '8px' }}>
+            {tr('risks.source.error.title')}
+          </div>
+          <p style={{ margin: 0, fontSize: '13px', lineHeight: 1.6, color: 'var(--text-2)' }}>
+            {tr('risks.source.error.body')}
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  // ⭐ ONE CARD FOR BOTH REFUSALS (AC-6). An id that does not exist and an id
+  // that belongs to another entity both arrive as null, and both render exactly
+  // this. There is deliberately no branch here to keep them apart: a branch is
+  // all it would take to turn this screen into an oracle for which ids are real.
   if (!risk) {
     return (
       <div data-screen-label="Risk detail">
-        <DemoBadge />
+        <DemoBadge variant="partial" />
         <div style={{ marginBottom: '14px' }}>{back}</div>
-        <div style={{ ...PAD_CARD, maxWidth: '560px' }}>
+        <div style={{ ...PAD_CARD, maxWidth: '560px' }} data-source-state="not-found">
           <div style={{ fontSize: '15px', fontWeight: 700, marginBottom: '8px' }}>
             {tr('riskDetail.notFound.title')}
           </div>
           <p style={{ margin: 0, fontSize: '13px', lineHeight: 1.6, color: 'var(--text-2)' }}>
             {trf('riskDetail.notFound.body', { id: id ?? '—' })}
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  // An unassessed risk has no score, and NULL is the honest answer — not zero.
+  // Every block below divides by or bands on those numbers, so rather than let
+  // a 0 propagate into a heat map that would then draw a cell, the record stops
+  // at its header.
+  if (!scored) {
+    return (
+      <div data-screen-label="Risk detail">
+        <DemoBadge variant="partial" />
+        <div style={{ marginBottom: '14px' }}>{back}</div>
+        <div style={{ ...PAD_CARD, maxWidth: '560px' }} data-source-state="unassessed">
+          <div
+            style={{
+              fontSize: '10.5px',
+              fontFamily: 'var(--mono)',
+              color: 'var(--primary-ink)',
+              fontWeight: 600,
+            }}
+          >
+            {risk.id}
+          </div>
+          <div style={{ fontSize: '15px', fontWeight: 700, margin: '2px 0 8px' }}>{risk.title}</div>
+          <p style={{ margin: 0, fontSize: '13px', lineHeight: 1.6, color: 'var(--text-2)' }}>
+            {tr('riskDetail.unassessed.body')}
           </p>
         </div>
       </div>
@@ -238,21 +359,24 @@ export default function RiskDetailPage() {
   const inherentBand = riskBand(risk.inh);
   const inherentTok = tok(inherentBand.rating);
 
-  const status = STATUS[risk.status] ?? {
+  // The API's status vocabulary is not this screen's, so the chip falls back to
+  // its neutral form rather than guessing a mapping between the two.
+  const status = (risk.status === null ? undefined : STATUS[risk.status]) ?? {
     rating: 'N',
     labelKey: 'riskDetail.status.open' as TranslationKey,
   };
   const stTok = tok(status.rating);
-  const flag = entityPosture.find((e) => e.code === risk.entity)?.flag ?? '';
 
   const meta = RISK_CATEGORY_META[risk.category] ?? RISK_CATEGORY_META[RISK_CATEGORY_FALLBACK]!;
   const apTok = tok(meta.appetiteRating);
   const withinAppetite = residual <= meta.apScore;
 
   // dc.html:4955 — status decides how far along the five stages the record is.
-  const stage = RISK_STATUS_STAGE[risk.status] ?? 2;
+  const stage = (risk.status === null ? undefined : RISK_STATUS_STAGE[risk.status]) ?? 2;
 
-  const decisionValue = RISK_STATUS_DECISION[risk.status] ?? RISK_DECISION_FALLBACK;
+  const decisionValue =
+    (risk.status === null ? undefined : RISK_STATUS_DECISION[risk.status]) ??
+    RISK_DECISION_FALLBACK;
   const decision = RISK_DECISIONS.find((d) => d.value === decisionValue) ?? RISK_DECISIONS[1]!;
 
   // dc.html:4976 — risks.ts stores the inherent SCORE but not the factors it was
@@ -339,20 +463,28 @@ export default function RiskDetailPage() {
     },
   ];
 
-  // dc.html:5000 — the entity's own controls, at most four. Both the linked
-  // list and the control-tests tab read this, so they cannot disagree.
-  const linkedFull = controls.filter((c) => c.entity === risk.entity).slice(0, 4);
-  const derivedIssues = issues.filter((i) => i.entity === risk.entity).slice(0, 3);
+  // ⛔ EMPTY, AND DELIBERATELY NOT FILLED FROM THE FIXTURE. Both lists were keyed
+  // by the risk's OpCo code, and the API sends an org_entity_id that no OpCo code
+  // corresponds to (AD-EntityVocabularyMismatch-1) — so keying them would have
+  // matched nothing anyway. Showing the fixture's controls next to a real risk
+  // would attach another entity's controls to it, which is worse than showing
+  // none. The screen says "no source" rather than rendering an empty list,
+  // because an empty list of controls reads as "this risk has none".
+  // The element types come from the fixtures via `typeof import`, which TypeScript
+  // erases — the JSX below still knows every field it reads, and the bundle does
+  // not gain a fixture it never renders.
+  const linkedFull: (typeof import('@/data/controls'))['controls'] = [];
+  const derivedIssues: (typeof import('@/data/issues'))['issues'] = [];
 
   const cycles = RISK_ASSESSMENT_CYCLES.map((cycle) => ({
     ...cycle,
     resd: Math.min(25, residual + cycle.residualOffset),
   }));
 
-  const signOff = riskSignOff({ owner: risk.owner, role: risk.role });
+  const signOff = riskSignOff({ owner: risk.owner ?? '', role: risk.role ?? '' });
   const trail = riskAuditTrail({
-    owner: risk.owner,
-    role: risk.role,
+    owner: risk.owner ?? '',
+    role: risk.role ?? '',
     lik: risk.lik,
     residual,
     statusKey: status.labelKey,
@@ -384,7 +516,7 @@ export default function RiskDetailPage() {
 
   return (
     <div data-screen-label="Risk detail">
-      <DemoBadge />
+      <DemoBadge variant="partial" />
 
       <div
         style={{
@@ -470,13 +602,13 @@ export default function RiskDetailPage() {
                 color: 'var(--text-2)',
               }}
             >
-              {flag}
+              &nbsp;
             </span>
             <span style={{ fontSize: '12px', color: 'var(--text-3)' }}>
-              {risk.entity} · {risk.category}
+              <NoSource label={tr('risks.noSource.title')} /> · {risk.category}
             </span>
             <span style={{ fontSize: '11px', color: 'var(--text-3)', fontFamily: 'var(--mono)' }}>
-              {trf('riskDetail.ownerMeta', { owner: risk.owner })}
+              <NoSource label={tr('risks.noSource.title')} />
             </span>
           </div>
           <h1
@@ -999,7 +1131,7 @@ export default function RiskDetailPage() {
               {tr('riskDetail.description')}
             </div>
             <p style={{ margin: 0, fontSize: '13px', lineHeight: 1.6, color: 'var(--text-2)' }}>
-              {trf(meta.descKey, { entity: risk.entity })}
+              {trf(meta.descKey, { entity: tr('risks.noSource.title') })}
             </p>
             <div
               style={{
@@ -1013,8 +1145,12 @@ export default function RiskDetailPage() {
             >
               <div>
                 <div style={FIELD_LABEL}>{tr('riskDetail.meta.owner')}</div>
-                <div style={{ fontSize: '12.5px', fontWeight: 600 }}>{risk.owner}</div>
-                <div style={{ fontSize: '10.5px', color: 'var(--text-3)' }}>{risk.role}</div>
+                <div style={{ fontSize: '12.5px', fontWeight: 600 }}>
+                  <NoSource label={tr('risks.noSource.title')} />
+                </div>
+                <div style={{ fontSize: '10.5px', color: 'var(--text-3)' }}>
+                  <NoSource label={tr('risks.noSource.title')} />
+                </div>
               </div>
               <div>
                 <div style={FIELD_LABEL}>{tr('riskDetail.meta.treatment')}</div>
@@ -1027,7 +1163,7 @@ export default function RiskDetailPage() {
               <div>
                 <div style={FIELD_LABEL}>{tr('riskDetail.meta.controls')}</div>
                 <div style={{ fontSize: '12.5px', fontWeight: 600, fontFamily: 'var(--mono)' }}>
-                  {risk.controls}
+                  <NoSource label={tr('risks.noSource.title')} />
                 </div>
               </div>
             </div>
@@ -1323,7 +1459,11 @@ export default function RiskDetailPage() {
                             color: 'var(--text-2)',
                           }}
                         >
-                          {'fromOwner' in cycle.assessor ? risk.owner : tr(cycle.assessor.key)}
+                          {'fromOwner' in cycle.assessor ? (
+                            <NoSource label={tr('risks.noSource.title')} />
+                          ) : (
+                            tr(cycle.assessor.key)
+                          )}
                         </td>
                         <td style={{ textAlign: 'center', padding: '11px 12px' }}>
                           <span

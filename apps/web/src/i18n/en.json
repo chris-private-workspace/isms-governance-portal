@@ -67,6 +67,8 @@
   "role.controlOwner": "Control owner",
   "role.opcoOs": "OpCo OS",
   "role.auditor": "Auditor",
+  "fixture.badge.partial.tag": "PART REAL",
+  "fixture.badge.partial.text": "The risk header is live data from the API. Everything below it — linked controls, issues, audit trail, sign-off and assessment cycle — is still sample data.",
   "fixture.badge.tag": "DEMO",
   "fixture.badge.text": "Sample data for demonstration — not a real ISMS position.",
   "rag.good": "Good",

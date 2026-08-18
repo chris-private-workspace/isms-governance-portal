@@ -67,6 +67,8 @@
   "role.controlOwner": "控制項負責人",
   "role.opcoOs": "OpCo 辦公服務",
   "role.auditor": "稽核人員",
+  "fixture.badge.partial.tag": "部分真實",
+  "fixture.badge.partial.text": "風險表頭是 API 的真實資料。以下區塊 —— 關聯控制、議題、稽核軌跡、簽核與評估週期 —— 仍是示範資料。",
   "fixture.badge.tag": "示範",
   "fixture.badge.text": "示範用範例資料 —— 非真實的 ISMS 現況。",
   "rag.good": "良好",

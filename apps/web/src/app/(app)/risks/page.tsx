@@ -47,19 +47,27 @@
 
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 
 import { DemoBadge } from '@/components/DemoBadge';
 import { IconSearch } from '@/components/icons';
+import { NoSource } from '@/components/NoSource';
 import { useShell } from '@/components/shell/shell-state';
-import { entityPosture } from '@/data/entityPosture';
-import { risks } from '@/data/risks';
 import type { TranslationKey } from '@/i18n';
+import { listRisks, type RiskRow } from '@/lib/api/risks';
 import { riskBand } from '@/lib/posture';
 import { tok, type Rating } from '@/lib/tok';
 
 /** The {{ r.flag }} hole — the two-letter jurisdiction badge for an OpCo. */
-const flagOf = (code: string) => entityPosture.find((e) => e.code === code)?.flag ?? '';
+/**
+ * The mockup shows "2 days ago" and the API sends an ISO timestamp, so the
+ * shape is kept and the value is real. Intl does the wording in both locales;
+ * writing our own would be the third translation i18n-glossary.md warns about.
+ */
+function ago(iso: string, locale: string): string {
+  const days = Math.round((Date.parse(iso) - Date.now()) / 86_400_000);
+  return new Intl.RelativeTimeFormat(locale, { numeric: 'auto' }).format(days, 'day');
+}
 
 /**
  * The four bands, in the order the header strip reads them.
@@ -101,9 +109,35 @@ const TH_LEFT = {
   borderBottom: '1px solid var(--border)',
 } as const;
 
+interface Source {
+  rows: RiskRow[] | null;
+  failed: boolean;
+  loading: boolean;
+}
+
 export default function RisksPage() {
-  const { tr, trf, entity, scopeLabel, periodLabel } = useShell();
+  const { tr, trf, locale, scopeLabel, periodLabel } = useShell();
   const router = useRouter();
+
+  const [source, setSource] = useState<Source>({ rows: null, failed: false, loading: true });
+
+  useEffect(() => {
+    let cancelled = false;
+    void (async () => {
+      try {
+        const answer = await listRisks();
+        if (!cancelled) setSource({ rows: answer.data, failed: false, loading: false });
+      } catch {
+        // ⛔ NO FIXTURE FALLBACK (AC-5). Falling back here would make a dead
+        // backend render as a working screen full of invented risks — which is
+        // the single most dangerous thing this particular product could do.
+        if (!cancelled) setSource({ rows: null, failed: true, loading: false });
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   const [openMenu, setOpenMenu] = useState<string | null>(null);
   const [fEntity, setFEntity] = useState<string | null>(null);
@@ -111,29 +145,47 @@ export default function RisksPage() {
   const [fBand, setFBand] = useState<string | null>(null);
   const [fStatus, setFStatus] = useState<string | null>(null);
 
-  // Entity-scoped by default; the region is the additive case. Everything below
-  // — options, counts, bands — is derived from this, so the topbar's scope
-  // selector reaches every number on the screen and not just the label.
-  const scoped = entity ? risks.filter((r) => r.entity === entity.code) : risks;
-
-  const rows = scoped.map((r) => {
-    const residual = r.imp * r.lik;
-    const band = riskBand(residual);
-    // Joined here rather than looked up per cell, so the header counter, the
-    // filter option and the row chip all read one decision.
-    const def = BANDS.find((b) => b.label === band.label);
-    return { ...r, residual, band, bandKey: def?.key };
+  // ⚠️ The topbar scope selector no longer filters this list, and that is not an
+  // oversight. The entity scope now comes from the server (plan §3.6 D1): the
+  // API returns the caller's entity and nothing else, so filtering again here
+  // would be theatre — it could only ever remove rows the server already chose
+  // to send. The consequence, that changing persona does not change these rows,
+  // is stated on the screen rather than left for someone to discover.
+  const rows = (source.rows ?? []).map((r) => {
+    // The residual is the AFTER-control score; the database computes both
+    // (ADR-0013). The mockup multiplies a single impact by likelihood, which
+    // 15-design-alignment.md already records as the mockup simplifying the
+    // procedure — so the procedure wins and the column shows what it says.
+    const residual = r.scoreAfter ?? r.scoreBefore;
+    const band = residual === null ? null : riskBand(residual);
+    const def = band ? BANDS.find((b) => b.label === band.label) : undefined;
+    return {
+      routeId: r.id,
+      ref: r.refCode,
+      title: r.title,
+      category: r.category,
+      updated: r.updatedAt,
+      residual,
+      band,
+      bandKey: def?.key,
+      // The five with no source. lib/api/risks.ts says which and why.
+      entity: null as string | null,
+      controls: null as number | null,
+      owner: null as string | null,
+      status: null as string | null,
+    };
   });
 
   const view = rows.filter(
     (r) =>
       (fEntity === null || r.entity === fEntity) &&
       (fCategory === null || r.category === fCategory) &&
-      (fBand === null || r.band.label === fBand) &&
+      (fBand === null || r.band?.label === fBand) &&
       (fStatus === null || r.status === fStatus),
   );
 
-  const unique = (values: string[]) => [...new Set(values)];
+  const unique = (values: (string | null)[]) =>
+    [...new Set(values)].filter((v): v is string => v !== null);
 
   // Every key is written out in full rather than assembled, so i18n.test.ts's
   // source scan can see it — the same rule the dashboard's KPI list follows.
@@ -160,7 +212,7 @@ export default function RisksPage() {
       allKey: 'risks.filter.band.all' as TranslationKey,
       value: fBand,
       set: setFBand,
-      options: BANDS.filter((b) => rows.some((r) => r.band.label === b.label)).map((b) => ({
+      options: BANDS.filter((b) => rows.some((r) => r.band?.label === b.label)).map((b) => ({
         value: b.label,
         label: tr(b.key),
       })),
@@ -178,6 +230,11 @@ export default function RisksPage() {
     },
   ];
 
+  // ⛔ A filter whose option list is empty is a dead control — the exact shape
+  // W19's drive-through found twenty-five of. Those columns have no values to
+  // filter by today, so the control does not appear at all.
+  const LIVE_FILTERS = FILTERS.filter((f) => f.options.length > 0);
+
   const anyFilter = FILTERS.some((f) => f.value !== null);
   const clearAll = () => {
     setFEntity(null);
@@ -186,9 +243,54 @@ export default function RisksPage() {
     setFStatus(null);
   };
 
+  if (source.loading || source.failed) {
+    return (
+      <div data-screen-label="Risks — register">
+        <DemoBadge variant="partial" />
+        <div
+          data-source-state={source.loading ? 'loading' : 'error'}
+          style={{
+            maxWidth: '560px',
+            padding: '18px 20px',
+            borderRadius: '10px',
+            background: 'var(--surface)',
+            border: '1px solid var(--border)',
+          }}
+        >
+          {source.loading ? (
+            <div style={{ fontSize: '13px', color: 'var(--text-2)' }}>
+              {tr('risks.source.loading')}
+            </div>
+          ) : (
+            <>
+              <div style={{ fontSize: '15px', fontWeight: 700, marginBottom: '8px' }}>
+                {tr('risks.source.error.title')}
+              </div>
+              <p style={{ margin: 0, fontSize: '13px', lineHeight: 1.6, color: 'var(--text-2)' }}>
+                {tr('risks.source.error.body')}
+              </p>
+            </>
+          )}
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div data-screen-label="Risks — register">
-      <DemoBadge />
+      <DemoBadge variant="partial" />
+
+      <div
+        data-partial-source
+        style={{
+          marginBottom: '14px',
+          fontSize: '12px',
+          lineHeight: 1.6,
+          color: 'var(--text-3)',
+        }}
+      >
+        {tr('risks.partialSource.text')}
+      </div>
 
       <div
         style={{
@@ -231,7 +333,7 @@ export default function RisksPage() {
                   color: tok(b.rating).ink,
                 }}
               >
-                {view.filter((r) => r.band.label === b.label).length}
+                {view.filter((r) => r.band?.label === b.label).length}
               </div>
               <div
                 style={{
@@ -258,7 +360,7 @@ export default function RisksPage() {
           flexWrap: 'wrap',
         }}
       >
-        {FILTERS.map((f) => {
+        {LIVE_FILTERS.map((f) => {
           const on = f.value !== null;
           // {{ f.curLabel }} — the chosen option's own label, so a band or a
           // status reads in the display language rather than as its data value.
@@ -439,8 +541,8 @@ export default function RisksPage() {
             </thead>
             <tbody>
               {view.map((r) => {
-                const sev = tok(r.band.rating);
-                const st = STATUS[r.status];
+                const sev = tok(r.band?.rating ?? 'N');
+                const st = r.status === null ? undefined : STATUS[r.status];
                 const stTok = tok(st?.rating ?? 'N');
                 return (
                   // An <a> cannot be a child of <tbody>, so the row-level
@@ -448,8 +550,8 @@ export default function RisksPage() {
                   // is the router rather than a Link — the same shape the
                   // dashboard's clickable rows already use.
                   <tr
-                    key={r.id}
-                    onClick={() => router.push(`/risks/${r.id}`)}
+                    key={r.routeId}
+                    onClick={() => router.push(`/risks/${r.routeId}`)}
                     data-hov="s2"
                     style={{ cursor: 'pointer', borderBottom: '1px solid var(--border)' }}
                   >
@@ -462,7 +564,7 @@ export default function RisksPage() {
                           fontWeight: 600,
                         }}
                       >
-                        {r.id}
+                        {r.ref}
                       </div>
                       <div
                         style={{
@@ -493,10 +595,10 @@ export default function RisksPage() {
                             color: 'var(--text-2)',
                           }}
                         >
-                          {flagOf(r.entity)}
+                          &nbsp;
                         </span>
                         <span style={{ fontSize: '12.5px', color: 'var(--text-2)' }}>
-                          {r.entity}
+                          <NoSource label={tr('risks.noSource.title')} />
                         </span>
                       </span>
                     </td>
@@ -507,7 +609,7 @@ export default function RisksPage() {
                         color: 'var(--text-2)',
                       }}
                     >
-                      {r.category}
+                      {r.category ?? <NoSource label={tr('risks.noSource.title')} />}
                     </td>
                     <td style={{ padding: 'var(--row-py) 12px' }}>
                       <span style={{ display: 'inline-flex', alignItems: 'center', gap: '8px' }}>
@@ -527,10 +629,10 @@ export default function RisksPage() {
                             justifyContent: 'center',
                           }}
                         >
-                          {r.residual}
+                          {r.residual ?? '—'}
                         </span>
                         <span style={{ fontSize: '12px', fontWeight: 600, color: sev.ink }}>
-                          {r.bandKey ? tr(r.bandKey) : r.band.label}
+                          {r.bandKey ? tr(r.bandKey) : (r.band?.label ?? '')}
                         </span>
                       </span>
                     </td>
@@ -543,7 +645,7 @@ export default function RisksPage() {
                         color: 'var(--text-2)',
                       }}
                     >
-                      {r.controls}
+                      <NoSource label={tr('risks.noSource.title')} />
                     </td>
                     <td
                       style={{
@@ -552,7 +654,7 @@ export default function RisksPage() {
                         color: 'var(--text-2)',
                       }}
                     >
-                      {r.owner}
+                      <NoSource label={tr('risks.noSource.title')} />
                     </td>
                     <td style={{ padding: 'var(--row-py) 12px' }}>
                       <span
@@ -574,7 +676,7 @@ export default function RisksPage() {
                           }}
                         />
                         <span style={{ fontSize: '11px', fontWeight: 600, color: stTok.ink }}>
-                          {st ? tr(st.key) : r.status}
+                          {st ? tr(st.key) : <NoSource label={tr('risks.noSource.title')} />}
                         </span>
                       </span>
                     </td>
@@ -585,7 +687,7 @@ export default function RisksPage() {
                         color: 'var(--text-3)',
                       }}
                     >
-                      {r.updated}
+                      {ago(r.updated, locale)}
                     </td>
                   </tr>
                 );
