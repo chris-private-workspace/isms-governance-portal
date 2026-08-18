@@ -12,26 +12,26 @@
 
 ### 0.1 三-prong Day-0 verify（對照 `main` HEAD `65b29f2`）
 
-- [ ] **Prong 1 — path verify**：`infra/` 不存在；`apps/web/Dockerfile` 存在；
+- [x] **Prong 1 — path verify**：`infra/` 不存在；`apps/web/Dockerfile` 存在；
       `.github/workflows/` 恰有 3 個檔且無部署步驟
-- [ ] **Prong 2 — content verify**（drift → progress.md）：
-  - [ ] **D-no-deploy** — 全 `.github/` 搜尋部署關鍵字，確認**只命中註解文字**
-  - [ ] **D-api-refuses** — `policy.module.ts:35` 於模組建構時呼叫 guard（決定「不部署 API」的前提）
-  - [ ] **D-web-api-dep** — `apps/web` 對 API 的依賴仍**只有** `app/page.tsx:45`
-  - [ ] **D-web-port** — 容器監聽埠仍是 **3200**
-  - [ ] **D-demo-guard** — `DEMO_AUTH=enabled` 仍是唯一逃生門
-- [ ] **Prong 3 — schema verify**：**N/A** —— 本片零 DB
-- [ ] **Catalog drift** — progress.md Day-0 表格
-- [ ] **Go/no-go** — 範圍變動 ≤20% 繼續 / 20-50% 修訂 §5 §7 並回報 / >50% 中止重寫
+- [x] **Prong 2 — content verify**（drift → progress.md）：
+  - [x] **D-no-deploy** — 全 `.github/` 搜尋部署關鍵字，確認**只命中註解文字**
+  - [x] **D-api-refuses** — `policy.module.ts:35` 於模組建構時呼叫 guard（決定「不部署 API」的前提）
+  - [x] **D-web-api-dep** — `apps/web` 對 API 的依賴仍**只有** `app/page.tsx:45`
+  - [x] **D-web-port** — 容器監聽埠仍是 **3200**
+  - [x] **D-demo-guard** — `DEMO_AUTH=enabled` 仍是唯一逃生門
+- [x] **Prong 3 — schema verify**：**N/A** —— 本片零 DB
+- [x] **Catalog drift** — progress.md Day-0 表格
+- [x] **Go/no-go** — 範圍變動 ≤20% 繼續 / 20-50% 修訂 §5 §7 並回報 / >50% 中止重寫
 
 ### 0.2 ⭐ Azure 權限實測（**plan §8 R1 —— 失敗即停下來問，不猜測**）
 
-- [ ] **SP 能建 resource group**
+- [x] **SP 能建 resource group**
   - DoD: 在目標 subscription 建一個測試 RG 再刪掉，兩個動作都成功
   - Verify: `az group create` → `az group show` → `az group delete`，逐個看 exit code
-- [ ] **目標 region 可用且無 policy 阻擋**
+- [x] **目標 region 可用且無 policy 阻擋**
   - DoD: southeastasia 建得起來；若被 policy 擋，**錯誤訊息會指名該 policy** → 記入 progress
-- [ ] **配額與 SKU**
+- [x] **配額與 SKU**
   - DoD: ACR **Basic** 足夠（單一 image、無異地複寫）；ACA environment 可建
 
 ### 0.3 決策拍板（plan §3.6）
@@ -53,31 +53,31 @@
 
 ### 1.1 建立資源
 
-- [ ] **Resource group**
+- [x] **Resource group**
   - DoD: 專屬 RG，名稱能看出是這個專案的，不與既有 AI-Landing 資源混淆
-- [ ] **ACR（Basic，`adminUserEnabled: false`）**
+- [x] **ACR（Basic，`adminUserEnabled: false`）**
   - DoD: ⛔ **不沿用既有那個 `adminUserEnabled: true` 的預設** —— M0 DoD #5 的「不得沿用平台預設值」
   - Verify: `az acr show --query adminUserEnabled` → **false**
-- [ ] **ACA environment（external）**
+- [x] **ACA environment（external）**
   - DoD: 有公開可達的 ingress；`internal` 為 false 或未設 VNet
   - Verify: `az containerapp env show --query properties.vnetConfiguration`
 
 ### 1.2 建置並推送 image
 
-- [ ] **本機 `docker build` web image 並 push 到新 ACR**
+- [x] **本機 `docker build` web image 並 push 到新 ACR**
   - DoD: tag 含 commit SHA，**不用 `latest`** —— 「部署了哪一版」必須可回答
   - Verify: `az acr repository show-tags`
 
 ### 1.3 部署並取得網址
 
-- [ ] **建立 Container App，`DEMO_AUTH=enabled`，ingress external、target port 3200**
+- [x] **建立 Container App，`DEMO_AUTH=enabled`，ingress external、target port 3200**
   - DoD: `allowInsecure: false`
   - Verify: `az containerapp show --query properties.configuration.ingress`
-- [ ] ⭐ **對真實網址跑 `smoke-probe.mjs`**
+- [x] ⭐ **對真實網址跑 `smoke-probe.mjs`**
   - DoD: PASS，含全部 chunk 可取得
   - Verify: `node scripts/smoke-probe.mjs web https://<fqdn>` → PASS
   - ⛔ **`az containerapp create` 成功不算部署成功** —— plan §8 R4（revision 機制讓兩者是兩件事）
-- [ ] **把網址交給使用者**
+- [x] **把網址交給使用者**
 
 ### 1.x partial gate
 
@@ -86,6 +86,15 @@
 ---
 
 ## Day 2 — CI 自動部署 (US-2)
+
+> 🚧 **全部阻塞 —— CI 沒有可用的 Azure 身分**（2026-08-18）。
+> **OIDC 路線實測不通**：`az ad app create` 回 `Insufficient privileges to complete the
+> operation`，建 app registration 需要目錄權限，本身分沒有 ⇒ 那是 RIT 才能做的。
+> 剩下兩條路都**需要使用者提供**：(a) 現有 SP 的 client secret（`az login` 完成後本機讀不到）
+> 或 (b) 請 RIT 建一個 CI 專用的 SP／federated credential。
+> **解封條件**：拿到其中一組憑證。
+> ⛔ **刻意不先寫 workflow 檔** —— 一條永遠不會執行的 pipeline 就是 AP-3，
+> 問「關掉它會壞什麼」答不出來。
 
 ### 2.1 部署身分（D4 在此拍板）
 
@@ -112,11 +121,17 @@
 
 ### 3.1 逐頁走查
 
-- [ ] **30 個畫面逐頁**：可達 / 無 console error / DEMO 標示存在
-- [ ] **安全標頭對真實網址複驗**（不是假設它會跟著容器走）
-- [ ] **HTTPS 強制**：`http://` 應被導向或拒絕
+- [x] **30 個畫面逐頁**：可達 / 無 console error / DEMO 標示存在
+- [x] **安全標頭對真實網址複驗**（不是假設它會跟著容器走）
+- [x] **HTTPS 強制**：`http://` 應被導向或拒絕
 
 ### 3.2 負面測試
+
+> 🚧 **待使用者同意**（2026-08-18）—— 需要移除 Container App 的環境變數並產生新 revision，
+> 會讓剛確認可用的示範網址中斷約 1–2 分鐘。
+> ⭐ **價值比原本設想高**：全域搜尋顯示 `DEMO_AUTH` 與 `assertDemoAuthAllowed`
+> **只出現在 `demo-session.ts` 自己**，零測試覆蓋 ⇒ 這個守衛從未被證明會擋任何東西
+> （`AD-DemoAuthGuardUntested-1`）。
 
 - [ ] ⭐ **未設 `DEMO_AUTH=enabled` 時登入必須失敗**
   - DoD: 暫時移除該環境變數 → 示範登入被拒 → 復原
@@ -124,7 +139,7 @@
 
 ### 3.3 證據
 
-- [ ] 截圖 + observed-vs-intended → progress.md
+- [x] 截圖 + observed-vs-intended → progress.md
 
 ---
 
