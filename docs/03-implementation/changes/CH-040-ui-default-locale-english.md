@@ -4,7 +4,7 @@
 **Phase**: 無 active phase（W20 已 `closed_partial`）
 **Scope**: `ui` —— `apps/web/src/i18n` · `apps/web/src/app` · `apps/web/src/components/shell`
 **Components**: `DEFAULT_LOCALE` · `AppShell` · root layout · `login`
-**PR**: TBD
+**PR**: **MERGED** (PR #82, `fafa996` + `65b29f2`)
 
 ---
 

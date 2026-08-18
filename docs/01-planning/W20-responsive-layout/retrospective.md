@@ -3,9 +3,9 @@
 **Phase**: W20 — responsive layout down to 768px
 **Period**: 2026-08-17 ~ 2026-08-18
 **Plan**: [plan.md](./plan.md)
-**PR**: 無 —— 未開 PR。分支 `feature/W20-responsive-layout` 未 push
+**PR**: **MERGED** (PR #82, `215add3`) —— 與 CH-040 同一個 PR
 **Change record**: 無 —— 回退後沒有行為變更可記錄
-**Status**: **closed_partial** —— Day 0 / Day 1 完成，Day 2/3/4 未執行，**Day 1 成果已全數回退**（`6f2c712`）
+**Status**: **closed_partial** —— Day 0 / Day 1 完成，Day 2/3/4 未執行，**Day 1 成果已全數回退**（`215add3`）
 
 ---
 

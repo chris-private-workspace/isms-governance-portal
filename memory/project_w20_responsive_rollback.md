@@ -1,6 +1,6 @@
 # W20 — Responsive layout（全片回退）
 
-**Phase**: W20 · **Closed**: 2026-08-18 · **PR**: 無（分支未 push） · **Status**: `closed_partial`
+**Phase**: W20 · **Closed**: 2026-08-18 · **PR**: **MERGED** (PR #82, `215add3`) · **Status**: `closed_partial`
 **權威來源**: [`W20-responsive-layout/retrospective.md`](../docs/01-planning/W20-responsive-layout/retrospective.md)
 **Change record**: 無 —— 回退後沒有行為變更可記錄
 
@@ -9,7 +9,7 @@
 ## 一句話
 
 Day 0 / Day 1 執行完畢、每一項 gate 全綠、drive-through 也真的做了，
-**而整片被使用者裁定回退**（`6f2c712`，`apps/web` 淨產出 **0 行**）——
+**而整片被使用者裁定回退**（`215add3`，`apps/web` 淨產出 **0 行**）——
 因為錯的不是執行，是**前提**。
 
 ---
