@@ -16,7 +16,8 @@
     "test:int": "jest --config jest.int.config.js",
     "postinstall": "prisma generate",
     "prisma:generate": "prisma generate",
-    "prisma:migrate": "prisma migrate dev"
+    "prisma:migrate": "prisma migrate dev",
+    "prisma:seed": "node --env-file=../../.env prisma/seed.ts"
   },
   "dependencies": {
     "@isms/types": "*",
