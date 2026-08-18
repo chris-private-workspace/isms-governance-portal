@@ -12,6 +12,17 @@ node_modules/
 **/.next/
 **/coverage/
 
+# The same exclusions again without `**/`. Docker treats these as duplicates and
+# ignores them; `az acr build` does not — its packer matches with fnmatch, where
+# `**/` never matches a nested path. W21 measured that: the upload stalled past
+# 10 minutes because apps/web/node_modules and apps/web/.next were both being
+# packed, and the first attempt failed outright on apps/web/.next/dev/lock.
+apps/*/node_modules/
+packages/*/node_modules/
+apps/*/dist/
+apps/*/.next/
+apps/*/coverage/
+
 .env
 .env.*
 !.env.example
