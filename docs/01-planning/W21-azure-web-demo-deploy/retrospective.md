@@ -48,7 +48,7 @@
 - **Bottom-up est**: 11 hr（資源 2 · CI 3 · 安全 1 · drive-through 3 · closeout 2）
 - **Committed (calibrated)**: 7.7 hr（mult 0.70）
 - **Actual**: **~4.45 hr** —— Day 0–3 ~3.15 hr（**由 commit author date 反推**，
-  `a401215` 08:54:13 → `a3bdce9` 12:03:08）+ Day 4 ~1.3 hr（**唯一真的量到的一段**）
+  `a401215` 08:54:13 → `7da314f` 12:03:08）+ Day 4 ~1.3 hr（**唯一真的量到的一段**）
 - **Ratio**: 4.45 / 7.7 = **0.58**
 - **Band 判定**: **UNDER**（< 0.7）
 

@@ -98,7 +98,7 @@ ERROR: 'charmap' codec can't encode character '▲' in position 74
 |---|---|
 | **網址** | `https://ca-isms-web-demo.wonderfulsmoke-9097eb48.southeastasia.azurecontainerapps.io` |
 | Container App | `ca-isms-web-demo` · min 1 / max 2 · 0.5 CPU / 1.0 GiB |
-| Image | `acrismsgovdemo.azurecr.io/isms-web:115ec78`（digest `sha256:4e17a871…`）|
+| Image | `acrismsgovdemo.azurecr.io/isms-web:115ec78`（digest `sha256:4e17a871…`）—— ⚠️ **這個 tag 是 ACR 裡的真實成品名稱，刻意不重指**：該 SHA 已被 PR #84 的 rebase 改寫成 `adccff7`，但 registry 裡的映像仍叫 `115ec78`，改文件會讓它指向一個不存在的 tag |
 | ingress | **external: true** · **allowInsecure: false**（AC-5 達成）|
 | 環境變數 | `DEMO_AUTH=enabled`（Dockerfile 已內建 `NODE_ENV=production`）|
 
@@ -206,7 +206,7 @@ ingress `allowInsecure: false`。
 | 項目 | 值 |
 |---|---|
 | revision | `ca-isms-web-demo--ggicxpu` · **Healthy** · traffic **100%** |
-| image | `acrismsgovdemo.azurecr.io/isms-web:115ec78` |
+| image | `acrismsgovdemo.azurecr.io/isms-web:115ec78` —— **同上，rebase 改寫後刻意不重指**（真實 tag）|
 | env | `DEMO_AUTH=enabled`（確認在容器內，不是只寫在指令裡） |
 
 ⇒ **在服務的 image 就是這次推的那個** —— 不是靠 `az containerapp create` 的 exit code 推論。
@@ -297,10 +297,10 @@ body 不是合法 JSON ⇒ `route.ts:46` 的 `.catch(() => null)` ⇒ `findPerso
 
 | 區段 | 量法 | 時間 |
 |---|---|---|
-| Day 0（plan 起草後 → Day-0 完成） | commit author date `8196da0` → `115ec78` | ~32 min |
-| Day 1（建置 + 部署） | `115ec78` → `e85362f` | ~12 min |
-| Day 3（29 路由 drive-through） | `e85362f` → `593a5b1` | ~14 min |
-| checklist 回填 | `593a5b1` → `a3bdce9` | ~126 min |
+| Day 0（plan 起草後 → Day-0 完成） | commit author date `afa0f7a` → `adccff7` | ~32 min |
+| Day 1（建置 + 部署） | `adccff7` → `167b843` | ~12 min |
+| Day 3（29 路由 drive-through） | `167b843` → `2c8c207` | ~14 min |
+| checklist 回填 | `2c8c207` → `7da314f` | ~126 min |
 | Day 4（負面測試 + closeout） | 本 session 實測 | 見 retro Q2 |
 
 ⛔ **這五格裡只有最後一格是量出來的，其餘四格是從 commit author date 反推的下限** ——
