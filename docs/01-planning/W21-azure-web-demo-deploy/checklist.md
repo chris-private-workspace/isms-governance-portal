@@ -186,7 +186,13 @@
   - **裁決（使用者 2026-08-18）：維持 rebase。** 理由：一條直線比 DAG 容易對稽核人員證明
         「什麼時候發生了什麼」。配套：跨 merge 存活的引用改錨 **author date + subject**
 - [x] **M0 DoD #5 狀態更新** —— TLS／憑證／管理埠終於有標的了，記錄它現在是什麼狀態
-  - **✅ 關閉**（三項都是明確選的：ACR admin 關閉 / scoped pull token / `allowInsecure: false`；
-        六條標頭真實網址複驗）。⚠️ **仍缺 CSP**（`AD-NoCspHeader-1`）。
-        順帶 **#3 從「結構上無標的」變成「有標的，覆蓋未量測」** —— 仍不得打勾
+  - **🟡 部分**（**不是關閉** —— 本項第一版寫「✅ 關閉」，同日 status audit #7 自我更正）：
+        ✅ 明確設定 `allowInsecure: false` · HSTS · ACR admin 關閉 · scoped pull token，
+        六條標頭真實網址複驗；⛔ **憑證仍是平台預設**（實測 `customDomains: null`、
+        environment `certificate list` 回 `[]`）—— 而「never platform defaults」正是本條原文。
+        預設網域上沒有第二個選項 ⇒ R7 的形狀 → `AD-AcaManagedCertIsPlatformDefault-1`。
+        ⚠️ **仍缺 CSP**（`AD-NoCspHeader-1`）。
+        順帶 **#3 從「結構上無標的」變成「有標的且已量測」** ——
+        CI 實測 semgrep `bash 4 rules / 1 file`（`provision.sh` 是四個掃描目錄下唯一的 `.sh`），
+        0 findings。⚠️ **4 條規則 vs TypeScript 的 164 條** —— 覆蓋存在，厚度另一回事
 - [ ] **Commit** → ⏳ PR push + open → CI → merge: **PENDING USER CONFIRMATION**

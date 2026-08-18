@@ -58,17 +58,25 @@ Prong 1 十項如預期、Prong 2 五項如預期、Prong 3 N/A。**不是 prong
 
 ## M0 DoD 的兩格同時動了
 
-- **#5（TLS／憑證／管理埠不得沿用預設）✅ 關閉** —— 卡了 **20 個 phase**，因為
-  「沒有部署環境時結構上沒有標的」。三項都是**明確選的而非繼承的**：
+- **#5（TLS／憑證／管理埠不得沿用預設）🟡 仍是「部分」** —— 卡了 **20 個 phase** 是因為
+  「沒有部署環境時結構上沒有標的」，現在有標的了，而**只有兩個子項真的是明確選的**：
   **ACR admin 關閉**（既有那個是**開的**）· **scoped pull token**
   （不是 admin credential；managed identity **權限上不可能** —— 指派 AcrPull 需要
   `Microsoft.Authorization/*/Write`，那正是 Contributor 的 `notActions` 第一條）·
-  **`allowInsecure: false`**。六條安全標頭**對真實網址複驗**，且無 `x-powered-by` / `server`。
-  ⚠️ **仍缺 CSP**
-- **#3（IaC skeleton scanned）** —— 從「⛔ 結構上無標的」變成「**有標的，覆蓋未量測**」。
+  **`allowInsecure: false`** + HSTS。六條安全標頭**對真實網址複驗**，無 `x-powered-by` / `server`。
+  ⛔⭐ **而憑證那個子項是平台預設，那正是本條原文禁止的東西** —— 實測 `customDomains: null`、
+  environment `certificate list` 回 `[]` ⇒ Azure 為它自己的網域自動簽，我們沒做過任何選擇。
+  ⚠️ 「沒選」在這裡不是懈怠：預設網域上結構性地沒有第二個選項（要自帶憑證得先有自訂網域）
+  ⇒ **R7 的形狀** → `AD-AcaManagedCertIsPlatformDefault-1`。⚠️ **仍缺 CSP**
+  - ⛔ **本檔第一版寫「✅ 關閉，三項都是明確選的」** —— 同日 status audit #7 自我更正。
+    教訓：**「我們設定了 TLS 政策」與「我們選了憑證」是兩件事，而 DoD 原文管的是後者。**
+- **#3（IaC skeleton scanned）** —— 從「⛔ 結構上無標的」變成「**有標的且已量測**」。
   `CH-010:51`「本專案不寫 IaC」**不再成立** ⇒ `AD-IaCEvidence-1` **不關閉而是分裂成兩半**：
-  RIT 的資源仍等對方證據 / 我們自己的 IaC **今天才存在**且**實測零掃描器覆蓋**
-  （semgrep 只掃 `apps packages scripts`、`trivy config` 讀不懂 shell）
+  RIT 的資源仍等對方證據 / 我們自己的 IaC **今天才存在**。落地當天實測**零掃描器覆蓋**
+  （semgrep 只掃 `apps packages scripts`、`trivy config` 讀不懂 shell）⇒ 加 `infra` 進 semgrep，
+  **PR #84 的 CI log 量到 `bash 4 rules / 1 file`、0 findings**
+  （`provision.sh` 是四個掃描目錄下唯一的 `.sh`）。
+  ⚠️ **4 條規則 vs TypeScript 的 164 條** —— 覆蓋是真的，厚度是另一個問題
 
 ---
 
