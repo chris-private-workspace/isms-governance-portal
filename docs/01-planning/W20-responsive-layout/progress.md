@@ -154,7 +154,7 @@ fragment 做另一套。
 - ⚠️ **陷阱**：`git checkout <sha> -- <path>` **不會刪除該 commit 不存在的檔**。
   第一次還原看起來完整，實際留下 4 個新增檔 —— 是比對**檔案清單**（不只內容）才發現的
 - 驗證：`git diff --stat 756d503 -- apps/web` 空 + 檔案清單 diff 空 ⇒ 與 W19 逐位元組相同
-- Commit `6f2c712`
+- Commit `215add3`
 
 ### Gate（回退後實跑）
 

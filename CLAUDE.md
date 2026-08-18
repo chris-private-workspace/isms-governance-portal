@@ -76,7 +76,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 | Attribute | Value |
 |-----------|-------|
 | **Stage** | Wave 1 backbone — 建立共用骨幹，並用 Policy + Risk/Control 兩個最小模組端到端證明它 |
-| **Current Phase** | **W20**（未開 PR）`closed_partial` —— responsive layout **全片回退**（`6f2c712`，淨產出 **0 行**）。⭐⭐ gate 全綠 · drive-through 有做 · AP 全 0，而**做的不是使用者要的東西** —— Day-0 驗**斷言**不驗**目的**。⛔ 「和 mockup 一樣」尚無可驗收定義 |
+| **Current Phase** | **W20**（PR #82 merged）`closed_partial` —— responsive layout **全片回退**（`215add3`，淨產出 **0 行**）。⭐⭐ gate 全綠 · drive-through 有做 · AP 全 0，而**做的不是使用者要的東西** —— Day-0 驗**斷言**不驗**目的**。⛔ 「和 mockup 一樣」尚無可驗收定義 |
 | **History** | See [`MEMORY.md`](./MEMORY.md) + 各 phase 的 `retrospective.md` |  <!-- doc-links: ignore — MEMORY.md 由 bootstrap 複製到專案根 -->
 | **Pending / Next** | See [`docs/01-planning/BACKLOG.md`](./docs/01-planning/BACKLOG.md)（**有什麼**）· [`ROADMAP.md`](./docs/01-planning/ROADMAP.md)（**先做哪個**）|
 | **跨來源狀態** | See [`docs/01-planning/STATUS_AUDIT.md`](./docs/01-planning/STATUS_AUDIT.md) —— 問「現在全項目怎樣」時跑 `/status-audit`，**不要只讀 BACKLOG** |
