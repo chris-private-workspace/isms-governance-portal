@@ -30,7 +30,12 @@
 > **本檔回答「有什麼工作」，不回答「先做哪個」。**
 > 順序層 [`ROADMAP.md`](./ROADMAP.md) **已於 2026-08-10 啟用**（CH-016）——
 > 啟用當時本檔 §Open 達 48 條，超過「讀完仍不知道下一步」的門檻
-> （**現為 150 條 —— P0 6 / P1 80 / P2 64**，⛔ **不要手數也不要 grep** ——
+> （**現為 153 條 —— P0 6 / P1 81 / P2 66**，⛔ **不要手數也不要 grep** ——
+> 2026-08-18 **W21 Day 3（真實網址 drive-through）**：新增 **3** 條 ——
+> `AD-DemoAuthGuardUntested-1` 🟡（production 守衛零測試覆蓋，**與 W19 死控件同形**）·
+> `AD-FrontendMissingIdRedirects-1` 🟢（不存在的 id 回 307 而非 404，API 接上後必須改）·
+> `AD-NoCspHeader-1` 🟢（6 條安全標頭全到達，而 CSP 不在其中）。
+> ⭐ detector 報 total 150→153 / P1 80→81 / P2 64→66，照抄。
 > 2026-08-18 **CH-040 補記**：`AD-LocalGateSetIncomplete-1` 🟡 ——
 > 本機 gate 集合與 CI 集合的差集沒有任何地方列出來（同形狀第 2 次）。
 > 2026-08-18 **CH-040（UI 預設語言改英文）**：新增 **1** 條 ——
@@ -219,6 +224,9 @@
 
 | AD ID | 症狀 / 缺口 | 來源 phase | 優先度 | 備註 |
 |-------|------------|------------|--------|------|
+| AD-DemoAuthGuardUntested-1 | ⭐ **`assertDemoAuthAllowed` 從來沒有被證明會擋任何東西** —— 全域搜尋 `DEMO_AUTH` / `demoAuthAllowed`，**只命中 `demo-session.ts` 自己**（零測試、零其他消費者）。它是 W19 加的 production 守衛，而 W21 把它部署上線時仍然沒有任何證據顯示它會拒絕 | W21 Day 3 | 🟡 P1 | ⛔ **與 W19 那 25 個死控件同形**：守衛存在、條件成立、**沒有人驗證過**。⚠️ 寫單元測試不便宜 —— `demo-session.ts` 開頭是 `import 'server-only'` 且 import `next/headers`，要 mock 兩個模組。真環境負面測試（移除 env var → 登入必須失敗）會讓示範環境短暫中斷，**待使用者同意**。⭐ 兩者互補而非二選一：單元測試證明**邏輯**正確，真環境測試證明 **env var 真的被讀到** —— W19 的教訓正是後者（測試通過而功能對某一整類輸入沒生效） |
+| AD-FrontendMissingIdRedirects-1 | **前端詳情路由對不存在的 id 回 307 導回列表，不是 404** —— 實測 `/controls/NOPE-9999` 與 `/risks/RSK-0000` 皆 307；`/nonexistent-page` 正確回 404 | W21 Day 3 | 🟢 P2 | 目前**無害**：資料是 fixture，沒有後端也沒有實體範疇，導回列表是合理 UX。⛔ **但 API 接上之後必須改** —— CLAUDE.md 約束 8 明訂「查無資料一律回 404，不區分『不存在』與『不在你的範疇內』」，因為回 403 等於確認 ID 猜對了。而 307 導向同樣洩漏「這個 id 不存在」與「這個 id 存在但不屬於你」的區別（前者導回列表、後者可能顯示內容）。**解封條件**：M6 之後任何一片把詳情頁接上真 API 時 |
+| AD-NoCspHeader-1 | **`SECURITY_HEADERS` 沒有 `Content-Security-Policy`** —— `next.config.ts:27` 定義 6 條（nosniff / frame DENY / referrer / COOP / permissions / HSTS），真實網址實測 6 條全部到達，**而 CSP 不在其中** | W21 Day 3 | 🟢 P2 | 既有缺口，非部署造成。⚠️ W21 是第一次有真實網址可以驗證 CSP 的效果，也是第一次「沒有 CSP」有實際後果（示範環境公開可達）。⛔ **不要隨手加一條寬鬆的 CSP** —— Next.js 的 inline script 需要 nonce 或 hash，一條 `unsafe-inline` 的 CSP 比沒有更糟（它宣稱有防護而實際上沒有）。需要一片專門處理 |
 | AD-LocalGateSetIncomplete-1 | ⭐ **「gate 全綠」這句話的射程比它聽起來小 —— 同形狀第 2 次** —— CH-040 在本機跑完 format / lint / type-check / test / build / `run_all` 全綠後 commit，PR #82 的 `映像 build + 啟動探測` **FAIL**：`smoke-probe.mjs` 是第四個把預設語言寫死的地方。該 workflow 需要 `docker build` 兩個 image 再起容器，**結構上只在 CI 跑** | CH-040 | 🟡 P1 | ⛔ **本機 gate 集合 ≠ CI gate 集合，而兩者的差集沒有任何地方列出來**。第 1 次是 `lint --silent` 本機全綠、CI 30 秒爆 28 個錯（已記在 `task-workflow.md` §Before Commit Checklist item 2，但那條講的是**旗標吞輸出**，不是**整個 job 不在本機跑**）。⚠️ 差集目前至少含：`image-smoke.yml`（docker build + 探測）· `security-scan.yml` 的 gitleaks 全歷史 / semgrep / trivy · `ci.yml` 的整合測試（需 PostgreSQL 容器）。候選修法（機械的）：一個 `npm run gate:local` 列出它**涵蓋什麼、不涵蓋什麼**，讓「全綠」這句話自帶射程聲明 —— 判準與 `verification-discipline.md` §證據層「稽核類交付物要自帶覆蓋聲明」同形。⭐ 本次真正的教訓不是漏跑，是**報告用語**：說「gate 全綠」而不說「本機 gate 全綠」，讀的人會以為 CI 也會過 |
 | AD-HtmlLangNotReactive-1 | **`<html lang>` 與實際顯示語言在切換後不同步** —— `lang` 是 root layout 的 server-rendered 靜態值，語言切換器是 client-side ⇒ 切換之後 `lang` 停在預設語言 | CH-040 | 🟢 P2 | ⚠️ **這不是 CH-040 造成的，方向對調而已**：改之前預設 zh-Hant + `lang="zh-Hant"` 一致、切到 en 後不一致；改之後預設 en + `lang="en"` 一致、切到繁中後不一致。**預設狀態兩邊都對、切換後兩邊都錯**。後果是螢幕閱讀器套錯發音規則與斷詞。⛔ **沒有任何 gate 會叫** —— 屬性有值、值是合法 BCP-47、type-check 與 build 都不看它與 runtime state 的關係。真正的修法是 **L1 per-locale routing**（`layout.tsx` 檔頭註解已標明「real per-locale routing arrives with L1」）⇒ 解封條件是 L1 那一片，不宜先用 `useEffect` 補一個會與未來路由打架的權宜解。與 `AD-A11yUserMenuNoAccessibleName-1` 同屬 shell 層 a11y 缺口，宜合併成一片處理 |
 | AD-PlanPremiseUnverified-1 | ⭐⭐ **plan 對 repo 的斷言全部屬實、gate 全綠、drive-through 有做，而**方向**仍然錯** —— W20 從第一句就假設任務是「發明交付物沒有的響應式」，使用者要的是「參考交付物的尺寸」。被連續否決三次才發現，整片回退（`215add3`），淨產出 0 行 | W20 Day 2 | 🟡 P1 | ⛔ **Day-0 三-prong 對此結構性沉默** —— 它驗的是「plan 對 repo 的斷言是否屬實」，不驗「plan 的目的是不是使用者要的」。⚠️ 同理 AP 清單全 0 而 phase 仍失敗：反模式量的是「做出來的東西有沒有壞形狀」，不是「做的是不是該做的東西」。提議：plan §1 Phase Goal 必須**逐字引用使用者原話**，且 Day 0 加一個成本近零的 prong 0 —— **把 phase 目的用一句話複述給使用者確認**再開始 code。⭐ 判準與 `check_backlog_counts.py` 同形：比對兩份互相宣稱的東西（使用者的話 vs plan 的目的），而不是要求人記得 |
