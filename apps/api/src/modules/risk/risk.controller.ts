@@ -25,12 +25,14 @@
  *
  * Key Components:
  *   - GET /risks — scoped list
+ *   - GET /risks/:id — scoped detail; absent and out-of-scope are one answer
  *   - POST /risks — validated write; server issues ref_code, database scores it
  *
  * Created: 2026-08-11 (Phase W05)
- * Last Modified: 2026-08-11
+ * Last Modified: 2026-08-18
  *
  * Modification History (newest-first):
+ *   - 2026-08-18: Add GET /risks/:id (Phase W22) — first API caller on a screen
  *   - 2026-08-11: Initial creation (Phase W05)
  *
  * Related:
@@ -43,6 +45,7 @@ import {
   Controller,
   Get,
   NotFoundException,
+  Param,
   Post,
   UnprocessableEntityException,
 } from '@nestjs/common';
@@ -92,6 +95,35 @@ export class RiskController {
   async list() {
     const data = await this.risks.list(await this.client());
     return { data, ...DEV_PRINCIPAL_MARKER };
+  }
+
+  // === GET /risks/:id: list-then-find, not findUnique =======================
+  // Why: the shape is copied verbatim from policy.controller.ts:89-102, comment
+  // and all, because the reason it holds there holds here unchanged.
+  //
+  // A findUnique would have to fetch the row before deciding whether to refuse
+  // it, and a code path that holds an out-of-scope row in memory is one edit
+  // away from returning it. Going through the scoped client means the row was
+  // never ours to leak.
+  //
+  // ⚠️ This is O(n) in the entity's risk count and it is meant to expire, not to
+  // be optimised on a hunch. Expiry condition (AD in CH-042): the moment a
+  // single entity holds more risks than one screen can show, this stops being a
+  // list an operator would ever page through and becomes a query — and then the
+  // right fix is a scoped findFirst in the repository, not a cache here.
+  @Get(':id')
+  async byId(@Param('id') id: string) {
+    const all = await this.risks.list(await this.client());
+    const found = all.find((r) => r.id === id);
+
+    // Absent and out-of-scope are indistinguishable here BECAUSE the scoped
+    // client never returned the row. Returning 403 would require knowing the row
+    // exists — which would mean querying outside the scope to find out.
+    if (!found) {
+      throw new NotFoundException(`risk ${id} not found`);
+    }
+
+    return { data: found, ...DEV_PRINCIPAL_MARKER };
   }
 
   @Post()

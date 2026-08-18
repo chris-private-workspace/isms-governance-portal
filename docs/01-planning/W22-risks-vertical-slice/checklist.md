@@ -61,29 +61,38 @@
 
 ### 1.1 `GET /risks/:id`
 
-- [ ] **`@Get(':id')` —— 逐字複製 `policy.controller.ts:89-102` 的形狀（含註解理由）**
+- [x] **`@Get(':id')` —— 逐字複製 `policy.controller.ts:89-102` 的形狀（含註解理由）**
   - DoD: 範疇內 200；**不存在**與**跨實體**都回 404 且回應體不可分辨
-  - Verify: `npm run test -w apps/api`
-- [ ] **四個範疇測試**（`risk.int.spec.ts`）
+  - Verify: `npm run test -w apps/api` → **484 passed / 40 suites**（480 → 484，新增 4 個 `it()`）
+  - ✅ 註解逐字帶過來了；O(n) 的代價另寫**有可觀察到期條件**的註解，不是「以後優化」
+- [x] **四個範疇測試**（`risk.int.spec.ts` 測試 19-22）
   - DoD: 跨實體讀拒絕 / 不存在拒絕 / **兩者回應相同** / RLS 層獨立成立
   - ⛔ **必做中性化**：拿掉範疇過濾，斷言**哪幾條轉紅**；預測寫在執行之前
-  - Verify: `npm run test:int -w apps/api`
+  - Verify: `npm run test:int -w apps/api` → **269 passed / 21 suites**（265 → 269）
+  - ✅ **中性化 5/5 與預測相符**（2 紅 20/21 · 3 綠 19/22/單元），預測寫在 progress.md 執行之前
+  - ⭐ 其中一格買到的是壞消息：**21 條單元測試在範疇完全失效時全部維持綠** —— 詳見 progress.md
 
 ### 1.2 Dev seed
 
-- [ ] **`apps/api/prisma/seed.ts`（冪等，固定 id `upsert`）**
+- [x] **`apps/api/prisma/seed.ts`（冪等，固定 id `upsert`）**
   - DoD: 連跑兩次，列數不變
-  - Verify: `npm run prisma:seed -w apps/api` ×2 → `SELECT count(*)` 比對
-- [ ] ⭐ **跨兩個 `org_entity`，且兩邊都有風險**
+  - Verify: `npm run prisma:seed -w apps/api` ×2 → `SELECT count(*)` **12 → 12** ✅
+  - ⚠️ 前置：`prisma migrate deploy` 先補上 Day-0 抓到的落後 migration（25/25）
+- [x] ⭐ **跨兩個 `org_entity`，且兩邊都有風險**
   - DoD: ⛔ 否則範疇過濾「有生效」與「沒生效」在 drive-through 中看起來一模一樣
-  - Verify: 逐 entity 計數，兩者皆 > 0
-- [ ] **guardrail 7 檢查**：無 checksum 有效卡號、無真實個資、email 用 `.invalid`
+  - Verify: 逐 entity 計數 → **SG1: 9 · HK1: 3**，兩者皆 > 0 ✅
+  - ✅ seed 自己在 `counts.length < 2` 時拋錯 —— 這條 DoD 有機械承載，不只靠人記得看
+- [x] **guardrail 7 檢查**：無 checksum 有效卡號、無真實個資、email 用 `.invalid`
   - Verify: 人工讀一遍 + `python scripts/lint/run_all.py`
+  - ✅ 零人名 / 零 email / 零卡號形狀數字；`owner_user_id`·`created_by`·`updated_by` 全留 NULL
+  - 🚧 **gitleaks / semgrep 對新檔的結果延到 Day 2**（plan R3 原本就這樣排）
 
 ### 1.x partial gate
 
-- [ ] `lint` · `type-check` · `test -w apps/api`
-- [ ] **⏱ 寫入本日耗時到 progress.md**
+- [x] `lint` · `type-check` · `test -w apps/api` —— 三者 clean + **484 passed**
+  - ⚠️ `format:check` **第一次紅**（python 就地編輯的三個檔），`prettier --write` 後綠
+  - ⚠️ **`prisma/seed.ts` 不在上述任何一個 gate 的射程內** → `AD-SeedFileUngated-1`，本次手動補驗
+- [x] **⏱ 寫入本日耗時到 progress.md** —— Day 1 **≈ 35 min**（15:42 → 16:17）
 
 ---
 

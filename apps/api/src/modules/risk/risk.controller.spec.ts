@@ -18,7 +18,10 @@
  *   rather than by trusting that no parameter was plumbed through (約束 8 鐵律 3).
  *
  * Created: 2026-08-11 (Phase W05)
- * Last Modified: 2026-08-11
+ * Last Modified: 2026-08-18
+ *
+ * Modification History (newest-first):
+ *   - 2026-08-18: Add byId cases (Phase W22) — the two 404s must be one answer
  */
 import {
   BadRequestException,
@@ -52,7 +55,7 @@ function risk(id: string): Risk {
   return { id, orgEntityId: SG1, title: 't' } as unknown as Risk;
 }
 
-function build(createImpl?: () => Promise<Risk>) {
+function build(createImpl?: () => Promise<Risk>, rows: Risk[] = [risk('listed')]) {
   const resolverCalls: unknown[] = [];
   const createCalls: unknown[] = [];
 
@@ -66,7 +69,7 @@ function build(createImpl?: () => Promise<Risk>) {
   const scoped = { forScope: () => ({}) } as unknown as ScopedPrismaFactory;
 
   const repo = {
-    list: async () => [risk('listed')],
+    list: async () => rows,
     create: async (_client: unknown, input: unknown) => {
       createCalls.push(input);
       return createImpl ? createImpl() : risk('created');
@@ -221,6 +224,48 @@ describe('RiskController', () => {
     // it must not quietly disappear when M4 replaces the stub — it must be
     // removed deliberately.
     expect(await controller.list()).toHaveProperty('_devPrincipal', true);
+    expect(await controller.byId('listed')).toHaveProperty('_devPrincipal', true);
     expect(await controller.create({ ...VALID_BODY })).toHaveProperty('_devPrincipal', true);
+  });
+
+  // ---- byId: the same two refusals, now on the read path ----
+
+  it('returns the row when the scoped client returned it', async () => {
+    const { controller } = build(undefined, [risk('mine')]);
+
+    expect(await controller.byId('mine')).toMatchObject({ data: { id: 'mine' } });
+  });
+
+  it('reads the scope from the principal, never from the id in the path', async () => {
+    const { controller, resolverCalls } = build(undefined, []);
+
+    await controller.byId(SG1).catch(() => undefined);
+
+    // The id a caller put in the URL is the most obvious thing to reach for
+    // when widening a scope, so assert on what resolve() actually received
+    // rather than trusting that nobody plumbed it through (約束 8 鐵律 3).
+    expect(resolverCalls).toHaveLength(1);
+    expect(JSON.stringify(resolverCalls[0])).not.toContain(SG1);
+  });
+
+  it('answers 404 for a row the scoped client cannot see', async () => {
+    const { controller } = build(undefined, [risk('mine')]);
+
+    await expect(controller.byId('someone-elses-id')).rejects.toBeInstanceOf(NotFoundException);
+  });
+
+  it('answers 404 identically for a row that never existed', async () => {
+    const { controller } = build(undefined, []);
+
+    const outOfScope = await controller.byId('someone-elses-id').catch((e) => e);
+    const neverExisted = await controller.byId('never-existed').catch((e) => e);
+
+    // Same class AND same message shape: a caller must not be able to tell the
+    // two apart, because telling them apart confirms an id exists.
+    expect(outOfScope).toBeInstanceOf(NotFoundException);
+    expect(neverExisted).toBeInstanceOf(NotFoundException);
+    expect((outOfScope as Error).message.replace(/someone-elses-id/, 'X')).toBe(
+      (neverExisted as Error).message.replace(/never-existed/, 'X'),
+    );
   });
 });

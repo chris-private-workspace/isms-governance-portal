@@ -27,9 +27,10 @@
  *       RLS to threats would break the methodology with every gate green.
  *
  * Created: 2026-08-11 (Phase W05)
- * Last Modified: 2026-08-14
+ * Last Modified: 2026-08-18
  *
  * Modification History (newest-first):
+ *   - 2026-08-18: Add byId scope tests 19-22 (Phase W22) — the read path a screen uses
  *   - 2026-08-14: Add a non-empty premise to test 14 (W13) — AD-VacuousScopeTest-1
  *   - 2026-08-11: Initial creation (Phase W05)
  */
@@ -39,6 +40,7 @@ import { RiskScoreValidationError, scoreExpression } from '../../core-model/risk
 import { ScopeRefusedError, UnknownReferenceError } from '../../core-model/scope-refusal';
 import { EntityScopeResolver } from '../../entity-scope/entity-scope.resolver';
 import { ScopedPrismaFactory } from '../../entity-scope/scoped-prisma.provider';
+import { RiskController } from './risk.controller';
 import { RiskModule } from './risk.module';
 
 const SG1 = '00000000-0000-0000-0000-0000000000c0';
@@ -56,6 +58,7 @@ describe('risk module (integration)', () => {
   let resolver: EntityScopeResolver;
   let factory: ScopedPrismaFactory;
   let repo: RiskRepository;
+  let controller: RiskController;
 
   beforeAll(async () => {
     moduleRef = await Test.createTestingModule({ imports: [RiskModule] }).compile();
@@ -63,6 +66,7 @@ describe('risk module (integration)', () => {
     resolver = moduleRef.get(EntityScopeResolver);
     factory = moduleRef.get(ScopedPrismaFactory);
     repo = moduleRef.get(RiskRepository);
+    controller = moduleRef.get(RiskController);
   });
 
   /** Retired, not deleted — isms_app holds no DELETE privilege (guardrail 3). */
@@ -418,5 +422,90 @@ describe('risk module (integration)', () => {
     const row = await create(['SG1'], { title: 'ref code shape' });
 
     expect(row.refCode).toMatch(/^RISK-SG1-\d{6}$/);
+  });
+
+  // === GET /risks/:id — the read path a product screen actually calls ========
+  //
+  // These four go through the CONTROLLER, not the repository, because byId's
+  // whole refusal lives there: the scoped client returns a set and the
+  // controller finds in it. Testing repo.list() again would prove the layer
+  // beneath the one being added.
+  //
+  // The scope comes from DEV_PRINCIPAL_ENTITIES (dev-principal.ts), read per
+  // call — so setting it here is how a test says "this caller is SG1". It is
+  // restored in afterEach because a leaked value would silently widen every
+  // later test in the file.
+
+  describe('byId', () => {
+    const priorEntities = process.env.DEV_PRINCIPAL_ENTITIES;
+
+    afterEach(() => {
+      if (priorEntities === undefined) {
+        delete process.env.DEV_PRINCIPAL_ENTITIES;
+      } else {
+        process.env.DEV_PRINCIPAL_ENTITIES = priorEntities;
+      }
+    });
+
+    it('19. returns the row for an id inside the scope', async () => {
+      const row = await create(['SG1'], { title: 'SG1 risk a screen will open' });
+      process.env.DEV_PRINCIPAL_ENTITIES = 'SG1';
+
+      const answer = (await controller.byId(row.id)) as { data: { id: string } };
+
+      expect(answer.data.id).toBe(row.id);
+    });
+
+    it('20. refuses an id that exists in another entity — 404, not 403', async () => {
+      // ⛔ THE PREMISE: the row has to exist, or this passes on an empty table
+      // and proves nothing (AD-VacuousScopeTest-1, test 14's lesson).
+      const hk1 = await create(['HK1'], {
+        orgEntityId: HK1,
+        assetId: HK1_ASSET,
+        title: 'HK1 risk SG1 must not be able to open',
+      });
+      expect((await repo.list(await clientFor(['HK1']))).map((r) => r.id)).toContain(hk1.id);
+
+      process.env.DEV_PRINCIPAL_ENTITIES = 'SG1';
+
+      // 403 would confirm the id is real. 404 is the only answer that does not.
+      await expect(controller.byId(hk1.id)).rejects.toMatchObject({ status: 404 });
+    });
+
+    it('21. an id that never existed is refused identically — no existence oracle', async () => {
+      const hk1 = await create(['HK1'], {
+        orgEntityId: HK1,
+        assetId: HK1_ASSET,
+        title: 'HK1 risk for the indistinguishability pair',
+      });
+      const absent = '00000000-0000-0000-0000-0000deadbeef';
+      process.env.DEV_PRINCIPAL_ENTITIES = 'SG1';
+
+      const outOfScope = await controller.byId(hk1.id).catch((e: Error) => e);
+      const neverExisted = await controller.byId(absent).catch((e: Error) => e);
+
+      // Same status AND the same message once the id is masked. If either half
+      // differed, a caller could sweep ids and learn which ones are real.
+      expect(outOfScope).toMatchObject({ status: 404 });
+      expect(neverExisted).toMatchObject({ status: 404 });
+      expect((outOfScope as Error).message.replace(hk1.id, 'X')).toBe(
+        (neverExisted as Error).message.replace(absent, 'X'),
+      );
+    });
+
+    it('22. RLS refuses the same row by id, with the controller bypassed', async () => {
+      const hk1 = await create(['HK1'], {
+        orgEntityId: HK1,
+        assetId: HK1_ASSET,
+        title: 'HK1 risk asked for by primary key',
+      });
+
+      const sg1 = await clientFor(['SG1']);
+
+      // Asked for it by PRIMARY KEY and still got nothing. Test 20 could pass
+      // with the filter living in the controller's find(); this one cannot —
+      // it never reaches that code. Two layers, asserted separately.
+      expect(await sg1.risk.findUnique({ where: { id: hk1.id } })).toBeNull();
+    });
   });
 });
