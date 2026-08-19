@@ -201,23 +201,49 @@ _(本片**零 user-facing 變更**，無真 UI 可開。報告一律寫「**gate
 
 ### 3.1 乾淨狀態
 
-- [ ] **確認工作樹只有本片的變更，無殘留 fixture**
+- [x] **確認工作樹只有本片的變更，無殘留 fixture**
   - DoD: `git status --short` 逐行可解釋
   - ⚠️ Risk Class C **N/A** —— 本片零 runtime 變更，無服務需要重啟
+  - ✅ 起點 **clean**，HEAD `d5affd6`，fixture 5 檔齊全
+  - ⓘ 本日稍早兩個**W22 drive-through 留下**的背景程序被停掉（dev server + API server）——
+    與本片無關；本片所有 gate 都是離線的
 
 ### 3.2 負面驗證（MANDATORY）
 
-- [ ] ⭐ **E5 對一個刻意壞掉的 fixture 實測轉紅**
+- [x] ⭐ **E5 對一個刻意壞掉的 fixture 實測轉紅**
   - DoD: ⛔ **預測寫在執行之前** —— 預測哪一條會紅、哪些必須維持綠
   - Verify: 跑 detector，比對預測與實際
-- [ ] **移除 fixture 後轉綠**
+  - ✅ **預測先 commit（`c67a38a`, 13:31:04）再執行** —— 讓「預測先於執行」由 git 佐證，
+    不是我事後宣稱（`AD-ProxyMetricAsAnswer-1` 已 7 次）
+  - ✅ **S3**（把 fixture「修好」）→ 🔴 `E5 did NOT flag the stale fixture`，5 個測試紅，**逐項相符**
+- [x] **移除 fixture 後轉綠**
   - DoD: ⛔ **兩個方向都要跑** —— 只證明「會綠」證明不了它會擋
-- [ ] ⭐ **合法的 `PR-pending` 不可被擋**（plan R4）
+  - ✅ **S2**（刪整個 fixture 目錄）→ 🔴 `E5 self-test fixture missing`，5 個測試紅，**逐項相符**
+  - ⭐ 註：本 detector 的 fixture **缺席即失敗**（不是靜默通過），所以「移除後轉綠」在本設計下
+    不成立也不該成立 —— 缺席的對照組就是壞掉的對照組
+- [x] ⭐ **合法的 `PR-pending` 不可被擋**（plan R4）
   - DoD: 造一個「pre-doc 仍 `active` + 標記 `PR-pending`」的狀態，E5 必須**維持綠**
   - ⛔ 否則每一次 closeout 都會紅，而那會讓人把 E5 關掉
-- [ ] **把預測 vs 實際的對照表寫入 progress.md**
+  - ✅ `W98-fixture-active` **維持綠**（S1 基準 + 全部 9 個情境中未被誤擋）
+  - ✅ **M1**（判斷條件反向）證明這個對照組**真的在守**：反向後 self_test 立刻 SystemExit
+- [x] ⭐ **變異測試（plan 未要求，本日加做）** —— 5 個變異，證明測試不是空的
+  - ✅ M1 條件反向 · M2 拿掉遮蔽 · M3 刪掉第 5 種 pattern · M4 授權用猜的 · M5 E5 不被收集
+  - ⛔⭐⭐ **M3 / M4 / M5 三個真實迴歸下，`check_status_markers` 全部回報
+    `OK ... E5 clean`，`run_all` 全部 9/9** ⇒ **`run_all` 9/9 不是 E5 有效的證據**；
+    守住射程的是**具名單元測試**，各只有 1 個會紅
+  - ⭐ **M2 的 9 個誤報**具名列出：`W21-*/retrospective.md:7`（**HTML comment 裡的裸標記，
+    而那個檔已修對**）+ 5 個寫著「N 處 `PR-pending` 已翻」的 checklist ⇒ **記錄自己做對了的檔
+    會被判成做錯**
+- [x] **把預測 vs 實際的對照表寫入 progress.md**
   - DoD: 表格形式，含「預測維持綠」那幾格 —— W22 證明那幾格才是買到東西的地方
-- [ ] **⏱ 寫入本日耗時到 progress.md**
+  - ✅ 9 情境 × 2 維度（detector 輸出 + 逐一列名的紅測試）
+  - ⛔ **我預測錯 2 格，兩次同一方向**（`test_fixture_scan_*` / `test_templates_are_excluded`
+    維持綠）—— **我對自己測試射程的印象比實測寬**。若不做這個對照，
+    retro 會寫成「19 個測試覆蓋了 E5」，而那句話沒被量過
+- [x] ⭐ **修掉負面驗證自己找到的缺陷** —— S4 的錯誤訊息指向錯的原因
+  - ✅ 改成明列兩個成因並指出先查便宜的那個（fixture 的 `git diff`）
+  - ⚠️ 與 Day 2 的 scope-vs-pattern 誤導訊息**同類，第 2 次** → 記 AD
+- [x] **⏱ 寫入本日耗時到 progress.md** —— **≈ 12 min**（est 0.5 hr ⇒ ratio ≈ 0.40）
 
 ---
 

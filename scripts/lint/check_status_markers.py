@@ -511,10 +511,15 @@ def self_test(root: Path) -> None:
     must_not_catch = "docs/01-planning/W98-fixture-active/retrospective.md"  # path-check: ignore — synthetic
     if must_not_catch in caught:
         raise SystemExit(
-            "status-markers: FAIL -- E5 flagged a LEGITIMATE pending marker.\n"
-            f"{FIXTURE_REL}/{must_not_catch} belongs to an artifact still marked\n"
-            "`active`, which is exactly the state every closeout passes through.\n"
-            "E5 must fire on the CONTRADICTION, never on the marker itself."
+            "status-markers: FAIL -- E5 flagged a marker the fixture says is legitimate.\n"
+            f"{FIXTURE_REL}/{must_not_catch} belongs to an artifact the fixture\n"
+            "marks `active`, which is the state every closeout passes through.\n"
+            "E5 must fire on the CONTRADICTION, never on the marker itself.\n"
+            "⚠️ TWO CAUSES. CHECK (a) FIRST -- it is the cheap one:\n"
+            "  (a) the fixture was edited: `git diff` the W98 plan.md, whose\n"
+            "      `status:` must stay `active` for this control to mean anything\n"
+            "  (b) E5 itself regressed and now fires on the marker rather than\n"
+            "      on the contradiction"
         )
 
 
