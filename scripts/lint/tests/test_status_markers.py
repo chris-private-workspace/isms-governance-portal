@@ -393,6 +393,16 @@ class TestE5StalePending(unittest.TestCase):
             csm._closed_on_origin_main(_REPO_ROOT, "docs/01-planning/W00-nope/plan.md")  # path-check: ignore — synthetic
         )
 
+    def test_landed_gate_reports_whether_it_could_see_anything(self) -> None:
+        """`E5 clean` must not read the same when the gate adjudicated nothing.
+
+        check_sha_anchors.py:177 already paid for this lesson: a shallow checkout
+        makes the landed gate inert, every closeout becomes "in flight", and the
+        output still says clean. So the OK line names which state it was in.
+        """
+        self.assertTrue(csm.origin_main_resolves(_REPO_ROOT))
+        self.assertFalse(csm.origin_main_resolves(Path(tempfile.gettempdir())))
+
     # --- E5 must not disturb what was already there ------------------------
 
     def test_E4_missing_sibling_frontmatter_exemption_survives(self) -> None:
