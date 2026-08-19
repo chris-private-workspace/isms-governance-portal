@@ -29,6 +29,8 @@
   "risks.status.treatment": "處理中",
   "risks.status.monitored": "監控中",
   "risks.status.accepted": "已接受",
+  "risks.scope.serverSide": "伺服器設定的範疇",
+  "risks.scope.note": "上方的範疇選擇器不會過濾這張清單。實體範疇由伺服器依憑證決定，所以切換選擇器只會改變標籤，不會改變資料 —— 兩邊都是同一批列。",
   "risks.source.loading": "正在載入風險登錄冊…",
   "risks.source.error.title": "風險登錄冊 API 無法連線",
   "risks.source.error.body": "這裡不會改用示範資料頂替，而是什麼都不顯示。請確認 API 服務正在執行。",

@@ -71,6 +71,7 @@ import { useEffect, useState } from 'react';
 import { DemoBadge } from '@/components/DemoBadge';
 import { IconChevronLeft } from '@/components/icons';
 import { NoSource } from '@/components/NoSource';
+import { ago } from '@/lib/ago';
 import { useShell } from '@/components/shell/shell-state';
 
 import {
@@ -79,8 +80,6 @@ import {
   RISK_CATEGORY_META,
   RISK_DECISION_FALLBACK,
   RISK_DECISIONS,
-  RISK_DEFAULT_WORKPAPER,
-  RISK_NEXT_REVIEW,
   RISK_STAGES,
   RISK_STATUS_DECISION,
   RISK_STATUS_STAGE,
@@ -178,7 +177,7 @@ const ISSUE_STATUS: Record<string, { rating: string; labelKey: TranslationKey }>
 type TabId = 'assess' | 'tests' | 'issues';
 
 export default function RiskDetailPage() {
-  const { tr, trf } = useShell();
+  const { tr, trf, locale } = useShell();
   const params = useParams();
   const raw = params?.id;
   const id = Array.isArray(raw) ? raw[0] : raw;
@@ -239,6 +238,8 @@ export default function RiskDetailPage() {
           lik: api.lkhBefore ?? 0,
           inh: api.scoreBefore ?? 0,
           scoreAfter: api.scoreAfter,
+          lkhAfter: api.lkhAfter,
+          description: api.description,
           // No source in the API. lib/api/risks.ts documents which and why.
           entity: null as string | null,
           owner: null as string | null,
@@ -353,9 +354,15 @@ export default function RiskDetailPage() {
     );
   }
 
-  const residual = risk.imp * risk.lik;
-  const residualBand = riskBand(residual);
-  const residualTok = tok(residualBand.rating);
+  // ⛔ THE RESIDUAL IS A SEPARATE MEASUREMENT, NOT A FUNCTION OF THE INHERENT ONE.
+  // W22's drive-through caught this screen showing 12 Medium while the register
+  // showed 4 Low for the same risk, because it derived the residual from the
+  // before-control factors. `score_after` is its own generated column
+  // (ADR-0013) and NULL when the risk has not been re-assessed — which is a
+  // third state, not a zero and not the inherent value.
+  const residual = risk.scoreAfter;
+  const residualBand = residual === null ? null : riskBand(residual);
+  const residualTok = tok(residualBand?.rating ?? 'N');
   const inherentBand = riskBand(risk.inh);
   const inherentTok = tok(inherentBand.rating);
 
@@ -369,7 +376,7 @@ export default function RiskDetailPage() {
 
   const meta = RISK_CATEGORY_META[risk.category] ?? RISK_CATEGORY_META[RISK_CATEGORY_FALLBACK]!;
   const apTok = tok(meta.appetiteRating);
-  const withinAppetite = residual <= meta.apScore;
+  const withinAppetite = residual !== null && residual <= meta.apScore;
 
   // dc.html:4955 — status decides how far along the five stages the record is.
   const stage = (risk.status === null ? undefined : RISK_STATUS_STAGE[risk.status]) ?? 2;
@@ -381,8 +388,12 @@ export default function RiskDetailPage() {
 
   // dc.html:4976 — risks.ts stores the inherent SCORE but not the factors it was
   // built from, so the inherent likelihood is recovered by dividing out impact.
+  // Both factors come from the API rather than being reconstructed: the database
+  // stores lkh and lkh × MAX(impacts) for each side, so impact is the quotient.
   const inhImp = risk.imp;
-  const inhLik = Math.max(1, Math.min(5, Math.round(risk.inh / risk.imp)));
+  const inhLik = risk.lik;
+  const resLik = risk.lkhAfter;
+  const resImp = residual !== null && resLik !== null && resLik > 0 ? residual / resLik : null;
   const tgtImp = risk.imp;
   const tgtLik = Math.max(1, Math.floor(meta.apScore / risk.imp) || 1);
   const tgtScore = tgtImp * tgtLik;
@@ -393,7 +404,7 @@ export default function RiskDetailPage() {
     cells: [1, 2, 3, 4, 5].map((impVal) => {
       const band = riskBand(impVal * likVal);
       const marks: string[] = [];
-      if (impVal === risk.imp && likVal === risk.lik) marks.push('R');
+      if (resImp !== null && impVal === resImp && likVal === resLik) marks.push('R');
       if (impVal === inhImp && likVal === inhLik) marks.push('I');
       if (impVal === tgtImp && likVal === tgtLik) marks.push('T');
 
@@ -437,10 +448,10 @@ export default function RiskDetailPage() {
       key: 'residual',
       labelKey: 'riskDetail.score.residual' as TranslationKey,
       mark: 'R',
-      imp: risk.imp,
-      lik: risk.lik,
+      imp: resImp,
+      lik: resLik,
       score: residual,
-      bandKey: BAND_KEY[residualBand.label]!,
+      bandKey: residualBand === null ? null : BAND_KEY[residualBand.label]!,
       bg: 'var(--surface-2)',
       badgeBg: residualTok.dot,
       badgeInk: '#fff',
@@ -476,21 +487,29 @@ export default function RiskDetailPage() {
   const linkedFull: (typeof import('@/data/controls'))['controls'] = [];
   const derivedIssues: (typeof import('@/data/issues'))['issues'] = [];
 
-  const cycles = RISK_ASSESSMENT_CYCLES.map((cycle) => ({
-    ...cycle,
-    resd: Math.min(25, residual + cycle.residualOffset),
-  }));
-
-  const signOff = riskSignOff({ owner: risk.owner ?? '', role: risk.role ?? '' });
-  const trail = riskAuditTrail({
-    owner: risk.owner ?? '',
-    role: risk.role ?? '',
-    lik: risk.lik,
-    residual,
-    statusKey: status.labelKey,
-    decisionLabel: tr(decision.labelKey),
-    workpaper: linkedFull[0]?.id ?? RISK_DEFAULT_WORKPAPER,
-  });
+  // ⛔⛔ EMPTY BY RULING (user, 2026-08-19), AND THIS IS THE MOST IMPORTANT
+  // COMMENT IN THIS FILE.
+  //
+  // W22's drive-through opened a REAL risk record and found this screen showing:
+  // a sign-off chain with "PREPARED BY ." followed by "signed", a REVIEWED BY
+  // Internal Audit line, an APPROVED BY M. Tan · Regional Governance line with a
+  // date, and six audit-trail entries carrying SHA-256 hashes under the headings
+  // "append-only", "SHA-256 chained" and "Tamper-evident".
+  //
+  // None of it existed. All of it was fixture prose, attached to a row that had
+  // just become real. DemoBadge named these blocks as sample in one line at the
+  // top of the page, and that is not enough: what a reader sees is a named person
+  // approving a real risk on a stated date, and a ledger asserting its own
+  // integrity. That is a forged governance artifact, which guardrail 2 (this
+  // platform is bound by the controls it enforces) and guardrail 5 (evidence-grade
+  // audit trail) both forbid outright — not a labelling problem.
+  //
+  // So the arrays are empty and the integrity claims are not rendered on this
+  // screen. The block titles stay, because "this platform has a sign-off chain"
+  // is true; "this risk has these signatures" was not.
+  const cycles: ((typeof RISK_ASSESSMENT_CYCLES)[number] & { resd: number })[] = [];
+  const signOff: ReturnType<typeof riskSignOff> = [];
+  const trail: ReturnType<typeof riskAuditTrail> = [];
 
   /** Resolve one ledger value: a figure off the record, or a word that is copy. */
   const trail_text = (value: TrailText) =>
@@ -517,6 +536,13 @@ export default function RiskDetailPage() {
   return (
     <div data-screen-label="Risk detail">
       <DemoBadge variant="partial" />
+
+      <div
+        data-partial-source
+        style={{ marginBottom: '14px', fontSize: '12px', lineHeight: 1.6, color: 'var(--text-3)' }}
+      >
+        {tr('riskDetail.partialSource.text')}
+      </div>
 
       <div
         style={{
@@ -552,7 +578,10 @@ export default function RiskDetailPage() {
             <rect x="5" y="11" width="14" height="9" rx="2" />
             <path d="M8 11V7a4 4 0 018 0v4" />
           </svg>
-          {tr('riskDetail.locked')}
+          {/* riskDetail.locked reads "Record locked · tamper-evident ledger
+              active". The ledger on this screen is empty (see the ruling above),
+              so the claim is not made. */}
+          <NoSource label={tr('risks.noSource.title')} />
         </div>
       </div>
 
@@ -715,7 +744,7 @@ export default function RiskDetailPage() {
             {tr('riskDetail.lifecycle')}
           </div>
           <div style={{ fontSize: '11px', color: 'var(--text-3)', fontFamily: 'var(--mono)' }}>
-            {trf('riskDetail.lifecycle.meta', { n: stage + 1, updated: risk.updated })}
+            {trf('riskDetail.lifecycle.meta', { n: stage + 1, updated: ago(risk.updated, locale) })}
           </div>
         </div>
         <div style={{ display: 'flex', alignItems: 'flex-start' }}>
@@ -973,7 +1002,11 @@ export default function RiskDetailPage() {
                         {tr(card.labelKey)}
                       </div>
                       <div style={{ fontSize: '11.5px', fontWeight: 500, color: 'var(--text-2)' }}>
-                        {trf('riskDetail.score.detail', { imp: card.imp, lik: card.lik })}
+                        {card.imp === null || card.lik === null ? (
+                          <NoSource label={tr('risks.noSource.title')} />
+                        ) : (
+                          trf('riskDetail.score.detail', { imp: card.imp, lik: card.lik })
+                        )}
                       </div>
                     </div>
                     <div style={{ textAlign: 'right', flexShrink: 0 }}>
@@ -986,10 +1019,10 @@ export default function RiskDetailPage() {
                           lineHeight: 1,
                         }}
                       >
-                        {card.score}
+                        {card.score ?? '—'}
                       </div>
                       <div style={{ fontSize: '9.5px', fontWeight: 700, color: card.ink }}>
-                        {tr(card.bandKey)}
+                        {card.bandKey === null ? '' : tr(card.bandKey)}
                       </div>
                     </div>
                   </div>
@@ -1005,30 +1038,35 @@ export default function RiskDetailPage() {
                   {tr('riskDetail.treatment.title')}
                 </div>
                 <div style={{ fontSize: '11px', color: 'var(--text-3)', marginBottom: '12px' }}>
-                  {tr('riskDetail.treatment.sub')}
+                  {/* "Ratified by the Information Security Committee" — no
+                      committee has seen this record. */}
+                  <NoSource label={tr('risks.noSource.title')} />
                 </div>
+                {/* ⛔ The four options are NOT rendered as a selection. Highlighting
+                    one of them states that a treatment was chosen and ratified for
+                    this risk — the API sends `treatment: null` and there is no
+                    workflow to set it. The same ruling that emptied the sign-off
+                    chain applies here: the platform HAS treatment decisions, this
+                    risk does not have one. */}
                 <div style={{ display: 'flex', gap: '6px' }}>
-                  {RISK_DECISIONS.map((option) => {
-                    const active = option.value === decisionValue;
-                    return (
-                      <div
-                        key={option.value}
-                        style={{
-                          flex: 1,
-                          textAlign: 'center',
-                          padding: '9px 4px',
-                          border: `1.5px solid ${active ? 'var(--primary)' : 'var(--border-strong)'}`,
-                          borderRadius: '9px',
-                          background: active ? 'var(--primary)' : 'var(--surface-2)',
-                          color: active ? '#fff' : 'var(--text-2)',
-                          fontSize: '12px',
-                          fontWeight: 700,
-                        }}
-                      >
-                        {tr(option.labelKey)}
-                      </div>
-                    );
-                  })}
+                  {RISK_DECISIONS.map((option) => (
+                    <div
+                      key={option.value}
+                      style={{
+                        flex: 1,
+                        textAlign: 'center',
+                        padding: '9px 4px',
+                        border: '1.5px dashed var(--border-strong)',
+                        borderRadius: '9px',
+                        background: 'transparent',
+                        color: 'var(--text-3)',
+                        fontSize: '12px',
+                        fontWeight: 700,
+                      }}
+                    >
+                      {tr(option.labelKey)}
+                    </div>
+                  ))}
                 </div>
                 <div
                   style={{
@@ -1038,7 +1076,7 @@ export default function RiskDetailPage() {
                     lineHeight: 1.5,
                   }}
                 >
-                  {tr(decision.noteKey)}
+                  <NoSource label={tr('risks.noSource.title')} />
                 </div>
               </div>
               <div style={{ borderLeft: '1px solid var(--border)', paddingLeft: '20px' }}>
@@ -1131,7 +1169,7 @@ export default function RiskDetailPage() {
               {tr('riskDetail.description')}
             </div>
             <p style={{ margin: 0, fontSize: '13px', lineHeight: 1.6, color: 'var(--text-2)' }}>
-              {trf(meta.descKey, { entity: tr('risks.noSource.title') })}
+              {risk.description ?? <NoSource label={tr('risks.noSource.title')} />}
             </p>
             <div
               style={{
@@ -1154,11 +1192,15 @@ export default function RiskDetailPage() {
               </div>
               <div>
                 <div style={FIELD_LABEL}>{tr('riskDetail.meta.treatment')}</div>
-                <div style={{ fontSize: '12.5px', fontWeight: 600 }}>{tr(decision.labelKey)}</div>
+                <div style={{ fontSize: '12.5px', fontWeight: 600 }}>
+                  <NoSource label={tr('risks.noSource.title')} />
+                </div>
               </div>
               <div>
                 <div style={FIELD_LABEL}>{tr('riskDetail.meta.nextReview')}</div>
-                <div style={{ fontSize: '12.5px', fontWeight: 600 }}>{RISK_NEXT_REVIEW}</div>
+                <div style={{ fontSize: '12.5px', fontWeight: 600 }}>
+                  <NoSource label={tr('risks.noSource.title')} />
+                </div>
               </div>
               <div>
                 <div style={FIELD_LABEL}>{tr('riskDetail.meta.controls')}</div>
@@ -1868,33 +1910,11 @@ export default function RiskDetailPage() {
                   </div>
                 </div>
               </div>
-              <span
-                style={{
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  gap: '5px',
-                  fontSize: '10px',
-                  fontWeight: 700,
-                  color: 'var(--rag-g-ink)',
-                  background: 'var(--rag-g-bg)',
-                  borderRadius: '20px',
-                  padding: '3px 9px',
-                }}
-              >
-                <svg
-                  width="11"
-                  height="11"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                >
-                  <path d="M12 3l7 3v5c0 4.5-3 7.5-7 9-4-1.5-7-4.5-7-9V6l7-3z" />
-                </svg>
-                {tr('riskDetail.audit.tamperEvident')}
-              </span>
+              {/* This was a green shield pill reading "Tamper-evident". Replacing
+                  the WORDS but keeping the pill made it worse: a green badge with
+                  a shield reads as a certification whatever it says. The claim and
+                  its affordance are both gone. */}
+              <NoSource label={tr('risks.noSource.title')} />
             </div>
             <div
               style={{
@@ -1909,7 +1929,12 @@ export default function RiskDetailPage() {
                 fontFamily: 'var(--mono)',
               }}
             >
-              <span>{tr('riskDetail.audit.chain')}</span>
+              {/* riskDetail.audit.chain reads "append-only · SHA-256 chained".
+                  Both are true of the platform's audit-trail scope and neither is
+                  true of THIS screen, whose ledger is empty. */}
+              <span>
+                <NoSource label={tr('risks.noSource.title')} />
+              </span>
               {/* Inert: exporting evidence needs a signing and packaging
                   service that does not exist yet. */}
               <span

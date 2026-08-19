@@ -52,6 +52,7 @@ import { useEffect, useState } from 'react';
 import { DemoBadge } from '@/components/DemoBadge';
 import { IconSearch } from '@/components/icons';
 import { NoSource } from '@/components/NoSource';
+import { ago } from '@/lib/ago';
 import { useShell } from '@/components/shell/shell-state';
 import type { TranslationKey } from '@/i18n';
 import { listRisks, type RiskRow } from '@/lib/api/risks';
@@ -59,15 +60,6 @@ import { riskBand } from '@/lib/posture';
 import { tok, type Rating } from '@/lib/tok';
 
 /** The {{ r.flag }} hole — the two-letter jurisdiction badge for an OpCo. */
-/**
- * The mockup shows "2 days ago" and the API sends an ISO timestamp, so the
- * shape is kept and the value is real. Intl does the wording in both locales;
- * writing our own would be the third translation i18n-glossary.md warns about.
- */
-function ago(iso: string, locale: string): string {
-  const days = Math.round((Date.parse(iso) - Date.now()) / 86_400_000);
-  return new Intl.RelativeTimeFormat(locale, { numeric: 'auto' }).format(days, 'day');
-}
 
 /**
  * The four bands, in the order the header strip reads them.
@@ -116,7 +108,7 @@ interface Source {
 }
 
 export default function RisksPage() {
-  const { tr, trf, locale, scopeLabel, periodLabel } = useShell();
+  const { tr, trf, locale, periodLabel } = useShell();
   const router = useRouter();
 
   const [source, setSource] = useState<Source>({ rows: null, failed: false, loading: true });
@@ -152,11 +144,11 @@ export default function RisksPage() {
   // to send. The consequence, that changing persona does not change these rows,
   // is stated on the screen rather than left for someone to discover.
   const rows = (source.rows ?? []).map((r) => {
-    // The residual is the AFTER-control score; the database computes both
-    // (ADR-0013). The mockup multiplies a single impact by likelihood, which
-    // 15-design-alignment.md already records as the mockup simplifying the
-    // procedure — so the procedure wins and the column shows what it says.
-    const residual = r.scoreAfter ?? r.scoreBefore;
+    // ⛔ AFTER-control only, with NO fallback to the inherent score. The
+    // fallback put a 20 in a column headed "Residual" for risks that have never
+    // been re-assessed — the same class of quiet untruth as a blank cell, and it
+    // also made this screen disagree with the detail screen.
+    const residual = r.scoreAfter;
     const band = residual === null ? null : riskBand(residual);
     const def = band ? BANDS.find((b) => b.label === band.label) : undefined;
     return {
@@ -289,7 +281,7 @@ export default function RisksPage() {
           color: 'var(--text-3)',
         }}
       >
-        {tr('risks.partialSource.text')}
+        {tr('risks.partialSource.text')} {tr('risks.scope.note')}
       </div>
 
       <div
@@ -319,7 +311,16 @@ export default function RisksPage() {
             {tr('risks.title')}
           </h1>
           <div style={{ marginTop: '5px', fontSize: '12.5px', color: 'var(--text-2)' }}>
-            {trf('risks.meta', { n: view.length, scope: scopeLabel, period: periodLabel })}
+            {/* ⛔ NOT scopeLabel. The drive-through switched the selector to RSG
+                and this line began reading "9 risks · RSG" over rows that belong
+                to SG1 — the selector changed the CLAIM and not the data. A label
+                that moves while the data does not is worse than a dead control,
+                because it looks like it worked. */}
+            {trf('risks.meta', {
+              n: view.length,
+              scope: tr('risks.scope.serverSide'),
+              period: periodLabel,
+            })}
           </div>
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
@@ -579,24 +580,6 @@ export default function RisksPage() {
                     </td>
                     <td style={{ padding: 'var(--row-py) 12px' }}>
                       <span style={{ display: 'inline-flex', alignItems: 'center', gap: '7px' }}>
-                        <span
-                          style={{
-                            width: '24px',
-                            height: '18px',
-                            borderRadius: '4px',
-                            background: 'var(--surface-3)',
-                            border: '1px solid var(--border)',
-                            display: 'inline-flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            fontSize: '9px',
-                            fontWeight: 700,
-                            fontFamily: 'var(--mono)',
-                            color: 'var(--text-2)',
-                          }}
-                        >
-                          &nbsp;
-                        </span>
                         <span style={{ fontSize: '12.5px', color: 'var(--text-2)' }}>
                           <NoSource label={tr('risks.noSource.title')} />
                         </span>
