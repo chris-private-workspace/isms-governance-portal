@@ -148,9 +148,14 @@ matrix 的判決是「**該修的是估算不是乘數**」。高估點有共同
 
 ## 🚧 未解封 / 未做
 
-- **gitleaks / semgrep 對新檔**（plan R3）—— 本機未安裝。解封條件：**本片 PR 的 CI run**
-- **`prisma/seed.ts` 不被任何本機 gate 讀** → `AD-SeedFileUngated-1`
-  （本次以獨立 `tsc --noEmit` + `prettier --write` 手動補驗）
+- ✅ **gitleaks / semgrep 對新檔**（plan R3）—— **已於 PR #86 CI 解封**。
+  ⛔ 解封條件不是「job 綠」而是**讀出來的覆蓋**：semgrep 的 `324 files` 是聚合數，
+  不回答「seed.ts 在不在裡面」。改成把排除集合列完 ——
+  **ts `232−1=231` · python `15−3=12` · 總計 `331−7=324`**，三個算術與 CI log 獨立收斂。
+  ⚠️ 副產物：**SAST 完全不看 `test/` / `tests/`**（本 repo 無 `.semgrepignore`，用內建預設），
+  而 `int-global-setup.js` 以 **schema owner 連真資料庫** ⇒ 零 SAST 覆蓋 → `AD-SemgrepSkipsTestDirs-1`
+- 🚧 **`prisma/seed.ts` 不被任何本機 gate 讀** → `AD-SeedFileUngated-1`
+  （手動補驗；⭐ 射程精確化：**零正確性 gate + 有安全掃描**，不是完全沒有 gate）
 - **審計 #7 的 `AD-27` / `AD-30`（ADR 層）** —— plan §9 建議夾帶，**未取得使用者核可，未做**
 - **2 個 web 測試檔失敗一次，未重現、未診斷**（不知道是哪兩個）→ `AD-UndiagnosedWebTestFailure-1`
 

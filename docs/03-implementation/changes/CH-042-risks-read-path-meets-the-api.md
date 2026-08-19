@@ -88,9 +88,19 @@ Day 2 把兩頁從 fixture 整個換成 API，期間跑了三次 web 測試，**
 api int **269 passed / 21 suites**（265 → **+4**）· web test **95 passed / 10 files**（88 → **+7**）·
 lint / format clean · build `✓ Compiled successfully`
 
-> ⚠️ **gate 射程聲明**：gitleaks 與 semgrep **本機未安裝**，只在 CI 存在 ⇒ 本記錄的 gate 集合
-> **不含**它們。且 `apps/api/prisma/seed.ts` 不被 type-check / lint / format 任何一個讀到
+**CI（PR #86，6/6 綠）**: gates 2m45s · 映像 build + 啟動探測 1m37s · SCA 15s · SAST 42s ·
+gitleaks 17s · trivy 24s
+
+> ⚠️ **gate 射程聲明**：gitleaks 與 semgrep **本機未安裝**，只在 CI 存在。
+> 且 `apps/api/prisma/seed.ts` 不被 type-check / lint / format 任何一個讀到
 > （`AD-SeedFileUngated-1`），本次以獨立 `tsc --noEmit` + `prettier --write` 手動補驗。
+>
+> ⛔ **「掃描器綠了」不等於「它讀過那個檔」，所以覆蓋是列出來的不是推論的**：
+> gitleaks `264 commits / 16.87 MB / no leaks found`（`--source .` 無 path filter，`fetch-depth: 0`）；
+> semgrep 的 `324 files` 是聚合數，改用排除集合的完整列舉 ——
+> **ts `232−1=231` · python `15−3=12` · 總計 `331−7=324`**，三者皆與 CI log 相符，
+> 7 個被跳過的逐檔列名且全在 `test/` ⇒ `seed.ts` 在 semgrep 掃的 231 個 ts 檔內。
+> ⚠️ 副產物：**SAST 完全不看測試目錄** → `AD-SemgrepSkipsTestDirs-1`。
 
 **新增測試**:
 
