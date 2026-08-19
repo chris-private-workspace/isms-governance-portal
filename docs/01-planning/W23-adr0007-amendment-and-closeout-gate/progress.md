@@ -318,3 +318,50 @@ the fixture was 'cleaned up'.`
 > ⚠️ 同 Day 1 的但書：**單日 ratio 不可直接校準**。本日另有一個 Day 1 沒有的偏差來源 ——
 > **E5 有藍本**（E1–E4 就在同一個檔裡），而 bottom-up 是按「寫一個新 detector」估的。
 > 這正是 W22 retro 抓到的形狀：**有藍本的東西被當成沒藍本估**。Day 4 一併寫進 calibration-log。
+
+---
+
+## Day 3 — 2026-08-19 — 負面驗證（⛔ 不是 drive-through）
+
+_本片零 user-facing 變更，無真 UI 可開 ⇒ 報告一律「**gate-only verified**」。
+取代 drive-through 的是下方的負面驗證（`AD-NegativeGate-1` 的形狀）。_
+
+### 3.1 乾淨狀態
+
+- `git status --short` → **空**（clean）· HEAD **`d5affd6`**
+- fixture 5 個檔全在
+- ⚠️ Risk Class C **N/A** —— 本片零 runtime 變更。
+  （本日稍早兩個 **W22 drive-through 留下的**背景程序被停掉：Next.js dev server + API server。
+  與本片無關，且本片所有 gate 都是離線的。）
+
+### ⛔⭐ 預測（**寫在執行之前，並先 commit**）
+
+> **為什麼要先 commit**：`AD-ProxyMetricAsAnswer-1` 與 W19/W22 的教訓都是「事後宣稱預測」無法查證。
+> 這一節的 commit 時間戳早於下一節的執行，git 可以證明，我的說法不必被採信。
+
+**受測物**：`scripts/lint/check_status_markers.py` E5 + `tests/test_status_markers.py`（**19 tests**）
++ fixture 樹。基準：全綠（`run_all` 9/9 · E5 tests 19 OK · `check_status_markers` EXIT 0）。
+
+⭐ **「預測維持綠」的格子和「預測轉紅」的格子一樣重要** —— W19/W22 都證明前者才是買到東西的地方：
+一個對什麼都開火的 detector 同樣能通過「它會紅」的測試。
+
+| # | 情境（要做什麼） | 預測：`check_status_markers` 直跑 | 預測：19 個測試裡**具體哪些**紅 |
+|---|---|---|---|
+| **S1** | 不動任何東西（基準複現）| 🟢 EXIT 0，`E1/E2/E3/E4/E5 clean` | **全 19 綠** |
+| **S2** | 刪掉整個 fixture 目錄 | 🔴 `SystemExit`：`E5 self-test fixture missing` | `test_self_test_runs_both_directions` · `test_instrument` · `test_fixture_scan_is_not_swallowed_by_its_own_skip_list` · `test_live_repo_is_clean` · `test_detector_does_not_fire_on_documents_about_the_defect` 紅（後兩者因呼叫 `_assert_instrument_works`）|
+| **S3** | 「修好」W99 fixture（marker 翻成 MERGED）| 🔴 `SystemExit`：`E5 did NOT flag the stale fixture` | 同 S2 那 5 個 |
+| **S4** | 把 W98（負面對照）的 plan 改成 `closed` | 🔴 `SystemExit`：`E5 flagged a LEGITIMATE pending marker` | 同上 5 個 —— ⚠️ 但**訊息會誤導**：真因是 fixture 被改壞，不是 E5 誤擋 |
+| **M1** | **變異**：判斷條件反向（`!= "closed"`）| 🔴 `SystemExit`（W98 被擋）| 上述 5 個 + `test_pending_marker_on_an_open_artifact_is_accepted` + `test_pending_marker_on_a_closed_artifact_fires` + `test_authority_*` ×2 + `test_templates_are_excluded` + `test_find_violations_includes_E5` |
+| **M2** | **變異**：拿掉遮蔽（`mask_non_prose` 直接回傳原文）| 🔴 真 repo 噴出大量命中（**談論本缺陷的散文**）| `test_prose_in_backticks_does_not_fire` · `test_html_comment_does_not_fire` · `test_fenced_block_does_not_fire` · `test_detector_does_not_fire_on_documents_about_the_defect` · `test_live_repo_is_clean` |
+| **M3** | **變異**：刪掉 `PR 待開` 這條 pattern | ⚠️ **預測 🟢 EXIT 0（仍然綠）** —— 因為那 5 個真陽性今天已經修好了 | **只有** `test_every_enumerated_marker_format_matches` 紅 |
+| **M4** | **變異**：授權解不出來時**當成 closed**（猜）| ⚠️ **預測 🟢 或小量紅 —— 信心較低**，因為 CH-006/007 已修好；若仍有未知的裸 marker 就會紅 | `test_unresolvable_authority_is_skipped_not_guessed` 紅 |
+| **M5** | **變異**：`find_violations` 不再收 E5 | ⚠️ **預測 🟢 EXIT 0（完全看不出來）** —— E5 目前零違規，收不收結果一樣 | **只有** `test_find_violations_includes_E5` 紅 |
+
+**三個預測本身就是結論**（若成立）：
+
+1. **M3 / M5 說明「真 repo 全綠」這個 gate 在缺陷修好之後就失去偵測力** ——
+   ⇒ 守住射程的是**具名的單元測試**，不是 live-repo 那一條。
+2. **M5 是 Potemkin 的教科書形狀**：檢查跑了、但沒有被收集，而**任何 end-to-end 觀察都看不出來**。
+3. **S4 的錯誤訊息會指錯方向**（跟我 Day 2 自己踩的 scope-vs-pattern 是同一類）⇒ 值得記一條 AD。
+
+**復原方式**：每個情境跑完 `git checkout -- <path>` 還原，並以 `git status --short` **確認空**才進下一個。
