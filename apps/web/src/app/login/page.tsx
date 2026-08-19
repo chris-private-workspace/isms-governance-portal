@@ -141,13 +141,20 @@ const IconShieldMark = () => (
   </svg>
 );
 
+// W24: the stroke was var(--rag-g). A green tick reads as "certified", and it
+// was sitting beside a claim that this platform holds SOC 2 Type II and ISO/IEC
+// 27001 — which it does not. The three claims are now all true (built to the
+// standards / the audit chain is real / RLS is real), but a green tick still
+// stamps each one as verified by someone. Neutral is what a bullet should be.
+// Changing the stroke rather than the markup keeps the ported structure intact
+// (約束 6): the three claims share one <IconTick/> inside a .map().
 const IconTick = () => (
   <svg
     width="16"
     height="16"
     viewBox="0 0 24 24"
     fill="none"
-    stroke="var(--rag-g)"
+    stroke="var(--rag-n)"
     strokeWidth="2.2"
     strokeLinecap="round"
     strokeLinejoin="round"

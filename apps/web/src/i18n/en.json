@@ -22,7 +22,7 @@
   "shell.collapse": "Collapse sidebar",
   "shell.expand": "Expand sidebar",
   "shell.env.name": "Demonstration · SG-1",
-  "shell.env.meta": "v2.4 · SOC 2 Type II",
+  "shell.env.meta": "Seeded data · not production",
   "shell.inert": "This action writes to a server. This port has no backend that can perform it, so it renders disabled — a button that looks live and does nothing is worse.",
   "nav.group.intelligence": "Intelligence",
   "nav.group.oversight": "Oversight",

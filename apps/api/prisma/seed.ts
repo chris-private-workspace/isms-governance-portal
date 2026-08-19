@@ -35,12 +35,14 @@
  *
  * Key Components:
  *   - RISKS: the fixture set — 4 in SG1, 3 in HK1, scores chosen to span the bands
+ *   - POLICIES: 8 rows — 4 SG1 / 4 HK1, all six lifecycle states, one soft-deleted
  *   - main(): upsert by fixed id, then report the per-entity counts it produced
  *
  * Created: 2026-08-18 (Phase W22)
- * Last Modified: 2026-08-18
+ * Last Modified: 2026-08-19
  *
  * Modification History (newest-first):
+ *   - 2026-08-19: Add POLICIES — six states, one soft-deleted (Phase W24) — CH-044
  *   - 2026-08-18: Initial creation (Phase W22) — CH-042
  *
  * Related:
@@ -182,6 +184,129 @@ const RISKS: SeedRisk[] = [
   },
 ];
 
+/**
+ * Policies (W24). Same reserved 9xxxxx block, same fixed ids, same reasons.
+ *
+ * WHAT THIS SET HAS TO PROVE — one row exists for each of these, not for volume:
+ *
+ *   1. TWO ENTITIES. Same argument as RISKS above: with rows on one side only,
+ *      "the scope filter works" and "the scope filter is absent" render
+ *      identically.
+ *
+ *   2. ALL SIX LIFECYCLE STATES (02a:300-312). The screen paints status as a
+ *      coloured pill and the API's vocabulary is not the fixture's, so a state
+ *      with no row is a mapping nobody exercised.
+ *
+ *   3. retiredAt IS NOT status='retired'. schema.prisma:361 draws that line and
+ *      this is the set that can show it: POL-SG1-900003 is retired as a
+ *      LIFECYCLE state and MUST appear in the list; POL-SG1-900004 is
+ *      soft-deleted and MUST NOT, because policy.repository.ts:86 filters
+ *      `retiredAt: null`. With only one of the two, a working filter and a
+ *      missing one look the same.
+ *
+ * owner/createdBy/updatedBy stay NULL. That is not "not wired yet" — it is
+ * guardrail 7. Inventing a person here would be inventing PII.
+ *
+ * MARK goes in the title because Policy has no description column, and a seeded
+ * row has to say so in a column the screen actually renders. The titles are
+ * deliberately unlike the fixture's ("Information Security Policy", …) so the
+ * negative test — fixture titles absent from the DOM — cannot pass by accident.
+ */
+interface SeedPolicy {
+  id: string;
+  refCode: string;
+  orgEntityId: string;
+  title: string;
+  version: number;
+  status: 'draft' | 'in_review' | 'approved' | 'published' | 'under_revision' | 'retired';
+  /** Non-null = soft-deleted (guardrail 3). The list must not show it. */
+  retiredAt: Date | null;
+}
+
+const POLICIES: SeedPolicy[] = [
+  {
+    id: '0000ff00-0000-0000-0000-000000000001',
+    refCode: 'POL-SG1-900001',
+    orgEntityId: SG1,
+    title: MARK + ' Cryptographic key handling standard',
+    version: 3,
+    status: 'published',
+    retiredAt: null,
+  },
+  {
+    id: '0000ff00-0000-0000-0000-000000000002',
+    refCode: 'POL-SG1-900002',
+    orgEntityId: SG1,
+    title: MARK + ' Remote working security baseline',
+    version: 1,
+    status: 'draft',
+    retiredAt: null,
+  },
+  {
+    // Retired as a LIFECYCLE state — a live, visible record that happens to be
+    // at the end of its life. It MUST show up in the register.
+    id: '0000ff00-0000-0000-0000-000000000003',
+    refCode: 'POL-SG1-900003',
+    orgEntityId: SG1,
+    title: MARK + ' Legacy VPN acceptable use (superseded)',
+    version: 5,
+    status: 'retired',
+    retiredAt: null,
+  },
+  {
+    // Soft-deleted at the RECORD level. It MUST NOT show up. Its status is
+    // deliberately `approved` rather than `retired`, so that a filter keying on
+    // the wrong column would be visible: it would leak an approved policy.
+    id: '0000ff00-0000-0000-0000-000000000004',
+    refCode: 'POL-SG1-900004',
+    orgEntityId: SG1,
+    title: MARK + ' Withdrawn draft, soft-deleted — must not be listed',
+    version: 2,
+    status: 'approved',
+    retiredAt: new Date('2026-07-01T00:00:00.000Z'),
+  },
+  {
+    id: '0000ff00-0000-0000-0000-000000000005',
+    refCode: 'POL-HK1-900001',
+    orgEntityId: HK1,
+    title: MARK + ' Third-party access control standard',
+    version: 2,
+    status: 'published',
+    retiredAt: null,
+  },
+  {
+    id: '0000ff00-0000-0000-0000-000000000006',
+    refCode: 'POL-HK1-900002',
+    orgEntityId: HK1,
+    title: MARK + ' Incident evidence retention procedure',
+    version: 1,
+    status: 'in_review',
+    retiredAt: null,
+  },
+  {
+    id: '0000ff00-0000-0000-0000-000000000007',
+    refCode: 'POL-HK1-900003',
+    orgEntityId: HK1,
+    title: MARK + ' Privileged account review procedure',
+    version: 4,
+    status: 'under_revision',
+    retiredAt: null,
+  },
+  {
+    // `approved` needs a row of its own. The soft-deleted POL-SG1-900004 also
+    // carries that status, but it is filtered out of every list, so without
+    // this row `approved` would be covered in the fixture and invisible on the
+    // screen — six states seeded, five states renderable.
+    id: '0000ff00-0000-0000-0000-000000000008',
+    refCode: 'POL-HK1-900004',
+    orgEntityId: HK1,
+    title: MARK + ' Data classification handling rules',
+    version: 1,
+    status: 'approved',
+    retiredAt: null,
+  },
+];
+
 function spread(prefix: 'Before' | 'After', set?: ScoreSet): Record<string, number> {
   if (!set) {
     return {};
@@ -260,6 +385,86 @@ async function main(): Promise<void> {
         'seed produced risks in ' +
           counts.length +
           ' entity; AC-3 requires at least two, or scope filtering working and scope filtering being absent look identical on screen.',
+      );
+    }
+
+    for (const policy of POLICIES) {
+      const fields = {
+        orgEntityId: policy.orgEntityId,
+        refCode: policy.refCode,
+        title: policy.title,
+        version: policy.version,
+        status: policy.status,
+        // Unlike RISKS, retiredAt is NOT forced to null here: one row is
+        // soft-deleted on purpose and resetting it would delete the only
+        // evidence that the repository's `retiredAt: null` filter does anything.
+        retiredAt: policy.retiredAt,
+      };
+
+      await prisma.policy.upsert({
+        where: { id: policy.id },
+        create: { id: policy.id, ...fields },
+        update: fields,
+      });
+    }
+
+    const polCounts = await prisma.policy.groupBy({
+      by: ['orgEntityId'],
+      where: { retiredAt: null },
+      _count: { _all: true },
+    });
+    const polEntities = await prisma.orgEntity.findMany({
+      where: { id: { in: polCounts.map((c) => c.orgEntityId) } },
+      select: { id: true, code: true },
+    });
+
+    // Counted over the seeded ids ONLY. The first version of this reduced
+    // polCounts, which counts every policy in the database — so on a dev
+    // database holding anything else it reported a number this seed never
+    // produced and threw. What the assertion below is about is whether the
+    // soft-delete took, not whether the database is otherwise empty.
+    const live = await prisma.policy.count({
+      where: { id: { in: POLICIES.map((p) => p.id) }, retiredAt: null },
+    });
+    const liveAll = polCounts.reduce((n, row) => n + row._count._all, 0);
+    console.log(
+      '[seed] ' +
+        POLICIES.length +
+        ' demo policies upserted, ' +
+        live +
+        ' of them live (' +
+        liveAll +
+        ' live in this database in total). Live policies per entity:',
+    );
+    for (const row of polCounts) {
+      const code = polEntities.find((e) => e.id === row.orgEntityId)?.code ?? row.orgEntityId;
+      console.log('[seed]   ' + code + ': ' + row._count._all);
+    }
+
+    if (polCounts.length < 2) {
+      throw new Error(
+        'seed produced policies in ' +
+          polCounts.length +
+          ' entity; same reason as risks above — one-sided fixtures cannot tell a working scope filter from an absent one.',
+      );
+    }
+
+    // The soft-deleted row is the point, so its absence is asserted rather than
+    // assumed. If this ever equals POLICIES.length, either the seed stopped
+    // soft-deleting or `retiredAt` stopped meaning anything — and the screen
+    // would be listing a withdrawn policy without anything going red.
+    const softDeleted = POLICIES.filter((p) => p.retiredAt !== null).length;
+    if (live !== POLICIES.length - softDeleted) {
+      throw new Error(
+        'expected ' +
+          (POLICIES.length - softDeleted) +
+          ' live policies (' +
+          POLICIES.length +
+          ' seeded, ' +
+          softDeleted +
+          ' soft-deleted) but the database reports ' +
+          live +
+          '.',
       );
     }
   } finally {
