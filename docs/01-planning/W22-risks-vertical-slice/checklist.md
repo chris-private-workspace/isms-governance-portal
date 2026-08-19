@@ -244,4 +244,12 @@
   - 🚧 **未做 —— 未取得使用者核可**（本次 closeout 的指示未包含此項）。
     解封條件：使用者核可夾帶，或另開一片處理審計 #7 的 ADR 層 8 條
 - [x] **⏱ 寫入本日耗時到 progress.md** —— Day 4 **≈ 25 min**（09:31 → closeout commit）
-- [ ] **Commit** → ⏳ PR push + open → CI → merge: **PENDING USER CONFIRMATION**
+- [x] **Commit** → PR push + open → CI → merge
+  - ✅ **PR #86 MERGED** 2026-08-19T02:28:36Z（rebase-merge，tip `33efd4f`）——
+    以 `gh pr view --json state,mergedAt` **驗證**，不採信宣稱
+  - ⚠️ **CI 跑了三輪**：第一輪 6/6 綠；第二輪 `映像 build + 啟動探測` **fail**（docs-only commit！）
+    → 診斷為 `AD-SmokeProbeHungFetchBypassesDeadline-1`，re-run 通過；第三輪 6/6 綠
+  - ✅ **post-merge SHA 改寫第 14 次**：7 個 commit 全部被重寫，
+    `check_sha_anchors.py` 抓到 **2 個 stale anchor**（`6263e2f`→`c0719a0` · `c3d5c55`→`3ee4ec0`），已重指
+  - ⛔ **順帶抓到 W21 的假 pending**：PR #84 早已 merged 而四處標記從沒翻過，
+    **跨了一整個 W22 沒人發現** → `AD-StalePrPendingNoDetector-1`，已補翻

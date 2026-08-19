@@ -521,7 +521,7 @@ wiring 證據取自**新程序**：
 
 ### ⛔ 第二輪 CI：一個 docs-only commit 弄紅了 `映像 build + 啟動探測`
 
-`6263e2f` 只動 `docs/` 與 `memory/`，而 `映像 build + 啟動探測` **fail 1m6s**（第一輪 pass 1m37s）。
+`c0719a0` 只動 `docs/` 與 `memory/`，而 `映像 build + 啟動探測` **fail 1m6s**（第一輪 pass 1m37s）。
 
 **先排除「是我改壞的」——用構造，不用推測**：image build 輸入
 （`apps` `packages` `docker` `Dockerfile*` `package.json` `package-lock.json` `smoke-probe.mjs` `.github`）
@@ -580,7 +580,7 @@ Day 4 的 gate sweep 是**合併跑** `npm run test -w apps/api -w apps/web`，
 |---|---|
 | Day 4（closeout —— CH-042 · retro · calibration ×2 · BACKLOG · RISK_REGISTER · 導航檔 · final gate）| **≈ 25 min** |
 
-> 量法：T0 = Day 3 commit `c3d5c55`（**09:30:38**）之後的第一個動作 ≈ **09:31**，
+> 量法：T0 = Day 3 commit `3ee4ec0`（**09:30:38**）之後的第一個動作 ≈ **09:31**，
 > T1 = closeout commit。⚠️ 對照 plan §7 的 closeout 估算 **2 hr** ⇒ ratio ≈ **0.21**。
 
 ### Phase 總計

@@ -3,7 +3,7 @@
 **Phase**: W22 — risks 端到端垂直切片（前端接真 API，本機 drive-through）
 **Period**: 2026-08-18 ~ 2026-08-19
 **Plan**: [plan.md](./plan.md)
-**PR**: PR-pending
+**PR**: #86 — **MERGED** 2026-08-19T02:28:36Z（rebase-merge，tip `33efd4f`；`gh pr view` 驗證 `state=MERGED`）
 **Change record**: `docs/03-implementation/changes/CH-042-risks-read-path-meets-the-api.md`
 
 ---

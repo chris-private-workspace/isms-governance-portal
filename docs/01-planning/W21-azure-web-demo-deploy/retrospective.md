@@ -3,7 +3,9 @@
 **Phase**: W21 — deploy the web demonstration to Azure Container Apps
 **Period**: 2026-08-18 ~ 2026-08-18
 **Plan**: [plan.md](./plan.md)
-**PR**: #TBD（PR-pending）
+**PR**: #84 — **MERGED** 2026-08-18T07:08:46Z（rebase-merge，tip `700ef62`；`gh pr view` 驗證 `state=MERGED`）
+<!-- 2026-08-19（W22 post-merge）補翻：本行在 W21 closeout 當下標的是 PR-pending，而**整個 W22 期間沒有任何東西發現它是假的** → AD-StalePrPendingNoDetector-1 -->
+
 **Change record**: [`CH-041`](../../03-implementation/changes/CH-041-project-writes-its-own-iac.md)
 
 ---
