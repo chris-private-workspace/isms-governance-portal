@@ -42,7 +42,12 @@
 > **本檔回答「有什麼工作」，不回答「先做哪個」。**
 > 順序層 [`ROADMAP.md`](./ROADMAP.md) **已於 2026-08-10 啟用**（CH-016）——
 > 啟用當時本檔 §Open 達 48 條，超過「讀完仍不知道下一步」的門檻
-> （**現為 175 條 —— P0 6 / P1 94 / P2 75**，⛔ **不要手數也不要 grep** ——
+> （**現為 176 條 —— P0 6 / P1 95 / P2 75**，⛔ **不要手數也不要 grep** ——
+> 2026-08-19 **W23 Day 2**：新增 **1** 條 —— `AD-E5BlindToStandaloneCh-1` 🟡
+> （E5 對 13/35 個單檔記錄結構性看不見；**盲區是刻意的，代價不是**）。
+> ⭐ 本片同時**修掉 5 個真的 stale merge marker**（3 個 E5 抓到 + 2 個人工枚舉抓到），
+> 全部以 `gh pr list` 查到真 PR 號與 merge commit 後才翻，不靠記憶。
+> ⭐ detector 報 total 175→176 / P1 94→95，照抄。
 > 2026-08-19 **W23 Day 1**：新增 **2** 條 —— `AD-DecisionTableSaysUndecided-1` 🟡（兩份導航檔
 > 把已採納的 ADR-0003/0004/0005/0007 顯示成未定，**W23 之前就存在**）·
 > `AD-ProfileChangePasswordNoFuture-1` 🟢（按鈕的存在理由隨 ADR-0015 過期）。
@@ -465,6 +470,7 @@
 | AD-StalePrPendingNoDetector-1 | ⭐⭐ **`PR-pending` 沒有任何機械守衛，所以漏翻一次就變成看不見的假 pending** —— W21 的 PR **#84 於 2026-08-18T07:08:46Z 就 merged**，而它的 merge 標記**四處全部沒翻**（`BACKLOG.md` pointer row · `W21-*/retrospective.md:6`（寫著 `#TBD`）· `memory/project_w21_azure_web_demo.md:3` · `MEMORY.md:89`），**整個 W22 期間沒有任何東西發現它** | W22 post-merge | 🟡 P1 | ⛔ **這不是「忘了做」而是「沒有東西會叫」**：`check_status_markers.py` 掃的是 pre-doc 的 `status:` frontmatter，**`PR-pending` 不在它的射程內**；`run_all` 因此 9/9 全綠而四處標記是假的。⚠️ **代價已經發生過一次**：W22 的 `CLAUDE.md` Current-Phase 格在 closeout 前寫著「**W21（PR #84 開著）**」—— 一個已經 merged 十小時的 PR 被導航檔宣告為開著，而那一格是每個 session 都會讀到的。⇒ 這正是 `/status-audit` 存在的理由，但**審計是週期性的，漏翻是即時的**。**解封條件**：`check_status_markers.py` 加一條 —— 任何檔案出現 `PR-pending` 或 `#TBD` 時，若同名 phase 的 pre-doc `status:` 已是 `closed`/`closed_partial`，就 fail（closeout 當下兩者本來就該一起翻）。⚠️ 治理工具，受 §Step 0.0 每 phase 1 個 CH 的配額約束。與 `AD-CalibrationNoTimeRecord-1` 同族：**第 2 級的提醒擋不住「收尾時漏一步」，要嘛進會被勾的清單，要嘛進 detector** |
 | AD-DecisionTableSaysUndecided-1 | ⭐ **兩份導航檔的決策表把已採納的 ADR 顯示成未定** —— `docs/architecture.md:106,107,108` 對 **ADR-0003 / 0004 / 0005** 三列全寫 `⚠️ 未定（方向：…）`，而三者分別於 2026-08-14 / 08-09 / 08-10 由 spike 採納；`docs/02-architecture/06-tech-stack-and-decisions.md:38` 把 ADR-0007 寫成待選 `Self-hosted (Keycloak) vs. managed IdP`，而它 2026-08-07 就已採納 | W23 Day 1 | 🟡 P1 | ⛔ **不是排版問題，是導航檔在誤導規劃** —— 讀這兩張表的人會以為三個基礎決策還開著，而 `14-adr/README.md` 的索引是對的 ⇒ **兩個真相來源不一致，而較常被讀到的那個是錯的**。⚠️ **這是 W23 之前就存在的漂移，不是本片造成的**（本片只修了它自己讓 0007 那三處變 stale 的部分：`architecture.md:110` · `page-inventory.md:152` · `decision-form.md:46` · `15-design-alignment.md:125,253-263` · `.env.example:36`）。⭐ **本片新增的 closeout ADR 格正是防這個形狀的機制**，但它只問「本 phase 有沒有讓某份 ADR 變得不準確」—— **答不出既有的存量**。⇒ 解封條件：一次性掃過所有引用 ADR 狀態的文件並對齊 `14-adr/README.md`；或加一條 detector 比對兩處的 Status。⚠️ 治理工具，受 §Step 0.0 每 phase 1 個 CH 的配額約束 |
 | AD-ProfileChangePasswordNoFuture-1 | **`/my-profile` 的「變更密碼」按鈕存在的理由在 ADR-0015 之後就不成立了** —— `apps/web/src/app/(app)/my-profile/page.tsx:37` 的檔頭記錄它以 disabled 保留是「等 ADR 修訂」，而修訂已於 2026-08-19 完成，答案是**否**：ADR-0015 管控 2 明訂零自助憑證管理（無註冊 / 無改密碼 / **永不設密碼重設流程**），break-glass 由託管者發放 | W23 Day 1 | 🟢 P2 | ⛔ **今天無害**（按鈕是 disabled，且 `my-profile.test.tsx:54-56` 釘著 `input[type="password"]` 長度 0）—— 這條的價值在於**它的存在理由已經過期而檔頭還寫著舊理由**，那是 AP-7 的 orphan claim 形狀。⚠️ **W23 刻意不改**：plan §4 宣告 `apps/**` UNTOUCHED，而本片是治理配額的那一個 CH。⇒ 解封條件：下一片碰 `/my-profile` 的工作，**一併移除按鈕與更新檔頭**（兩者要同時做 —— 只改檔頭會留下沒有理由的死控件，只刪按鈕會留下解釋一個不存在控件的檔頭）|
+| AD-E5BlindToStandaloneCh-1 | ⭐ **新加的 E5 對 13 / 35 個單檔記錄（37%）結構性看不見** —— `stale_pending()` 用三段解析授權（所在資料夾 → 同行 phase id → 檔頭 `**Phase**:`），而這 13 個單檔 CH 的檔頭寫著 `**Phase**: 無 —— 獨立 CH` ⇒ 三段全部解不出來，**依設計跳過**。⛔ **而其中 2 個今天確實是 stale**（`CH-006` 的 PR 是 **#7 `f4054f2`** · `CH-007` 是 **#9 `a7f5fd6`**，2026-08-07 就 merged）—— 它們是**人工枚舉**找到的，不是 E5 | W23 Day 2 | 🟡 P1 | ⛔ **跳過是刻意的、不是 bug**：repo 裡沒有任何東西陳述一個 `Phase: 無` 的單檔記錄是否已出貨，而讓 detector 去猜就是它宣稱自己看不見的事。⚠️ **但「刻意」不等於「沒有代價」** —— 這一格的 37% 永遠不會被守到，而 W23 存在的理由正是「人工流程會漏」。⭐ 候選解法：**用 git 當授權** —— 單檔記錄依定義是「當天收得掉」的形式（`check_status_markers.py:24-27`），所以只要它的引入 commit 已在 `main` 上，marker 就必然過期。⚠️ 代價是 E5 要為每個候選檔查一次 git（`lint-detector-authoring.md:82` 的「慢到沒人跑」風險），⇒ 只對**有 marker 的少數檔**查，不是全掃。⚠️ 治理工具，受 §Step 0.0 每 phase 1 個 CH 的配額約束。⭐ 本條已被 `test_status_markers.py::test_unresolvable_authority_is_skipped_not_guessed` **釘成測試**，所以這個盲區不會無聲漂移 |
 
 **優先度判準**：
 

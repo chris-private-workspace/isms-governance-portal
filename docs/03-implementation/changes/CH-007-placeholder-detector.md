@@ -4,7 +4,7 @@
 **Phase**: 無 —— 獨立 CH
 **Scope**: `ci` — workflow lint + `scripts/lint/` detector（**NO 產品 code / NO migration**）
 **Components**: —
-**PR**: #TBD
+**PR**: MERGED (PR #9, a7f5fd6)
 
 > **範圍已由使用者 approve（2026-08-07）**，且與本檔最初的 draft **不同** ——
 > draft 提的是自寫的窄 detector；調查後改為 **actionlint 為主 + 棘輪 detector 為輔 +

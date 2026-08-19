@@ -144,7 +144,7 @@ entity scoping, rather than resting on one layer of application discipline.
 ## 相關
 
 - **相關 design note**: `docs/02-architecture/design-notes/W03-governed-extensions.md`
-- **實作**: `W03` · `CH-018` · PR 待開
+- **實作**: `W03` · `CH-018` · MERGED (PR #31, b20f3f1)
 - **關閉**: `decision-form.md` OQ-6
 - **解封**: **M1** —— `07:32` 的 "governed-extension mechanism working"
 - **相關 ADR**: ADR-0004（同樣的兩層形狀：應用層 + 資料庫強制；本 ADR 的 trigger 與其 RLS

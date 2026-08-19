@@ -206,3 +206,115 @@
 > (b) 本日中間**發生一次 context compact**，wall-clock 含其開銷但那不是產出時間；
 > (c) `docs / audit / template` class 今天只有這 1 個資料點。
 > ⇒ Day 4 回填 matrix 時**以 phase 聚合值為準**，逐日 ratio 只當敘述。
+
+---
+
+## Day 2 — 2026-08-19 — E5 + closeout 的兩格
+
+### ⭐ 本日最有價值的一件事：枚舉先於 pattern，而它立刻付錢
+
+`lint-detector-authoring.md:67` 要求寫 detector **之前**先把 repo 裡該 pattern 的所有實際寫法撈出來
+肉眼分類。那份規則自己記錄的踩坑，正好就是**這個 detector 的前一版**（4 種格式只配到 2 種）。
+
+照做的結果，兩件憑印象一定會做錯的事：
+
+| 發現 | 若憑印象寫會怎樣 |
+|---|---|
+| ⭐ **第 5 種格式 `PR 待開`**（`docs/14-adr/0005:147`）| **漏掉一個真陽性** —— 它是本日三個之一，而中文標記不在任何人的預設清單裡 |
+| ⭐ **散文比真標記多約 10 倍**，且全部在反引號內 | detector 會在 BACKLOG / STATUS_AUDIT / 本片的 plan / 那份規則自己身上狂噴 ⇒ 上線第一天就被關掉 |
+
+而反引號這條界線**是慣例不是保證**，所以沒有單靠它：**遮蔽三類**（fenced block / HTML comment /
+inline code）+ **掃描範圍限縮到 artifact 檔**（排除 `_templates`、`__fixtures__`）。
+HTML comment 那一類不是假想的 —— `W21-*/retrospective.md` 的補翻註記就在 comment 裡寫了**裸的**
+`PR-pending`，而那個檔**已經被正確修好了**。沒有這層遮蔽，E5 上線第一件事就是誤報一個修對的檔。
+
+### E5 的設計：授權來源三段解析，解不出來就跳過
+
+| 段 | 來源 | 對應的真實形狀 |
+|---|---|---|
+| 1 | 檔案**所在的 artifact 資料夾** | `W21-*/retrospective.md` —— `AD-46` 的原案 |
+| 2 | **同一行**的 phase id | `BACKLOG` / `MEMORY.md` 的 pointer row |
+| 3 | **檔頭** `**Phase**: W21` | 單檔 CH 記錄（`CH-041`）|
+| — | 都解不出來 | ⛔ **跳過，不猜** |
+
+⛔ **E5 不對 `PR-pending` 本身開火** —— closeout 當下它本來就該在（closeout 文件寫在 merge **之前**，
+`git-workflow.md:222`）。開火的是**矛盾**。這正是 plan R4，也是 `self_test()` 必須跑第二個方向的理由。
+
+### 實測：E5 在真 repo 上抓到 3 個，人工枚舉再抓到 2 個
+
+| # | 位置 | 標記 | 真相（`gh pr list` 查證，不靠記憶）| 誰抓到的 |
+|---|---|---|---|---|
+| 1 | `CH-005-foundation-adrs/spec.md:12` | `#TBD` | **PR #6 `58d39ec`**（2026-08-07 merged）| **E5** |
+| 2 | `CH-041-project-writes-its-own-iac.md:7` | `#TBD` | **PR #84 `700ef62`**（2026-08-18）| **E5** |
+| 3 | `docs/14-adr/0005-*.md:147` | `PR 待開` | **PR #31 `b20f3f1`**（2026-08-10）| **E5** ⭐ 第 5 種格式 |
+| 4 | `CH-006-repair-ci-gates.md:7` | `#TBD` | **PR #7 `f4054f2`**（2026-08-07）| ⛔ **人工枚舉** |
+| 5 | `CH-007-placeholder-detector.md:7` | `#TBD` | **PR #9 `a7f5fd6`**（2026-08-07）| ⛔ **人工枚舉** |
+
+⇒ 五個全部翻成 `MERGED (PR #N, <sha>)`，E5 由紅轉綠（`REAL EXIT=1` → `REAL EXIT=0`）。
+
+⚠️ **第 4、5 項暴露 E5 的結構性盲區**：它們的檔頭寫 `**Phase**: 無 —— 獨立 CH`，三段解析全部落空。
+量了射程：**35 個單檔記錄裡有 13 個（37%）**是這個形狀。
+⇒ `AD-E5BlindToStandaloneCh-1` 🟡，並**用測試把盲區釘住**
+（`test_unresolvable_authority_is_skipped_not_guessed`），讓它不會無聲漂移成「以為守到了」。
+
+### ⛔ 我自己寫的 bug，以及它為什麼看起來像別的東西
+
+第一次跑 self_test 得到：`E5 did NOT flag the stale fixture. Either PENDING_PATTERNS went stale or
+the fixture was 'cleaned up'.`
+
+**那個訊息把人指向 pattern，而真因是 scope**：`E5_SKIP_PARTS` 比對的是**絕對路徑**的 parts，
+而 fixture root 自己就住在 `__fixtures__` 底下 ⇒ **整棵 fixture 樹被自己的排除規則吃掉**。
+已改成比對**相對路徑**，並留下具名回歸測試 `test_fixture_scan_is_not_swallowed_by_its_own_skip_list`。
+
+⚠️ 附帶一次同型錯誤：我第一次量 exit code 時管線末端是 `head`，拿到的是 `head` 的 `0`。
+這在 `AD-ShaDetectorConsoleEncoding-1` 記過。之後改為重定向到檔案再讀 `$?`。
+
+### 四個落點：措辭一致改用機械驗證
+
+| 落點 | 位置 |
+|---|---|
+| `.claude/rules/task-workflow.md` §Closeout Self-Check | Matrix row 之後 |
+| `.claude/commands/phase-closeout.md` §Closeout Self-Check | `status:` 那格之後 |
+| `_templates/phase/retrospective.md.tpl` §Closeout Self-Check | `status:` 那格之後 |
+| `_templates/phase/checklist.md.tpl` §4.2 | ⚠️ **`PR-pending` 格排在 `Commit → PR` 之後** |
+
+⭐ 最後一列是刻意的：翻標記在 merge 之後才做得到。**AC-5 約束措辭不約束位置**（plan R11）。
+
+**驗證方式從「逐處對讀」換成可重跑的指令** —— 對兩格各取 md5：
+
+| 格 | md5（4 個檔全同）|
+|---|---|
+| ADR 格 | `b164af498534` |
+| `PR-pending` 格 | `4e3fa0fcfa5a` |
+
+「對讀」正是 `AD-ProxyMetricAsAnswer-1` 會出事的地方。
+
+**byte 預算**：`task-workflow.md` **25,435 → 25,954 / 32,000**（headroom **6,046**）⇒ plan R5 未觸發。
+
+### Gate（逐項實測輸出）
+
+| Gate | 結果 |
+|---|---|
+| `format:check`（api + web）| `All matched files use Prettier code style!` ×2 |
+| `lint` / `type-check`（api + web）| clean ×2 / clean ×2 |
+| `test -w apps/api` | **484 passed / 40 suites** |
+| `test -w apps/web`（**單獨跑**）| **`Test Files 10 passed (10)` · `Tests 95 passed (95)`** |
+| `build` | `✓ Compiled successfully in 36.5s` · `✓ Generating static pages (25/25)` |
+| `run_all` | **9/9** |
+| detector 測試（CI 的跑法）| **4 檔**：13 + 18 + **19** + 8 = **58 tests** OK |
+| `check_status_markers` 單跑耗時 | **2.6 s**（`lint-detector-authoring.md:82` 的門檻）|
+
+⚠️ **`path-references` 中途紅了 27 條** —— 全部是測試裡的**合成路徑**（`W50-x` / `CH-900-z` 等，
+本來就不該存在）。依 repo 既有慣例（`test_sha_anchors.py:58`）逐行加 `# path-check: ignore — synthetic`。
+⛔ **沒有放寬 detector** —— 放寬會讓真的 stale 路徑也一起溜過去。
+
+### 本日耗時
+
+| 項目 | 實際 |
+|---|---|
+| Day 2（Day-1 commit `12:07:28` → full gate 綠 `12:31:14`）| **≈ 24 min** |
+| 對照 plan §7 的 Day-2 bottom-up（E5+fixture+測試 1.5 hr + 四落點 0.5 hr）| 2.0 hr ⇒ ratio **≈ 0.20** |
+
+> ⚠️ 同 Day 1 的但書：**單日 ratio 不可直接校準**。本日另有一個 Day 1 沒有的偏差來源 ——
+> **E5 有藍本**（E1–E4 就在同一個檔裡），而 bottom-up 是按「寫一個新 detector」估的。
+> 這正是 W22 retro 抓到的形狀：**有藍本的東西被當成沒藍本估**。Day 4 一併寫進 calibration-log。

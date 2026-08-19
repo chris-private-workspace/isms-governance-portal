@@ -4,7 +4,7 @@
 **Phase**: W21
 **Scope**: Infrastructure / Deployment · Secure SDLC
 **Components**: —
-**PR**: #TBD
+**PR**: MERGED (PR #84, 700ef62)
 
 ---
 
