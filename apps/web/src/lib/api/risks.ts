@@ -6,9 +6,9 @@
  * Owner: docs/01-planning/W22-risks-vertical-slice/plan.md §3.3
  *
  * Description:
- *   Two calls, no library. `fetch` with `cache: 'no-store'` is the pattern
- *   app/page.tsx:45 already uses against /health, and adding a data-fetching
- *   dependency to serve two endpoints is AP-5 with a spinner.
+ *   Two calls. The fetch, the envelope and the error type moved to ./client.ts
+ *   in W24, when policies became the second caller and keeping a private copy
+ *   of them here would have been AP-2.
  *
  *   ⚠️ THE TYPE BELOW IS THIS APPLICATION'S VIEW OF THE WIRE, NOT A CONTRACT.
  *   HealthResponse lives in @isms/types because BOTH sides import it. The API
@@ -38,19 +38,19 @@
  * Key Components:
  *   - RiskRow: the fields the API actually returns and this app actually reads
  *   - listRisks / getRisk: the two calls; getRisk resolves null for 404
- *   - ApiUnavailableError: distinguishes "the backend is down" from "no such row"
  *
  * Created: 2026-08-18 (Phase W22)
- * Last Modified: 2026-08-18
+ * Last Modified: 2026-08-19
  *
  * Modification History (newest-first):
+ *   - 2026-08-19: Move fetch/envelope/error to client.ts (Phase W24) — CH-044
  *   - 2026-08-18: Initial creation (Phase W22) — CH-042
  *
  * Related:
  *   - apps/api/src/modules/risk/risk.controller.ts — the two endpoints
  *   - apps/web/src/app/page.tsx:45 — the fetch pattern this follows
  */
-const API_URL = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3210';
+import { ApiUnavailableError, get, type ScopedResponse } from './client';
 
 /** What GET /risks and GET /risks/:id actually put on the wire, as this app reads it. */
 export interface RiskRow {
@@ -79,70 +79,19 @@ export interface RiskRow {
   updatedAt: string;
 }
 
-/**
- * The envelope every entity-scoped endpoint carries while the scope comes from
- * a stub rather than a credential (dev-principal.ts). It is surfaced rather than
- * stripped: a screen that renders scoped data has to be able to say the scope
- * was not authenticated, and it cannot say so if the fetch layer ate the marker.
- */
-export interface ScopedResponse<T> {
-  data: T;
-  _devPrincipal?: boolean;
-  _warning?: string;
-}
-
-/**
- * Thrown when the API could not be reached or answered with something other
- * than a row or a 404.
- *
- * ⚠️ It exists so the page can tell this apart from an empty register. Falling
- * back to the fixture here would make a dead backend look like a working screen
- * — the exact shape verification-discipline.md forbids, and the reason AC-5
- * asks for a visible error state rather than a graceful one.
- */
-export class ApiUnavailableError extends Error {
-  constructor(readonly detail: string) {
-    super('The risk register API did not answer: ' + detail);
-    this.name = 'ApiUnavailableError';
-  }
-}
-
-async function get<T>(path: string): Promise<ScopedResponse<T> | null> {
-  let response: Response;
-  try {
-    response = await fetch(API_URL + path, { cache: 'no-store' });
-  } catch (error) {
-    throw new ApiUnavailableError(error instanceof Error ? error.message : 'network error');
-  }
-
-  // 404 is an answer, not a failure. It is also the ONLY answer for both "no
-  // such risk" and "that risk belongs to another entity" — the API refuses to
-  // distinguish them (約束 8), so this layer must not invent a distinction by
-  // treating one as an error and the other as a result.
-  if (response.status === 404) {
-    return null;
-  }
-  if (!response.ok) {
-    throw new ApiUnavailableError('HTTP ' + response.status);
-  }
-
-  try {
-    return (await response.json()) as ScopedResponse<T>;
-  } catch {
-    throw new ApiUnavailableError('the response was not JSON');
-  }
-}
+/** Names this endpoint family in ApiUnavailableError's message. */
+const RESOURCE = 'risk register API';
 
 export async function listRisks(): Promise<ScopedResponse<RiskRow[]>> {
-  const answer = await get<RiskRow[]>('/risks');
+  const answer = await get<RiskRow[]>('/risks', RESOURCE);
   if (!answer) {
     // GET /risks has no 404 case; reaching here means the route moved.
-    throw new ApiUnavailableError('GET /risks answered 404');
+    throw new ApiUnavailableError('GET /risks answered 404', RESOURCE);
   }
   return answer;
 }
 
 /** Resolves null when the id is absent OR out of scope — indistinguishable by design. */
 export async function getRisk(id: string): Promise<ScopedResponse<RiskRow> | null> {
-  return get<RiskRow>('/risks/' + encodeURIComponent(id));
+  return get<RiskRow>('/risks/' + encodeURIComponent(id), RESOURCE);
 }

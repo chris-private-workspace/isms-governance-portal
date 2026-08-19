@@ -112,9 +112,16 @@
 - ⭐ **dev DB 有 2 筆手動測試資料**（`POL-SG1-000001` "First after reset" · `000002` "Second"），
   它們順帶**第一次實證了 seed 檔頭宣稱的保留段機制**：counter 走 `000001`/`000002`、
   seed 走 `900001`+，**零碰撞**。W22 只種 risks，policy counter 那時沒被用過
-- **`.env` 設 `DEV_PRINCIPAL_ENTITIES=HK1`** ⇒ API 範疇是 HK1，`GET /policies` 應回 **4 筆**
-  （全是 seeded）。SG1 的 5 筆（3 seeded + 2 手動）**不出現** = 範疇證明。
-  ⚠️ 六個 status 在**單一範疇下看不全**（HK1 4 個 / SG1 3 個），drive-through 要切一次範疇
+- ⛔⭐ **我自己的量測騙了我一次，而我當場抓到**：我先前寫「`.env` 設
+  `DEV_PRINCIPAL_ENTITIES=HK1`」—— **`.env` 根本沒有這個變數**（39 行，該字串零命中）。
+  那兩行來自 **`.env.example`**，因為我下的指令是 `grep .env || grep .env.example`，
+  `.env` 無命中就 fallback 了，而我把 fallback 的輸出當成 `.env` 的內容。
+  起疑點是 `sed -n '40,43p' .env` 沒有輸出。**`AD-ProxyMetricAsAnswer-1` 家族又一次**
+  （這次是自己抓到的）。⇒ 真相：**範疇是預設的 `SG1`**（`dev-principal.ts:100` 的
+  `?? ['SG1']`），API 啟動 log 也明說 `DEV PRINCIPAL ACTIVE … (SG1)`。**沒有 bug**
+- ⇒ **seed 的分布因此重排**：六個 status 原本散在兩個實體，看起來平衡，
+  但**其中三個只有改 env var 才看得到**。改成**六個全在 SG1**（預設範疇），
+  HK1 留 4 筆做範疇對照。11 筆 / 10 live，SG1 live 8 筆涵蓋六個 status（psql 逐項確認）
 
 ### Remaining for Next Day
 
@@ -124,7 +131,7 @@
 - `STATUS` 對映要從 3 個擴到 6 個（`page.tsx:63-67`）。⭐ **只有 `published` 該是綠** ——
   那是唯一「這份政策現在有效」的狀態；`approved`（已核准待發布）給綠就是本片守衛要防的東西
 
-### Notes
+### Notes (Day 1)
 
 - **Day 1 gate**: lint **0** · format **clean ×2** · type **0** ·
   web **`Test Files 10 (10)` / `Tests 95 (95)`**（**無旗標**，零 Errors，零 DEPRECATED）
@@ -133,3 +140,57 @@
 - vitest 修復前後同機對照：`Duration 82.65s` → **`40.64s`**，`environment 160.85s` → `82.90s`
 
 ---
+
+## Day 2 — 2026-08-19 — 讀取路徑 + 守衛 + 盤點 (US-3, US-4, US-5)
+
+### ⭐ §2.2 具名檢查項 —— `/policies` 上每一條對「這一筆記錄」的陳述
+
+> `AD-FixtureProseBecomesForgedEvidence-1` 的解封條件原文。**逐條問「API 送得出來嗎」**，
+> 不是整批處理 —— Day 1 的 `claim2` 已經證明整批處理會把真的一起改掉。
+
+| # | 陳述 | API 送得出來嗎 | 處置 |
+|---|---|---|---|
+| 1 | 每列 Status pill（值 + 顏色） | ✅ `status`，但**六值 vs fixture 的三值** | **留** —— 對映擴到六個，⭐ **只有 `published` 是綠**：`approved` 是「委員會說了 yes 而文件尚未生效」，綠色會讀成「這份政策正在運作」 |
+| 2 | 每列 Next review 日期 | ⛔ 無此欄位 | **`NoSource`** —— 複審日是對某筆記錄的治理承諾 |
+| 3 | 每列 Attestation % + 色條 | ⛔ 無欄位、無端點（`Attestation` 表 W14 建、零 read path） | **`NoSource`，整塊含色條** —— 0% 寬的色條仍是色條，空的進度軌讀作「已量到 0%」 |
+| 4 | 每列 Category | ⛔ 無此欄位 | **`NoSource`**；篩選器經 `LIVE_FILTERS` **自動消失**（抄 `risks/page.tsx:228`） |
+| 5 | 每列 Owner | ⛔ 恆 `null` —— **guardrail 7**（seed 檔頭：發明一個人就是發明 PII） | **`NoSource`** |
+| 6 | 每列 Version `v4.1` | ⚠️ API 送 Int `3`；schema 無 minor version | **留**，顯示 Int。`.1` 是 mockup 發明的 |
+| 7 | meta 行 `… · group-wide` | ⛔ **假** —— 實際範疇是 SG1 | **改** → `{scope}` = `server-set scope`（抄 risks 的 `scope.serverSide`） |
+| 8 | 列可點 → `/policies/[id]` | ⛔ 詳情頁仍讀 fixture（id 是 `POL-301` 形狀，列表給 uuid） | **移除連結** + `policies.detailNotWired` 說明。使用者裁決 |
+| 9 | 檔頭宣稱「**THE ONE SCREEN THAT IS NOT ENTITY-SCOPED**」 | ⛔ **假** —— `policies` 有 `org_entity_id NOT NULL` + RLS | **改寫檔頭** |
+
+**第二問（Day-0 D2 補上的）—— 誰連結進這一頁？**
+`/policies/[id]` 的**唯一**入口是 `policies/page.tsx:325`（同片處理）⇒ 本片不會複製
+dashboard→risks 的斷鏈。⭐ 但這一問正是它抓到第 8 條的原因，**要寫進模板**。
+
+### Today's Accomplishments
+
+- **2.1** `lib/api/policies.ts` + ⭐ **`lib/api/client.ts`（計畫外）** —— `risks.ts` 把 fetch /
+  信封 / 錯誤型別放在自己檔內因為它是唯一呼叫者；policies 是第二個，複製一份就是 AP-2。
+  抽出後 risks 的 10 檔 95 測試**零變動通過**
+- **2.2** 上方裁決表（9 條）
+- **2.3** 列表頁接線 + `policies.test.tsx`（**8 條測試**）
+- i18n **15 個新 key × 2 語言**，含六個 status 的譯法（使用者裁決：已核准 / 修訂中 / 已退役）
+
+### Issues / Discoveries
+
+- ⛔⭐⭐ **W19 的檔頭有一個被資料庫直接推翻的判斷**：它寫「THE ONE SCREEN THAT IS NOT
+  ENTITY-SCOPED」，理由是 fragment 的副標寫著 `group-wide` 且 fixture 沒有 entity 欄位。
+  但 `policies` 表**有 `org_entity_id NOT NULL` + RLS**（`schema.prisma:329`），
+  `GET /policies` 只回範疇內的列。⇒ **設計交付物與資料模型在這一點上不一致，而 port 照
+  fragment 走了**。依 CLAUDE.md 約束 6 的例外（領域邏輯以程序為準不以 mockup 為準），
+  資料模型勝出。檔頭已改寫並保留原判斷 + 理由
+- ⭐ **`risks.source.empty.title` / `.body` 是死 key** —— W22 定義了它們，而 `risks/page.tsx`
+  只有一個 `view.length === 0` 分支，兩種空（範疇內零筆 / 篩選器篩掉）共用同一段文案。
+  ⇒ policies **不複製這個錯誤**：`rows.length === 0` 與否走不同文案，並帶
+  `data-source-state="empty"` / `"filtered"`。**死 key 是「區分寫進了字典卻沒寫進分支」的產物**
+- ⛔ **我的測試斷言錯了兩次，而兩次都不是 code 的問題**：(1)
+  `queryByText('policies.filter.category')` 匹配到了**表頭 `<th>`**（篩選器與表頭共用譯文）；
+  (2) 改成 `getAllByText` 後換成「狀態」找到多個。正解是**用計數當斷言**
+  （1 = 只有表頭 ⇒ 篩選器已消失；2 = 表頭 + 篩選器），那同時證明兩件事。
+  ⚠️ 第一次的紅**看起來像 code 沒生效**，而 code 一直是對的
+
+### Notes (Day 2)
+
+- Day 2 gate（US-3 完成時）: web **`Test Files 11 (11)` / `Tests 103 (103)`**（95 → +8）

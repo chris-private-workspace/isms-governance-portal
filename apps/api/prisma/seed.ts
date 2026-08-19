@@ -35,7 +35,7 @@
  *
  * Key Components:
  *   - RISKS: the fixture set — 4 in SG1, 3 in HK1, scores chosen to span the bands
- *   - POLICIES: 8 rows — 4 SG1 / 4 HK1, all six lifecycle states, one soft-deleted
+ *   - POLICIES: 11 rows — 7 SG1 / 4 HK1; all six states inside SG1, one soft-deleted
  *   - main(): upsert by fixed id, then report the per-entity counts it produced
  *
  * Created: 2026-08-18 (Phase W22)
@@ -193,9 +193,14 @@ const RISKS: SeedRisk[] = [
  *      "the scope filter works" and "the scope filter is absent" render
  *      identically.
  *
- *   2. ALL SIX LIFECYCLE STATES (02a:300-312). The screen paints status as a
- *      coloured pill and the API's vocabulary is not the fixture's, so a state
- *      with no row is a mapping nobody exercised.
+ *   2. ALL SIX LIFECYCLE STATES (02a:300-312), AND ALL SIX INSIDE SG1. The
+ *      screen paints status as a coloured pill and the API's vocabulary is not
+ *      the fixture's, so a state with no row is a mapping nobody exercised.
+ *      They sit in one entity because SG1 is the DEFAULT scope
+ *      (dev-principal.ts:100 falls back to ['SG1'] and .env does not set
+ *      DEV_PRINCIPAL_ENTITIES) — spreading them across both entities reads as
+ *      balanced and quietly makes half of them reachable only by editing an
+ *      env var first.
  *
  *   3. retiredAt IS NOT status='retired'. schema.prisma:361 draws that line and
  *      this is the set that can show it: POL-SG1-900003 is retired as a
@@ -264,6 +269,38 @@ const POLICIES: SeedPolicy[] = [
     version: 2,
     status: 'approved',
     retiredAt: new Date('2026-07-01T00:00:00.000Z'),
+  },
+  // The next three exist because SG1 is the DEFAULT scope. dev-principal.ts:100
+  // falls back to ['SG1'] and .env does not set DEV_PRINCIPAL_ENTITIES, so SG1
+  // is what someone sees after a clone, a seed and a page load. Spreading the
+  // six states across two entities looked balanced and meant three of them were
+  // only reachable by editing an env var first.
+  {
+    id: '0000ff00-0000-0000-0000-000000000009',
+    refCode: 'POL-SG1-900005',
+    orgEntityId: SG1,
+    title: MARK + ' Supplier security assessment procedure',
+    version: 2,
+    status: 'in_review',
+    retiredAt: null,
+  },
+  {
+    id: '0000ff00-0000-0000-0000-00000000000a',
+    refCode: 'POL-SG1-900006',
+    orgEntityId: SG1,
+    title: MARK + ' Business continuity testing standard',
+    version: 6,
+    status: 'under_revision',
+    retiredAt: null,
+  },
+  {
+    id: '0000ff00-0000-0000-0000-00000000000b',
+    refCode: 'POL-SG1-900007',
+    orgEntityId: SG1,
+    title: MARK + ' Mobile device management standard',
+    version: 1,
+    status: 'approved',
+    retiredAt: null,
   },
   {
     id: '0000ff00-0000-0000-0000-000000000005',
