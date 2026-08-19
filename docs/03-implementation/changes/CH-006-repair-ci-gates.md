@@ -4,7 +4,7 @@
 **Phase**: 無 —— 獨立 CH
 **Scope**: `ci` — GitHub Actions workflow（**NO code / NO migration / NO 新依賴**）
 **Components**: —
-**PR**: #TBD
+**PR**: MERGED (PR #7, f4054f2)
 
 > **範圍已由使用者 approve（2026-08-07）** —— §Problem + §Solution 的做/不做清單。
 > R1 gate 通過後才動 workflow。

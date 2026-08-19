@@ -129,33 +129,68 @@
 
 ### 2.1 E5：`PR-pending` 的機械守衛
 
-- [ ] **`check_status_markers.py` +E5**
+- [x] **`check_status_markers.py` +E5**
   - DoD: 檢查的是**矛盾**（pre-doc 已 `closed`/`closed_partial` 而標記仍 `PR-pending`/`#TBD`），
         ⛔ **不是「出現 `PR-pending` 就 fail」** —— closeout 當下它本來就該存在
   - Verify: `PYTHONIOENCODING=utf-8 python scripts/lint/check_status_markers.py`
   - ⚠️ **不得破壞 E4 的既有豁免**（`:42`「Missing sibling frontmatter is fine by design」）
-- [ ] ⭐ **比對集合逐檔列名於測試，不靠一條 regex 的命中數**
+  - ✅ 授權來源三段解析（**所在資料夾 → 同行 phase id → 檔頭 `**Phase**:`**），
+    解不出來就**跳過不猜**。E4 豁免有專屬回歸測試
+  - ⭐ **枚舉先於 pattern**（`lint-detector-authoring.md:67`）立刻付錢：撈出**第 5 種格式
+    `PR 待開`**（ADR-0005:147，憑印象絕對寫不出來），且它是三個真陽性之一
+  - ⭐ **遮蔽三類**（fenced / HTML comment / inline code）—— repo 裡談論 `PR-pending` 的
+    散文比真標記多約 **10 倍**，全在反引號內；W21 retrospective 的補翻註記則是
+    **HTML comment 裡的裸標記**，那是真實存在的誤判案例
+  - ⛔ **第一版有 bug 且我修了**：`E5_SKIP_PARTS` 比對**絕對路徑**，而 fixture root 自己就在
+    `__fixtures__` 底下 ⇒ 整棵 fixture 樹被跳過，self_test 報「沒抓到」。已加回歸測試
+- [x] ⭐ **比對集合逐檔列名於測試，不靠一條 regex 的命中數**
   - DoD: plan R8 —— 審計 #8 剛示範過窄 pattern 會漏
-- [ ] **E5 的測試：兩個方向**
+  - ✅ `test_live_repo_is_clean` 斷言**集合**；`test_detector_does_not_fire_on_documents_about_the_defect`
+    **逐檔列名** 4 個談論本缺陷的檔並先斷言它們存在（避免「檔名打錯 ⇒ 空集合 ⇒ 假綠」）
+- [x] **E5 的測試：兩個方向**
   - DoD: (a) 矛盾狀態 → 紅 · (b) **closeout 當下的合法 `PR-pending` → 不可被擋**（plan R4）
   - Verify: `python -m pytest scripts/lint/tests/ -q`（或該 repo 的既有跑法）
+  - ✅ **改用 `unittest` 直跑**（repo 既有慣例：proxy 下 `pip install` 拿到 0 byte wheel，
+    `CH-007` 量過）。CI 用 glob 迴圈自動納入 ⇒ `3 → 4` 個測試檔，**不必改 CI**
+  - ✅ **19 tests OK**（4 個檔合計 13+18+19+8 = **58**）
+  - ⭐ **兩個方向住在同一棵 fixture 樹裡**（`W99-fixture-closed` 必紅 / `W98-fixture-active` 必綠），
+    所以負面對照組**不可能被悄悄拿掉** —— 它是正面對照組的兄弟目錄
+- [x] ⭐ **修掉 E5 找到的真陽性**（不是只寫 detector 就算）
+  - ✅ **5 個 stale marker 全翻**，每個都用 `gh pr list --json number,mergeCommit` 查證：
+    `CH-005` → **#6 `58d39ec`** · `CH-006` → **#7 `f4054f2`** · `CH-007` → **#9 `a7f5fd6`** ·
+    `CH-041` → **#84 `700ef62`** · `ADR-0005` → **#31 `b20f3f1`**
+  - ⛔ 其中 `CH-006` / `CH-007` **E5 看不到**（`**Phase**: 無`）⇒ 記 `AD-E5BlindToStandaloneCh-1` 🟡
+- [x] **BACKLOG 計數同步** —— detector 報 total 175→**176** / P1 94→**95**，照抄
 
 ### 2.2 四個落點各補兩格
 
-- [ ] **`.claude/commands/phase-closeout.md`** —— ADR 格 + `PR-pending` 格
-- [ ] **`.claude/rules/task-workflow.md` §Closeout Self-Check** —— 同上
+- [x] **`.claude/commands/phase-closeout.md`** —— ADR 格 + `PR-pending` 格
+- [x] **`.claude/rules/task-workflow.md` §Closeout Self-Check** —— 同上
   - ⚠️ 先確認 `check_rules_hygiene.py` 的 byte headroom（plan R5）；
     不足則**精簡別處**而不是放棄那一格
-- [ ] **`_templates/phase/checklist.md.tpl` §4.2** —— 同上
-- [ ] **`_templates/phase/retrospective.md.tpl` §Closeout Self-Check** —— 同上
-- [ ] ⭐ **四處措辭一致**
+  - ✅ **25,435 → 25,954 / 32,000**（headroom **6,046**）⇒ **R5 未觸發，未動別處**
+- [x] **`_templates/phase/checklist.md.tpl` §4.2** —— 同上
+  - ⚠️ **此處兩格的位置刻意不同**：`PR-pending` 格排在 `Commit → PR` **之後**（翻標記在 merge 之後
+    才做得到）。⛔ AC-5 約束的是**措辭**逐字相同，不是位置（plan R11）
+- [x] **`_templates/phase/retrospective.md.tpl` §Closeout Self-Check** —— 同上
+- [x] ⭐ **四處措辭一致**
   - DoD: 避免 `AD-SpecMergeFieldByField-1` 的形狀（四份各寫各的，日後合併時無聲丟東西）
   - Verify: 逐處對讀
+  - ✅ **改用機械驗證而非「逐處對讀」** —— 對兩格各取 md5：
+    ADR 格 `b164af498534` ×4 · `PR-pending` 格 `4e3fa0fcfa5a` ×4 ⇒ **逐字相同**。
+    ⭐ 「對讀」正是 `AD-ProxyMetricAsAnswer-1` 會出事的地方，本片改成可重跑的指令
 
 ### 2.x Full gate
 
-- [ ] `format:check` · `lint` · `type-check` · `test`（api + web）· `build` · `run_all` **9/9**
-- [ ] **⏱ 寫入本日耗時到 progress.md**
+- [x] `format:check` · `lint` · `type-check` · `test`（api + web）· `build` · `run_all` **9/9**
+  - ✅ format `All matched files use Prettier code style!` ×2 · lint clean ×2 · type clean ×2
+  - ✅ api **484 passed / 40 suites** · **web 單獨跑 `Test Files 10 passed (10)` /
+    `Tests 95 passed (95)`**（⭐ Day-0 的規則：合併跑可能只跑一部分而回報綠，**記下檔數那一行**）
+  - ✅ build `✓ Compiled successfully in 36.5s` + `✓ Generating static pages (25/25)`
+  - ✅ `run_all` **9/9** · detector 測試 **4 檔 58 tests** 全綠
+  - ⚠️ **`path-references` 曾紅 27 條** —— 全是測試裡的合成路徑（本來就不該存在）；
+    依 repo 既有慣例逐行加 `# path-check: ignore — synthetic`，**不是放寬 detector**
+- [x] **⏱ 寫入本日耗時到 progress.md**
 
 ---
 

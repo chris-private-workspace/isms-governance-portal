@@ -400,6 +400,11 @@ Plan §7 **必須**明確寫出 `Agent-delegated:` 欄位：
 - [ ] **Carryover / 待辦**：記在 `01-planning/BACKLOG.md` 或下個 plan §Carryover？（不在 CLAUDE.md）
 - [ ] **Calibration ratio**：回填到 `calibration-matrix.md`？（不在 CLAUDE.md / MEMORY.md 散文裡）
 - [ ] **Matrix row 精簡**：新增/更新的行 ≤ 1 行 ~250 字元（lint 上限 400）？完整敘述進 calibration-log
+- [ ] ⭐ **已採納的 ADR 已複查** —— 本 phase 有沒有讓某份**已採納**的 ADR 變得不準確？
+      有就在本片修，或開一條 AD。⚠️ 沒有這一格，審計 #7 指名的 18 條漂移沒有任何東西會問起
+- [ ] ⭐ **`PR-pending` 標記已翻** —— merge 後翻標記，並以
+      `gh pr view <N> --json state,mergedAt` **驗證**，不採信「已 merge」的宣稱。
+      機械守衛：`check_status_markers.py` **E5**（它擋的是**矛盾**，不是標記本身）
 
 ---
 

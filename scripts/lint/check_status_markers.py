@@ -32,6 +32,8 @@ Checks:
                                                          other in-flight      (FAIL)
     E3  open but no commit for a long time            -> missed closeout      (WARN)
     E4  a sibling contradicts the pre-doc             -> pre-doc is authority (FAIL)
+    E5  a merge marker still says PENDING while the
+        artifact that owns it is already closed       -> false pending        (FAIL)
 
     E2/E4 compare COARSE state only (closed vs open). `closed_partial` in
     frontmatter vs "closed - gate PARTIAL" in prose mean the same thing;
@@ -43,14 +45,42 @@ Checks:
     whether the work is alive, and requiring the rest only creates backfill
     plus a chance to guess a state wrong.
 
-Two authoring lessons are baked in (see rules-on-demand/lint-detector-authoring.md):
+    E5 exists because W21's merge markers stayed `PR-pending` in FOUR places
+    while PR #84 had been merged since 2026-08-18T07:08:46Z, and NOTHING found
+    it for an entire phase -- run_all was 9/9 green the whole time, because
+    E1-E4 only ever read the pre-doc's own `status:` (AD-StalePrPendingNoDetector-1).
+    The cost had already been paid once: CLAUDE.md's Current-Phase cell told
+    every session that a PR merged ten hours earlier was still open.
+
+    ⛔ E5 DOES NOT FIRE ON `PR-pending` ITSELF. At closeout the marker is
+    supposed to be there -- the closeout documents are written BEFORE the merge
+    (git-workflow.md:222). What E5 fires on is the CONTRADICTION: the owning
+    artifact says closed and the marker still says pending. A check that went
+    red during every legitimate closeout is a check people would switch off,
+    which is why the self-test asserts that direction too.
+
+Three authoring lessons are baked in (see rules-on-demand/lint-detector-authoring.md):
 
     1. ENUMERATE THE REAL FORMATS FIRST. An earlier version matched only 2 of
        the 4 body-marker formats present in the repo, and 2 stale phases lived
        in a format it did not match. BODY_PATTERNS is deliberately broad, and
        STATE_WORDS carries both English and Chinese vocabulary.
 
-    2. A CHECK NOBODY RUNS IS NOT A CHECK. An earlier version shelled out per
+       The same enumeration was run again for E5 before PENDING_PATTERNS was
+       written, and it earned its keep twice: it turned up a FIFTH marker
+       format nobody would have guessed (`PR 待開`, in ADR-0005), and it turned
+       up the false-positive class that dominates -- the repo is full of PROSE
+       about `PR-pending`, roughly ten times more of it than real markers.
+
+    2. MASK BEFORE MATCHING. Every prose mention found above is inside
+       backticks; every real marker is bare. That separation is a convention,
+       not a guarantee, so it is not relied on alone -- the scan is also scoped
+       to artifact files, and fenced blocks / inline code / HTML comments are
+       blanked first. The HTML-comment mask is not theoretical: W21's
+       retrospective carries a back-fill note that mentions the marker in prose,
+       unbackticked, inside a comment.
+
+    3. A CHECK NOBODY RUNS IS NOT A CHECK. An earlier version shelled out per
        file; on Windows that is ~0.3 s of process spawn each. This one touches
        git only for the handful of artifacts currently marked open.
 
@@ -58,9 +88,10 @@ Usage:
     python scripts/lint/check_status_markers.py [--root <repo_root>] [--stale-days N]
 
 Created: 2026-08-07
-Last Modified: 2026-08-07
+Last Modified: 2026-08-19
 
 Modification History (newest-first):
+    - 2026-08-19: Add E5 stale-pending guard (W23) — closes AD-StalePrPendingNoDetector-1
     - 2026-08-07: Initial creation from claude-code-dev-template v2.6.1
 
 Related:
@@ -156,6 +187,37 @@ OPEN_STATES = {
     "草稿",
 }
 
+# === E5: stale merge markers ==========================================
+# Why these three and not a looser net: they are what a `grep -rni` for every
+# plausible spelling actually returned across the repo on 2026-08-19. Bare
+# `TBD` is deliberately NOT here -- it appears in prose ("10 處 PR-pending /
+# TBD 已翻") far more often than as a marker, and widening to catch one more
+# true positive at the cost of a dozen false ones is how a lint gets ignored.
+PENDING_PATTERNS = [
+    re.compile(r"PR[- ]pending", re.IGNORECASE),
+    re.compile(r"#TBD\b", re.IGNORECASE),
+    re.compile(r"PR[ 　]*待開"),
+]
+
+# Blanked before matching, longest-lived construct first. Same-length blanking
+# keeps line numbers honest.
+_MASKS = [
+    re.compile(r"^```.*?^```", re.MULTILINE | re.DOTALL),  # fenced blocks
+    re.compile(r"<!--.*?-->", re.DOTALL),                  # HTML comments
+    re.compile(r"`[^`\n]*`"),                              # inline code
+]
+
+# Where markers legitimately live. `_templates` is excluded because a template's
+# `PR-pending` is the placeholder being copied FROM, and `__fixtures__` because
+# the self-test fixture must stay broken on purpose.
+E5_SCAN_GLOBS = ("docs/**/*.md", "memory/*.md", "MEMORY.md", "CLAUDE.md")
+E5_SKIP_PARTS = ("_templates", "__fixtures__", "node_modules", ".git")
+
+# Authority hints, in the order they are tried.
+PHASE_ID_RE = re.compile(r"\bW(\d{2})\b")
+FILE_PHASE_RE = re.compile(r"^\*\*Phase\*\*[:：](.*)$", re.MULTILINE)
+ARTIFACT_DIR_RE = re.compile(r"^(?:W\d{2}|CH-\d{3}|BUG-\d{3})[-_]")
+
 # (glob for the authoritative pre-doc, sibling filenames, human label)
 TRACKS = [
     ("docs/01-planning/W*/plan.md",
@@ -229,9 +291,121 @@ def _last_commit_epoch(repo_root: Path, rel_dir: str) -> int:
     return int(value) if value.isdigit() else 0
 
 
+def mask_non_prose(text: str) -> str:
+    """Blank fenced blocks, HTML comments and inline code, preserving offsets.
+
+    Without this the detector fires on every document that DISCUSSES stale
+    markers -- including this repo's own backlog entry for the defect, its
+    phase plans, and the rule file that tells you to write the detector
+    (lint-detector-authoring.md:63 makes that the acceptance question).
+    """
+    for pattern in _MASKS:
+        text = pattern.sub(lambda m: re.sub(r"[^\n]", " ", m.group(0)), text)
+    return text
+
+
+def artifact_status_index(repo_root: Path) -> dict[str, str]:
+    """Coarse status keyed by BOTH the artifact folder name and its bare id.
+
+    `W21-azure-web-demo-deploy` and `W21` both resolve, because a marker in a
+    navigation file (BACKLOG, MEMORY) names the phase by id while a marker
+    inside the phase folder is identified by the folder itself.
+    """
+    index: dict[str, str] = {}
+    for glob, _siblings, _label in TRACKS:
+        for predoc in repo_root.glob(glob):
+            fm = frontmatter_status(predoc.read_text(encoding="utf-8", errors="replace"))
+            if not fm:
+                continue
+            folder = predoc.parent.name
+            index[folder] = coarse(fm)
+            index.setdefault(folder.split("-")[0], coarse(fm))
+    return index
+
+
+def _owner_from_path(path: Path, index: dict[str, str]) -> str | None:
+    """Authority 1 of 3: the artifact folder the file physically lives in."""
+    for parent in path.parents:
+        if ARTIFACT_DIR_RE.match(parent.name) and parent.name in index:
+            return parent.name
+    return None
+
+
+def _owner_from_text(line: str, header_phase: str | None, index: dict[str, str]) -> str | None:
+    """Authority 2 and 3: a phase id on the marker line, else the file header.
+
+    The RAW line is searched, not the masked one -- an id being written as
+    `W03` in backticks says nothing about whether the marker beside it is real.
+    """
+    for source in (line, header_phase or ""):
+        m = PHASE_ID_RE.search(source)
+        if m and f"W{m.group(1)}" in index:
+            return f"W{m.group(1)}"
+    return None
+
+
+def stale_pending(repo_root: Path) -> list[Violation]:
+    """E5 -- merge markers left pending on artifacts that are already closed.
+
+    Returns [] when no marker can be tied to a closed owner. ⛔ An unresolvable
+    marker is SKIPPED, never guessed: `CH-006`/`CH-007` say `**Phase**: 無 ——
+    獨立 CH`, so nothing in the repo states whether they shipped, and inventing
+    a verdict there would be the detector asserting something it cannot see.
+    """
+    index = artifact_status_index(repo_root)
+    violations: list[Violation] = []
+    seen: set[Path] = set()
+
+    for glob in E5_SCAN_GLOBS:
+        for path in sorted(repo_root.glob(glob)):
+            if path in seen or not path.is_file():
+                continue
+            seen.add(path)
+            # ⚠️ RELATIVE parts, not absolute: the self-test points this scan AT
+            # a directory that itself lives under `__fixtures__`, so filtering on
+            # the absolute path silently skips the entire fixture tree -- and a
+            # self-test that finds nothing to check reads exactly like a broken
+            # detector. Measured on the first run of this function.
+            relative = path.relative_to(repo_root)
+            if any(part in E5_SKIP_PARTS for part in relative.parts):
+                continue
+
+            raw = path.read_text(encoding="utf-8", errors="replace")
+            masked = mask_non_prose(raw)
+            header = FILE_PHASE_RE.search(raw)
+            header_phase = header.group(1) if header else None
+            rel = relative.as_posix()
+
+            for n, (masked_line, raw_line) in enumerate(
+                zip(masked.splitlines(), raw.splitlines()), 1
+            ):
+                marker = next(
+                    (m.group(0) for p in PENDING_PATTERNS for m in [p.search(masked_line)] if m),
+                    None,
+                )
+                if marker is None:
+                    continue
+                owner = _owner_from_path(path, index) or _owner_from_text(
+                    raw_line, header_phase, index
+                )
+                if owner is None or index.get(owner) != "closed":
+                    continue
+                violations.append(
+                    Violation(
+                        "E5",
+                        f"{rel}:{n}",
+                        f"marker `{marker}` is still pending but `{owner}` is "
+                        f"closed -- flip it to `MERGED (PR #N, <sha>)`, and "
+                        f"confirm with `gh pr view <N> --json state,mergedAt` "
+                        f"rather than from memory",
+                    )
+                )
+    return violations
+
+
 def find_violations(repo_root: Path, stale_days: int = 30) -> list[Violation]:
     """Return all status-marker violations (empty list = clean)."""
-    violations: list[Violation] = []
+    violations: list[Violation] = list(stale_pending(repo_root))
     now = int(time.time())
 
     for glob, siblings, label in TRACKS:
@@ -302,6 +476,48 @@ def find_violations(repo_root: Path, stale_days: int = 30) -> list[Violation]:
     return violations
 
 
+FIXTURE_REL = "scripts/lint/__fixtures__/stale-pr-pending"
+
+
+def self_test(root: Path) -> None:
+    """E5 in BOTH directions, unconditionally, before the real scan.
+
+    A one-directional meta-verification is indistinguishable from a broken one
+    (AD-MetaVerificationBug-1): proving the fixture is caught would still pass
+    with a stale_pending() that flagged every marker it saw -- and THAT failure
+    mode is the specific one plan R4 warns about, because it would go red on
+    every legitimate closeout until somebody removed the check.
+
+    The fixture tree therefore carries both cases side by side, so the negative
+    control cannot be quietly dropped: it is the sibling directory.
+    """
+    fixture = root / FIXTURE_REL
+    if not fixture.is_dir():
+        raise SystemExit(
+            f"status-markers: FAIL -- E5 self-test fixture missing: {FIXTURE_REL}\n"
+            "Without it nothing proves the detector still detects."
+        )
+    found = stale_pending(fixture)
+    caught = {v.artifact.split(":")[0] for v in found}
+
+    must_catch = "docs/01-planning/W99-fixture-closed/retrospective.md"  # path-check: ignore — synthetic
+    if must_catch not in caught:
+        raise SystemExit(
+            "status-markers: FAIL -- E5 did NOT flag the stale fixture.\n"
+            f"Expected a hit in {FIXTURE_REL}/{must_catch}\n"
+            "Either PENDING_PATTERNS went stale or the fixture was 'cleaned up'."
+        )
+
+    must_not_catch = "docs/01-planning/W98-fixture-active/retrospective.md"  # path-check: ignore — synthetic
+    if must_not_catch in caught:
+        raise SystemExit(
+            "status-markers: FAIL -- E5 flagged a LEGITIMATE pending marker.\n"
+            f"{FIXTURE_REL}/{must_not_catch} belongs to an artifact still marked\n"
+            "`active`, which is exactly the state every closeout passes through.\n"
+            "E5 must fire on the CONTRADICTION, never on the marker itself."
+        )
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(
         description="Status-marker health across all three tracks (PROCESS R9)."
@@ -321,14 +537,16 @@ def main(argv: list[str] | None = None) -> int:
     cli = parser.parse_args(argv)
     repo_root = Path(cli.root)
 
+    self_test(repo_root)
+
     scanned = sum(len(list(repo_root.glob(g))) for g, _, _ in TRACKS)
     violations = find_violations(repo_root, cli.stale_days)
 
-    hard = [v for v in violations if v.check in ("E1", "E2", "E4")]
+    hard = [v for v in violations if v.check in ("E1", "E2", "E4", "E5")]
     warn = [v for v in violations if v.check == "E3"]
 
     if not violations:
-        print(f"status-markers: OK ({scanned} pre-doc(s), E1/E2/E3/E4 clean)")
+        print(f"status-markers: OK ({scanned} pre-doc(s), E1/E2/E3/E4/E5 clean)")
         return 0
 
     print(f"status-markers: {len(hard)} error(s), {len(warn)} warning(s):")

@@ -121,4 +121,9 @@
       有就更新該列 + 複查日期；沒有也要**看過**（🟢 mitigated / 🟡 partial / 🔴 active / ⚫ accepted）。
       ⚠️ 它不像 BACKLOG 有每日觸發，**沒有這一列就沒有任何東西會讓人回頭翻它**
 - [ ] **`plan.md` frontmatter `status:` 已翻成 `closed` / `closed_partial`，內文標記一致（R9）**
+- [ ] ⭐ **已採納的 ADR 已複查** —— 本 phase 有沒有讓某份**已採納**的 ADR 變得不準確？
+      有就在本片修，或開一條 AD。⚠️ 沒有這一格，審計 #7 指名的 18 條漂移沒有任何東西會問起
+- [ ] ⭐ **`PR-pending` 標記已翻** —— merge 後翻標記，並以
+      `gh pr view <N> --json state,mergedAt` **驗證**，不採信「已 merge」的宣稱。
+      機械守衛：`check_status_markers.py` **E5**（它擋的是**矛盾**，不是標記本身）
 - [ ] `python scripts/lint/run_all.py` 全綠（含 rules hygiene + status markers）

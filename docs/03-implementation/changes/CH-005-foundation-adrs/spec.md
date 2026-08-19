@@ -9,7 +9,7 @@ affects_components: []
 **Phase**: 無 —— 獨立 CH
 **Scope**: `core-model` · `entity-scope` · `identity` · `api` · `ui` — ADR 撰寫（**NO code / NO migration / NO 新依賴**）
 **Status**: 已完成（使用者 2026-08-07 拍板後端框架、雲、範圍三項；同日交付並驗證）
-**PR**: #TBD
+**PR**: MERGED (PR #6, 58d39ec)
 
 ---
 
