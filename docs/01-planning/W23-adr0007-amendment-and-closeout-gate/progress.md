@@ -159,6 +159,41 @@
 ⛔ **plan §4 沒有列這四個檔** ⇒ 依 §Step 0.0 節流閘與 plan R6（每 phase 1 個治理項配額）
 **不當場做**。第 4 項尤其：它是**既有漂移**，不是本片產生的。
 
+### ✅ 裁決與執行（使用者 2026-08-19）—— 本片造成的當場修，既有漂移記 AD
+
+⛔⭐ **而我的清單是錯的 —— 實際是 5 處不是 3 處。** 修完前三個之後跑全樹 grep，又跑出兩個：
+
+| 漏掉的 | 為什麼漏 |
+|---|---|
+| `docs/architecture.md:110`（`\| Identity provider \| ✅ Entra ID \| **ADR-0007** \|`）| ⛔ **我把它依角色分類成「薄轉址層」就跳過了，沒有讀它**。它其實有一張**帶 ✅ 標記的活決策表** |
+| `.env.example:36`（`Until Entra ID lands (ADR-0001 / ADR-0007)`）| 它在 37 檔命中清單裡，我判成「code-adjacent，非規範文件」而未讀 |
+
+⇒ **這是 `AD-ProxyMetricAsAnswer-1` 的形狀，本 session 第 1 次**：
+用**檔案的角色**（一個便宜的代理指標）回答「它裡面寫了什麼」（一個需要讀內容的問題）。
+⚠️ 諷刺的是我在同一段裡才剛引用過 Day-0 的兩次同型錯誤。
+⇒ 教訓寫進 plan **R12**：**取代型 ADR 的 §4 必須含一次全樹引用掃描，不是靠回憶列檔**。
+
+**最終處置**：
+
+| 檔案 | 改法 |
+|---|---|
+| `page-inventory.md:152` | `~~ADR-0007~~ → ADR-0015`；⭐ 並改寫成**已確立**（0015 禁止自助憑證管理 ⇒ 移除的密碼欄位與 FORGOT/RESET **沒有未來行為可以接回**） |
+| `decision-form.md:46` | 去向 → `0015`（取代 `0007`）；決定欄註明**供應商未變、補的是 break-glass 缺口** |
+| `15-design-alignment.md:125` | 指標 → 0015 |
+| `15-design-alignment.md` §8.6 | ⭐ 加 `AMENDED 2026-08-19` 標題 + **拆出 break-glass 獨立一列**：對交付物**仍是 ❌ none**（2 個 break-glass + P1 都保留），變的是**實作位置**。並引交付物自己同時寫著 *local passwords disabled* 與 *two break-glass accounts* |
+| `architecture.md:110` | 決策表該列 → `ADR-0015（取代 0007）`，選了什麼欄加「+ 平台本地 break-glass」 |
+| `.env.example:36` | `ADR-0007` → `ADR-0015`（1 個編號） |
+
+**記 AD 2 條**（`check_backlog_counts` 報 total 173→**175** / P1 93→**94** / P2 74→**75**，照抄）：
+
+- `AD-DecisionTableSaysUndecided-1` 🟡 —— ⭐ **既有漂移，射程比原本大**：不只 `06-tech-stack:38`，
+  `architecture.md:106,107,108` 把 **ADR-0003 / 0004 / 0005** 三列全寫 `⚠️ 未定`，
+  而三者都已由 spike 採納 ⇒ **兩個真相來源不一致，較常被讀到的那個是錯的**。
+  ⚠️ **本片新增的 closeout ADR 格防不了它** —— 那一格問「本 phase 有沒有讓某份 ADR 變不準確」，
+  **答不出既有的存量**
+- `AD-ProfileChangePasswordNoFuture-1` 🟢 —— plan §3.6 推論 2。按鈕檔頭寫「等 ADR 修訂」，
+  修訂已完成且答案是**否** ⇒ 解封時**按鈕與檔頭要同時改**（只改一邊都會留下另一種 orphan）
+
 ### 本日耗時
 
 | 項目 | 實際 |

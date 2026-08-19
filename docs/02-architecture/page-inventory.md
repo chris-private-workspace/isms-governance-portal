@@ -149,7 +149,7 @@ fragment 把 host / agent 寫成 `Microsoft Copilot Studio` / `RicohAPAC-ISMS-Ag
 | `admin` | 六個憲章角色取代 fragment 的 4 個自創角色 | 參數 #13 |
 | `admin` / `entityPosture` | 移除銀行監理機關配對 | 參數 #4（管轄區已定案）|
 | shell | `生產環境 · SG-1` → `示範環境 · SG-1` | 示範版不得在畫面上宣稱 Production |
-| login | 移除密碼欄位，改 persona 選擇器 | **ADR-0007** ⚠️ 見 `AD-LocalPasswordFallback-1`（P0，stakeholder 要求保留本地密碼流程，需修訂 ADR）|
+| login | 移除密碼欄位，改 persona 選擇器 | ~~ADR-0007~~ → **[ADR-0015](../14-adr/0015-identity-provider-and-local-break-glass.md)**（2026-08-19 取代）—— ⭐ **此項現已確立而非待決**：0015 明訂零自助憑證管理（無註冊 / 無改密碼 / **永不設密碼重設流程**），所以移除的密碼欄位與 FORGOT/RESET 畫面**沒有未來行為可以接回**。本地 break-glass 是**另一條專屬路由**，不是登入表單上的欄位。`AD-LocalPasswordFallback-1` 已關閉 |
 
 ---
 

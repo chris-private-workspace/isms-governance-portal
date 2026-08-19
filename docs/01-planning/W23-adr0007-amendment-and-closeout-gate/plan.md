@@ -222,6 +222,11 @@ Gates: lint clean · api test **484** · web test **95** · type clean · build 
 | 9 | `docs/01-planning/_templates/phase/checklist.md.tpl` | EDIT — 兩格 |
 | 10 | `docs/01-planning/_templates/phase/retrospective.md.tpl` | EDIT — 兩格 |
 | 11 | `docs/03-implementation/changes/CH-043-*.md` | NEW — 變更記錄 |
+| **+1** | `docs/02-architecture/page-inventory.md` | EDIT — ⚠️ **Day-1 追加**（見下方 §D1-scope）|
+| **+2** | `docs/decision-form.md` | EDIT — ⚠️ **Day-1 追加**（OQ-5 去向）|
+| **+3** | `docs/02-architecture/15-design-alignment.md` | EDIT — ⚠️ **Day-1 追加**（§8.6 偏離記錄）|
+| **+4** | `docs/architecture.md` | EDIT — ⚠️ **Day-1 追加**（決策表 1 列）|
+| **+5** | `.env.example` | EDIT — ⚠️ **Day-1 追加**（註解 1 個 ADR 編號）|
 | — | `apps/**` | **UNTOUCHED** — 產品 code 零變更 |
 | — | `docs/02-architecture/05-*.md` | **UNTOUCHED** — 它的條件句是對的（§3.5）|
 | — | `docs/14-adr/0001-backend-framework.md` | **UNTOUCHED** — 它也有 Azure China 殘留（`AD-30`），但本片只關 0007 那半 |
@@ -280,6 +285,7 @@ Gates: lint clean · api test **484** · web test **95** · type clean · build 
 | **R9 — 本 plan 對衝突的描述方向錯了（Day-0 `D-adr-breakglass`）** | ⛔ **ADR-0007 不禁止 break-glass —— 它要求 break-glass**（`:67` 的比較表整列 `2 break-glass, P1 to Group CISO` 標 `required\|required\|no — **Entra emergency access accounts**`；`:103` 說它 remain platform features，引 `05:49`；`05:57` 明訂該控制）。⇒ ADR-0015 要論證的**不是「該不該有 break-glass」**（已經有了），而是「**它可不可以是本地的、能在 Entra 掛掉時仍然可用**」。⚠️ 這讓 D1=(a) 的意義更尖銳而非改變它：使用者要的正是「Entra 掛掉時仍能進去」，而 Entra emergency account 給不了那個。⇒ §3.1 的第一條改為「§Decision 必須回答**這個**問題」 |
 | **R10 — FC3 是健康的，別跟著 FC1/FC2 一起丟（Day-0 `D-adr-fc`）** | `AD-43` 只點名 FC1（`14 OpCos` 過期）與 FC2（以不存在的 Azure China instance 為條件），**漏了 FC3「If group IT standardises on a different IdP」—— 那一條可觀察、真的會 fire**。⇒ ADR-0015 **保留 FC3**、修 FC1 的數字為 **13**、刪 FC2 並寫明為何刪。⛔ 全部重寫會把唯一健康的那條一起丟掉 |
 | **R11 — 「四處措辭一致」不能解讀成四份清單收斂（Day-0 `D-closeout-cells`）** | 四份 Self-Check **今天已經不是彼此的鏡像**（`task-workflow.md` 既無 `RISK_REGISTER` 格也無 `status:` 格；`retrospective.md.tpl` 兩者都有）。⇒ AC-5 的「措辭一致」只約束**新增的那兩格逐字相同**，**不是**把四份清單統一 —— 後者是另一片的工作，且會超出治理配額 |
+| **R12 — 取代一份 ADR 會在別處留下 stale 指標，而 §4 沒有預期到（Day-1 `D1-scope`）** | ⛔ **plan §4 原本只列了 `14-adr/` 內的 3 個檔**，但 0006→0010 的**前例是有 repoint 活的規範文件的**（`06-tech-stack:36` = `~~ADR-0006~~ → **ADR-0010**` · `03:47` · `15:39` · `decision-form:32`）。⇒ **使用者 2026-08-19 裁決：本片造成的 stale 指標當場修，既有的漂移記 AD。** 已修 5 處（見 §4 的 +1..+5），已記 `AD-DecisionTableSaysUndecided-1` 🟡（`architecture.md:106-108` 三列 + `06-tech-stack:38`，**本片之前就錯**）。⚠️ **我的第一次清單漏了 2 個**（`architecture.md:110` 與 `.env.example:36`）—— 我把 `architecture.md` 依它的**角色**（「薄轉址層」）分類而沒有讀它，那正是 `AD-ProxyMetricAsAnswer-1` 的形狀，**本 session 第 1 次**。⇒ 教訓：**取代型 ADR 的 §4 必須含一次全樹引用掃描**，不是靠回憶列檔 |
 
 ## 9. Out of Scope（這個 phase 不做 → 另開 slice / AD）
 

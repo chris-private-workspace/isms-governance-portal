@@ -111,10 +111,17 @@
 - [x] `python scripts/lint/run_all.py` —— 含 `doc-links` · `path-references` · `rules-hygiene`
   - ✅ **9/9**（doc-links 驗過 0015 → 0007 / 0015 的相互連結；status-markers 仍 30 pre-doc）
 - [x] **⏱ 寫入本日耗時到 progress.md**
-- [ ] 🚧 **指標 repointing 的範圍裁決** —— 4 處**活的**文件仍指向已被取代的 0007
-      （`15-design-alignment.md:125,250,255` · `decision-form.md:46` · `page-inventory.md:152` ·
-      `06-tech-stack-and-decisions.md:38`）。0006→0010 的**前例是有 repoint 的**，
-      但 plan §4 沒有列這些檔 ⇒ **不默默擴大**，等使用者裁決（見 progress.md Day 1 §範圍裁決）
+- [x] **指標 repointing 的範圍裁決** —— ✅ 使用者 2026-08-19：**本片造成的當場修，既有漂移記 AD**
+  - ✅ 修 **5 處**（plan §4 的 +1..+5）：`page-inventory.md:152` · `decision-form.md:46` ·
+    `15-design-alignment.md:125` + §8.6 偏離表 · `architecture.md:110` · `.env.example:36`
+  - ✅ 記 **2 條 AD**：`AD-DecisionTableSaysUndecided-1` 🟡（既有漂移）·
+    `AD-ProfileChangePasswordNoFuture-1` 🟢（plan §3.6 推論 2）
+  - ⛔ **我的第一次清單漏了 2 個**（`architecture.md:110` · `.env.example:36`）——
+    我依 `architecture.md` 的**角色**分類而沒讀它 ⇒ `AD-ProxyMetricAsAnswer-1` 形狀，記入 plan R12
+  - Verify: `grep -rn "ADR-0007" docs/02-architecture/ docs/*.md .env.example` →
+    剩餘 3 處全部正確（`06-tech-stack:38` 待 AD · `15:250` 是**歷史事實**「Okta 是 0007 的輸入」·
+    `15:257` 是本片自己寫的取代鏈敘述）
+- [x] **BACKLOG 計數同步** —— detector 報 total 173→**175** / P1 93→**94** / P2 74→**75**，照抄
 
 ---
 

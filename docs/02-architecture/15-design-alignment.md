@@ -122,7 +122,7 @@ Beyond RBAC, the design specifies: **access requests** (requester, requested acc
 **Legal hold** is a first-class concept (records can be held from disposal) — this was missing from `05` and must be added: a hold suspends retention disposal and is itself auditable.
 
 ### 5.4 Integrations named
-Jira, ServiceNow, Splunk, Okta, AWS Config, Microsoft 365, Slack — with connected state and last-sync. Useful targets for the Wave 3 connector framework. ⚠️ **Okta is no longer the IdP** — see §8.6 and ADR-0007; it may still appear here as an *integration target* if any OpCo runs it, but it is not this platform's authentication path.
+Jira, ServiceNow, Splunk, Okta, AWS Config, Microsoft 365, Slack — with connected state and last-sync. Useful targets for the Wave 3 connector framework. ⚠️ **Okta is no longer the IdP** — see §8.6 and [ADR-0015](../14-adr/0015-identity-provider-and-local-break-glass.md) (which supersedes ADR-0007); it may still appear here as an *integration target* if any OpCo runs it, but it is not this platform's authentication path.
 
 ### 5.5 ISMS profile — the agreed field list
 The design states this list is agreed and should be kept exactly:
@@ -251,8 +251,10 @@ the Group CISO. Okta is a direct input to **ADR-0007**. `accessRequests.js` also
 must support an **external party with no OpCo** and a **time-boxed grant**.
 
 > ### ✅ RESOLVED 2026-08-07 (CH-005) — 已核可的偏離：Okta → Entra ID, SAML → OIDC
+> ### ⭐ AMENDED 2026-08-19 (W23) — break-glass 的**實作位置**改為平台本地
 >
-> [`ADR-0007`](../14-adr/0007-identity-provider.md) supersedes the deliverable's vendor and
+> [`ADR-0015`](../14-adr/0015-identity-provider-and-local-break-glass.md) supersedes
+> [`ADR-0007`](../14-adr/0007-identity-provider.md), which supersedes the deliverable's vendor and
 > protocol. This is a **recorded deviation under 約束 6**, not an approximation — logged here
 > because `CLAUDE.md` 約束 6 makes this file the single source for fidelity exceptions.
 >
@@ -260,9 +262,15 @@ must support an **external party with no OpCo** and a **time-boxed grant**.
 > |---|---|---|---|
 > | Vendor | Okta | **Microsoft Entra ID** | ✅ organisational asset — all three sibling projects run it |
 > | Protocol | SAML 2.0 | **OIDC** | ✅ `04:49` + `06:21` specify OIDC; design docs outrank deliverables |
-> | hardware key (Platform admin) · 30 min idle / 12 h absolute · IP restriction · JIT auditor expiry · 2 break-glass → P1 to Group CISO | required | **all retained** | ❌ none |
+> | hardware key (Platform admin) · 30 min idle / 12 h absolute · IP restriction · JIT auditor expiry | required | **all retained** | ❌ none |
+> | **2 break-glass → P1 to Group CISO** | required | **retained — but implemented *platform-local*, not in the IdP** (ADR-0015) | ❌ none *against the deliverable* — ⭐ the requirement is unchanged; what changed is where it lives, because an IdP-hosted emergency account still needs the IdP to be reachable |
 >
 > **Only the vendor and protocol change; every policy requirement survives.** That distinction is
 > what makes this a substitution rather than a scope reduction — the latter is what 約束 6 exists
 > to prevent. Note also that Entra provides authentication strength and conditional access but
 > **not SoD** — `05:9`'s "an auditor cannot edit the controls they assure" stays application-layer.
+>
+> ⭐ **The deliverable itself distinguishes the two**, which is why the amendment is not a scope
+> change: `sessionPolicy.js` specifies *"local passwords disabled"* **and** *"two break-glass
+> accounts"* in the same policy (§8.6 above). Break-glass is not a local password login here either
+> — ADR-0015 forbids self-service credential management outright.

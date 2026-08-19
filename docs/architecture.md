@@ -107,7 +107,7 @@ security-by-design 橫切每一層。
 | Entity-scoping 強制方式 | ⚠️ 未定（方向：PostgreSQL RLS）| ADR-0004 |
 | 受治理擴充欄位儲存 | ⚠️ 未定（方向：JSONB + field catalog）| ADR-0005 |
 | **部署拓撲** | ✅ **單一區域 × 3 環境於全球 Azure** | ADR-0010（**取代 0006**）|
-| Identity provider | ✅ **Microsoft Entra ID (OIDC)** | ADR-0007 |
+| Identity provider | ✅ **Microsoft Entra ID (OIDC)** + **平台本地 break-glass** | ADR-0015（**取代 0007**）|
 | 計算平台 | ✅ **Azure Container Apps**（api internal ingress / web external）| ADR-0011 |
 | AI agent 架構 | ⚠️ 未定 | ADR-0008 |
 | AI 處理地點 | ⚠️ 未定（⚠️ 主權論據已隨中國移出失效）| ADR-0009 |
