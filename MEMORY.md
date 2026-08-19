@@ -90,6 +90,8 @@
 - W20 [Responsive layout —— 全綠、開過車，方向錯了](memory/project_w20_responsive_rollback.md) — MERGED (PR #82, `215add3`)，`closed_partial`，**全片回退**（`215add3`，淨產出 0 行）。⭐⭐ gate 全綠 + drive-through 有做 + AP 全 0，而**做的不是使用者要的東西** —— Day-0 三-prong 驗**斷言**不驗**目的**，結構性沉默。⛔ 交付物自我矛盾：README 規定 main content 1400px，`class="page"` 兩邊皆 0 次。Keywords: wrong premise, prong 0, handoff self-contradiction, className zero, dead stylesheet classes, 127.0.0.1 dev origin 403, AD-PlanPremiseUnverified-1
 - W18 [Event 骨架與 posture 快照](memory/project_w18_event_and_posture.md) — MERGED #77 (`d370f8c`) 2026-08-17, **`closed`**; **34/36**，兩張 entity-scoped append-only 表、零端點。⭐⭐ 核心是一個**區分**：構造相同而理由不可互換 —— 快照是規格明文且**無解封**，事件是能力尚不可表達且 M6 解封。⭐ Day-0 **D1 推翻 plan 自己的理由**（論證漂移，沒有 gate 抓得到）。
   Keywords: append-only 兩種理由不可互換（BY SPECIFICATION vs BY INABILITY）· 論證漂移 vs 事實漂移（前者通過所有 gate 並成為下一片的範本）· 02a:157「§3 只列 entity-specific 欄位」⇒「不在清單上」對任何 base field 都成立 · base-field 信封抄 AuditLog 不抄 Attestation（retired_at 在 append-only 表上是 redaction 機制）· extensions 省略是 JUDGEMENT 不是 MECHANICAL（本表有 org_entity_id ⇒ 借用會是 AD-BorrowedRefusal-1）· N1 是對 W17 的對照實驗（同一中性化 0 紅 vs 1 紅，差別只有那個正面測試 ⇒ 修法首次被量到有效）· N3 預測紅在 resolve 而非 raise 並命中 · seed 兩列共用 (period, metric_key) 使 fixture 本身成為斷言 · 五條全中不是好消息 · AD-LossAmountNoCurrency-1 · AD-CalibrationT0PlacementShift-1（ratio 對分子的方向與直覺相反 ⇒ 舊 UNDER 部分是量測 artifact）· 窄 pattern 給 18 而真值 27
+- W22 [risks 垂直切片 —— 畫面正在為真實資料簽名](memory/project_w22_risks_vertical_slice.md) — PR-pending 2026-08-19，`closed`。前後端第一次在產品畫面上相遇。⭐⭐ drive-through 抓到 **8 個缺陷，全部在 gate 全綠時存在** —— 領銜的是詳情頁對**真實**風險渲染簽核鏈與 SHA-256 稽核軌跡（guardrail 2/5），而整頁是樣本時它無害。
+  Keywords: forged evidence, fixture prose meets real data, 只換文字不換 affordance, 改宣稱不改資料的控件, 21 條單元測試看不見範疇, D-307 未登入閘門, digest f82fe766, 第一個當日量測的 ratio
 
 ---
 
