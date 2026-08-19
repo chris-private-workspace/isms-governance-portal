@@ -43,7 +43,8 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { ShellStateContext, type ShellState } from '@/components/shell/shell-state';
 import { t, tf } from '@/i18n';
-import { ApiUnavailableError, type RiskRow } from '@/lib/api/risks';
+import { ApiUnavailableError } from '@/lib/api/client';
+import { type RiskRow } from '@/lib/api/risks';
 
 vi.mock('next/link', () => ({
   default: ({ children, ...rest }: { children: ReactNode }) => <a {...rest}>{children}</a>,
