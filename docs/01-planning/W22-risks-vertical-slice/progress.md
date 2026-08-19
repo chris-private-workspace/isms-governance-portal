@@ -519,6 +519,47 @@ wiring 證據取自**新程序**：
 ⇒ `AD-SemgrepSkipsTestDirs-1` 🟡 P1。⛔ **不當場修**（節流閘：順路發現、不阻塞、非安全事故），
 且它是治理工具，受每 phase 1 個 CH 的配額約束。
 
+### ⛔ 第二輪 CI：一個 docs-only commit 弄紅了 `映像 build + 啟動探測`
+
+`6263e2f` 只動 `docs/` 與 `memory/`，而 `映像 build + 啟動探測` **fail 1m6s**（第一輪 pass 1m37s）。
+
+**先排除「是我改壞的」——用構造，不用推測**：image build 輸入
+（`apps` `packages` `docker` `Dockerfile*` `package.json` `package-lock.json` `smoke-probe.mjs` `.github`）
+變更 **0 個檔**，且 `.dockerignore:31-32` 本來就把 `docs` 與 `memory` 排除在 build context 外
+⇒ **受測產物與通過那輪逐位元相同**。
+
+**失敗的形狀**：
+
+```
+02:11:33.60  docker run（API 容器）
+02:11:33.75  docker ps → "Up Less than a second"
+02:11:33.76  Probe api 開始
+02:11:34.06  ##[error]Process completed with exit code 13
+             Warning: Detected unsettled top-level await at smoke-probe.mjs:288
+```
+
+⭐ **決定性的是「沒有出現的那一行」**：`retryUntil` 的逾時路徑會印
+`[smoke:api] FAIL — timed out after 90s ... Last seen: <reason>`。**它一行都沒印，程序只活了 0.3 秒。**
+⇒ 這不是逾時 —— `await check()` 的 promise **從未 settle**，事件迴圈空掉，Node 以 13 退出。
+
+**對照組（re-run，pass 1m38s）推翻了我第一個假設**：
+
+```
+02:16:47.39  "Up Less than a second"
+02:16:47.40  Probe 開始
+02:16:48.55  [smoke:api] PASS — {"status":"up","db":"up"}
+```
+
+⇒ 服務**約 1.2 秒**就答得出 `/health` 且 `db:"up"`。所以**不是慢啟動、也不是競態** ——
+我原本寫「NestJS 不可能在 0.16 秒的間隔內起完」，那個推論**錯了**，那個間隔是設計如此且正常運作。
+真相更窄：**失敗那次連一個 1 秒的重試週期都沒走完**。
+
+⇒ `AD-SmokeProbeHungFetchBypassesDeadline-1` 🟡 P1 —— 根因是
+`scripts/smoke-probe.mjs:152` 的 `fetch` **沒有 per-attempt timeout**（無 `AbortSignal.timeout`）。
+`retryUntil` 只保護得了「reject 得夠快」的失敗；**一個既不 resolve 也不 reject 的 fetch 繞過整個迴圈**。
+⛔ **不編造 undici 為何不 settle** —— 從 log 判斷不出來；可證的只有「90 秒的守衛沒有被執行到」。
+⚠️ 歸因誤導本身也是缺陷：它長得像「映像 build 掛了」，而不是「探測沒等到服務」。
+
 ### ⭐ 那個未診斷的測試失敗：第 3 次合併跑，仍未重現
 
 Day 4 的 gate sweep 是**合併跑** `npm run test -w apps/api -w apps/web`，

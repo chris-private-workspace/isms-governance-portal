@@ -37,8 +37,11 @@
 > **本檔回答「有什麼工作」，不回答「先做哪個」。**
 > 順序層 [`ROADMAP.md`](./ROADMAP.md) **已於 2026-08-10 啟用**（CH-016）——
 > 啟用當時本檔 §Open 達 48 條，超過「讀完仍不知道下一步」的門檻
-> （**現為 171 條 —— P0 6 / P1 90 / P2 75**，⛔ **不要手數也不要 grep** ——
-> 2026-08-19 **W22 Day 4（closeout + PR #86 CI）**：新增 **7** 條、**關閉 0 條**。
+> （**現為 172 條 —— P0 6 / P1 91 / P2 75**，⛔ **不要手數也不要 grep** ——
+> 2026-08-19 **W22 Day 4（closeout + PR #86 CI）**：新增 **8** 條、**關閉 0 條**。
+> ⭐ 第 8 條同樣來自 CI 而非 code：`AD-SmokeProbeHungFetchBypassesDeadline-1` 🟡 ——
+> 一個 docs-only commit 讓 `映像 build + 啟動探測` **0.3 秒 exit 13**，
+> 而 `retryUntil` 的 90 秒逾時訊息一行都沒印 ⇒ **守衛存在、有 deadline、而 deadline 從未被執行到**。
 > ⭐ 第 7 條來自 CI log 而非 code：`AD-SemgrepSkipsTestDirs-1` 🟡 ——
 > **SAST 完全不看 `test/` / `tests/`**，其中 `int-global-setup.js` 以 schema owner
 > 身分連真資料庫卻零 SAST 覆蓋。量法是把排除集合列完（三個算術獨立收斂），不是推論。
@@ -438,6 +441,7 @@
 | AD-RiskByIdLinearScan-1 | **`GET /risks/:id` 是 O(n)** —— 它先 `list()` 再 `.find()`（逐字複製 `policy.controller.ts:89-102`），單一實體的每次詳情請求都拉全表 | W22 Day 1 | 🟢 P2 | ⛔ **今天不改，而且理由是安全不是效能**：scoped client 從來沒回傳那一列，所以「不存在」與「不在你的範疇內」**結構上**不可分辨；另寫 `findUnique` 需要先查到那一列才能決定拒不拒絕 —— 那正是約束 8 禁止的形狀。**解封條件（可觀察，不是「以後記得優化」）**：單一 entity 的風險數超過**一個畫面能顯示的量**（即列表本身開始分頁）—— 屆時它不再是人會翻的清單而是一個查詢。正解是 repository 裡的 scoped `findFirst`（範疇仍由 client 承擔，不由 controller 判斷）。同形狀已存在於 `policy` |
 | AD-UndiagnosedWebTestFailure-1 | **合併跑 `npm run test -w apps/api -w apps/web` 時出現過一次「2 個 web 測試檔失敗」，未重現、未診斷** —— 當時正同時驅動瀏覽器；之後單獨跑與再次合併跑都是 95/95 全綠 | W22 Day 3 | 🟢 P2 | ⛔ **刻意不寫成 flake，也不寫成沒發生** —— **我沒有診斷出是哪兩個**（輸出已捲走）。記成「觀察到、未重現、未診斷」。**解封條件**：下次合併跑時保留完整輸出；若再次出現，先拿到檔名再談成因。⚠️ 假設候選（**全部未驗證**）：vitest 與 Playwright 搶 port / 檔案系統、瀏覽器驅動時的 CPU 競爭、web 與 api 平行跑的資源競爭 |
 | AD-SemgrepSkipsTestDirs-1 | ⭐ **SAST 完全不看 `test/` 與 `tests/` 目錄** —— semgrep 的**預設忽略**（本 repo 無 `.semgrepignore`，用內建預設）跳過 7 個檔：`apps/api/test/int-db.js` · `int-env.js` · `int-global-setup.js` · `apps/web/test/server-only.stub.ts` · `scripts/lint/tests/test_{backlog_counts,sha_anchors,workflow_placeholders}.py` | W22 Day 4（PR #86 CI）| 🟡 P1 | ⛔ **`int-global-setup.js` 不是一般測試檔** —— 它以 **schema owner 身分連真資料庫**並插入跨實體 fixture，是本 repo 裡權限最高的執行路徑之一，而它**零 SAST 覆蓋**。⚠️ **量法**（可重現）：三個算術獨立收斂 —— ts `232 − 1 = 231`、python `15 − 3 = 12`、總計 `331 − 7 = 324`，三者皆與 CI log 的 `Scanned` 數字相符。⇒ **不是推論，是把排除集合列完**。**解封條件**：在 `security-scan.yml` 加一份 repo 自己的 `.semgrepignore`（明寫要忽略什麼，而不是繼承一份沒人看過的預設），或對測試目錄跑第二次 semgrep。⚠️ **這是治理工具，受 §Step 0.0 每 phase 1 個 CH 的配額約束**。與 `AD-IaCScanCoverageUnmeasured-1` / `AD-LocalGateSetIncomplete-1` 同族：**「掃描器綠了」不等於「它讀過那個檔」** |
+| AD-SmokeProbeHungFetchBypassesDeadline-1 | ⭐⭐ **`smoke-probe.mjs` 的 90 秒重試 deadline 有一個它擋不住的洞** —— PR #86 第二輪 CI，`映像 build + 啟動探測` 在 **0.3 秒**內以 Node **exit 13**（`unsettled top-level await`）失敗，**而 `retryUntil` 自己的逾時路徑會印的 `[smoke:api] FAIL — timed out after 90s` 一行都沒出現** ⇒ 它不是逾時，是 `await check()` 的 promise **從未 settle**、事件迴圈空掉 | W22 Day 4（PR #86 CI）| 🟡 P1 | ⛔ **根因是 `scripts/smoke-probe.mjs:152` 的 `fetch` 沒有 per-attempt timeout**（無 `AbortSignal.timeout`）。`retryUntil` 只能保護「reject 得夠快」的失敗；一個既不 resolve 也不 reject 的 fetch 會**繞過整個迴圈**。⚠️ **量法**：受測產物與通過那輪**逐位元相同**（該 commit 只動 `docs/` `memory/`，image build 輸入變更 0 檔，且 `.dockerignore:31-32` 本就排除兩者）⇒ 排除「改動造成」。⭐ **對照組**：re-run 通過，`docker run` → `Up Less than a second` → **1.15 秒**後 `[smoke:api] PASS {"status":"up","db":"up"}` ⇒ **不是慢啟動也不是競態** —— 服務正常約 1.2 秒就綠，失敗那次連一個 1 秒重試週期都沒走完。⛔ **不編造 undici 內部機制** —— 從 log 判斷不出它為何不 settle；可證的只有「90 秒的守衛沒有被執行到」。**解封條件**：`fetch` 加 `AbortSignal.timeout`（< INTERVAL_MS 的量級），並補一個**會被它擋住**的負面案例（`--self-test` 已有 case 結構）。⚠️ 歸因誤導本身也是缺陷：它長得像「映像 build 掛了」而不是「探測沒等到」。與 `AD-NegativeGate-1` 同族 —— **守衛存在、有 deadline、而 deadline 從未被執行到** |
 
 **優先度判準**：
 
