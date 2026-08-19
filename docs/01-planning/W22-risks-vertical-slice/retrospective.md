@@ -175,6 +175,10 @@ Day 0 一 grep 就發現 `apps/web` **根本沒有 middleware**：那個 307 來
 - ✅ **gitleaks / semgrep 對新檔** → **已解封**（PR #86 CI）
 - **SAST 完全不看 `test/` / `tests/`** → `AD-SemgrepSkipsTestDirs-1`（⭐ 這一條是**讀 CI log 讀出來的**，
   不在 plan 的任何預期裡；`int-global-setup.js` 以 schema owner 連真資料庫而零 SAST 覆蓋）
+- **smoke probe 的 90 秒 deadline 有一個它擋不住的洞** → `AD-SmokeProbeHungFetchBypassesDeadline-1`
+  （⭐ 一個 docs-only commit 讓它 **0.3 秒 exit 13**，而**逾時訊息一行都沒印** ——
+  決定性的證據是「沒有出現的那一行」。⛔ 我對它的第一個歸因（慢啟動／競態）**被 re-run 的
+  對照組推翻**：服務約 1.2 秒就綠）
 - **`prisma/seed.ts` 不被 gate 讀** → `AD-SeedFileUngated-1`
 - **真 404 status** → `AD-Real404Status-1`（兩頁都是 `'use client'`，不是一行替換）
 - **UI 與 DB 的實體詞彙零交集** → `AD-EntityVocabularyMismatch-1`
