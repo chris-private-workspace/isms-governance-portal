@@ -155,21 +155,42 @@
 
 ### 3.1 Clean restart
 
-- [ ] **殺掉陳舊的 dev server 與孤兒 worker；確認新程序是 3200 / 3210 的唯一擁有者**
+- [x] **殺掉陳舊的 dev server 與孤兒 worker；確認新程序是 3200 / 3210 的唯一擁有者**
   - DoD: 擷取**兩個服務的 startup log**（seed 只在啟動時載入 —— Risk Class C）
-  - Verify: `/preflight` → `/restart`
-- [ ] **確認瀏覽器用 `localhost` 不是 `127.0.0.1`**（W20：dev origin 檢查會回 403）
+  - ✅ 啟動前 **0 個 node 程序**、兩個 port 皆空 ⇒ 「唯一擁有者」由**構造**保證，不是推論
+  - ✅ 3200 = PID 51720（next dev）· 3210 = PID 51952（API）
+  - ✅ **wiring 生效的證據**（非「它有回應」）：
+    `[RouterExplorer] Mapped {/risks/:id, GET} route` ——
+    新端點活在**這個**程序裡；`[DevPrincipal] DEV PRINCIPAL ACTIVE — ... (SG1) ...`；
+    `[NestApplication] Nest application successfully started`；web `✓ Ready in 7.8s`
+- [x] **確認瀏覽器用 `localhost` 不是 `127.0.0.1`**（W20：dev origin 檢查會回 403）
+  - ✅ 全部探測走 `http://localhost:3200`，`POST /api/demo-session` 回 `{"ok":true}` 200
 
 ### 3.2 Drive-through（MANDATORY — 不是 gate-only）
 
-- [ ] **`/risks` 列表顯示的列數 == `GET /risks` 回傳的列數**（**不是** fixture 的列數）
-- [ ] **點一筆進詳情，看到的是同一列**
-- [ ] **`/risks/<不存在的 id>` → 404 頁面**
-- [ ] **停掉 API → 列表顯示明確錯誤，不回退 fixture**
-- [ ] **逐控件走查**：可點 / 有效果 / 標籤真實 / 結果真的渲染
-- [ ] ⭐ **切換 persona，記錄實際發生什麼** —— 與 D1 的預期比對
-- [ ] 截圖 + **observed-vs-intended 對照** → progress.md Day 3
-- [ ] **⏱ 寫入本日耗時到 progress.md**
+- [x] **`/risks` 列表顯示的列數 == `GET /risks` 回傳的列數**（**不是** fixture 的列數）
+  - ✅ 真瀏覽器實測 **9 列**，ref code `RISK-SG1-900001..4` + `000001..5`；fixture 是 10 筆
+- [x] **點一筆進詳情，看到的是同一列**
+  - ✅ 點 `RISK-SG1-900003` → `/risks/0000ee00-…-03`，標題相符
+- [ ] ~~**`/risks/<不存在的 id>` → 404 頁面**~~
+      ⛔ **Day-0 已改寫**（AC-6）：改為**不存在的 id 與跨實體的 id 渲染完全相同的畫面**；
+      HTTP 層兩者都是 200，真 404 status 另記 `AD-Real404Status-1`
+- [x] **停掉 API → 列表顯示明確錯誤，不回退 fixture**
+  - ✅ **真的 `Stop-Process` 掉 API**（3210 確認釋放）後重載：`data-source-state="error"`、
+    0 列、**5 個 fixture 標題零洩漏**、無任何風險編號 ⇒ **AC-5**
+- [x] **逐控件走查**：可點 / 有效果 / 標籤真實 / 結果真的渲染
+  - ✅ row click · scope 選擇器 · Category 篩選（9 → 2 列，選項來自真實資料）·
+    Residual 篩選 · badge · 返回連結
+  - ⛔ **抓到 8 個缺陷，全部在 gate 全綠時存在** —— 詳見 progress.md，已全數修正並覆驗
+- [x] ⭐ **切換 persona，記錄實際發生什麼** —— 與 D1 的預期比對
+  - ⛔ **實際比預期更糟**：切到 `RSG` 後 meta 行變成「9 risks · **RSG**」而列一列沒變 ——
+    選擇器改的是**宣稱**不是資料，比死控件更危險（它看起來生效了）
+  - ✅ 修正：meta 行改為 `server-set scope`，說明行加「選擇器不會過濾這張清單」；
+    覆驗切到 `RHK` 後標籤不再宣稱、無 HK1 洩漏
+- [x] 截圖 + **observed-vs-intended 對照** → progress.md Day 3
+  - ✅ 6 張 `artifacts/W22-drivethrough-0{1..6}-*.png`，含 **API 真的停掉**那張與
+    **偽造證物**那張（修正前的證據）
+- [x] **⏱ 寫入本日耗時到 progress.md** —— Day 3 **≈ 75 min**
 
 ---
 

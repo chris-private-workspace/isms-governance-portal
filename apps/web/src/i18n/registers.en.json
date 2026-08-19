@@ -29,6 +29,8 @@
   "risks.status.treatment": "Treatment",
   "risks.status.monitored": "Monitored",
   "risks.status.accepted": "Accepted",
+  "risks.scope.serverSide": "server-set scope",
+  "risks.scope.note": "The scope selector above does not filter this list. The entity scope is set on the server from the credential, so changing the selector changes the label and nothing else — these are the same rows either way.",
   "risks.source.loading": "Loading the risk register…",
   "risks.source.error.title": "The risk register API is unreachable",
   "risks.source.error.body": "Nothing is shown rather than sample data in its place. Check that the API service is running.",

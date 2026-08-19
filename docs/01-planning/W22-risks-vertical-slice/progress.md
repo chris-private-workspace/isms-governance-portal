@@ -250,3 +250,189 @@ Day 0 裁決是「表頭接真 API，其餘留 fixture」。Day 2 發現**「其
 | Day 2（20:52 → 21:28）| **≈ 36 min** |
 
 > ⚠️ Day 1 commit 是 16:20，Day 2 開工是 20:52 —— 中間 4.5 小時是等待，不是工時。
+
+---
+
+## Day 3 — 2026-08-19 — Drive-through (US-5)
+
+### 3.1 Clean restart ✅
+
+啟動**之前** 0 個 node 程序、3200 與 3210 皆空 —— 所以「新程序是唯一擁有者」是
+**由構造保證的，不是事後推論的**。這比「殺完再起再檢查」更強，也比 Risk Class C
+要求的門檻高一階。
+
+| 服務 | PID | wiring 生效的證據（不是「它有回應」）|
+|---|---|---|
+| API | **51952** | `[RouterExplorer] Mapped {/risks/:id, GET} route` —— **新端點活在這個程序裡** · `[DevPrincipal] DEV PRINCIPAL ACTIVE — EVERY entity-scoped endpoint is scoped by a hard-coded assignment (SG1), not by any credential.` · `[NestApplication] Nest application successfully started` |
+| web | **51720** | `▲ Next.js 16.3.0 (Turbopack)` · `- Local: http://localhost:3200` · `✓ Ready in 7.8s` |
+
+Ground truth（drive-through 的對照基準）：`SG1 = 9` · `HK1 = 3`（直接查 DB）。
+
+### ⭐ D-307：從「讀 code 推論」升級為「對真伺服器量到」
+
+Day 0 是靠讀 `layout.tsx:50` 判定 W21 的 307 歸因錯誤。今天有真伺服器，於是把它量了：
+
+| 路徑（**未帶 session**）| 狀態 |
+|---|---|
+| `/risks` —— **列表頁，根本沒有 id** | **307** |
+| `/risks/<存在且在範疇內的 id>` | **307** |
+| `/risks/<不存在的 id>` | 307 |
+| `/risks/<跨實體的 id>` | 307 |
+| `/nonexistent-page` | 404 |
+
+> ⭐ **第一行是決定性的**：列表路由**沒有 id 可言**，所以那個 307 不可能是
+> 「詳情路由對找不到的 id 做導向」。第二行獨立再證一次：id 確實存在也是 307。
+> ⇒ `AD-FrontendMissingIdRedirects-1` 的更正現在有**量測**支撐，不只有程式碼閱讀。
+
+帶 session 之後（`POST /api/demo-session` → `{"ok":true}`）：
+
+| 路徑（**帶 session**）| 狀態 |
+|---|---|
+| `/risks` | 200 |
+| `/risks/<在範疇內>` · `/risks/<不存在>` · `/risks/<跨實體>` | **三者皆 200** |
+
+⇒ **HTTP 層對這三者毫無區分** —— AC-6 是純 UI 層的性質（Day-0 改寫的判斷成立），
+而 `AD-Real404Status-1`（不存在的 id 回 200）同步被證實。
+
+### curl 到得了哪、到不了哪（誠實界線）
+
+`GET /risks` 的 SSR HTML（33,343 bytes，帶 session）：
+
+| 字串 | 在 HTML 裡？ |
+|---|---|
+| `Loading the risk register` · `data-source-state` · `PART REAL` | ✅ 在 —— loading 狀態與 partial badge 有 SSR |
+| `RISK-SG1-` · `data-no-source` | ❌ **不在** —— 資料在 client 端 fetch |
+| `Unpatched externally-facing`（fixture 第一列）| ❌ 不在 —— AC-5 在 HTML 層的旁證 |
+
+> 順帶：SSR 出的是**英文**字串（`Loading the risk register` / `PART REAL`），
+> 符合 guardrail 9 的預設 `en`（CH-040），語言在 client 端才切換 —— **不是缺陷**。
+
+⛔ **這就是 curl 的極限，而它到不了 drive-through。** 列數比對、點擊進詳情、
+逐控件走查、persona 切換 —— 全部只存在於 client render 之後。
+
+### 🚧 3.2 Drive-through —— 阻塞於器具，不是於程式
+
+`verification-discipline.md` 列的三種器具（真瀏覽器 / Playwright / 人）**手上一個都沒有**：
+
+| 器具 | 狀態 |
+|---|---|
+| Chrome MCP 擴充 | ❌ `Browser extension is not connected` |
+| Playwright / Puppeteer | ❌ 不在 `package.json`、`node_modules/.bin` 也沒有二進位 |
+| 人 | ⏳ 需要使用者 |
+
+**解封條件**：使用者連上 Chrome 擴充由我驅動，或使用者自己走查並回報觀察。
+
+⛔ **本片因此明確標記為未完成，不是「大致可用」。**
+`.claude/rules/verification-discipline.md`：gate 綠只證明零件對，curl 通過只證明 API 會回應，
+**兩者都不證明人能真的用**。W22 的 AC-7 是 MANDATORY drive-through，**它尚未發生**。
+本階段的正確描述是 **curl-level verified**，不是 verified。
+
+### 本日耗時（進行中）
+
+| 項目 | 實際 |
+|---|---|
+| Day 3（clean restart + HTTP 層量測）| **≈ 15 min**，drive-through 未計 |
+
+---
+
+## Day 3（續）— 2026-08-19 — Drive-through 實際執行
+
+器具解封：**Playwright MCP** 連上（Chrome 擴充始終未連）。以下全部是**真瀏覽器 + 真後端 + 真 PostgreSQL**。
+
+### 第二次 clean restart —— 抓到一個孤兒
+
+重啟 web 時 `EADDRINUSE :::3200`。**harness 回報那個背景任務已被 kill，而進程還活著** ——
+PID 51720 啟動於 **00:41**，已經跑了 8.5 小時，仍在服務 3200。
+這正是 Risk Class C 的加強版：**「任務死了」與「進程死了」是兩件事**。
+用 PID / PPID / StartTime 三欄逐一確認那三個程序都是我自己啟的（cmdline 相符）才殺，
+殺完確認 port 釋放，再起新的。
+
+wiring 證據取自**新程序**：
+`[RouterExplorer] Mapped {/risks/:id, GET} route`（API PID 36332，09:11）·
+`[DevPrincipal] DEV PRINCIPAL ACTIVE — ...(SG1)...` · web `✓ Ready in 2.3s`。
+
+### Observed vs Intended
+
+| # | 步驟 | 預期 | 實際 | 判定 |
+|---|------|------|------|------|
+| 1 | 登入 → `/risks` | 列數 == `GET /risks` 的 9，**不是 fixture 的 10** | **9 列**，ref code 為 `RISK-SG1-900001..4` + `000001..5`；`9 results` | ✅ **AC-4** |
+| 2 | NoSource 標記 | 每列 4 個無來源欄位 | **41 個** = `9 × 4` + 5（W05 殘留無 category） | ✅ |
+| 3 | 篩選器 | Entity / Status 不渲染（無選項） | 只剩 Category / Residual；`<select>` 計數 0 | ✅ 死控件未出現 |
+| 4 | Category 篩選 | 選項來自真實資料且真的過濾 | 選項 = seed 的三個分類；選 `Access control` → **9 → 2 列**，兩列皆該分類，計數同步 | ✅ |
+| 5 | 點列進詳情 | 導到同一筆 | `/risks/0000ee00-…-03` → `RISK-SG1-900003`，標題相符 | ✅ |
+| 6 | 不存在 vs 跨實體 id | 渲染**完全相同** | 遮蔽 id 後 **digest `f82fe766` / 長度 1679 兩者逐位元相同** | ✅ **AC-6** |
+| 7 | 停掉 API 後重載 | 明確錯誤，**不回退 fixture** | `data-source-state="error"`、0 列、**5 個 fixture 標題零洩漏**、無任何風險編號 | ✅ **AC-5** |
+| 8 | 切換 scope 選擇器 | D1 的落差在畫面上說得出來 | ⛔ **見下方 D-scope-label** | ❌→✅ 修正後 |
+
+### ⛔ Drive-through 抓到 8 個缺陷，gate 全綠時它們全都在
+
+**這一節是本 phase 最重要的產出。** 每一個都通過了 lint / type-check / 484+95 測試 / build / run_all 9/9。
+
+| # | 缺陷 | 為什麼 gate 看不見 |
+|---|---|---|
+| **D-residual-contradiction** ⭐⭐ | **兩個畫面對同一筆風險說法矛盾** —— 列表顯示 Residual `4 Low`，詳情顯示 `12 Medium`。詳情的 `residual = risk.imp * risk.lik` 算的是 **inherent**；我換了資料源沒動這條算式 | 兩個數字各自都是合法的 number，型別正確、測試沒有跨畫面斷言 |
+| **D-forged-evidence** ⭐⭐⭐ | 詳情頁對一筆**真實**風險渲染：簽核鏈 `PREPARED BY .` + 「signed」、`APPROVED BY M. Tan · Regional Governance` 帶日期、**6 筆帶 SHA-256 hash 的稽核軌跡**、`append-only`、`SHA-256 chained`、`Tamper-evident`、`Record locked · tamper-evident ledger active`、`Ratified by the Information Security Committee`、`Treatment: Reduce`、`Next review: 30 Sep 2026` | 全部是 fixture 字串。**guardrail 2 / 5 的違反不是型別問題** |
+| **D-badge-lies** | partial badge 在**列表頁**顯示「風險表頭是真實資料，以下的關聯控制、稽核軌跡、簽核…仍是樣本」—— 列表頁沒有表頭也沒有稽核軌跡 | 一份文案兩頁共用，測試只斷言 variant 屬性 |
+| **D-scope-label** ⭐⭐ | 切到 `RSG` 後 meta 行變成「**9 risks · RSG**」而列一列沒變 —— **選擇器改的是宣稱，不是資料**。比死控件更糟：它看起來生效了 | 沒有任何測試比對「標籤宣稱的範疇」與「資料實際的範疇」 |
+| **D-empty-flag-box** | 實體欄位留一個空的灰色旗標方框在破折號前，像圖片壞掉 | 純視覺 |
+| **D-iso-timestamp** | 詳情頁顯示 `updated 2026-08-18T07:57:11.690Z`（含毫秒），列表頁顯示 `today` | 兩者都是合法字串 |
+| **D-marker-in-prose** | 描述句變成「Weaknesses in the joiner-mover-leaver process in the **No source in the API yet** entity allow…」 | 插值成功，型別正確 |
+| **D-green-shield-pill** | 我把 `Tamper-evident` 的**文字**換掉，但保留了綠色盾牌徽章 —— **綠色盾牌不管寫什麼都讀作認證通過** | 換字串是一行 diff，看起來已修好 |
+
+> ⭐ 最後一條值得單獨記住：**只換文字不換 affordance 等於沒修**。
+
+### 修正與再驗證
+
+八個全部修掉並在真瀏覽器上覆驗：
+
+- residual 改用 `score_after`（自己的 generated column），並**同步修列表頁**：拿掉
+  `scoreAfter ?? scoreBefore` 的回退 —— 那個回退把 inherent 的 20 放進標題寫著 Residual 的欄位。
+  副作用可見：頂端計數從 `2 CRITICAL` 變成 **`0 CRITICAL`**，因為那兩筆從未複評
+- 偽造證物：`signOff` / `trail` / `cycles` 全部清空，整合性宣稱與 `Treatment` / `Next review` /
+  `Ratified by` 一併不再渲染。**保留區塊標題** —— 「平台有簽核鏈」是真的，
+  「這筆風險有這些簽名」不是
+- badge 文案改為通用，各頁自帶具體說明行
+- meta 行的 scope 改為 `server-set scope`，說明行加一句「選擇器不會過濾這張清單」
+
+覆驗結果：`forgedStillPresent: []` · 0 筆軌跡 · 0 個 hash · 0 個 signed ·
+分數卡 inherent `4×3` / residual `2×2` / target `4×3` · 描述換成 API 真實內容 ·
+切到 `RHK` 後 meta 仍是 `server-set scope`、列不變、無 HK1 洩漏。
+
+### 截圖
+
+| 檔案 | 內容 |
+|---|---|
+| `artifacts/W22-drivethrough-01-risks-list.png` | 首次走查的列表（含空旗標框、舊 badge 文案）|
+| `artifacts/W22-drivethrough-02-risk-detail.png` | ⛔ **偽造證物的證據**：簽核鏈、hash、tamper-evident |
+| `artifacts/W22-drivethrough-03-detail-fixed.png` | residual / badge / 簽核鏈修正後 |
+| `artifacts/W22-drivethrough-04-detail-no-forged-evidence.png` | 完整頁，零偽造宣稱 |
+| `artifacts/W22-drivethrough-05-api-down-no-fallback.png` | **API 真的停掉**時的畫面 |
+| `artifacts/W22-drivethrough-06-list-final.png` | 最終列表 |
+
+### ⚠️ 一個未診斷的觀察
+
+合併跑 `npm run test -w apps/api -w apps/web` 時出現過一次 **2 個 web 測試檔失敗**，
+當時我正同時驅動瀏覽器。之後單獨跑與再次合併跑**都是 95/95 全綠，未重現**。
+⛔ **我沒有診斷出是哪兩個**（輸出已捲走），所以這裡記成
+**「觀察到、未重現、未診斷」**，不寫成 flake 也不寫成沒發生。下次合併跑時要留意。
+
+### Final gate（Day 3 修正後）
+
+| Gate | 結果 |
+|---|---|
+| `format:check`（api + web）| clean（⚠️ **第三次**因就地編輯先紅，`--write` 後綠）|
+| `lint` · `type-check`（api + web）| clean |
+| `test -w apps/api` | **484 passed** |
+| `test -w apps/web` | **95 passed** |
+| `run_all` | **9/9** |
+
+### Drive-through Verdict
+
+✅ **PASS** —— 8 個缺陷在真 UI 上被發現、修正、並在真 UI 上覆驗。
+**AC-4 / AC-5 / AC-6 三條在真瀏覽器上成立**（不是 curl，不是測試替身）。
+
+### 本日耗時
+
+| 項目 | 實際 |
+|---|---|
+| Day 3（clean restart × 2 · HTTP 層量測 · drive-through · 8 個修正 · 覆驗）| **≈ 75 min** |

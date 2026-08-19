@@ -88,6 +88,7 @@ function row(over: Partial<RiskRow> = {}): RiskRow {
     description: 'DEMO SEED — sample',
     status: 'identified',
     lkhBefore: 4,
+    lkhAfter: 2,
     scoreBefore: 20,
     scoreAfter: 6,
     acceptanceStatus: 'acceptable',

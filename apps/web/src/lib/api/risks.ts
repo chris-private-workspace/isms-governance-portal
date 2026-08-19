@@ -64,6 +64,13 @@ export interface RiskRow {
   status: string;
   /** Likelihood, before control. The screen's `lik`. */
   lkhBefore: number | null;
+  /**
+   * Likelihood, AFTER control. Needed because the residual is a SEPARATE
+   * measurement, not a function of the inherent one — W22's drive-through found
+   * the list showing 4 and the detail showing 12 for the same risk, because the
+   * detail recomputed the residual from the before-control factors.
+   */
+  lkhAfter: number | null;
   /** lkh × MAX(impacts), computed by the database (ADR-0013). The screen's `inh`. */
   scoreBefore: number | null;
   scoreAfter: number | null;
