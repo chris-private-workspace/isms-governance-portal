@@ -23,6 +23,7 @@
 
 // Extracted verbatim from the prototype's logic class.
 // Sample/reference data — replace with real API responses.
+/** @record-claim — a version chain with Prepared by / Approved by. */
 export const rmVersions = [
     { ver:'2025.7', by:'ITSC', note:'Annual review — no change to control set', eff:'2025-07-28', appr:'ISC' },
     { ver:'2024',   by:'ITSC', note:'Adopt Annex A controls of ISO/IEC 27001:2022', eff:'2024-04-30', appr:'ISC' },

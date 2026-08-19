@@ -194,3 +194,22 @@ dashboard→risks 的斷鏈。⭐ 但這一問正是它抓到第 8 條的原因�
 ### Notes (Day 2)
 
 - Day 2 gate（US-3 完成時）: web **`Test Files 11 (11)` / `Tests 103 (103)`**（95 → +8）
+
+### ⛔ US-4 負面驗證 —— 預測（寫在執行之前）
+
+> `AD-NegativeGate-1` 的紀律。`run_all` 全綠**不是**守衛有效的證據
+> （`AD-GateGreenDecaysAfterFix-1`：W23 量到 3 個真實迴歸下 `run_all` 仍 9/9）。
+
+**基線**（已實測）：`fixture-prose: OK (8 API surface(s) x 13 record-claim export(s);
+124 file(s) checked for platform self-claims)` · exit **0** · self-test **9 assertions OK**
+
+| # | 中性化 | 預測 |
+|---|---|---|
+| **N1** | `risks/[id]/page.tsx:511` 的 `const signOff: ReturnType<typeof riskSignOff> = [];` 改成 `const signOff = riskSignOff({ owner: 'x', role: 'y' });`（型別位置 → 值位置） | **恰好 1 個 rule1 violation**，訊息指名 **`riskSignOff`** 與 **`apps/web/src/app/(app)/risks/[id]/page.tsx`**，且來源檔標為 `data/extended/riskDetail.ts`。⚠️ 其餘 12 個 export **不得**同時報 |
+| **N2** | `i18n/en.json` 的 `shell.env.meta` 放回 `"v2.4 · SOC 2 Type II"` | **恰好 1 個 rule2 violation**，指名 `apps/web/src/i18n/en.json`。⚠️ **不是 2 個** —— `AppShell.tsx` 只有 key，字串在字典裡 |
+| **N3** | 把 `check_fixture_prose.py` 從 `run_all.py` 的 `DETECTORS` 拿掉 | `run_all` 回到 **9/9** 而**不是** 10/10 ⇒ 證明分母會動、守衛不是裝飾 |
+| **N4** | `.fixture-prose.json` 的 `self_claims` 清空 | **rule2 完全靜音**（0 violation），rule1 不受影響 ⇒ 證明兩條規則獨立，且 config 真的被讀 |
+
+⚠️ **N1 的預測有一個我不確定的地方**：`riskSignOff` 這個 identifier 在該檔出現在
+import 區塊、型別位置與（中性化後的）值位置三處。若 `strip_non_rendering()` 的
+import 移除不完整，會**多報**而非漏報。**多報也算預測失敗** —— 條數必須恰好 1。

@@ -262,6 +262,7 @@ export const RISK_DECISIONS: { value: string; labelKey: TranslationKey; noteKey:
   ];
 
 /** dc.html:5035 — one review date for every risk in the demo library. */
+/** @record-claim — a review commitment about one risk. */
 export const RISK_NEXT_REVIEW = '30 Sep 2026';
 
 export type AssessmentCycle = {
@@ -327,6 +328,7 @@ export type SignOffStep = {
  * governance rule the design never states, and inventing one here is how a
  * demo starts asserting things the procedure has not decided.
  */
+/** @record-claim — named people signing one risk, with dates. */
 export function riskSignOff(record: { owner: string; role: string }): SignOffStep[] {
   return [
     {
@@ -361,6 +363,7 @@ export function riskSignOff(record: { owner: string; role: string }): SignOffSte
  * residual came down by 2 and the likelihood by 1 — so they move with the
  * fixture instead of freezing a number that would contradict the panel above.
  */
+/** @record-claim — a SHA-256 ledger for one risk. */
 export function riskAuditTrail(record: {
   owner: string;
   role: string;

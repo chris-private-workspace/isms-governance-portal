@@ -137,6 +137,7 @@ export const CONTROL_FRAMEWORK_FALLBACK: FrameworkRef[] = [
 ];
 
 /** dc.html:5242 — one next-test date across the whole demo library. */
+/** @record-claim — a test commitment about one control. */
 export const CONTROL_NEXT_TEST = '2026-09-30';
 
 /** dc.html:5215-5218 — the result vocabulary, and its RAG letter. */
@@ -215,6 +216,7 @@ export type EvidenceFile = {
 };
 
 /** dc.html:5220-5224 — three artefacts, all dated to the last test. */
+/** @record-claim — evidence artefacts with hashes, for one control. */
 export function controlEvidence(record: { lastTest: string }): EvidenceFile[] {
   return [
     {
@@ -256,6 +258,7 @@ export type ControlSignOffStep = {
  * the design's own rule and it is the only place either detail screen lets the
  * record decide whether a signature exists.
  */
+/** @record-claim — named people signing one control, with dates. */
 export function controlSignOff(record: {
   entity: string;
   lastTest: string;
@@ -291,6 +294,7 @@ export function controlSignOff(record: {
  * the five timestamps are derived from the last test date, which is why the
  * ledger re-times itself per control instead of showing one frozen day.
  */
+/** @record-claim — a SHA-256 ledger for one control. */
 export function controlAuditTrail(record: {
   id: string;
   cov: number;

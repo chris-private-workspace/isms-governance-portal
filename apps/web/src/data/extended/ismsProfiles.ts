@@ -379,6 +379,7 @@ export type IsmsVersion = {
  * dc.html:3843-3848 — RAPO is the only OpCo with a hand-written history, which
  * is why it is the one the prototype opened on. Everything else falls back.
  */
+/** @record-claim — a version chain with named authors for one profile. */
 export const ISMS_VERSIONS: Record<string, IsmsVersion[]> = {
   RAPO: [
     {
