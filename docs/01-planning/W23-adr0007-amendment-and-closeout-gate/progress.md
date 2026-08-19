@@ -104,3 +104,70 @@
 
 > ⚠️ 其中約 5 分鐘花在追那個測試 runner 的異常（跑了三次）—— 那不在 Day-0 的估算裡，
 > 而它是本日**最有價值**的產出。
+
+---
+
+## Day 1 — 2026-08-19 — ADR-0015
+
+### 交付
+
+| # | 檔案 | 動作 | 實測 |
+|---|---|---|---|
+| 1 | `docs/14-adr/0015-identity-provider-and-local-break-glass.md` | NEW | 284 行 |
+| 2 | `docs/14-adr/0007-identity-provider.md` | EDIT | **`1 file changed, 1 insertion(+), 1 deletion(-)`** |
+| 3 | `docs/14-adr/README.md` | EDIT | 索引 +1 行 · 0007 Status 1 行 |
+
+### Day-0 的發現如何改變了 ADR 的形狀
+
+`D-adr-breakglass` 說「衝突不是該不該有 break-glass，而是它可不可以是本地的」。
+起草時它產生了三個 plan 沒有預期的結構：
+
+| # | 結果 | 若照原 plan 寫會怎樣 |
+|---|---|---|
+| **選項變 4 個** | 加入 **A = Entra emergency access accounts**（`0007:67` 實際選的） | D1 的三個選項裡沒有現行狀態 ⇒ **這份 ADR 會沒有東西可以取代** |
+| ⭐ **舊 ADR 的自我矛盾成為 §Context 的主軸** | `0007:67`（break-glass = Entra 功能）與 `0007:103`（break-glass **remain platform features**）**不能同時為真** | 只會寫成「修訂一個過時敘述」，讀不出它是**兩個規範互相打架** |
+| **`04:62` 被用在與 0007 相反的方向** | 0007 用它否決 Keycloak；本 ADR 用它支持本地 break-glass ⇒ **必須自己指出這件事** | 讀者會發現同一行被兩用而沒有人說明 ⇒ 看起來像各取所需 |
+
+⭐ **起草時新找到的第三個依據**（Day-0 沒預測）：交付物的 `sessionPolicy.js` 在**同一條政策**裡
+同時寫著 *local passwords disabled* **與** *two break-glass accounts*（`15:248-249`）——
+⇒ **來源文件自己就把兩者當成不同的東西**。這使「否決 C（一般本地登入）」不必只靠 `05:7`。
+
+### 逐項 gate（Day 1.1 的 6 個 DoD）
+
+| DoD | 實測輸出 |
+|---|---|
+| §Decision 回答 D1 | ✅ 4 選項 + 逐項否決理由；四個管控寫成可執行句 |
+| 可證偽條件真的會 fire | ✅ **5 條**，每條帶 `*Fires when*:`。⛔ 舊 FC2 刪除並寫下墓誌銘 |
+| 重述 0007 正確部分 | ✅ 獨立一節 6 條（plan R3） |
+| `AD-30`：零 Azure China 現在式 | ✅ `grep "Azure China"` → **2 處，皆否定式**（`:213` does not have and will not build · `:280` AD 名稱）；`identity plane` 3 處皆 `gone` / `does not exist` / 與中國無關 |
+| `AD-43`：OpCo = 13 | ✅ 3 處全 13；`grep "14 OpCo\|fourteen"` → **零** |
+| `05:7` 條件子句 | ✅ 2 處帶條件；⭐ **該條件子句就是本 ADR 的法源** |
+| `run_all.py` | ✅ **9/9** |
+
+### ⚠️ 範圍裁決（未擅自處理 —— 等使用者）
+
+**4 處活的規範文件仍指向已被取代的 ADR-0007。** 0006→0010 的**前例是有 repoint 的**
+（`06-tech-stack:36` = `~~ADR-0006~~ → **ADR-0010**` · `03:47` · `15:39` · `decision-form:32` 的 ⚠️ 註）。
+
+| # | 位置 | 現況 | 誰造成的 |
+|---|---|---|---|
+| 1 | `page-inventory.md:152` | 指向 `AD-LocalPasswordFallback-1`「需修訂 ADR」 | ⭐ **本片造成** —— 本片正在關掉那條 AD |
+| 2 | `decision-form.md:46` | OQ-5 的「關閉者」欄指向 `0007` | 本片造成（關閉者換人） |
+| 3 | `15-design-alignment.md:125,250,255` | 偏離記錄指向 `0007` | 本片造成（偏離內容多了一項） |
+| 4 | `06-tech-stack-and-decisions.md:38` | `ADR-0007 \| Identity provider \| Self-hosted (Keycloak) vs. managed IdP` | ⛔ **本片之前就錯了** —— 該列寫得像**尚未決定**（無 ✅ Settled 標記），而 0007 已採納 8 個月 |
+
+⛔ **plan §4 沒有列這四個檔** ⇒ 依 §Step 0.0 節流閘與 plan R6（每 phase 1 個治理項配額）
+**不當場做**。第 4 項尤其：它是**既有漂移**，不是本片產生的。
+
+### 本日耗時
+
+| 項目 | 實際 |
+|---|---|
+| Day 1（Day-0 commit `11:42:09` → gate 9/9 `11:58:37`）| **≈ 16 min** |
+| 對照 plan §7 的 Day-1 bottom-up（ADR 起草 2 hr + 0007/README 0.5 hr）| 2.5 hr ⇒ ratio **≈ 0.11** |
+
+> ⛔ **這個數字不可直接拿去校準。** 三個污染源，全部寫出來：
+> (a) **權威文件的閱讀成本有一部分付在 Day 0**（`0007` / `05` / README 當時已讀過）；
+> (b) 本日中間**發生一次 context compact**，wall-clock 含其開銷但那不是產出時間；
+> (c) `docs / audit / template` class 今天只有這 1 個資料點。
+> ⇒ Day 4 回填 matrix 時**以 phase 聚合值為準**，逐日 ratio 只當敘述。

@@ -76,7 +76,7 @@ CHANGE record  一次變更的紀錄。做了什麼、為什麼這樣做、怎�
 | [0003](./0003-audit-trail-hash-chain.md) | 稽核軌跡 = 逐列 hash chain，由 `BEFORE INSERT` trigger 在資料庫內計算；攔截點是應用層 hook（**W12 spike 實測後拍板；驗證成本維度量到沒有訊號**）| 2026-08-14 | **已採納** |
 | [0004](./0004-entity-scoping-enforcement.md) | Entity scoping = PostgreSQL RLS，由 Prisma client extension 驅動（**W02 spike 實測後拍板；裁決 0001 §可證偽條件 #1 未觸發**）| 2026-08-09 | **已採納** |
 | [0006](./0006-deployment-and-residency-topology.md) | 分區部署於 Azure，中國區走 Azure China（21Vianet） | 2026-08-07 | **已被 [0010](./0010-single-region-deployment-topology.md) 取代** |
-| [0007](./0007-identity-provider.md) | Microsoft Entra ID，取代交付物指定的 Okta | 2026-08-07 | **已採納** |
+| [0007](./0007-identity-provider.md) | Microsoft Entra ID，取代交付物指定的 Okta | 2026-08-07 | **已被 [0015](./0015-identity-provider-and-local-break-glass.md) 取代** |
 | [0010](./0010-single-region-deployment-topology.md) | 單一區域部署於 Azure，單一 tenant 內 3 個環境（**取代 0006**） | 2026-08-08 | **已採納** |
 | [0011](./0011-compute-platform.md) | 計算平台 = **Azure Container Apps**（api internal ingress / web external，共用一個 ACR）| 2026-08-08 | **已採納** |
 | [0005](./0005-governed-extension-storage.md) | 在地擴充 = JSONB 欄位 + catalog 表 + trigger 強制（**W03 spike 實測後拍板**）| 2026-08-10 | **已採納** |
@@ -84,6 +84,7 @@ CHANGE record  一次變更的紀錄。做了什麼、為什麼這樣做、怎�
 | [0013](./0013-risk-scoring-and-calibration.md) | 風險分數由**資料庫** generated column 算；閾值 16 是集團常數，`risk_scales` **今天不建** | 2026-08-11 | **已採納** |
 
 | [0014](./0014-row-level-entity-scope-and-per-command-policies.md) | 逐列範疇的表用 **per-command policy**（`SELECT` 寬 / `INSERT`·`UPDATE` 窄 / **無 `FOR DELETE`**），不用單一不對稱 `FOR ALL`；`subtree` **不建** | 2026-08-11 | **已採納** |
+| [0015](./0015-identity-provider-and-local-break-glass.md) | Entra ID 續任 IdP，**外加一條不呼叫 Entra 的本地 break-glass 路徑**（四個管控：本地 MFA / 託管發放 / 稽核先於放行 / 時效單次）（**取代 0007**）| 2026-08-19 | **已採納** |
 
 **Status 值**：提案中 / **已採納** / 已被 ADR-NNN 取代 / 已廢棄
 

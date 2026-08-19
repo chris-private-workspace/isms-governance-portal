@@ -57,32 +57,64 @@
 
 ### 1.1 起草 ADR-0015
 
-- [ ] **`docs/14-adr/0015-<slug>.md` —— §Decision 明確回答 D1**
+- [x] **`docs/14-adr/0015-<slug>.md` —— §Decision 明確回答 D1**
   - DoD: 三個選項逐一列出並說明**為何否決另外兩個**；決定寫成可執行的句子而非傾向
   - Verify: 人工讀 + `python scripts/lint/run_all.py`
-- [ ] ⭐ **可證偽條件：每一條都能指出今天可觀察的觸發路徑**
+  - ✅ `0015-identity-provider-and-local-break-glass.md`（284 行）。**選項寫成 4 個不是 3 個** ——
+    Day-0 `D-adr-breakglass` 揭露 ADR-0007 實際選的是 **A（Entra emergency accounts）**，
+    那是 D1 的三個選項裡沒有的第四個，且是**現行狀態**，不列出來就沒有東西被取代
+  - ⭐ **§Decision 回答的是「break-glass 可不可以是本地的」**（plan R9），不是「該不該有」
+  - ⭐ 四個管控寫成**可執行句**：本地 MFA（**禁止 email OTP —— 群組信箱由 Entra 撐**）·
+    託管發放零自助 · **稽核寫入與發 session 同一交易，寫不進去就拒絕登入** · ≤60 min + 用後即焚
+- [x] ⭐ **可證偽條件：每一條都能指出今天可觀察的觸發路徑**
   - DoD: ⛔ 不得再出現 FC2 那種「以不存在的東西為條件」
   - Verify: 逐條寫出「什麼事情發生時它會 fire」，寫不出來就重寫那一條
-- [ ] **重述 ADR-0007 的正確部分**（Entra ID 的選擇與理由）
+  - ✅ **5 條，每條帶一句 `*Fires when*:`**。FC1/FC2 承接自 0007（FC1 數字修 14→13、
+    FC2 = 原 FC3 原封保留）· FC3/FC4/FC5 為新增
+  - ⭐ **FC3 是本片自己買的保險**：break-glass 演練若不能在不碰 Entra 的情況下完成 ⇒ 這條路是裝飾品。
+    ⛔ **演練列為 M4 done 的前提**，否則 FC3 沒有 fire 的場合（`AD-DeferralUnwatched-1` 的形狀）
+  - ⭐ **FC5 用平台自己的稽核軌跡偵測「B 漂移成 C」** —— 這正是管控 3 存在的理由
+  - ⚠️ **FC4 是知情接受的洞**：同一次事故同時打掉 Entra 與資料庫時，管控 3 讓 break-glass fail-closed
+    ⇒ 完全進不去。**寫出來而不是繞過**
+- [x] **重述 ADR-0007 的正確部分**（Entra ID 的選擇與理由）
   - DoD: ⛔ 不可寫「其餘同 0007」—— 那讓讀者必須讀一份已被取代的檔（plan R3）
-- [ ] ⭐ **關 `AD-30`**：全檔零 Azure China 現在式敘述
+  - ✅ 獨立一節「Restated from ADR-0007」，6 條逐項重寫（vendor / protocol / 交付物政策全保留 /
+    Keycloak 仍否決 / SoD 非 IdP 提供 / entity scope 只能來自 session）
+- [x] ⭐ **關 `AD-30`**：全檔零 Azure China 現在式敘述
   - Verify: `grep -c "Azure China" docs/14-adr/0015-*.md` → **0**（或僅出現在歷史脈絡段且明標過去式）
-- [ ] ⭐ **關 `AD-43`**：OpCo 數為 **13**
+  - ✅ **實測 2 處，兩處都是否定式**：`:213`「an Azure China instance that this project
+    **does not have and will not build**」（刪掉舊 FC2 的理由）· `:280`（列出本片關閉的 AD 名稱）。
+    另 `identity plane` 3 處：`:86` 講 Keycloak（與中國無關）· `:184`「**gone, not inherited**」·
+    `:277`「**does not exist**」⇒ 落在 DoD 的「僅歷史脈絡且明標」豁免內
+- [x] ⭐ **關 `AD-43`**：OpCo 數為 **13**
   - Verify: `grep -n "OpCo" docs/14-adr/0015-*.md`
-- [ ] **處理 `05:7` 的條件子句** —— ADR-0007 轉述時省略了它
+  - ✅ 3 處全部 **13**（`:186` 13 OpCos / 11 jurisdictions · `:217` 13 × 6 roles ·
+    `:220` 明寫「corrected from 14 to 13」）。`grep "14 OpCo\|fourteen"` → **零**
+- [x] **處理 `05:7` 的條件子句** —— ADR-0007 轉述時省略了它
   - DoD: 新 ADR 引用 `05:7` 時**帶著條件**，或明說為何在本專案條件恆成立
+  - ✅ 2 處都帶條件（`:43` 引原文全句 + 指出 `0007:102` 把條件拿掉；`:81` 用它當法源）。
+    ⭐ **條件子句就是本 ADR 的法源** —— Entra 掛掉時「IdP 用得上」為假，該句不構成禁令
 
 ### 1.2 ADR-0007 與索引
 
-- [ ] **`0007` 只改 Status 那一行 → `已被 ADR-0015 取代`**
+- [x] **`0007` 只改 Status 那一行 → `已被 ADR-0015 取代`**
   - DoD: ⛔ **內文一字未改**（`14-adr/README.md:143` 的鐵律）
   - Verify: `git diff docs/14-adr/0007-identity-provider.md` → 只有 1 行
-- [ ] **`14-adr/README.md` 索引 +1 行 · 0007 Status 更新**
+  - ✅ **實測 `1 file changed, 1 insertion(+), 1 deletion(-)`** —— 逐字貼在 progress.md
+  - ⭐ **`:67` 與 `:103` 的自我矛盾刻意留著不修** —— 0015 的 §相關 寫明理由：
+    修掉舊檔等於抹除「它當初需要被解決」的證據
+- [x] **`14-adr/README.md` 索引 +1 行 · 0007 Status 更新**
+  - ✅ 兩行都改（0007 Status → 已被 0015 取代；索引尾端 +0015 一行）
 
 ### 1.x partial gate
 
-- [ ] `python scripts/lint/run_all.py` —— 含 `doc-links` · `path-references` · `rules-hygiene`
-- [ ] **⏱ 寫入本日耗時到 progress.md**
+- [x] `python scripts/lint/run_all.py` —— 含 `doc-links` · `path-references` · `rules-hygiene`
+  - ✅ **9/9**（doc-links 驗過 0015 → 0007 / 0015 的相互連結；status-markers 仍 30 pre-doc）
+- [x] **⏱ 寫入本日耗時到 progress.md**
+- [ ] 🚧 **指標 repointing 的範圍裁決** —— 4 處**活的**文件仍指向已被取代的 0007
+      （`15-design-alignment.md:125,250,255` · `decision-form.md:46` · `page-inventory.md:152` ·
+      `06-tech-stack-and-decisions.md:38`）。0006→0010 的**前例是有 repoint 的**，
+      但 plan §4 沒有列這些檔 ⇒ **不默默擴大**，等使用者裁決（見 progress.md Day 1 §範圍裁決）
 
 ---
 

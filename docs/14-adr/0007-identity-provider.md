@@ -1,7 +1,7 @@
 # ADR-0007: Microsoft Entra ID as the identity provider, superseding the handoff's Okta
 
 **Date**: 2026-08-07
-**Status**: **已採納**
+**Status**: **已被 [ADR-0015](./0015-identity-provider-and-local-break-glass.md) 取代**
 **Deciders**: laitim2001（專案擁有者 / 單一開發者）
 **Phase**: 無 —— `CH-005`
 
