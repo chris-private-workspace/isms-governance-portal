@@ -3,7 +3,7 @@
 **Phase**: W23 — 裁決本地密碼衝突 + 給 closeout 補上它缺的那一格
 **Period**: 2026-08-19 ~ 2026-08-19
 **Plan**: [plan.md](./plan.md)
-**PR**: PR-pending
+**PR**: **MERGED** (PR #89, `bca8373`) —— 2026-08-19T06:26:58Z，經 `gh pr view` 驗證
 **Change record**: `docs/03-implementation/changes/CH-043-break-glass-adr-and-the-closeout-cell-that-was-missing.md`
 
 ---
@@ -85,7 +85,7 @@ Entra emergency accounts。若照 plan 寫，ADR-0015 會花整節論證一件 A
 
 ## Q4 — 做得好的（保持）
 
-- ⭐ **把預測 commit 在執行之前**（`c67a38a`, 13:31:04）。「我預測了」從一句宣稱變成 git 能裁決的事。
+- ⭐ **把預測 commit 在執行之前**（`ac9c20c`, 13:31:04）。「我預測了」從一句宣稱變成 git 能裁決的事。
   ⇒ 這個做法應該成為所有負面驗證的預設。
 - ⭐ **「措辭一致」用 md5 而不是逐處對讀**。對讀正是 `AD-ProxyMetricAsAnswer-1` 出事的地方。
 - ⭐ **變異測試（plan 沒要求，自行加做）** —— 它產出了本片最重要的發現，而
@@ -150,7 +150,7 @@ Day 2 我照 `lint-detector-authoring.md:67` 先做枚舉，並在 progress.md �
 ### 第二課：我是自己這個 gate 的第一個使用者，而它擋住了我
 
 Day 4 模擬 closeout（翻 `status: closed`）時，E5 對 **`CH-043` 與 `plan.md` 兩處開火** ——
-其中 `plan.md:280` 那一行**正是 R4 本身的文字**（「合法的 PR-pending 不可被擋」）。
+其中 `plan.md:280` 那一行**正是 R4 本身的文字**（「合法的 `PR-pending` 不可被擋」）。
 **detector 對警告它不該開火的那句話開火了。**
 
 根因是流程順序：closeout **先翻 status、後開 PR**（`phase-closeout` §4.5 在 §7 之前），

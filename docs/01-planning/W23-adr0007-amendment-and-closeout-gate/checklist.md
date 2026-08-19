@@ -204,7 +204,7 @@ _(本片**零 user-facing 變更**，無真 UI 可開。報告一律寫「**gate
 - [x] **確認工作樹只有本片的變更，無殘留 fixture**
   - DoD: `git status --short` 逐行可解釋
   - ⚠️ Risk Class C **N/A** —— 本片零 runtime 變更，無服務需要重啟
-  - ✅ 起點 **clean**，HEAD `d5affd6`，fixture 5 檔齊全
+  - ✅ 起點 **clean**，HEAD `6e1cf28`，fixture 5 檔齊全
   - ⓘ 本日稍早兩個**W22 drive-through 留下**的背景程序被停掉（dev server + API server）——
     與本片無關；本片所有 gate 都是離線的
 
@@ -213,7 +213,7 @@ _(本片**零 user-facing 變更**，無真 UI 可開。報告一律寫「**gate
 - [x] ⭐ **E5 對一個刻意壞掉的 fixture 實測轉紅**
   - DoD: ⛔ **預測寫在執行之前** —— 預測哪一條會紅、哪些必須維持綠
   - Verify: 跑 detector，比對預測與實際
-  - ✅ **預測先 commit（`c67a38a`, 13:31:04）再執行** —— 讓「預測先於執行」由 git 佐證，
+  - ✅ **預測先 commit（`ac9c20c`, 13:31:04）再執行** —— 讓「預測先於執行」由 git 佐證，
     不是我事後宣稱（`AD-ProxyMetricAsAnswer-1` 已 7 次）
   - ✅ **S3**（把 fixture「修好」）→ 🔴 `E5 did NOT flag the stale fixture`，5 個測試紅，**逐項相符**
 - [x] **移除 fixture 後轉綠**

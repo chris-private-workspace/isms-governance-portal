@@ -92,7 +92,7 @@
   Keywords: append-only 兩種理由不可互換（BY SPECIFICATION vs BY INABILITY）· 論證漂移 vs 事實漂移（前者通過所有 gate 並成為下一片的範本）· 02a:157「§3 只列 entity-specific 欄位」⇒「不在清單上」對任何 base field 都成立 · base-field 信封抄 AuditLog 不抄 Attestation（retired_at 在 append-only 表上是 redaction 機制）· extensions 省略是 JUDGEMENT 不是 MECHANICAL（本表有 org_entity_id ⇒ 借用會是 AD-BorrowedRefusal-1）· N1 是對 W17 的對照實驗（同一中性化 0 紅 vs 1 紅，差別只有那個正面測試 ⇒ 修法首次被量到有效）· N3 預測紅在 resolve 而非 raise 並命中 · seed 兩列共用 (period, metric_key) 使 fixture 本身成為斷言 · 五條全中不是好消息 · AD-LossAmountNoCurrency-1 · AD-CalibrationT0PlacementShift-1（ratio 對分子的方向與直覺相反 ⇒ 舊 UNDER 部分是量測 artifact）· 窄 pattern 給 18 而真值 27
 - W22 [risks 垂直切片 —— 畫面正在為真實資料簽名](memory/project_w22_risks_vertical_slice.md) — MERGED (PR #86, `33efd4f`) 2026-08-19，`closed`。前後端第一次在產品畫面上相遇。⭐⭐ drive-through 抓到 **8 個缺陷，全部在 gate 全綠時存在** —— 領銜的是詳情頁對**真實**風險渲染簽核鏈與 SHA-256 稽核軌跡（guardrail 2/5），而整頁是樣本時它無害。
   Keywords: forged evidence, fixture prose meets real data, 只換文字不換 affordance, 改宣稱不改資料的控件, 21 條單元測試看不見範疇, D-307 未登入閘門, digest f82fe766, 第一個當日量測的 ratio
-- W23 [break-glass 從未被禁止，與 closeout 缺的那一格](memory/project_w23_break_glass_and_closeout_gate.md) — PR-pending 2026-08-19, **`closed`**; ADR-0015 取代 0007（衝突不是「該不該有 break-glass」而是「**它可不可以是本地的**」—— 0007 把它指派給了 Entra，而那正是它存在時已經壞掉的東西）；**本專案第一個被關掉的 P0**。⭐⭐ **3 個真實迴歸下 `run_all` 仍然 9/9**。
+- W23 [break-glass 從未被禁止，與 closeout 缺的那一格](memory/project_w23_break_glass_and_closeout_gate.md) — MERGED #89 (`bca8373`) 2026-08-19, **`closed`**; ADR-0015 取代 0007（衝突不是「該不該有 break-glass」而是「**它可不可以是本地的**」—— 0007 把它指派給了 Entra，而那正是它存在時已經壞掉的東西）；**本專案第一個被關掉的 P0**。⭐⭐ **3 個真實迴歸下 `run_all` 仍然 9/9**。
   Keywords: gate 綠 ≠ gate 還在運作 · 偵測力隨缺陷被修好而歸零 · 變異測試 · 預測先 commit · **枚舉了開放集合**（錨定欄位不要猜值）· landed gate（closeout 窗口的合法 pending）· 條件子句被轉述時拿掉 · actual/bottom-up 0.25 第 2 點
 
 ---

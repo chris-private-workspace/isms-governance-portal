@@ -328,7 +328,7 @@ _本片零 user-facing 變更，無真 UI 可開 ⇒ 報告一律「**gate-only 
 
 ### 3.1 乾淨狀態
 
-- `git status --short` → **空**（clean）· HEAD **`d5affd6`**
+- `git status --short` → **空**（clean）· HEAD **`6e1cf28`**
 - fixture 5 個檔全在
 - ⚠️ Risk Class C **N/A** —— 本片零 runtime 變更。
   （本日稍早兩個 **W22 drive-through 留下的**背景程序被停掉：Next.js dev server + API server。
@@ -366,7 +366,7 @@ _本片零 user-facing 變更，無真 UI 可開 ⇒ 報告一律「**gate-only 
 
 **復原方式**：每個情境跑完 `git checkout -- <path>` 還原，並以 `git status --short` **確認空**才進下一個。
 
-> 預測 commit：**`c67a38a`**（`13:31:04`）。執行在其後。
+> 預測 commit：**`ac9c20c`**（`13:31:04`）。執行在其後。
 
 ### 執行結果：預測 vs 實際
 
@@ -493,7 +493,7 @@ scope-vs-pattern 誤導訊息**是同一類**（第 2 次）。
 #### 2. 我是自己這個 gate 的第一個使用者，而它擋住了我
 
 模擬 closeout（翻 `status: closed`）→ **E5 對 `CH-043` 與 `plan.md` 開火**，
-其中 `plan.md:280` 那一行**正是 R4 本身的文字**（「合法的 PR-pending 不可被擋」，唯一沒加反引號的一處）。
+其中 `plan.md:280` 那一行**正是 R4 本身的文字**（「合法的 `PR-pending` 不可被擋」，唯一沒加反引號的一處）。
 **detector 對警告它不該開火的那句話開火了。**
 
 根因是流程順序：closeout **先翻 status、後開 PR**（`phase-closeout` §4.5 在 §7 之前）
@@ -552,3 +552,52 @@ final sweep 的 web 測試第一次跑就回報 **`Test Files 1 passed (1)` / `T
 > ⚠️ **這個 1.00 是巧合，不是準確度。** 其中**超過一半**是上述三件計畫外的工作。
 > 純 closeout 約 **25 min**（ratio ≈ 0.42，與其他 Day 一致）。
 > ⇒ **phase 聚合 ratio 0.62 因此偏高** —— 已寫進 retrospective Q2 與 calibration-log。
+
+---
+
+## Post-merge — 2026-08-19 — ⭐ 守衛在自己身上完成了一次完整循環
+
+**PR #89 MERGED** `2026-08-19T06:26:58Z`，merge commit **`bca8373`**（rebase merge，**SHA 第 16 次改寫**）。
+以 `gh pr view 89 --json state,mergedAt,mergeCommit` 驗證，不採信狀態欄。
+
+### ⭐⭐ E5 在 closeout 落地的那一刻自己叫了 —— 8 處
+
+`git pull` 之後 W23 的 pre-doc 已在 `origin/main` 上 ⇒ landed gate 解除 ⇒ **E5 立刻轉紅**：
+
+| # | 位置 | 性質 |
+|---|---|---|
+| 1-5 | `retrospective.md:6` · `CH-043:7` · `memory/project_w23_*.md:6` · `MEMORY.md:95` · **`CLAUDE.md:79`** | ✅ **真標記** |
+| 6-8 | `plan.md:279` · `progress.md:496` · `retrospective.md:153` | ⚠️ **散文誤報** |
+
+⭐ **第 5 個是 `CLAUDE.md:79`** —— 也就是 `AD-46` 當初真正造成傷害的那一格
+（W22 期間它對每個 session 宣告「W21（PR #84 開著）」，而那個 PR 已經 merged 十小時）。
+**這一次它被機械抓到了，而不是靠一次跨來源審計。**
+
+### ⚠️ 3 個散文誤報 —— 一個我 Day 4 識別出來卻沒有做完的修正
+
+Day 4 我寫下：「landed gate 讓 W23 在 merge 前被跳過，**但 merge 之後 E5 會對
+`plan.md:280` 的散文永遠開火**，所以 D2 仍需要加反引號。」
+**然後我沒有去加。** 它就照著我自己寫的預測發生了。
+
+⇒ 已補上反引號（與 repo 全域慣例一致 —— 其餘每一處散文提及都是 `` `PR-pending` ``）。
+⛔ **沒有放寬 detector** —— 放寬會讓真標記一起溜過去。
+
+### 處置
+
+| 類別 | 動作 |
+|---|---|
+| **5 個真標記** | → `**MERGED** (PR #89, \`bca8373\`) —— 2026-08-19T06:26:58Z，經 \`gh pr view\` 驗證` |
+| **3 個散文** | 加反引號 |
+| **7 個 stale SHA anchor**（第 16 次改寫）| `d5affd6` → **`6e1cf28`** · `c67a38a` → **`ac9c20c`** |
+
+### 驗證
+
+| 檢查 | 結果 |
+|---|---|
+| `check_status_markers` | **OK** —— `E1/E2/E3/E4/E5 clean; E5 landed-gate ACTIVE` |
+| `check_sha_anchors` | **OK** —— every documented SHA resolves |
+| `run_all` | **9/9** |
+| **CI（PR #89，6/6 綠）** | ⭐ log 逐字確認 **`E5 landed-gate ACTIVE`**（不是 INERT）· detector 測試 **4 檔 64 tests** · web **`Test Files 10 passed (10)`** |
+
+> ⭐ **CI 那一行是本片最後一個買到的東西**：`fetch-depth: 0` 我事前查過 workflow 確認有設，
+> 但「查過設定」與「它真的生效了」是兩件事 —— 現在是 log 印出來的，不是我推論的。
