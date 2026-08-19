@@ -4,7 +4,7 @@
 **Phase**: W22
 **Scope**: `modules`（`GET /risks/:id`）· `core-model`（dev seed）· `ui`（兩頁 + fetch 層）
 **Components**: —
-**PR**: #86（pending）
+**PR**: **MERGED** (PR #86, `33efd4f`) —— 2026-08-19T02:28:36Z，經 `gh pr view` 驗證
 
 ---
 

@@ -4,7 +4,7 @@
 **Phase**: 無 —— 獨立 CH（使用者於 2026-08-10 觀察後要求）
 **Scope**: 開發流程規則（`.claude/rules/` + hook）
 **Components**: —
-**PR**: 待開
+**PR**: **MERGED** (PR #30, `5bbc252`) —— 2026-08-10
 
 ---
 

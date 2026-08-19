@@ -76,7 +76,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 | Attribute | Value |
 |-----------|-------|
 | **Stage** | Wave 1 backbone — 建立共用骨幹，並用 Policy + Risk/Control 兩個最小模組端到端證明它 |
-| **Current Phase** | **W22**（PR #86 已 merge）`closed` —— `risks` 讀取路徑接上真 API，**第一個消費自家 API 的產品畫面**；drive-through 抓到 **8 個 gate 全綠時存在的缺陷**，領銜的是畫面對**真實**風險渲染偽造的簽核鏈與 SHA-256 稽核軌跡。⛔ 同樣的 fixture 文案還活在其餘 28 個畫面上 —— 見 `AD-FixtureProseBecomesForgedEvidence-1` |
+| **Current Phase** | **W23**（PR-pending）`closed` —— **ADR-0015 取代 0007**：break-glass 從未被禁止，只是被指派給了 Entra，而那正是它存在時已經壞掉的東西；順帶關掉**本專案第一個 P0**（`AD-LocalPasswordFallback-1`，卡兩個 phase）。⛔ 變異測試證明 **3 個真實迴歸下 `run_all` 仍然 9/9** —— 見 `AD-GateGreenDecaysAfterFix-1` |
 | **History** | See [`MEMORY.md`](./MEMORY.md) + 各 phase 的 `retrospective.md` |  <!-- doc-links: ignore — MEMORY.md 由 bootstrap 複製到專案根 -->
 | **Pending / Next** | See [`docs/01-planning/BACKLOG.md`](./docs/01-planning/BACKLOG.md)（**有什麼**）· [`ROADMAP.md`](./docs/01-planning/ROADMAP.md)（**先做哪個**）|
 | **跨來源狀態** | See [`docs/01-planning/STATUS_AUDIT.md`](./docs/01-planning/STATUS_AUDIT.md) —— 問「現在全項目怎樣」時跑 `/status-audit`，**不要只讀 BACKLOG** |
@@ -510,6 +510,6 @@ python scripts/lint/run_all.py
 
 ---
 
-**Last Updated**: 2026-08-19（W22 closeout —— `closed`，前後端第一次在產品畫面上相遇）
+**Last Updated**: 2026-08-19（W23 closeout —— `closed`，第一個被關掉的 P0）
 **Project Start**: 2026-08-07
 **Template Version**: 2.6.1 (claude-code-dev-template)

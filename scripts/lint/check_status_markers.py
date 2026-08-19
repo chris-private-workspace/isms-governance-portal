@@ -59,6 +59,13 @@ Checks:
     red during every legitimate closeout is a check people would switch off,
     which is why the self-test asserts that direction too.
 
+    ⚠️ That was not enough on its own. E5 only adjudicates closeouts that have
+    LANDED on origin/main -- see _closed_on_origin_main. Without that gate the
+    check reddens during the window between the closeout commit and the
+    post-merge commit, when `status: closed` and a pending marker are BOTH
+    correct. Measured on this very phase: simulating its closeout made E5 flag
+    its own change record and its own plan.
+
 Three authoring lessons are baked in (see rules-on-demand/lint-detector-authoring.md):
 
     1. ENUMERATE THE REAL FORMATS FIRST. An earlier version matched only 2 of
@@ -188,14 +195,32 @@ OPEN_STATES = {
 }
 
 # === E5: stale merge markers ==========================================
-# Why these three and not a looser net: they are what a `grep -rni` for every
-# plausible spelling actually returned across the repo on 2026-08-19. Bare
-# `TBD` is deliberately NOT here -- it appears in prose ("10 處 PR-pending /
-# TBD 已翻") far more often than as a marker, and widening to catch one more
-# true positive at the cost of a dozen false ones is how a lint gets ignored.
+# ⛔ ANCHOR ON THE FIELD, CLASSIFY THE VALUE. The first version of this check
+# enumerated SPELLINGS instead -- every way of writing "not merged yet" that
+# came to mind -- and shipped missing three of them, on live files:
+#
+#     **PR**: #86（pending）   **PR**: 待開   **PR**: #<TBD>
+#
+# The set of spellings is open and unknowable; the set of MARKER FIELDS is
+# closed and greppable (`^\*\*PR\*\*:`). Enumerating the open set is the same
+# defect one level up as the narrow-pattern one it was meant to avoid
+# (AD-NarrowPatternWideClaim-1). So: match the field, then ask whether its
+# value still says "not yet".
+PR_FIELD_RE = re.compile(r"^\*\*PR\*\*[:：](.*)$")
+
+# Inside a PR field, these words mean unresolved regardless of decoration --
+# brackets, full-width parentheses, angle brackets, or a PR number sitting
+# right next to them (`#86（pending）` carries both).
+UNRESOLVED_VALUE_RE = re.compile(r"TBD|待開|pending", re.IGNORECASE)
+
+# Free-text spellings, for markers that live OUTSIDE a `**PR**:` field: the
+# pointer rows in BACKLOG / MEMORY.md, and prose pointers in ADRs
+# (`- **實作**: W03 · CH-018 · PR 待開`). Scoped tightly on purpose -- bare
+# `TBD` is not here, because outside a PR field it appears in prose
+# ("10 處 PR-pending / TBD 已翻") far more often than as a marker.
 PENDING_PATTERNS = [
     re.compile(r"PR[- ]pending", re.IGNORECASE),
-    re.compile(r"#TBD\b", re.IGNORECASE),
+    re.compile(r"#<?TBD>?", re.IGNORECASE),
     re.compile(r"PR[ 　]*待開"),
 ]
 
@@ -304,14 +329,60 @@ def mask_non_prose(text: str) -> str:
     return text
 
 
-def artifact_status_index(repo_root: Path) -> dict[str, str]:
+def _closed_on_origin_main(repo_root: Path, rel_predoc: str) -> bool:
+    """Is this pre-doc ALREADY closed on origin/main?
+
+    ⛔ THIS IS WHAT KEEPS E5 OFF THE CLOSEOUT ITSELF. The closeout sequence flips
+    `status:` to closed BEFORE the PR exists (phase-closeout §4.5 precedes §7),
+    so between the closeout commit and the post-merge commit the artifact is
+    legitimately `closed` with markers legitimately still pending. Without this
+    gate E5 goes red on every closeout PR's own CI -- measured on this phase's,
+    which is plan R4's failure mode arriving exactly on schedule.
+
+    So E5 only adjudicates closeouts that have actually LANDED. A close that
+    happened on this branch is in flight, and its markers are not yet wrong.
+
+    Unresolvable origin/main (no remote ref, shallow clone) -> False, i.e. treat
+    as in-flight and stay quiet. A guard that guesses in the dark is worse than
+    one that waits: the post-merge run will see it.
+    """
+    try:
+        out = subprocess.run(
+            ["git", "show", f"origin/main:{rel_predoc}"],
+            cwd=repo_root,
+            capture_output=True,
+            # ⚠️ EXPLICIT utf-8. `text=True` alone decodes with the console
+            # codepage, which on Windows is cp1252 -- and every pre-doc in this
+            # repo is full of Chinese. The first run of this function died with
+            # UnicodeDecodeError inside subprocess's reader thread, which then
+            # surfaced as `stdout is None` several frames away. Same family as
+            # AD-ShaDetectorConsoleEncoding-1.
+            encoding="utf-8",
+            errors="replace",
+            timeout=20,
+        )
+    except (OSError, subprocess.SubprocessError):
+        return False
+    if out.returncode != 0 or not out.stdout:
+        return False
+    fm = frontmatter_status(out.stdout)
+    return bool(fm) and coarse(fm) == "closed"
+
+
+def artifact_status_index(
+    repo_root: Path, predocs: dict[str, str] | None = None
+) -> dict[str, str]:
     """Coarse status keyed by BOTH the artifact folder name and its bare id.
 
     `W21-azure-web-demo-deploy` and `W21` both resolve, because a marker in a
     navigation file (BACKLOG, MEMORY) names the phase by id while a marker
     inside the phase folder is identified by the folder itself.
+
+    ⚠️ An artifact counts as `closed` for E5 only when origin/main agrees --
+    see _closed_on_origin_main. Locally-closed-but-unmerged reads as `open`.
     """
     index: dict[str, str] = {}
+    predocs = predocs if predocs is not None else {}
     for glob, _siblings, _label in TRACKS:
         for predoc in repo_root.glob(glob):
             fm = frontmatter_status(predoc.read_text(encoding="utf-8", errors="replace"))
@@ -320,6 +391,8 @@ def artifact_status_index(repo_root: Path) -> dict[str, str]:
             folder = predoc.parent.name
             index[folder] = coarse(fm)
             index.setdefault(folder.split("-")[0], coarse(fm))
+            predocs.setdefault(folder, predoc.relative_to(repo_root).as_posix())
+            predocs.setdefault(folder.split("-")[0], predocs[folder])
     return index
 
 
@@ -344,7 +417,7 @@ def _owner_from_text(line: str, header_phase: str | None, index: dict[str, str])
     return None
 
 
-def stale_pending(repo_root: Path) -> list[Violation]:
+def stale_pending(repo_root: Path, require_landed: bool = True) -> list[Violation]:
     """E5 -- merge markers left pending on artifacts that are already closed.
 
     Returns [] when no marker can be tied to a closed owner. ⛔ An unresolvable
@@ -352,7 +425,9 @@ def stale_pending(repo_root: Path) -> list[Violation]:
     獨立 CH`, so nothing in the repo states whether they shipped, and inventing
     a verdict there would be the detector asserting something it cannot see.
     """
-    index = artifact_status_index(repo_root)
+    predocs: dict[str, str] = {}
+    index = artifact_status_index(repo_root, predocs)
+    landed: dict[str, bool] = {}
     violations: list[Violation] = []
     seen: set[Path] = set()
 
@@ -379,10 +454,14 @@ def stale_pending(repo_root: Path) -> list[Violation]:
             for n, (masked_line, raw_line) in enumerate(
                 zip(masked.splitlines(), raw.splitlines()), 1
             ):
-                marker = next(
-                    (m.group(0) for p in PENDING_PATTERNS for m in [p.search(masked_line)] if m),
-                    None,
-                )
+                field = PR_FIELD_RE.match(masked_line)
+                if field and UNRESOLVED_VALUE_RE.search(field.group(1)):
+                    marker = field.group(1).strip()
+                else:
+                    marker = next(
+                        (m.group(0) for p in PENDING_PATTERNS for m in [p.search(masked_line)] if m),
+                        None,
+                    )
                 if marker is None:
                     continue
                 owner = _owner_from_path(path, index) or _owner_from_text(
@@ -390,6 +469,17 @@ def stale_pending(repo_root: Path) -> list[Violation]:
                 )
                 if owner is None or index.get(owner) != "closed":
                     continue
+                # ⚠️ Git only here -- once per OWNER THAT ACTUALLY MATCHED, not
+                # once per closed pre-doc. The first version asked git about all
+                # ~30 of them and took the detector from 2.6 s to 8.2 s, which is
+                # the road to lint-detector-authoring.md:82 ("a check nobody runs").
+                if require_landed:
+                    if owner not in landed:
+                        landed[owner] = _closed_on_origin_main(
+                            repo_root, predocs.get(owner, "")
+                        )
+                    if not landed[owner]:
+                        continue
                 violations.append(
                     Violation(
                         "E5",
@@ -403,9 +493,11 @@ def stale_pending(repo_root: Path) -> list[Violation]:
     return violations
 
 
-def find_violations(repo_root: Path, stale_days: int = 30) -> list[Violation]:
+def find_violations(
+    repo_root: Path, stale_days: int = 30, require_landed: bool = True
+) -> list[Violation]:
     """Return all status-marker violations (empty list = clean)."""
-    violations: list[Violation] = list(stale_pending(repo_root))
+    violations: list[Violation] = list(stale_pending(repo_root, require_landed))
     now = int(time.time())
 
     for glob, siblings, label in TRACKS:
@@ -497,7 +589,10 @@ def self_test(root: Path) -> None:
             f"status-markers: FAIL -- E5 self-test fixture missing: {FIXTURE_REL}\n"
             "Without it nothing proves the detector still detects."
         )
-    found = stale_pending(fixture)
+    # ⚠️ require_landed=False: the fixture is a SYNTHETIC tree. Its `closed`
+    # is a fixture declaration, not a real closeout, so it has no origin/main
+    # counterpart to agree with. The landed gate has its own tests.
+    found = stale_pending(fixture, require_landed=False)
     caught = {v.artifact.split(":")[0] for v in found}
 
     must_catch = "docs/01-planning/W99-fixture-closed/retrospective.md"  # path-check: ignore — synthetic

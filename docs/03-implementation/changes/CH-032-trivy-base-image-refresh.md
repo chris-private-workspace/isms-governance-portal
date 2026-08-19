@@ -4,7 +4,7 @@
 **Phase**: 無 —— 獨立 CH（W14 已收尾，無 active phase）
 **Scope**: CI / 容器映像（`.github/workflows/security-scan.yml` §container-scan 的掃描標的）
 **Components**: —
-**PR**: #<TBD>
+**PR**: **MERGED** (PR #66, `52a74ac`) —— 2026-08-15
 
 > ⚠️ **本檔目前是 pre-doc（R1 gate）** —— §Solution 是**計畫**、§Verification 是**預定驗收**。
 > 執行後兩節改為實測值。**使用者 approve §Verification 的驗收條件之後才動 code。**
