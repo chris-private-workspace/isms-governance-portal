@@ -133,6 +133,7 @@ export type AuditEvidenceFile = {
  * A finding whose `ev` is '—' gets an empty list and the screen's own empty
  * state, which is the fragment's `noEv` branch (26-audit-issue-detail.html:116).
  */
+/** @record-claim — evidence files uploaded by a named person for one finding. */
 export const AUDIT_EVIDENCE: AuditEvidenceFile[] = [
   {
     suffix: '_CAP_submission.pdf',

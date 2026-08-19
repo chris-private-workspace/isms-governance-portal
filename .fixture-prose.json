@@ -1,0 +1,26 @@
+{
+  "_comment": "Config for scripts/lint/check_fixture_prose.py (W24, CH-044). Both rule-1 sets are CLOSED on purpose: surfaces are enumerable and so are tagged exports. self_claims is the one open set in this file and the detector's header says why that is accepted.",
+
+  "surface_globs": ["apps/web/src/app/**/*.tsx", "apps/web/src/components/shell/**/*.tsx"],
+  "fixture_globs": ["apps/web/src/data/**/*.ts"],
+
+  "_api_markers": "How a file declares that it reads the API. Day-0 measured three direct-fetch surfaces, one of them AppShell, which is why fetch( is here and not just the import path.",
+  "api_markers": ["from '@/lib/api/", "fetch("],
+
+  "_self_claims": "Certification LEVELS, never framework names. `SOC 2` alone appears 15 times as a control-framework reference (fw: 'SOC 2', ref: 'CC6.1') and matching it would fire on every one.",
+  "self_claims": [
+    "SOC 2 Type II",
+    "ISO/IEC 27001 certified",
+    "ISO 27001 certified",
+    "27001 certified",
+    "SOC2 Type II"
+  ],
+  "self_claim_globs": [
+    "apps/web/src/**/*.tsx",
+    "apps/web/src/**/*.ts",
+    "apps/web/src/i18n/*.json"
+  ],
+
+  "_self_claim_allow": "A file containing any of these strings is exempt from rule 2. Empty today. Add an entry only with a reason in the commit message — an exemption here is a licence to make a certification claim.",
+  "self_claim_allow": []
+}

@@ -63,6 +63,7 @@ export const ISSUE_ACTIONS: IssueAction[] = [
 ];
 
 /** dc.html:5282-5286 — newest first, so the connector reads downwards in time. */
+/** @record-claim — named people acting on one issue, with timestamps. */
 export const ISSUE_ACTIVITY: IssueActivity[] = [
   {
     who: { fromOwner: true },

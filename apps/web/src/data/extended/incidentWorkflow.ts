@@ -123,6 +123,7 @@ export type NotifyRow = {
  * than summarised; `data/notifyRules.ts` is a different table (routing rules by
  * trigger event, shown in Admin) and is not a substitute for it.
  */
+/** @record-claim — who was notified about one incident, and acknowledged it. */
 export const NOTIFY_MATRIX: Record<string, NotifyRow[]> = {
   S1: [
     {

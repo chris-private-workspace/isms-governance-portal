@@ -66,6 +66,7 @@ export type AuditEntry = {
 };
 
 /** dc.html:5130-5140. Three actor names realigned — see the header. */
+/** @record-claim — named actors, actions and source IPs in an audit log. */
 export const SYSTEM_AUDIT: AuditEntry[] = [
   {
     ts: '2026-07-05 09:12 SGT',
