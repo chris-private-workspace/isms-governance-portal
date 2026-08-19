@@ -213,3 +213,43 @@ dashboard→risks 的斷鏈。⭐ 但這一問正是它抓到第 8 條的原因�
 ⚠️ **N1 的預測有一個我不確定的地方**：`riskSignOff` 這個 identifier 在該檔出現在
 import 區塊、型別位置與（中性化後的）值位置三處。若 `strip_non_rendering()` 的
 import 移除不完整，會**多報**而非漏報。**多報也算預測失敗** —— 條數必須恰好 1。
+
+### ✅ US-4 負面驗證 —— 結果（四個中性化，四個命中）
+
+| # | 預測 | 實測 | 判定 |
+|---|---|---|---|
+| **N1** | 恰好 1 個 rule1，指名 `riskSignOff` + 該檔 + 來源 `riskDetail.ts`；其餘 12 個不得同時報 | `fixture-prose: 1 violation(s)` · `[rule1] apps/web/src/app/(app)/risks/[id]/page.tsx` · ``renders `riskSignOff` (a @record-claim fixture from apps/web/src/data/extended/riskDetail.ts)`` · exit **1** | ✅ **全中**（含我標為不確定的條數） |
+| **N2** | 恰好 1 個 rule2，指名 `en.json`；**不是 2 個**（AppShell 只有 key） | `1 violation(s)` · `[rule2] apps/web/src/i18n/en.json` · exit **1** | ✅ **全中** |
+| **N3** | `run_all` 分母從 10 變 9 | baseline **`10/10`** → 拿掉註冊 **`9/9`** → 還原 **`10/10`** | ✅ |
+| **N4** | 清空 `self_claims` ⇒ rule2 完全靜音、rule1 不受影響 | 即使把 `SOC 2 Type II` 放回 `en.json`：`OK (8 API surface(s) x 13 record-claim export(s))` · exit **0** | ✅ 兩條規則獨立，config 真的被讀 |
+
+⭐ **N1 的型別位置對照是這一組裡最重要的一個**：中性化**之前**，`/risks/[id]` 已經在
+三個型別位置具名這些 export（`ReturnType<typeof riskSignOff>` 等），而守衛**保持沉默**。
+若規則寫成「提到就報」，它會通過 N1、出貨，然後對 W22 唯一做對的那一頁天天開火。
+
+### ⛔ 執行負面驗證時我犯的兩個錯（都被 gate 抓到）
+
+1. **`git checkout -- run_all.py` 把未 commit 的註冊一起丟了** ⇒ N3 第一次跑出空輸出。
+   記憶 `project-shared-working-tree` 說的「逐路徑 stage、不 stash」是同一個形狀的警告，
+   而我用了它的近親。**改用檔案備份 + Edit 還原。**
+2. **`path-references` 抓到我的 detector 檔頭引用了還不存在的檔**
+   （`docs/09-analysis/fixture-prose-inventory-20260819.md`，那是 US-5 的產出）⇒
+   baseline 一度是 **9/10**，我差點在不乾淨的 baseline 上做 N3。**先修 baseline 再驗證。**
+
+### Today's Accomplishments（Day 2 續）
+
+- **2.4 US-4** `check_fixture_prose.py`（two rules, closed sets）+ `.fixture-prose.json`
+  + 註冊進 `run_all`（**9 → 10**）+ **13 個 export 標記**（8 檔，13 insertions，**0 deletions**）
+  + **四個負面驗證全中**
+- **2.5 US-5** `docs/09-analysis/fixture-prose-inventory-20260819.md` —— 27 頁（含 0 條的）·
+  affordance 收斂規則明文 · 跨頁槓桿表 · `/policies/[id]` 的 9 個無來源區塊 · 覆蓋聲明
+
+### Issues / Discoveries（Day 2 續）
+
+- ⭐⭐ **守衛的第一次真實執行抓到的是它自己的缺陷** —— 它報了 2 個 rule2 違規，
+  而兩個都是**說明該宣稱為何剛被移除**的註解。一條分不出「這個平台通過 SOC 2 Type II」
+  與「我們刪掉了那句話」的規則，會讓**正確的修法變得無法記錄**。
+  ⇒ 加 `strip_comments()`，並把它寫成 9 個 self-test 斷言中的 2 個
+- ⚠️ **盤點的總數是約數，不是精算** —— 「一群 hash 列」算 1 條還是 5 條沒有統一定義。
+  文件裡明說了這一點：**逐頁小節才是可用的單位，總數不是**。
+  ⛔ 這是刻意不製造一個會被引用的假精確數字（`AD-ProxyMetricAsAnswer-1` 家族）

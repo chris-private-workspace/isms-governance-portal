@@ -62,6 +62,17 @@
   - DoD: <…>
   - Verify: `<指令>`
 
+### 2.y 治理陳述檢查（僅「把畫面接上 API」的 phase；否則 N/A）
+
+- [ ] **列出這一頁對「這一筆記錄」做出的每一條陳述，逐條問「API 送得出來嗎」**
+  - DoD: 逐條裁決 **留**（寫出是哪個 API 欄位）/ **不渲染** / **`NoSource`**；
+        ⛔ 留下的不得保留綠色 / 盾牌 / 鎖 / 勾的 affordance —— 只換文字不換 affordance 等於沒修
+  - DoD: ⭐ **第二問：誰連結進這一頁？** 入口若在別的畫面且那個畫面仍讀 fixture，
+        id 形狀不同 ⇒ 每次點擊都打到 not-found（W22 在 `/dashboard` → `/risks/[id]` 留下這個）
+  - Verify: 存量清單見 `docs/09-analysis/fixture-prose-inventory-*.md`；
+        機械層 `python scripts/lint/check_fixture_prose.py`（**它只看標了 `@record-claim`
+        的 export，看不見硬編碼在 i18n / JSX 裡的陳述** —— 那一半就是這一格）
+
 ### 2.x Full gate
 
 - [ ] <列出你的 gate：lint <N> · test <N> · build clean · run_all <N>/<N>>
