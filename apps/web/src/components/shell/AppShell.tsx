@@ -437,8 +437,14 @@ export function AppShell({ children, persona }: { children: ReactNode; persona: 
                 width: '7px',
                 height: '7px',
                 borderRadius: '50%',
-                background: 'var(--rag-g)',
-                boxShadow: '0 0 0 3px rgba(30,138,92,.18)',
+                // W24: was var(--rag-g) with a green halo. This dot sits on all
+                // 25 shell screens, and the line beside it used to read
+                // "v2.4 · SOC 2 Type II" — a certification this platform does
+                // not hold. Green + that line reads as "certified and healthy".
+                // The line is now honest; the dot follows, because a green light
+                // next to "not production" is its own small contradiction.
+                background: 'var(--rag-n)',
+                boxShadow: '0 0 0 3px rgba(124,135,148,.18)',
                 flexShrink: 0,
               }}
             />

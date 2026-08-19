@@ -22,7 +22,7 @@
   "shell.collapse": "收合側邊欄",
   "shell.expand": "展開側邊欄",
   "shell.env.name": "示範環境 · SG-1",
-  "shell.env.meta": "v2.4 · SOC 2 Type II",
+  "shell.env.meta": "種子資料 · 非正式環境",
   "shell.inert": "此動作需要寫入伺服器。本次移植沒有可執行它的後端，因此顯示為停用 —— 看起來可按卻毫無作用的按鈕更糟。",
   "nav.group.intelligence": "智慧分析",
   "nav.group.oversight": "監督",
