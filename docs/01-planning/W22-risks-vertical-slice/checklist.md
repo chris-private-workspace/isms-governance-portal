@@ -20,7 +20,7 @@
       八個 EDIT 目標全部存在 · **`CH-042` 未被佔用**
   - Verify: `Glob apps/api/prisma/**` + 列 `docs/03-implementation/changes/` 取最大號
   - ✅ **四項預測全中**。`prisma/` 只有 `migrations/` + `schema.prisma`；changes/ 最大號 `CH-041`，bugs/ 空
-- [ ] **Prong 2 — content verify**（drift → progress.md）:
+- [x] **Prong 2 — content verify**（drift → progress.md）—— 六個子項全部完成（2 個漂移）:
   - [x] **D-no-byid** — ✅ 如預期：`:77 @Controller('risks')` · `:91 @Get()` · `:97 @Post()`，無 `@Get(':id')`
   - [x] **D-policy-shape** — ✅ 如預期：`:89 @Get(':id')` · `:90 async byId` · `:98 NotFoundException`，list-then-find，且註解已寫明「回 403 等於得先知道那列存在」
   - [x] **D-fixture-import** — ⚠️ **半中**：兩頁都仍 import `@/data/risks`（`page.tsx:56` · `[id]/page.tsx:92`），但詳情頁**另有四個 fixture 來源** → 見 plan R7 `D-detail-hybrid`
@@ -198,21 +198,42 @@
 
 ### 4.1 Change record
 
-- [ ] **`docs/03-implementation/changes/CH-042-<slug>.md`**（Problem / Root Cause /
+- [x] **`docs/03-implementation/changes/CH-042-<slug>.md`**（Problem / Root Cause /
       Solution / Verification / Impact —— 含 drive-through PASS）
-- [ ] **開一條 AD 記錄 `byId` 的 O(n)**，解封條件寫成**可觀察的**（單一 entity 的風險數超過
+  - ✅ `CH-042-risks-read-path-meets-the-api.md`。⭐ Root Cause 寫的是**每一層的 gate 都把自己
+    那一半當成全世界**（三層各自注入什麼 / 因此看不見什麼），不是「還沒做」
+- [x] **開一條 AD 記錄 `byId` 的 O(n)**，解封條件寫成**可觀察的**（單一 entity 的風險數超過
       一個畫面能顯示的量），⛔ 不是「以後記得優化」
+  - ✅ `AD-RiskByIdLinearScan-1` 🟢 —— 解封條件寫成「列表本身開始分頁」，
+    且記明**今天不改的理由是安全不是效能**
 
 ### 4.2 Closeout
 
-- [ ] `retrospective.md` Q1-Q7 + calibration（`greenfield-feature` 0.55，**第 1 個真資料點**）
-- [ ] `calibration-matrix.md` 那一行（**≤ 1 行 ~250 字元**，敘述 → `calibration-log.md`）
-- [ ] Final gate sweep: `format:check` · `lint` · `type-check` · `test` · `build` · `run_all` 9/9
+- [x] `retrospective.md` Q1-Q7 + calibration（`greenfield-feature` 0.55，**第 1 個真資料點**）
+  - ✅ ratio **0.46 UNDER**，KEEP 0.55（單點不 re-point）
+  - ⭐ **真正的訊號在 `actual / bottom-up` = 0.26**（< 0.4 下限）⇒ matrix 判決是
+    「該修的是估算不是乘數」；高估點有共同形狀：**有藍本的東西被當成沒有藍本估**
+- [x] `calibration-matrix.md` 那一行（**≤ 1 行 ~250 字元**，敘述 → `calibration-log.md`）
+  - ✅ `greenfield-feature` 從 `n/a (0 pt)` → **1 pt**；完整敘述含「有沒有藍本」對照表進 log
+- [x] Final gate sweep: `format:check` · `lint` · `type-check` · `test` · `build` · `run_all` 9/9
       + **gate 射程聲明**（哪些只在 CI 成立）
-- [ ] 導航檔: `CLAUDE.md` Current-Phase + Last-Updated · `MEMORY.md` pointer + subfile ·
-      `BACKLOG.md`（CLOSE `AD-FrontendMissingIdRedirects-1`）
-- [ ] Anti-pattern 自檢（retro Q5）：AP-1..AP-7 → 違規數
+  - ✅ format / lint / type clean · api **484 / 40 suites** · web **95 / 10 files** ·
+    build `✓ Compiled successfully in 39.3s` · `run_all` **9/9**
+  - ✅ **射程聲明已寫入** progress.md Day 4 與 CH-042：gitleaks / semgrep 本機未安裝（🚧 CI）；
+    `prisma/seed.ts` 不被任何本機 gate 讀（`AD-SeedFileUngated-1`），手動補驗
+- [x] 導航檔: `CLAUDE.md` Current-Phase + Last-Updated · `MEMORY.md` pointer + subfile ·
+      ~~`BACKLOG.md`（CLOSE `AD-FrontendMissingIdRedirects-1`）~~
+  - ⛔ **Day-0 已改寫**：該 AD **更正而非關閉**（它描述的缺陷不存在）——
+    關閉一條從來不存在的缺陷等於在 BACKLOG 留一條假的關閉紀錄。本 phase **關閉 0 條 AD**
+  - ✅ `CLAUDE.md` 只動 2 行 · `MEMORY.md` +1 指標 · `memory/project_w22_risks_vertical_slice.md` ·
+    `BACKLOG.md` 新增 6 / 更新 1 + W22 pointer row（detector 報 164→170，照抄）
+  - ✅ **額外**：`RISK_REGISTER.md` —— R4 敞口性質改變（從「缺席」變成「被否認」）+ 新增 **E5**
+- [x] Anti-pattern 自檢（retro Q5）：AP-1..AP-7 → 違規數
+  - ✅ **總計 0（修正後）**。⛔ **修正前是 8，那個數字比 0 重要** ——
+    三個是 AP-3 的教科書形態（fixture 裝成真 / 標籤誤導 / 控件看起來有效果而實際沒有）
 - [ ] ⭐ **夾帶審計 #7 的 `AD-27` 與 `AD-30`**（ADR-0011 那行 · ADR-0007 的 Azure China 指令）
       —— 使用者核可才做；⛔ **根因是「closeout 檢查表沒有 ADR 那一格」**，那才是要修的東西
-- [ ] **⏱ 寫入本日耗時到 progress.md**
+  - 🚧 **未做 —— 未取得使用者核可**（本次 closeout 的指示未包含此項）。
+    解封條件：使用者核可夾帶，或另開一片處理審計 #7 的 ADR 層 8 條
+- [x] **⏱ 寫入本日耗時到 progress.md** —— Day 4 **≈ 25 min**（09:31 → closeout commit）
 - [ ] **Commit** → ⏳ PR push + open → CI → merge: **PENDING USER CONFIRMATION**

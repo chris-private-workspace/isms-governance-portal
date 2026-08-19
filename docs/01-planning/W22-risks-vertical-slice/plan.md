@@ -1,5 +1,5 @@
 ---
-status: draft   # draft | active | closed | closed_partial —— 機器可讀的唯一權威
+status: closed   # draft | active | closed | closed_partial —— 機器可讀的唯一權威
 ---
 
 # Phase W22 Plan — wire the risks screens to the real API
@@ -11,8 +11,13 @@ status: draft   # draft | active | closed | closed_partial —— 機器可讀�
 (d) 把不存在的 id 從 307 改成 404。**Drive-through MANDATORY 且只在本機** ——
 `apps/api` 在 production 起不來，這一片到不了示範網址。非 spike，**不產出 design note**。
 
-**Status**: **Approved-to-execute**（使用者 2026-08-18 —— 核可「讀取路徑 only」的範圍，
-並拍板 §3.6 的 D1（伺服器端 env）與 D2（seed 進版控））。
+**Status**: **`closed`**（2026-08-19）—— 八條 AC 全部成立，含 **AC-7 drive-through PASS**
+（真 Chrome + 真 NestJS + 真 PostgreSQL）。
+⚠️ **兩個 🚧 未解封，且都不是未交付的範圍**：gitleaks / semgrep 對新檔（plan R3）本機未安裝，
+解封條件是本片 PR 的 CI run；`prisma/seed.ts` 不被任何本機 gate 讀（`AD-SeedFileUngated-1`），
+本次以獨立 `tsc --noEmit` + `prettier --write` 手動補驗。
+> 原文（起草時）：**Approved-to-execute**（使用者 2026-08-18 —— 核可「讀取路徑 only」的範圍，
+> 並拍板 §3.6 的 D1（伺服器端 env）與 D2（seed 進版控））。
 
 **Branch**: `feature/W22-risks-slice`
 **Base**: `main` HEAD **`700ef62`**（PR #84 已於 2026-08-18T07:08:46Z **rebase-merge**，
@@ -90,7 +95,11 @@ build clean · `run_all` **9/9**。Day-0 重新驗證。
 
 ### STALE / drift findings（Day-0；完整細節 → progress.md —— 此處是 placeholder，於 §checklist 0.1 填入）
 
-<!-- Day 0 填入 D{N} 條目 -->
+- **D-307** ⭐⭐ — §3.4 的前提被證偽（307 是未登入閘門，與 id 無關）→ §3.4 引述 · R8 · AC-6 改寫
+- **D-detail-hybrid** ⭐⭐ — 詳情頁吃**五個** fixture 來源，不是一個 → R7 · §4 第 10 列（DemoBadge `partial`）
+- **D-migration-lag** — `isms_dev` 落後一個 migration（`AD-DevDbChecksumDrift-1` 第 6 次）→ R9
+- **D-verify-cmd** — checklist Prong 3 的 Verify 指令會 reset dev DB → R10（改跑唯讀 `migrate status`）
+- **D-baselines** — 六項基線逐項實測，**全部與 plan 宣稱相符**（零漂移）
 
 ## 1. Phase Goal
 
@@ -232,12 +241,13 @@ Gates: lint clean · api test ≥ 480 + 新增 · web test ≥ 88 + 新增 · ty
 
 ## 6. Deliverables
 
-- [ ] US-1 —— `/risks` 列表資料來自 API
-- [ ] US-2 —— `/risks/:id` 詳情資料來自 API（含新端點）
-- [ ] US-3 —— 冪等的 dev seed，跨兩個 entity
-- [ ] US-4 —— 不存在的 id 回 404
-- [ ] US-5 —— drive-through PASS + 截圖
-- [ ] US-6 —— `CH-042` + retrospective + calibration
+- [x] US-1 —— `/risks` 列表資料來自 API（真瀏覽器實測 **9 列**，fixture 是 10 筆）
+- [x] US-2 —— `/risks/:id` 詳情資料來自 API（含新端點；`[RouterExplorer] Mapped {/risks/:id, GET}`）
+- [x] US-3 —— 冪等的 dev seed，跨兩個 entity（**12 → 12**；SG1 9 / HK1 3）
+- [x] US-4 —— **API 層**不存在與跨實體的 id 皆回 404 且回應體不可分辨；
+      ⛔ **前端層是 200 + 不可分辨的卡**（Day-0 改寫，AC-6）—— 真 404 status 記為 `AD-Real404Status-1`
+- [x] US-5 —— drive-through PASS + 6 張截圖（**抓到 8 個 gate 看不見的缺陷**）
+- [x] US-6 —— `CH-042` + retrospective + calibration
 
 ## 7. Workload Calibration
 

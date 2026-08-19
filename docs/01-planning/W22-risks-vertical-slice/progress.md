@@ -436,3 +436,76 @@ wiring 證據取自**新程序**：
 | 項目 | 實際 |
 |---|---|
 | Day 3（clean restart × 2 · HTTP 層量測 · drive-through · 8 個修正 · 覆驗）| **≈ 75 min** |
+
+---
+
+## Day 4 — 2026-08-19 — Closeout
+
+### 交付
+
+| 產出 | 內容 |
+|---|---|
+| `CH-042-risks-read-path-meets-the-api.md` | 單檔 1-page（phase 收尾的形式 —— 過程已在四件套裡）。⭐ Root Cause 寫的是**每一層的 gate 都把自己那一半當成全世界**（三層各自注入什麼 / 因此看不見什麼），不是「還沒做」|
+| `retrospective.md` | Q1-Q7。⛔ Q5 的 AP-3 是 **0（修正後），而修正前是 8** —— 那個數字比 0 重要 |
+| `CALIBRATION-MATRIX.md` | `greenfield-feature` 從 `n/a (0 pt)` → **1 pt**，KEEP 0.55 |
+| `CALIBRATION-LOG.md` §1 | 新增 `greenfield-feature` 節 —— 含**逐項「有沒有藍本」對照表** |
+| `BACKLOG.md` | 新增 **6** 條、更新 1 條、關閉 **0** 條；W22 pointer row |
+| `RISK_REGISTER.md` | **R4 敞口性質改變** + 新增 **E5** |
+| `MEMORY.md` + `memory/project_w22_risks_vertical_slice.md` | 指標 + 細節 |
+| `CLAUDE.md` | **只動 2 行**（Current Phase + Last Updated）|
+
+### ⛔ AD 關閉數 = 0，而這是刻意的
+
+`AD-FrontendMissingIdRedirects-1` **更正而非關閉** —— 它描述的缺陷不存在（Day-0 `D-307`），
+沒有東西可修。**關閉一條從來不存在的缺陷，等於在 BACKLOG 上留一條假的關閉紀錄。**
+
+### Final gate sweep（Day 4 實跑）
+
+| Gate | 結果 |
+|---|---|
+| `format:check`（api + web）| clean —— ⭐ **本次沒有先紅**（Day 1/2/3 各因 python 就地編輯紅過一次；Day 4 的檔案全部由 Write / Edit 產生）|
+| `lint`（api + web）| clean |
+| `type-check`（api + web）| clean |
+| `test -w apps/api` | **484 passed / 40 suites** |
+| `test -w apps/web` | **95 passed / 10 files** |
+| `build`（api + web）| `✓ Compiled successfully in 39.3s`，25 個靜態頁 |
+| `run_all` | **9/9** |
+
+> ⚠️ **gate 射程聲明**（本片的 gate 集合**不含**下列）：
+> gitleaks 與 semgrep **本機未安裝，只在 CI 存在** ⇒ 🚧 解封條件是本片 PR 的 CI run。
+> 且 `apps/api/prisma/seed.ts` **不被 type-check / lint / format 任何一個讀到**
+> （`AD-SeedFileUngated-1`），本次以獨立 `tsc --noEmit` + `prettier --write` 手動補驗。
+
+### ⭐ 那個未診斷的測試失敗：第 3 次合併跑，仍未重現
+
+Day 4 的 gate sweep 是**合併跑** `npm run test -w apps/api -w apps/web`，
+結果 **484 + 95 全綠**。⛔ **這不構成「它不存在」的證據** —— 差別在於這次**沒有同時驅動瀏覽器**，
+而 Day 3 那次有。`AD-UndiagnosedWebTestFailure-1` 維持開啟，
+解封條件仍是「下次出現時先拿到檔名」。
+
+### 未做（需要使用者裁決）
+
+- 🚧 **審計 #7 的 `AD-27` / `AD-30`（ADR 層）** —— plan §9 建議夾帶於本片第一個 commit，
+  checklist 4.2 註明「使用者核可才做」。**本次未取得核可，未做。**
+  ⛔ **根因是「closeout 檢查表沒有 ADR 那一格」**，那才是要修的東西 —— 修那個根因
+  也還沒做，因為它是治理工具（受 §Step 0.0 每 phase 1 個 CH 的配額約束）
+
+### 本日耗時
+
+| 項目 | 實際 |
+|---|---|
+| Day 4（closeout —— CH-042 · retro · calibration ×2 · BACKLOG · RISK_REGISTER · 導航檔 · final gate）| **≈ 25 min** |
+
+> 量法：T0 = Day 3 commit `c3d5c55`（**09:30:38**）之後的第一個動作 ≈ **09:31**，
+> T1 = closeout commit。⚠️ 對照 plan §7 的 closeout 估算 **2 hr** ⇒ ratio ≈ **0.21**。
+
+### Phase 總計
+
+| 項目 | 值 |
+|---|---|
+| Day 0 + 1 + 2 + 3 + 4 | 20 + 35 + 36 + 75 + 25 min = **3.18 hr** |
+| Committed（plan §7）| 6.9 hr（bottom-up 12.5 × mult 0.55）|
+| **Ratio** | **0.46** —— **UNDER** band |
+
+⭐ **四天四筆時間全部在當日收尾當下寫下**，本專案第一次。
+`AD-CalibrationNoTimeRecord-1` 前三次都是事後由 commit author date 反推。
