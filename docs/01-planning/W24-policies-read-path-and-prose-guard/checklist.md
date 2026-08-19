@@ -115,31 +115,35 @@
 
 ### 2.1 `lib/api/policies.ts`（US-3）
 
-- [ ] **兩個呼叫 + `PolicyRow` + 檔頭「API 送不出什麼」**
-  - DoD: 逐字比照 `risks.ts`；檔頭那段**必須註明是對著跑著的伺服器量的**。
-        Day-0 已量到 4 個無來源欄位（`category` / `owner` / `nextReview` / `att`）
-  - Verify: `curl -s localhost:3210/policies | head -c 400`
+- [x] **兩個呼叫 + `PolicyRow` + 檔頭「API 送不出什麼」**
+  - DoD: ⚠️ **一個呼叫不是兩個** —— 詳情頁不接（D3），所以沒有 `getPolicy`。
+        檔頭逐欄列出 4 個無來源欄位 + `version` 的形狀差異，註明是 `curl` 量的
+  - DoD: ⭐ **計畫外多了 `lib/api/client.ts`** —— policies 是第二個呼叫者，
+        複製 fetch/信封/錯誤型別就是 AP-2。抽出後 risks 的 10 檔 95 測試**零變動通過**
+  - Verify: `curl -s localhost:3210/policies` → 13 欄 + `_devPrincipal` + `_warning`；
+        跨實體 id → **404**（約束 8）
 
 ### 2.2 ⭐ 具名檢查項（`AD-FixtureProseBecomesForgedEvidence-1` 的解封條件原文）
 
-- [ ] **列出 `/policies` 上所有對「這一筆記錄」做出的陳述，逐條問「API 送得出來嗎」**
-  - DoD: 逐條裁決：**留**（寫出是哪個 API 欄位）/ **不渲染** / **走 `NoSource`**；
-        ⛔ 留下的不得保留綠色 / 盾牌 / 鎖 / 勾的 affordance
-  - DoD: ⭐ **Day-0 D2 補上的第二問**：**「誰連結進這一頁？」** —— 已確認
-        `/policies/[id]` 的唯一入口是 `policies/page.tsx:325`（同片處理），
-        所以本片不會複製 dashboard→risks 的斷鏈。**這一問要寫進模板（§2.6）**
+- [x] **列出 `/policies` 上所有對「這一筆記錄」做出的陳述，逐條問「API 送得出來嗎」**
+  - DoD: **9 條裁決**（progress.md Day 2 的表）—— 3 留 / 4 `NoSource` / 2 改寫。
+        ⭐ 其中兩條是**這個檢查才會問出來的**：meta 行的 `group-wide`（範疇宣稱，實際 SG1）
+        與檔頭的「THE ONE SCREEN THAT IS NOT ENTITY-SCOPED」（被資料庫直接推翻）
+  - DoD: ⭐ **Day-0 D2 補上的第二問**：「誰連結進這一頁？」→ `/policies/[id]` 的唯一入口是
+        `policies/page.tsx:325`（同片處理）⇒ 不會複製 dashboard→risks 的斷鏈。
+        **但它抓到了第 8 條**（列可點 → 詳情頁讀 fixture）。已寫進模板（§2.6）
   - Verify: 裁決表寫入 progress.md Day 2
 
 ### 2.3 列表頁接線（US-3）
 
-- [ ] **`/policies` 資料源 + loading / error / empty 三狀態**
+- [x] **`/policies` 資料源 + loading / error / empty 三狀態**
   - DoD: 列數 == API 回的筆數；**負面測試**斷言 fixture 第一列標題（`Information Security Policy`）
         不在 DOM 裡
-- [ ] **category 篩選器處置**（Day-0 D4 / plan §8 R10）
+- [x] **category 篩選器處置**（Day-0 D4 / plan §8 R10）
   - DoD: 移除，或改用有來源的維度。⛔ 不得留一個永遠沒有選項的死控件
-- [ ] **`DemoBadge` 給 `partial`**
+- [x] **`DemoBadge` 給 `partial`**
   - DoD: ⛔ 不得整頁標 `fixture` —— 那是 W22 抓到的反向違反
-- [ ] **`policies.test.tsx`**
+- [x] **`policies.test.tsx`**
   - Verify: `npm run test -w apps/web`（**期望 `Test Files 11`**）
 - [ ] 🚧 ~~**`/policies/[id]` 資料源 + 四狀態（含 not-found）**~~
       **移出範圍** —— Day-0 **D3** 量到接完只剩 3 個真欄位、9 個區塊無來源；
@@ -148,18 +152,23 @@
 
 ### 2.4 守衛（US-4）
 
-- [ ] **`check_fixture_prose.py` 規則 1**（record-claim export × 已接 API 的表面）
+- [x] **`check_fixture_prose.py` 規則 1**（record-claim export × 已接 API 的表面）
   - DoD: 掃描面含 `app/**/page.tsx` **與 `components/shell/**`**（Day-0 D-fetch-direct 已獨立確認
         shell 符合定義）；型別位置放行；config-driven + `--self-test`；
         檔頭有「它量的是有沒有人繞過機制」的誠實聲明
-- [ ] **`check_fixture_prose.py` 規則 2**（平台自宣稱清單 × 無 demo 標示的表面）
+- [x] **`check_fixture_prose.py` 規則 2**（平台自宣稱清單 × 無 demo 標示的表面）
   - DoD: 檔頭明寫**這條是刻意的開放集合例外**及其理由
-- [ ] **`data/**` 加 `@record-claim` 標記**（值不動）
+- [x] **`data/**` 加 `@record-claim` 標記**（值不動）
   - Verify: `git diff --stat apps/web/src/data/`（只有註解行）
-- [ ] **`test_fixture_prose.py`** —— pure functions 單元測試，含負面案例
-- [ ] **註冊進 `run_all.py`**
+- [x] **`scripts/lint/tests/test_fixture_prose.py`** —— **29 tests**，unittest + importlib（照慣例）
+  - DoD: ⛔ **第一版把 self-test 做成 `--self-test` 旗標而 `run_all` 不跑它** —— 一個不會被
+        自動執行的 self-test 等於沒有。改為**無條件先跑**（照 `check_backlog_counts.py:303`），
+        另建獨立測試檔給 CI（`ci.yml:108` 跑 `scripts/lint/tests/test_*.py`）
+  - DoD: ⭐ **測試抓到一個設計問題**：allowlist 標記寫在註解裡（最自然的寫法）會被
+        `strip_comments()` 吃掉 ⇒ claim 查 stripped body、allowlist 查原始 source
+- [x] **註冊進 `run_all.py`**
   - Verify: `python scripts/lint/run_all.py`（**期望 10/10**）
-- [ ] ⛔ **負面驗證（這是驗收，不是附加）**
+- [x] ⛔ **負面驗證（這是驗收，不是附加）**
   - DoD: 規則 1 —— 把一個 record-claim export 放回 `/policies` 值位置 ⇒ **指定測試轉紅
         並指名該 export 與該檔**；規則 2 —— 把 `"SOC 2 Type II"` 放回 shell ⇒ 轉紅並指名。
         兩條都要改回後轉綠。⛔ 依 `AD-GateGreenDecaysAfterFix-1`，`run_all` 全綠**不是**證據
@@ -167,7 +176,7 @@
 
 ### 2.5 盤點定稿（US-5）
 
-- [ ] **`docs/09-analysis/fixture-prose-inventory-20260819.md`**
+- [x] **`docs/09-analysis/fixture-prose-inventory-20260819.md`**
   - DoD: 27 頁（**含 0 條的頁**）· 每條 `file:line` + 逐字原文 + 類型 + fixture 來源 +
         affordance 欄 · **明文寫出 affordance 的收斂規則**（排除純風險評級與產品生命週期）·
         附覆蓋聲明（兩輪 agent + 我親補的 2 檔）
@@ -177,15 +186,16 @@
 
 ### 2.6 模板加一格（AD 的原文要求）
 
-- [ ] **`docs/01-planning/_templates/phase/checklist.md.tpl` Day-2 加具名項**
+- [x] **`docs/01-planning/_templates/phase/checklist.md.tpl` Day-2 加具名項**
   - DoD: 一行，內容是 §2.2 那個檢查的通用形式，**含 Day-0 D2 補上的第二問**
         （「誰連結進這一頁？」）；`check_rules_hygiene.py` 不因此超標
   - Verify: `python scripts/lint/run_all.py`
 
 ### 2.x Full gate
 
-- [ ] lint 0 · format clean ×2 · type 0 · api test ≥ 484 · api int ≥ 269 ·
-      web **`Test Files 11`** · build clean · `run_all` **10/10**
+- [x] lint **0** · format **clean ×2** · type **0** · web **`Test Files 11` / 103 tests** ·
+      `run_all` **10/10** · detector 測試 **5 檔全綠**（`test_fixture_prose.py` **29 tests**）
+      ⚠️ api test / api int / build 留到 Day 4 final gate（本片零 API 邏輯變更）
 
 ---
 

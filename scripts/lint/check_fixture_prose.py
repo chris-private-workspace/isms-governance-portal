@@ -229,8 +229,14 @@ def check_rule2(path: str, source: str, claims: list[str], allow: list[str]) -> 
     """Certification claims about this platform, anywhere in the web source."""
     found: list[Violation] = []
     body = strip_comments(source, path)
+    # ⚠️ The claim is looked for in the stripped body; the ALLOWLIST marker is
+    # looked for in the ORIGINAL. Found by test_an_allowlist_entry_exempts_the_file:
+    # an exemption marker belongs in a comment, because a comment is where the
+    # reason for it goes — and stripping comments before checking the allowlist
+    # made the natural way to write an exemption the one way that did not work.
+    exempt = any(a in source for a in allow if a)
     for claim in claims:
-        if claim in body and not any(a in body for a in allow if a):
+        if claim in body and not exempt:
             found.append(
                 Violation(
                     "rule2",
@@ -294,8 +300,17 @@ def run(root: Path) -> tuple[int, str]:
     )
 
 
-def self_test() -> int:
-    """Both rules, both directions. A guard with no negative case is a guess."""
+def self_test() -> list[str]:
+    """Both rules, both directions. A guard with no negative case is a guess.
+
+    Runs UNCONDITIONALLY before the real scan, matching check_backlog_counts.py.
+    A CLI flag nobody passes is a self-test that never runs — and this detector's
+    whole subject is mechanisms that exist and do not fire.
+
+    Division of labour with scripts/lint/tests/test_fixture_prose.py: these nine
+    are cheap enough to pay for on every run_all; that file covers the parser
+    traps and the wider failure directions with the test suite.
+    """
     failures: list[str] = []
 
     # --- rule 1: the tag associates with the NEXT export only ---------------
@@ -353,23 +368,25 @@ def self_test() -> int:
     if len(v) != 1:
         failures.append(f"rule2 json: expected 1 violation, got {len(v)}")
 
-    for line in failures:
-        print(f"  FAIL {line}")
-    if failures:
-        print(f"self-test: {len(failures)} failure(s)")
-        return 1
-    print("self-test: OK (9 assertions, both rules, both directions)")
-    return 0
+    return failures
 
 
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--root", default=".", help="repo root")
-    parser.add_argument("--self-test", action="store_true", help="run the built-in cases")
+    parser.add_argument("--self-test", action="store_true", help="run only the built-in cases")
     cli = parser.parse_args()
 
+    failures = self_test()
+    if failures:
+        for line in failures:
+            print(f"  FAIL {line}")
+        print(f"fixture-prose: SELF-TEST FAILED ({len(failures)} case(s)) — the guard is broken")
+        return 1
+
     if cli.self_test:
-        return self_test()
+        print("self-test: OK (9 assertions, both rules, both directions)")
+        return 0
 
     code, summary = run(Path(cli.root).resolve())
     print(summary)

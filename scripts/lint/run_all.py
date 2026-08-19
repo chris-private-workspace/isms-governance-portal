@@ -27,6 +27,7 @@ Created: 2026-08-07
 Last Modified: 2026-08-12
 
 Modification History (newest-first):
+    - 2026-08-19: Register fixture-prose detector (Phase W24) — 9 -> 10
     - 2026-08-14: Register backlog-counts detector (CH-027) — 7 -> 8
     - 2026-08-12: Register entity-index detector (Phase W08) — 6 -> 7
     - 2026-08-07: Register workflow-placeholders detector (CH-007)
@@ -74,6 +75,12 @@ DETECTORS: list[tuple[str, str, list[str]]] = [
     # fetch-depth: 0 for this, and the detector hard-fails rather than skipping
     # when it cannot see origin/main.
     ("sha-anchors", "check_sha_anchors.py", []),
+    # Fixture prose that would become a forged governance artifact: a
+    # @record-claim constant reaching a screen that reads the API, or this
+    # platform claiming a certification it does not hold (W24, CH-044).
+    # ⚠️ It measures whether anyone bypassed the two mechanisms, NOT whether
+    # the prose on a screen is honest. That is the drive-through's job.
+    ("fixture-prose", "check_fixture_prose.py", []),
     # ("your-detector", "check_your_pattern.py", ["--root", "src"]),
 ]
 
