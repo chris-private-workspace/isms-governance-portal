@@ -329,6 +329,30 @@ def mask_non_prose(text: str) -> str:
     return text
 
 
+def origin_main_resolves(repo_root: Path) -> bool:
+    """Can we see origin/main at all?
+
+    ⛔ REPORTED IN THE OUTPUT ON PURPOSE. Without this, `E5 clean` reads exactly
+    the same whether the landed gate adjudicated 30 artifacts or silently
+    adjudicated none because the checkout was shallow -- and "silently
+    adjudicated none" is the Potemkin this whole check exists to prevent.
+    check_sha_anchors.py:177 learned the identical lesson one detector over;
+    this function is that lesson applied rather than re-derived.
+    """
+    try:
+        out = subprocess.run(
+            ["git", "rev-parse", "--verify", "--quiet", "origin/main"],
+            cwd=repo_root,
+            capture_output=True,
+            encoding="utf-8",
+            errors="replace",
+            timeout=20,
+        )
+    except (OSError, subprocess.SubprocessError):
+        return False
+    return out.returncode == 0
+
+
 def _closed_on_origin_main(repo_root: Path, rel_predoc: str) -> bool:
     """Is this pre-doc ALREADY closed on origin/main?
 
@@ -645,8 +669,18 @@ def main(argv: list[str] | None = None) -> int:
     hard = [v for v in violations if v.check in ("E1", "E2", "E4", "E5")]
     warn = [v for v in violations if v.check == "E3"]
 
+    # Name what E5 could actually see, not the predicate -- a landed gate with no
+    # origin/main adjudicates nothing and says "clean" in the same words.
+    landed_note = "E5 landed-gate ACTIVE" if origin_main_resolves(repo_root) else (
+        "⚠️ E5 landed-gate INERT -- origin/main does not resolve, so no closeout "
+        "could be adjudicated; needs fetch-depth: 0"
+    )
+
     if not violations:
-        print(f"status-markers: OK ({scanned} pre-doc(s), E1/E2/E3/E4/E5 clean)")
+        print(
+            f"status-markers: OK ({scanned} pre-doc(s), E1/E2/E3/E4/E5 clean; "
+            f"{landed_note})"
+        )
         return 0
 
     print(f"status-markers: {len(hard)} error(s), {len(warn)} warning(s):")
