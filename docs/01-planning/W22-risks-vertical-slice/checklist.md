@@ -85,7 +85,9 @@
 - [x] **guardrail 7 檢查**：無 checksum 有效卡號、無真實個資、email 用 `.invalid`
   - Verify: 人工讀一遍 + `python scripts/lint/run_all.py`
   - ✅ 零人名 / 零 email / 零卡號形狀數字；`owner_user_id`·`created_by`·`updated_by` 全留 NULL
-  - 🚧 **gitleaks / semgrep 對新檔的結果延到 Day 2**（plan R3 原本就這樣排）
+  - ✅ **2026-08-19 解封（PR #86 CI run 32207082521）** —— plan R3 的兩個掃描器都**實際讀了這個檔**：
+    gitleaks **264 commits / 16.87 MB / `no leaks found`**（`--source .` 無 path filter，`fetch-depth: 0`）；
+    semgrep **231 個 ts 檔 / 0 findings**，而 `seed.ts` 在其中 —— 見 2.x 的逐項算術
 
 ### 1.x partial gate
 
@@ -145,8 +147,14 @@
 - [x] `format:check` · `lint` · `type-check` · `test`（api + web）· `build` · `run_all` 9/9
   - format clean · lint clean · type clean · api **484** · web **95** · build `✓ Compiled` · run_all **9/9**
   - ⚠️ `format:check` **第二次**因 python 就地編輯而先紅（4 檔），`--write` 後綠
-  - 🚧 **gitleaks / semgrep 對新檔（plan R3）本機未安裝**，只在 CI 有
-    ⇒ 解封條件：本片 PR 的 CI run
+  - ✅ **2026-08-19 解封 —— PR #86 CI 6/6 綠，且覆蓋是「讀出來的」不是「推論的」**：
+    ⛔ 「job 綠」與「324 files scanned」都**不回答 `seed.ts` 在不在裡面** ——
+    那是拿聚合數當證據。改成把排除集合**列完**，三個算術獨立收斂：
+    **ts 232 − 1 = 231**（semgrep 報 231）· **python 15 − 3 = 12**（報 12）·
+    **總計 331 − 7 = 324**（報 324）。7 個被跳過的已逐檔列名，全在 `test/` / `tests/` 下。
+    `seed.ts` 是 `.ts` 且不在測試目錄 ⇒ **它在那 231 個裡面**
+  - ⚠️ **副產物**：semgrep 預設忽略排除 `test/` / `tests/` ⇒ `apps/api/test/int-*.js`
+    （用 owner 角色連真資料庫的整合測試骨架）**零 SAST 覆蓋** → `AD-SemgrepSkipsTestDirs-1`
 - [x] **⏱ 寫入本日耗時到 progress.md** —— Day 2 **≈ 36 min**（20:52 → 21:28）
 
 ---

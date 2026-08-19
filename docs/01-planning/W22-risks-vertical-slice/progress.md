@@ -471,10 +471,53 @@ wiring 證據取自**新程序**：
 | `build`（api + web）| `✓ Compiled successfully in 39.3s`，25 個靜態頁 |
 | `run_all` | **9/9** |
 
-> ⚠️ **gate 射程聲明**（本片的 gate 集合**不含**下列）：
-> gitleaks 與 semgrep **本機未安裝，只在 CI 存在** ⇒ 🚧 解封條件是本片 PR 的 CI run。
+> ⚠️ **gate 射程聲明**：gitleaks 與 semgrep **本機未安裝，只在 CI 存在**。
 > 且 `apps/api/prisma/seed.ts` **不被 type-check / lint / format 任何一個讀到**
 > （`AD-SeedFileUngated-1`），本次以獨立 `tsc --noEmit` + `prettier --write` 手動補驗。
+> ✅ **兩個掃描器已於 PR #86 的 CI 解封 —— 見下節。**
+
+### ✅ PR #86 CI —— 6/6 綠，而「綠」不是解封條件，「讀出來的覆蓋」才是
+
+| Check | 結果 |
+|---|---|
+| gates | pass 2m45s |
+| 映像 build + 啟動探測 | pass 1m37s |
+| 依賴漏洞 — SCA | pass 15s |
+| 靜態安全 — SAST（semgrep）| pass 42s |
+| 憑證外洩 — gitleaks（全歷史）| pass 17s |
+| 容器映像 — trivy | pass 24s |
+
+**gitleaks —— 決定性**：`264 commits scanned` · `scanned ~16871221 bytes (16.87 MB) in 8.01s` ·
+**`no leaks found`**。指令是 `gitleaks detect --source . --config .gitleaks.toml`，
+**無 path filter**，checkout `fetch-depth: 0` ⇒ W22 那四個 code commit 在歷史裡。
+
+**semgrep —— 需要多做一步**。`Ran 465 rules on 324 files: 0 findings` ⛔ **不回答
+「`seed.ts` 在不在那 324 個裡面」** —— 那是拿聚合數回答一個要讀內容才能回答的問題
+（`feedback_evidence_must_support_claim` 的「命中數當證據」形態）。
+
+改成**把排除集合列完**，三個算術獨立收斂：
+
+| 維度 | 追蹤檔數（targets `apps packages scripts infra`，排除 `**/generated/**`）| 在 `test/` `tests/` 內 | 差 | CI log 報的 |
+|---|---|---|---|---|
+| ts | 232 | 1 | **231** | **231** ✅ |
+| python | 15 | 3 | **12** | **12** ✅ |
+| 總計 | 331 | 7 | **324** | **324** ✅ |
+
+被跳過的 7 個逐檔列名：`apps/api/test/int-db.js` · `int-env.js` · `int-global-setup.js` ·
+`apps/web/test/server-only.stub.ts` · `scripts/lint/tests/test_{backlog_counts,sha_anchors,workflow_placeholders}.py`。
+
+⇒ `apps/api/prisma/seed.ts` 是 `.ts`、在 `apps/` 底下、不在測試目錄 ⇒
+**它在 semgrep 掃的那 231 個 ts 檔裡面**。plan R3 的兩個 🚧 **解封**。
+
+### ⚠️ 順帶量到的：SAST 完全不看測試目錄
+
+本 repo **沒有 `.semgrepignore`**，用的是 semgrep 內建預設，而那份預設排除 `test/` 與 `tests/`。
+
+⛔ **`int-global-setup.js` 不是一般測試檔** —— 它以 **schema owner 身分連真資料庫**
+並插入跨實體 fixture，是本 repo 權限最高的執行路徑之一，而它**零 SAST 覆蓋**。
+
+⇒ `AD-SemgrepSkipsTestDirs-1` 🟡 P1。⛔ **不當場修**（節流閘：順路發現、不阻塞、非安全事故），
+且它是治理工具，受每 phase 1 個 CH 的配額約束。
 
 ### ⭐ 那個未診斷的測試失敗：第 3 次合併跑，仍未重現
 

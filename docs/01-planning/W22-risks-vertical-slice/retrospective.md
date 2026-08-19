@@ -21,13 +21,18 @@
 
 **未完成項目**：無。八條 AC 全部成立。
 
-⚠️ **兩個 🚧 保持開啟，且都不是未交付的範圍**（checklist 1.2 / 2.x 仍是 `[x]` + 🚧 註記）：
+**兩個 🚧 的現況**：
 
-- **gitleaks / semgrep 對新檔**（plan R3）—— 本機未安裝，只在 CI 存在。
-  **解封條件：本片 PR 的 CI run。** guardrail 7 的實質已由人工逐行讀過
-  （零人名 / 零 email / 零卡號形狀數字，owner 欄全 NULL），掃描器是佐證不是唯一依據
-- **`prisma/seed.ts` 不被任何本機 gate 讀**（`AD-SeedFileUngated-1`）——
-  本次以獨立 `tsc --noEmit` + `prettier --write` 手動補驗
+- ✅ **gitleaks / semgrep 對新檔**（plan R3）—— **已於 PR #86 的 CI 解封**。
+  ⛔ 解封條件不是「job 綠」而是「讀出來的覆蓋」：gitleaks `264 commits / 16.87 MB / no leaks found`
+  （無 path filter，`fetch-depth: 0`）；semgrep 的 `324 files` 是聚合數**不回答 seed.ts 在不在裡面**，
+  改成把排除集合列完 —— **ts 232−1=231 · python 15−3=12 · 總計 331−7=324**，
+  三個算術與 CI log 獨立收斂，7 個被跳過的逐檔列名且全在 `test/`。
+  ⚠️ guardrail 7 的實質仍是由人工逐行讀來的（零人名 / 零 email / 零卡號形狀數字，owner 欄全 NULL）——
+  **掃描器抓密鑰，不抓「編造的人名」**，這兩件事不可互相代替
+- 🚧 **`prisma/seed.ts` 不被任何本機 gate 讀**（`AD-SeedFileUngated-1`）——
+  本次以獨立 `tsc --noEmit` + `prettier --write` 手動補驗。
+  ⭐ **射程已精確化**：該檔的處境是「**零正確性 gate + 有安全掃描**」，不是「完全沒有 gate」
 
 ⛔ **US-4 的字面目標被 Day-0 證偽而非達成**：原文要求「不存在的 id 回 404 頁面」。
 `apps/web` 沒有 middleware，那個 307 是未登入閘門。真 404 status 記為 `AD-Real404Status-1`。
@@ -167,7 +172,9 @@ Day 0 一 grep 就發現 `apps/web` **根本沒有 middleware**：那個 307 來
 
 - **其餘 28 個畫面的 fixture 文案** → `AD-FixtureProseBecomesForgedEvidence-1`
   （⭐ **這是本片影響半徑最大的一條** —— 它今天無害，而它每接一頁就重演一次）
-- **gitleaks / semgrep 對新檔** → 🚧 解封條件：本片 PR 的 CI run
+- ✅ **gitleaks / semgrep 對新檔** → **已解封**（PR #86 CI）
+- **SAST 完全不看 `test/` / `tests/`** → `AD-SemgrepSkipsTestDirs-1`（⭐ 這一條是**讀 CI log 讀出來的**，
+  不在 plan 的任何預期裡；`int-global-setup.js` 以 schema owner 連真資料庫而零 SAST 覆蓋）
 - **`prisma/seed.ts` 不被 gate 讀** → `AD-SeedFileUngated-1`
 - **真 404 status** → `AD-Real404Status-1`（兩頁都是 `'use client'`，不是一行替換）
 - **UI 與 DB 的實體詞彙零交集** → `AD-EntityVocabularyMismatch-1`
