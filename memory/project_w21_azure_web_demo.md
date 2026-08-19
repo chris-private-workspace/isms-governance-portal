@@ -1,6 +1,6 @@
 # W21 — Azure web demo（一個真的能打開的網址）
 
-**Phase**: W21 · **Closed**: 2026-08-18 · **PR**: PR-pending · **Status**: `closed_partial`
+**Phase**: W21 · **Closed**: 2026-08-18 · **PR**: **MERGED (PR #84, `700ef62`)** · **Status**: `closed_partial`
 **權威來源**: [`W21-azure-web-demo-deploy/retrospective.md`](../docs/01-planning/W21-azure-web-demo-deploy/retrospective.md)
 **Change record**: [`CH-041`](../docs/03-implementation/changes/CH-041-project-writes-its-own-iac.md)
 **資源與重建**: [`infra/azure/README.md`](../infra/azure/README.md)

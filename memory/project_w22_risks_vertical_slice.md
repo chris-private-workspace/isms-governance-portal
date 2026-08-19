@@ -1,6 +1,6 @@
 # W22 — risks 垂直切片（兩個各自完整的一半第一次見面）
 
-**Phase**: W22 · **Closed**: 2026-08-19 · **PR**: PR-pending · **Status**: `closed`
+**Phase**: W22 · **Closed**: 2026-08-19 · **PR**: **MERGED (PR #86, `33efd4f`)** · **Status**: `closed`
 **權威來源**: [`W22-risks-vertical-slice/retrospective.md`](../docs/01-planning/W22-risks-vertical-slice/retrospective.md)
 **Change record**: [`CH-042`](../docs/03-implementation/changes/CH-042-risks-read-path-meets-the-api.md)
 
