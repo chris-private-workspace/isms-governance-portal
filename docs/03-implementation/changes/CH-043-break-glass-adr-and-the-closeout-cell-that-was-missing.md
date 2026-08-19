@@ -4,7 +4,7 @@
 **Phase**: W23
 **Scope**: `docs/14-adr`（ADR-0015 取代 0007）· 治理工具（`scripts/lint` E5）· 流程模板（四個 closeout 落點）
 **Components**: —
-**PR**: PR-pending
+**PR**: **MERGED** (PR #89, `bca8373`) —— 2026-08-19T06:26:58Z，經 `gh pr view` 驗證
 
 ---
 
@@ -111,7 +111,7 @@ break-glass。差別是**流量不是類別** —— Keycloak 承擔 100% 登入
 web **單獨跑** `Test Files 10 (10)` / `Tests 95 (95)` · build `✓ 25/25` ·
 `run_all` **9/9** · detector 測試 **4 檔**（13 + 18 + **21** + 8）。
 
-### 負面驗證：9 個情境，預測**先 commit**（`c67a38a`, 13:31:04）再執行
+### 負面驗證：9 個情境，預測**先 commit**（`ac9c20c`, 13:31:04）再執行
 
 | 情境 | 預測 | 實際 | 判定 |
 |---|---|---|---|

@@ -276,7 +276,7 @@ Gates: lint clean · api test **484** · web test **95** · type clean · build 
 | **R1 — D1 未拍板則本片的一半做不了** | ⛔ **這是硬阻塞不是風險**：ADR 內文不能在決定之前寫。Day 0 就要取得裁決；未取得則**只做 (B)**，(A) 留 `[ ]` + 🚧，phase 收為 `closed_partial` |
 | **R2 — D1 若選 (a) 或 (b)，產品 code 可能要改** | 本片 §4 宣告 `apps/**` UNTOUCHED。若裁決要求改，那是**新的範圍** ⇒ 依 `task-workflow.md` Go/No-Go 判準重新評估，不默默擴大。⚠️ (c) 則零 code 變更 |
 | **R3 — 取代整份 ADR-0007 會連帶取代它正確的部分** | 新 ADR **重述** Entra ID 的選擇與理由。⛔ 不可寫「其餘同 0007」—— 那讓讀者必須讀一份已被取代的檔 |
-| **R4 — E5 可能誤擋 closeout 當下的合法 `PR-pending`** | 檢查的是**矛盾**（pre-doc 已 `closed` 而標記仍 pending），不是 `PR-pending` 本身。**負面案例必須同時涵蓋「合法的 PR-pending 不可被擋」** —— 否則 E5 會讓每個 closeout 都紅 |
+| **R4 — E5 可能誤擋 closeout 當下的合法 `PR-pending`** | 檢查的是**矛盾**（pre-doc 已 `closed` 而標記仍 pending），不是 `PR-pending` 本身。**負面案例必須同時涵蓋「合法的 `PR-pending` 不可被擋」** —— 否則 E5 會讓每個 closeout 都紅 |
 | **R5 — 動 `.claude/rules/task-workflow.md` 會撞 byte 預算** | `check_rules_hygiene.py` 機械強制。兩格是**兩行**，但要先確認 headroom；不足則先精簡別處而**不是**放棄那一格 |
 | **R6 — 治理工具的配額（§Step 0.0）** | 本片是**每 phase 1 個治理 CH**的那一個。⇒ 期間發現的其他治理問題一律記 BACKLOG，不當場做 |
 | **R7 — Risk Class C（陳舊程序）** | N/A —— 本片零 runtime 變更，無服務需要重啟 |

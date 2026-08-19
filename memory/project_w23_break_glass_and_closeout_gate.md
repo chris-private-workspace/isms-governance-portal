@@ -3,7 +3,7 @@
 **Phase**: W23 — 裁決本地密碼衝突 + 給 closeout 補上它缺的那一格
 **Period**: 2026-08-19（單日）
 **Status**: `closed`
-**PR**: PR-pending
+**PR**: **MERGED** (PR #89, `bca8373`) —— 2026-08-19T06:26:58Z，經 `gh pr view` 驗證
 **Retrospective**: `docs/01-planning/W23-adr0007-amendment-and-closeout-gate/retrospective.md`
 **Change record**: `docs/03-implementation/changes/CH-043-break-glass-adr-and-the-closeout-cell-that-was-missing.md`
 
@@ -96,7 +96,7 @@ web `Test Files 10 (10)` / `Tests 95 (95)` · build `✓ 25/25` ·
 `run_all` **9/9** · detector 測試 **4 檔 63 tests** · `check_status_markers` **2.6 s**
 
 ⛔ **`gate-only verified`** —— 零 user-facing surface，沒有車可以開。
-取代 drive-through 的是 9 個情境的負面驗證，**預測先 commit**（`c67a38a`）再執行，7/9 逐項相符。
+取代 drive-through 的是 9 個情境的負面驗證，**預測先 commit**（`ac9c20c`）再執行，7/9 逐項相符。
 
 ## 檔案變更
 
