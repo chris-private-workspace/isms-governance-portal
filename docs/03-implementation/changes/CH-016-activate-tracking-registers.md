@@ -4,7 +4,7 @@
 **Phase**: 無 —— 獨立 CH（`STATUS_AUDIT.md` 2026-08-10 §2.7 AD-2 / AD-3 的處置）
 **Scope**: Planning / 治理文件
 **Components**: —
-**PR**: 待開
+**PR**: **MERGED** (PR #29, `c6a0bba`) —— 2026-08-10（與 CH-015 同一個 PR）
 
 ---
 

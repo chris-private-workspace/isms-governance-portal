@@ -452,3 +452,103 @@ scope-vs-pattern 誤導訊息**是同一類**（第 2 次）。
 |---|---|
 | Day 3（預測 commit `13:31:04` → 最終狀態綠）| **≈ 12 min** |
 | 對照 plan §7 的 Day-3 bottom-up（負面驗證 0.5 hr）| 0.5 hr ⇒ ratio **≈ 0.40** |
+
+---
+
+## Day 4 — 2026-08-19 — closeout
+
+### 交付
+
+`CH-043` · `retrospective.md` · calibration（matrix 1 行 + log 完整敘述）·
+`RISK_REGISTER`（E2 延伸 + **新增 E6**）· `STATUS_AUDIT`（`AD-30` / `AD-43` CLOSED）·
+`BACKLOG`（關 2 · 新增 1 · shipped pointer +1）· `CLAUDE.md` **2 行** ·
+`MEMORY.md` 指標 + subfile · `plan.md` `status:` + 內文標記翻 `closed`
+
+### ⛔⭐⭐ 兩件計畫外的事，而它們是本日最有價值的產出
+
+**這兩件都不是靠 gate 發現的，是靠「把本片自己的產物拿來用」發現的。**
+
+#### 1. 我 Day 2 的枚舉是窄的 —— 我枚舉了開放集合
+
+讀 `CH-042` 只是為了抄格式，卻看到第 7 行 `**PR**: #86（pending）` ——
+**第 6 種 marker 格式**，而 PR #86 早已 merged。重做一次正確的枚舉
+（`grep '^\*\*PR\*\*[:：]'`，把**欄位**撈出來逐行讀）之後：
+
+| 漏掉的 | 為什麼 Day 2 沒抓到 |
+|---|---|
+| `#86（pending）`（`CH-042`）| 我的枚舉 grep 是**我想得到的拼法清單** |
+| 裸 `待開`（`CH-016` / `CH-017`）| 我的 pattern 要求 `PR` 緊鄰 `待開`，而這裡是 `**PR**: 待開` |
+| `#<TBD>`（`CH-032`）| `#TBD\b` 配不到 `#<TBD>` |
+| `#61（pending）`（`memory/project_w13_*.md`）| ⛔ **搜錯範圍** —— 我只掃了 `docs/` |
+
+⇒ **E5 上線時對 9 個活的 stale marker 漏了 4 個（44%）。**
+
+⛔ **正解**：marker **欄位**（`^\*\*PR\*\*:`）是**封閉且可 grep** 的；它的**值**不是。
+已改為「**錨定欄位 + 分類值**」+ 2 個新測試（新格式全中 / 5 種已解析值不得誤報）。
+加寬後 E5 立刻自己抓到 3 個（含 `memory/` 那個**我人工也漏掉的**）。
+
+⚠️ 諷刺：我在 Day 2 的 commit message 裡引用 `AD-NarrowPatternWideClaim-1` 說明自己做對了什麼，
+而我當時正在犯它，只是升了一層。→ 已把這個實例寫回該 AD。
+
+#### 2. 我是自己這個 gate 的第一個使用者，而它擋住了我
+
+模擬 closeout（翻 `status: closed`）→ **E5 對 `CH-043` 與 `plan.md` 開火**，
+其中 `plan.md:280` 那一行**正是 R4 本身的文字**（「合法的 PR-pending 不可被擋」，唯一沒加反引號的一處）。
+**detector 對警告它不該開火的那句話開火了。**
+
+根因是流程順序：closeout **先翻 status、後開 PR**（`phase-closeout` §4.5 在 §7 之前）
+⇒ 從 closeout commit 到 post-merge commit 之間，「closed + pending」**兩者都對**。
+**這個 PR 自己的 CI 會紅。**
+
+⇒ 加 **landed gate**：`_closed_on_origin_main()` —— E5 只裁決**已經落在 `origin/main` 上**的 closeout。
+
+⚠️ **plan R4 預言過這個缺陷，而我照樣做出來了** —— 因為負面案例（`W98-fixture-active`）
+測的是「pre-doc 還 **active**」，真實誤擋情境是「pre-doc 已 **closed 但還沒 merge**」。
+**方向對了，狀態錯了。**
+
+**做這個修正時又踩了兩個坑，都留了具名測試 / 註解**：
+
+| 坑 | 症狀 |
+|---|---|
+| `subprocess` 預設 cp1252 解碼 | 撞到 pre-doc 的中文就丟 `UnicodeDecodeError`，而它在 reader thread 裡，**幾層之外才以 `stdout is None` 浮出來**。同族：`AD-ShaDetectorConsoleEncoding-1` |
+| landed 檢查放在 index 建立處 | 對**每一個** closed pre-doc 查 git ⇒ detector **2.6 s → 8.2 s**。改成只對**真的命中的 owner** 查 + memoise ⇒ 回到 **2.6 s** |
+
+### ⛔⭐⭐ 第三件事：final gate 推翻了我 Day-0 的另一個歸因
+
+final sweep 的 web 測試第一次跑就回報 **`Test Files 1 passed (1)` / `Tests 5 passed (5)`** ——
+**而那是單獨跑**。Day 0 我判定「**合併跑**才會只跑一部分」，並據此把緩解訂為「web 一律單獨跑」。
+**那個緩解擋不住任何東西。**
+
+連跑 5 次：**1 次部分 / 4 次完整**。且**部分跑執行的永遠是
+`src/app/api/demo-session/demo-session.test.ts`（恰好 5 個 test，字母序第一個檔）**
+⇒ 症狀是「**跑完第一個檔就停，並回報 passed**」。⛔ **仍不宣稱機制。**
+
+⇒ **唯一與機制無關的緩解：把檔數當斷言** —— 每次都必須看到 `Test Files 10`。
+`AD-UndiagnosedWebTestFailure-1` 已更正（含被推翻的歸因）。
+
+### Final gate
+
+| Gate | 結果 |
+|---|---|
+| `format:check` / `lint` / `type-check`（api + web）| clean ×2 / 0 / 0 |
+| `test -w apps/api` | **484 passed / 40 suites** |
+| `test -w apps/web` | ⚠️ 首跑 **1/5**（見上）→ 最終確認 **`Test Files 10 (10)` / `Tests 95 (95)`** |
+| `build` | `✓ Compiled successfully` · `Generating static pages … (25/25)` |
+| `run_all` | **9/9** |
+| detector 測試（CI 的跑法）| **4 檔** 13 + 18 + **24** + 8 = **63 tests** |
+| `check_status_markers` 耗時 | **2.6 s**（landed gate 加入後一度 8.2 s，已修）|
+
+**gate 射程聲明**：本地跑不到 —— gitleaks · semgrep · trivy · SBOM · 映像 build 與啟動探測（只在 CI）。
+**新的 CI 依賴**：E5 的 landed gate 需要 `origin/main` 可解析（`fetch-depth: 0`，
+`check_sha_anchors` 已經有同樣要求）。
+
+### 本日耗時
+
+| 項目 | 實際 |
+|---|---|
+| Day 4（Day-3 commit `13:36:53` → final gate 綠）| **≈ 60 min** |
+| 對照 plan §7 的 Day-4 bottom-up（closeout 1 hr）| 1.0 hr ⇒ ratio **≈ 1.00** |
+
+> ⚠️ **這個 1.00 是巧合，不是準確度。** 其中**超過一半**是上述三件計畫外的工作。
+> 純 closeout 約 **25 min**（ratio ≈ 0.42，與其他 Day 一致）。
+> ⇒ **phase 聚合 ratio 0.62 因此偏高** —— 已寫進 retrospective Q2 與 calibration-log。

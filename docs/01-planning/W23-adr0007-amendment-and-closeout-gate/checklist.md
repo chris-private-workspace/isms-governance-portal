@@ -251,24 +251,49 @@ _(本片**零 user-facing 變更**，無真 UI 可開。報告一律寫「**gate
 
 ### 4.1 Change record
 
-- [ ] **`docs/03-implementation/changes/CH-043-<slug>.md`**（Problem / Root Cause /
+- [x] **`docs/03-implementation/changes/CH-043-<slug>.md`**（Problem / Root Cause /
       Solution / Verification / Impact —— 含**負面驗證 PASS** 與關掉的 AD）
   - ⛔ **Verification 段必須寫「gate-only verified」** —— 本片沒有 drive-through
+  - ✅ `CH-043-break-glass-adr-and-the-closeout-cell-that-was-missing.md`
 
 ### 4.2 Closeout
 
-- [ ] `retrospective.md` Q1-Q7 + calibration（`docs / audit / template` **0.40**，**第 1 個資料點**）
-- [ ] `calibration-matrix.md` 新增一行（**≤ 1 行 ~250 字元**，敘述 → `calibration-log.md`）
+- [x] `retrospective.md` Q1-Q7 + calibration（`docs / audit / template` **0.40**，**第 1 個資料點**）
+  - ✅ ratio **0.62 UNDER**；⛔ 分子含**計畫外工作**，扣掉約 **0.51** —— 寫出來以免被讀成「估得準」
+- [x] `calibration-matrix.md` 新增一行（**≤ 1 行 ~250 字元**，敘述 → `calibration-log.md`）
   - ⚠️ 該 class 在 live 表上**今天不存在**，本片是它的第一行
-- [ ] Final gate sweep: `format:check` · `lint` · `type-check` · `test` · `build` · `run_all` 9/9
+  - ⭐ 真訊號在 `actual/bottom-up` = **0.25**（W22 是 0.26）⇒ **該修估算不是乘數** →
+    `AD-BottomUpEstimateInflated-1` 🟡
+- [x] Final gate sweep: `format:check` · `lint` · `type-check` · `test` · `build` · `run_all` 9/9
       + **gate 射程聲明**（哪些只在 CI 成立）
-- [ ] ⭐ **ADR 格自檢（本片新加的那一格，第一次用在自己身上）**
+  - ✅ format clean ×2 · lint 0 · type 0 · api **484 / 40** · build `✓ 25/25` · `run_all` **9/9**
+    · detector 測試 **4 檔 63 tests**
+  - ⛔⭐⭐ **web 第一次跑重現了 `Test Files 1 passed (1)` —— 而那是單獨跑**，
+    直接推翻 Day-0 的「合併跑才會」歸因。連跑 5 次：**1 部分 / 4 完整**；
+    部分跑執行的**永遠是字母序第一個檔**（`demo-session.test.ts`，恰好 5 個 test）。
+    最終確認 **`Test Files 10 (10)` / `Tests 95 (95)`**
+  - **射程聲明**：本地跑不到的 —— gitleaks · semgrep · trivy · SBOM · 映像 build 與啟動探測
+    （只在 CI）；`origin/main` 依賴 —— E5 的 landed gate 與 `check_sha_anchors` 需 `fetch-depth: 0`
+- [x] ⭐ **ADR 格自檢（本片新加的那一格，第一次用在自己身上）**
   - DoD: 本 phase 有沒有讓某份**已採納**的 ADR 變得不準確？有就在本片修，或開 AD
-- [ ] ⭐ **`PR-pending` 格自檢** —— merge 後翻標記，並以 `gh pr view --json state,mergedAt` **驗證**
-- [ ] 導航檔: `CLAUDE.md` Current-Phase + Last-Updated · `MEMORY.md` pointer + subfile ·
+  - ✅ **本片就是在做這件事**：0007 → 0015；6 處活的指標已 repoint
+  - ⚠️ 既有漂移（`06-tech-stack:38` + `architecture.md:106-108` 把已採納 ADR 顯示成未定）
+    → `AD-DecisionTableSaysUndecided-1`，**本片不修**（那不是本片造成的）
+  - ⛔ **這一格答不出「既有的存量」** —— 它只問本 phase 造成的損害，已寫進該 AD
+- [ ] 🚧 ⭐ **`PR-pending` 格自檢** —— merge 後翻標記，並以 `gh pr view --json state,mergedAt` **驗證**
+  - 🚧 **merge 之後才做得到**；`retrospective.md` 與 `CH-043` 現為 `PR-pending`
+  - ⭐⭐ **這一格在本片自己身上就抓到一個缺陷**：模擬 closeout 時 E5 對 `CH-043` 與 `plan.md`
+    開火（後者那行**正是 R4 本身的文字**）⇒ 加 **landed gate**：只裁決已落在 `origin/main` 的 closeout
+  - ⭐ **順帶修掉 10 個真的 stale marker**，全部以 `gh pr list` 查證
+- [x] 導航檔: `CLAUDE.md` Current-Phase + Last-Updated · `MEMORY.md` pointer + subfile ·
       `BACKLOG.md`（CLOSE `AD-LocalPasswordFallback-1` · `AD-30` · `AD-43` ·
       `AD-StalePrPendingNoDetector-1`）
-- [ ] Anti-pattern 自檢（retro Q5）：AP-1..AP-7 → 違規數
-- [ ] **⏱ 寫入本日耗時到 progress.md**
+  - ✅ CLAUDE.md **只動 2 行** · MEMORY.md +1 指標 + subfile · `RISK_REGISTER` E2 延伸 + **新增 E6**
+  - ⭐ **`AD-LocalPasswordFallback-1` 是本專案第一個被關掉的 P0**（6 → **5**）
+  - `AD-30` / `AD-43` 住 `STATUS_AUDIT.md`，已於該檔標 CLOSED
+- [x] Anti-pattern 自檢（retro Q5）：AP-1..AP-7 → 違規數
+  - ✅ **1 條（已修）** —— AP-7：我在測試 docstring 裡引用了當時**還不存在**的
+    `AD-E5BlindToStandaloneCh-1`，那是 orphan claim
+- [x] **⏱ 寫入本日耗時到 progress.md** —— **≈ 60 min**（含兩件計畫外的工作）
 - [ ] **Commit** → ⏳ PR push + open → CI → merge: **PENDING USER CONFIRMATION**
       （push 是 outward-facing）→ merge 經 `gh` 驗證後翻狀態標籤

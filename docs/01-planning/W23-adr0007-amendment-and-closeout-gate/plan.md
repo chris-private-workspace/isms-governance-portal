@@ -1,5 +1,5 @@
 ---
-status: active  # draft | active | closed | closed_partial —— 機器可讀的唯一權威
+status: closed  # draft | active | closed | closed_partial —— 機器可讀的唯一權威
 ---
 
 # Phase W23 Plan — settle the local-password conflict, and give closeout the cell it lacks
@@ -13,8 +13,7 @@ stakeholder 要保留本地密碼登入，而**已採納**的 ADR-0007 說平台
 ⚠️ **Day 3 不是 drive-through 而是負面驗證** —— 本片無 user-facing surface 變更，
 報告一律寫「gate-only verified」。
 
-**Status**: **Approved-to-execute**（使用者 2026-08-19 —— 核可全片範圍，
-並拍板 §3.6 的 **D1 = (a) break-glass 應急路徑**）
+**Status**: **closed**（2026-08-19 —— 六個 US 全數交付；D1 = (a) break-glass 已寫入 ADR-0015 §Decision）
 
 **Branch**: `feature/W23-adr-and-closeout-gate`
 **Base**: `main` HEAD **`c2f823c`**（PR #88 status audit #8 merge 後，SHA 改寫第 15 次）

@@ -71,7 +71,7 @@ class TestE5StalePending(unittest.TestCase):
         AD-MetaVerificationBug-1: a test suite whose instrument is broken
         reports 'no violations' in exactly the same words as a clean repo.
         """
-        hits = {v.artifact.split(":")[0] for v in csm.stale_pending(FIXTURE)}
+        hits = {v.artifact.split(":")[0] for v in csm.stale_pending(FIXTURE, require_landed=False)}
         self.assertIn(
             "docs/01-planning/W99-fixture-closed/retrospective.md",  # path-check: ignore — synthetic
             hits,
@@ -100,7 +100,7 @@ class TestE5StalePending(unittest.TestCase):
         message that reads like a broken pattern but was a broken scope. Measured
         on the first run of stale_pending().
         """
-        self.assertTrue(csm.stale_pending(FIXTURE), "fixture tree scanned as empty")
+        self.assertTrue(csm.stale_pending(FIXTURE, require_landed=False), "fixture tree scanned as empty")
 
     # --- the live repo, named not counted (plan R8) ------------------------
 
@@ -143,7 +143,7 @@ class TestE5StalePending(unittest.TestCase):
                     "docs/01-planning/W50-x/progress.md": "W50 的四處 `PR-pending` 已翻\n",  # path-check: ignore — synthetic
                 },
             )
-            self.assertEqual(csm.stale_pending(root), [])
+            self.assertEqual(csm.stale_pending(root, require_landed=False), [])
 
     def test_html_comment_does_not_fire(self) -> None:
         """The real W21 case: a back-fill note mentions the marker UNBACKTICKED
@@ -160,7 +160,7 @@ class TestE5StalePending(unittest.TestCase):
                     ),
                 },
             )
-            self.assertEqual(csm.stale_pending(root), [])
+            self.assertEqual(csm.stale_pending(root, require_landed=False), [])
 
     def test_fenced_block_does_not_fire(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
@@ -173,7 +173,7 @@ class TestE5StalePending(unittest.TestCase):
                     ),
                 },
             )
-            self.assertEqual(csm.stale_pending(root), [])
+            self.assertEqual(csm.stale_pending(root, require_landed=False), [])
 
     def test_masking_preserves_line_numbers(self) -> None:
         """A mask that changed length would report the defect on the wrong line,
@@ -192,7 +192,7 @@ class TestE5StalePending(unittest.TestCase):
                     "docs/01-planning/W51-y/retrospective.md": "**PR**: #TBD\n",  # path-check: ignore — synthetic
                 },
             )
-            self.assertEqual(csm.stale_pending(root), [])
+            self.assertEqual(csm.stale_pending(root, require_landed=False), [])
 
     def test_pending_marker_on_a_closed_artifact_fires(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
@@ -203,7 +203,7 @@ class TestE5StalePending(unittest.TestCase):
                     "docs/01-planning/W50-x/retrospective.md": "**PR**: #TBD\n",  # path-check: ignore — synthetic
                 },
             )
-            found = csm.stale_pending(root)
+            found = csm.stale_pending(root, require_landed=False)
             self.assertEqual(
                 [v.artifact for v in found],
                 ["docs/01-planning/W50-x/retrospective.md:1"],  # path-check: ignore — synthetic
@@ -223,7 +223,7 @@ class TestE5StalePending(unittest.TestCase):
                     "MEMORY.md": "- W50 shipped — PR-pending\n",
                 },
             )
-            self.assertEqual([v.artifact for v in csm.stale_pending(root)], ["MEMORY.md:1"])
+            self.assertEqual([v.artifact for v in csm.stale_pending(root, require_landed=False)], ["MEMORY.md:1"])
 
     def test_authority_from_the_file_header(self) -> None:
         """Single-file CH records carry `**Phase**: W21` in the header, not on
@@ -239,7 +239,7 @@ class TestE5StalePending(unittest.TestCase):
                 },
             )
             self.assertEqual(
-                [v.artifact for v in csm.stale_pending(root)],
+                [v.artifact for v in csm.stale_pending(root, require_landed=False)],
                 ["docs/03-implementation/changes/CH-900-z.md:4"],  # path-check: ignore — synthetic
             )
 
@@ -262,7 +262,7 @@ class TestE5StalePending(unittest.TestCase):
                     ),
                 },
             )
-            self.assertEqual(csm.stale_pending(root), [])
+            self.assertEqual(csm.stale_pending(root, require_landed=False), [])
 
     def test_templates_are_excluded(self) -> None:
         """A template's `PR-pending` is the placeholder being copied FROM."""
@@ -276,7 +276,7 @@ class TestE5StalePending(unittest.TestCase):
                     ),
                 },
             )
-            self.assertEqual(csm.stale_pending(root), [])
+            self.assertEqual(csm.stale_pending(root, require_landed=False), [])
 
     # --- all five enumerated marker formats --------------------------------
 
@@ -293,11 +293,105 @@ class TestE5StalePending(unittest.TestCase):
                     f"no pattern matches the enumerated format {marker!r}",
                 )
 
+    def test_every_pr_field_value_that_means_unresolved(self) -> None:
+        """⛔ THE DAY-4 LESSON, pinned.
+
+        The first version of this check enumerated SPELLINGS and shipped missing
+        three of them, all live in the repo: `#86（pending）` (CH-042),
+        `待開` (CH-016/017), `#<TBD>` (CH-032). The set of spellings is open;
+        the set of MARKER FIELDS is closed and greppable. Anchoring on
+        `**PR**:` and classifying the value is what makes this list finite.
+        """
+        for value in ("#TBD", "#<TBD>", "待開", "#86（pending）", "#86 (pending)", "PR-pending"):
+            with self.subTest(value=value):
+                line = f"**PR**: {value}"
+                m = csm.PR_FIELD_RE.match(line)
+                self.assertIsNotNone(m, f"PR_FIELD_RE did not match {line!r}")
+                self.assertTrue(
+                    csm.UNRESOLVED_VALUE_RE.search(m.group(1))
+                    or any(p.search(line) for p in csm.PENDING_PATTERNS),
+                    f"{value!r} is not recognised as unresolved",
+                )
+
+    def test_resolved_pr_field_values_do_not_fire(self) -> None:
+        """The other half: every shape a SETTLED marker takes in this repo.
+
+        Without this, widening the value rule to catch `pending` would quietly
+        start flagging `MERGED (PR #6, 58d39ec)` too, and the check would go red
+        on 60-odd correctly-closed records.
+        """
+        for value in (
+            "MERGED (PR #6, 58d39ec)",
+            "**MERGED** (PR #86, `33efd4f`) —— 經 `gh pr view` 驗證",
+            "#47 —— **MERGED** 2026-08-13（rebase，main head `74d8d56`）",
+            "併入 PR #79",
+            "#27 · #28（表單欄位還原）",
+        ):
+            with self.subTest(value=value):
+                line = f"**PR**: {value}"
+                m = csm.PR_FIELD_RE.match(line)
+                self.assertIsNotNone(m)
+                self.assertIsNone(
+                    csm.UNRESOLVED_VALUE_RE.search(m.group(1)),
+                    f"{value!r} was misread as unresolved",
+                )
+
     def test_bare_TBD_is_deliberately_not_a_marker(self) -> None:
         """Widening to bare `TBD` would catch one more true positive and a dozen
         prose mentions ("10 處 PR-pending / TBD 已翻"). Asserted so the choice is
         a decision on record, not an oversight."""
         self.assertFalse(any(p.search("TBD 已翻") for p in csm.PENDING_PATTERNS))
+
+    # --- the landed gate: E5 must not fire on the closeout it is part of ---
+
+    def test_unmerged_close_is_in_flight_BOTH_directions(self) -> None:
+        """⛔ plan R4 ARRIVING ON SCHEDULE — measured, not theorised.
+
+        Closeout flips `status:` to closed BEFORE the PR exists (phase-closeout
+        §4.5 precedes §7). Simulating this phase's own closeout made E5 fire on
+        CH-043 and on plan.md — i.e. it would have gone red on its own PR's CI,
+        and a check that reddens every closeout is one that gets switched off.
+
+        Both directions in one test on purpose: `require_landed=True` must stay
+        silent AND `False` must still catch it. Asserting only the first would
+        pass with a stale_pending() that had stopped working altogether.
+        """
+        with tempfile.TemporaryDirectory() as tmp:
+            root = _tree(
+                Path(tmp),
+                {
+                    "docs/01-planning/W50-x/plan.md": CLOSED_PLAN,  # path-check: ignore — synthetic
+                    "docs/01-planning/W50-x/retrospective.md": "**PR**: PR-pending\n",  # path-check: ignore — synthetic
+                },
+            )
+            # no origin/main counterpart exists -> the close has not landed
+            self.assertEqual(csm.stale_pending(root, require_landed=True), [])
+            self.assertEqual(
+                [v.artifact for v in csm.stale_pending(root, require_landed=False)],
+                ["docs/01-planning/W50-x/retrospective.md:1"],  # path-check: ignore — synthetic
+            )
+
+    def test_landed_gate_agrees_with_origin_main(self) -> None:
+        """A phase closed several PRs ago IS on origin/main, so E5 adjudicates it.
+
+        W22 is used because it is the most recent landed closeout; if this ever
+        fails, check that the branch has an `origin/main` ref before suspecting
+        the gate (CI needs fetch-depth: 0, as check_sha_anchors already requires).
+        """
+        self.assertTrue(
+            csm._closed_on_origin_main(
+                _REPO_ROOT, "docs/01-planning/W22-risks-vertical-slice/plan.md"
+            )
+        )
+
+    def test_landed_gate_stays_quiet_when_it_cannot_tell(self) -> None:
+        """No such path on origin/main -> False -> in-flight -> silent.
+
+        Guessing in the dark is worse than waiting: the post-merge run sees it.
+        """
+        self.assertFalse(
+            csm._closed_on_origin_main(_REPO_ROOT, "docs/01-planning/W00-nope/plan.md")  # path-check: ignore — synthetic
+        )
 
     # --- E5 must not disturb what was already there ------------------------
 
@@ -313,7 +407,7 @@ class TestE5StalePending(unittest.TestCase):
                     "docs/01-planning/W50-x/progress.md": "# no frontmatter here\n",  # path-check: ignore — synthetic
                 },
             )
-            self.assertEqual([v for v in csm.find_violations(root) if v.check == "E4"], [])
+            self.assertEqual([v for v in csm.find_violations(root, require_landed=False) if v.check == "E4"], [])
 
     def test_find_violations_includes_E5(self) -> None:
         """E5 must reach the aggregate, not just its own function — a check that
@@ -326,7 +420,7 @@ class TestE5StalePending(unittest.TestCase):
                     "docs/01-planning/W50-x/retrospective.md": "**PR**: #TBD\n",  # path-check: ignore — synthetic
                 },
             )
-            self.assertEqual([v.check for v in csm.find_violations(root)], ["E5"])
+            self.assertEqual([v.check for v in csm.find_violations(root, require_landed=False)], ["E5"])
 
 
 if __name__ == "__main__":
