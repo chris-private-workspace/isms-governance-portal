@@ -304,18 +304,32 @@
         ⚠️ **ADR-0007 已被 ADR-0015 取代（W23）而 `/policies` 的 `_warning` 仍引用它** ——
         既有 orphan claim，非本片造成且在 `apps/api`（不屬本片範疇）⇒ 記 BACKLOG 不順手改
   - DoD: ⭐ `RISK_REGISTER.md` **E5 一列已改寫** —— 本片正是它的處置；敞口降低但**未歸零**
-- [ ] **Commit** → ⏳ PR push + open → CI → merge: **PENDING USER CONFIRMATION**
+- [x] **Commit** → ⏳ PR push + open → CI → merge: **PENDING USER CONFIRMATION**
       （push 是 outward-facing）→ merge 經 `gh` 驗證後翻狀態標籤
-  - 🚧 **阻塞：等使用者確認 push**。本地 commit 已完成，數量與 SHA 見
-        `git log --oneline main..feature/W24-policies-prose-guard`。
-        ⚠️ **這裡刻意不寫死數字** —— 第一版寫「5 個」並列了 6 個 hash，而下一個 commit
-        立刻讓它變成 7。**一個會在下一次動作後過期的數字，不該寫進追蹤文件**。
-        ⛔ 本項**不勾**，因為 push / PR / CI / merge 一項都還沒發生
+  - DoD: ✅ 使用者 2026-08-20 授權 push → **PR #91** → CI **6/6 SUCCESS**
+        （gates 2m12s · 映像 build + 啟動探測 1m41s · SAST 36s · trivy 17s ·
+        gitleaks 全歷史 15s · SCA 10s）→ `mergeState` `BLOCKED` → **`CLEAN`** → **MERGED**
+  - DoD: ⭐ **CI 的 `gates` job 是獨立複驗** —— 它在乾淨 checkout 上跑，
+        等於用不受本機 I/O 影響的環境重跑了我今早跑不完的那批，**兩邊結論一致**
   - ✅ **解封前欠的那件事已補**（使用者裁決「等機器恢復，補跑 run_all 和 lint 再說」）：
-        `run_all` **10/10**（涵蓋 closeout 尾段四個檔）+ lint/type/format **六項全 0/clean**。
-        ⇒ **gate 側已無欠項**，剩下的純粹是 push / PR / CI / merge
-- [ ] ⭐ **`PR-pending` 標記已翻** —— 以 `gh pr view <N> --json state,mergedAt` **驗證**，
+        `run_all` **10/10**（涵蓋 closeout 尾段四個檔）+ lint/type/format **六項全 0/clean**
+- [x] ⭐ **`PR-pending` 標記已翻** —— 以 `gh pr view <N> --json state,mergedAt` **驗證**，
       不採信「已 merge」的宣稱。機械守衛：`check_status_markers.py` **E5**
-  - 🚧 **阻塞：merge 尚未發生**。目前 `CH-044` / `retrospective` / `MEMORY.md` /
-        `CLAUDE.md` / BACKLOG §Shipped 五處都寫 `PR-pending`，⭐ 而 `run_all` 的
-        **E5 landed-gate 確認這是合法狀態**（plan 已 `closed` 但該 close 尚未落到 `origin/main`）
+  - DoD: ⭐ **使用者說「PR 已 merged」，我仍先跑了 `gh pr view 91`** —— 回傳
+        `state: MERGED` · `mergedAt: 2026-08-20T06:03:23Z` · mergeCommit `662d658`。
+        **這一步不是形式**：`AD-...`/W21 的四處假 pending 就是從一句未經驗證的宣稱開始的
+  - DoD: ⚠️ **實際是六處不是五處** —— 先前那一格寫「五處」，翻的時候逐一 grep 才發現
+        `MEMORY.md` 的 W24 指標也帶著 `PR-pending`。六處：`CLAUDE.md` · `MEMORY.md` ·
+        `BACKLOG.md` §Shipped · `CH-044` · `retrospective.md` · `memory/project_w24_*.md`
+  - DoD: ⛔ **順帶修掉一個 stale SHA** —— 本 repo 用 rebase merge（linear history），
+        分支側每個 SHA 在 `main` 上都是新的。
+        `progress.md:276` 原記的 `2ce0d55` 已因 rebase 失效（實測非 `origin/main` 祖先），
+        已改為同時記兩者（分支 `2ce0d55` → main `d6aff4a`）。
+        ⭐ W19 的 post-merge 也踩過同一件事（`bf2a2dd`→`358f8e2`）
+  - DoD: ⭐⭐ **而寫這一格的時候，守衛對我自己的說明開火了** —— 上面那句話**提到**
+        `2ce0d55`，`check_sha_anchors` 因此把它算成第 2 個 stale anchor。
+        這是 `AD-GuardMatchesItsOwnDisclaimer-1` 的形狀（斷言命中了說明該構造不存在的散文），
+        ⭐ **差別在於這支 detector 預期到了**：它的失敗訊息最後一句就是
+        「if the line is ABOUT the SHA being dead, say so on the line」，
+        且 `DEAD_VALUE_MARKERS` 收了 `rebase` / `已失效` / `no longer` 等詞。
+        ⚠️ **marker 是逐行比對的** —— 我第一版把 `rebase` 寫在上一行、SHA 寫在下一行，所以不算

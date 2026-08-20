@@ -76,7 +76,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 | Attribute | Value |
 |-----------|-------|
 | **Stage** | Wave 1 backbone — 建立共用骨幹，並用 Policy + Risk/Control 兩個最小模組端到端證明它 |
-| **Current Phase** | **W24**（PR-pending）`closed` —— 平台停止宣稱它沒有的認證（三條 claim **只改兩條**，第三條逐條驗證後實測為真），`/policies` 列表接上 API，`AD-FixtureProseBecomesForgedEvidence-1` 拿到**機械承載**（守衛錨定封閉集合，不枚舉文案）。⛔ drive-through 抓到一條**所有 gate 都看不見**的假陳述 —— mock 丟掉插值變數使整行輸出不可觀測，見 `AD-MockDropsInterpolation-1` |
+| **Current Phase** | **W24**（PR #91 已 merge）`closed` —— 平台停止宣稱它沒有的認證（三條 claim **只改兩條**，第三條逐條驗證後實測為真），`/policies` 列表接上 API，`AD-FixtureProseBecomesForgedEvidence-1` 拿到**機械承載**（守衛錨定封閉集合，不枚舉文案）。⛔ drive-through 抓到一條**所有 gate 都看不見**的假陳述 —— mock 丟掉插值變數使整行輸出不可觀測，見 `AD-MockDropsInterpolation-1` |
 | **History** | See [`MEMORY.md`](./MEMORY.md) + 各 phase 的 `retrospective.md` |  <!-- doc-links: ignore — MEMORY.md 由 bootstrap 複製到專案根 -->
 | **Pending / Next** | See [`docs/01-planning/BACKLOG.md`](./docs/01-planning/BACKLOG.md)（**有什麼**）· [`ROADMAP.md`](./docs/01-planning/ROADMAP.md)（**先做哪個**）|
 | **跨來源狀態** | See [`docs/01-planning/STATUS_AUDIT.md`](./docs/01-planning/STATUS_AUDIT.md) —— 問「現在全項目怎樣」時跑 `/status-audit`，**不要只讀 BACKLOG** |

@@ -4,7 +4,7 @@
 **Period**: 2026-08-19 ~ 2026-08-20
 **Branch**: `feature/W24-policies-prose-guard`
 **Base**: `main` `5e517c5`
-**PR**: PR-pending
+**PR**: **MERGED** (PR #91, `662d658`) 2026-08-20T06:03:23Z
 **權威**: [`retrospective.md`](../docs/01-planning/W24-policies-read-path-and-prose-guard/retrospective.md) ·
 [`CH-044`](../docs/03-implementation/changes/CH-044-unclaim-the-platform-and-guard-the-prose.md)
 
