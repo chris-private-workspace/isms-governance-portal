@@ -84,7 +84,6 @@ DECLARED = """<!-- progress-metrics:declared -->
 | `rls-enable-force` | 27 / 27 |
 | `loc-api-prod` | 7765 |
 | `loc-api-test` | 14663 |
-| `loc-generated` | 96617 |
 <!-- /progress-metrics:declared -->
 """
 
@@ -115,9 +114,24 @@ class DerivedMatchesDeclared(unittest.TestCase):
         )
 
     def test_a_missing_ruler_is_a_failure_not_a_skip(self):
-        bad = DOC.replace("| `loc-generated` | 96617 |\n", "")
+        bad = DOC.replace("| `loc-api-test` | 14663 |\n", "")
         problems = mod.check(bad, facts())
-        self.assertTrue(any("loc-generated" in p and "not declared" in p for p in problems))
+        self.assertTrue(any("loc-api-test" in p and "not declared" in p for p in problems))
+
+    def test_generated_loc_is_printed_but_never_compared(self):
+        # A ruler must be a property of the committed repo. src/generated/ is
+        # the Prisma client: .gitignore excludes it, so it exists locally after
+        # a build and is absent on a fresh CI checkout. The first version of
+        # this detector compared it -- local run_all went 11/11 green and CI
+        # went red deriving 0. See RULER_RULE in the detector.
+        self.assertEqual(mod.check(DOC, facts(loc_generated=0)), [])
+        self.assertEqual(mod.check(DOC, facts(loc_generated=96617)), [])
+
+    def test_output_says_which_case_the_generated_count_is_in(self):
+        # Printing a bare "0" would read as "there is no generated code",
+        # which is a different claim from "it was not built here".
+        self.assertIn("not built in this checkout", mod.render(facts(loc_generated=0), []))
+        self.assertIn("not compared", mod.render(facts(loc_generated=96617), []))
 
     def test_an_unknown_declared_ruler_is_a_failure(self):
         # Otherwise a ruler could be renamed in the detector and the stale row

@@ -93,6 +93,42 @@ detector **正確偵測到**漂移（exit 1、`1 mismatch(es)`），但**印訊�
 真實驗收在**下一次審計**：`/status-audit` §2.0 是否改為引用 `PROGRESS-METRICS.md`
 而不是臨時重算。
 
+### ⛔⭐ PR #96 CI 紅 —— 一把尺量的是我的工作環境，不是這個 repo
+
+**本機 `run_all` 11/11 綠，CI `gates` 紅。** 失敗訊息精確（detector 這部分寫對了）：
+
+```
+ruler `loc-generated`: document declares '96617', repo derives '0'
+```
+
+**根因**：`apps/api/src/generated/` 是 Prisma client。`.gitignore:96` 排除它、
+`git ls-files` **0 個 tracked 檔** ⇒ 它在本機是 `prisma generate` 之後才存在的，
+在乾淨的 CI checkout 上**根本不存在**。
+
+⇒ 那把尺量的不是「進度」，是「**我跑過 build 沒有**」。
+
+**修法**：移除該把尺的**比對**，保留它的**輸出**（它是排除 9.6 萬行的理由），
+並在輸出中區分兩種情況 —— `absent -- not built in this checkout` vs
+`96617 lines here, build artefact, not compared`。⚠️ 印一個裸的 `0` 會讀成
+「沒有 generated code」，那是與「這裡沒 build」不同的宣稱。
+
+**寫成規則**（detector 內 `RULER_RULE` 區塊 + 文件 §1.0）：
+
+> **一把尺必須是版控內容的屬性，不是工作環境的屬性。**
+> 加新尺之前先問：一個乾淨的 `git clone`、不跑任何 build，導得出同一個值嗎？
+> 導不出 ⇒ **印它，不要比對它。**
+
+⭐ **兩條回歸測試**釘住它：`loc_generated` 為 0 或 96617 都不得產生 problem；
+輸出必須說出是哪一種情況。
+
+⚠️ **這是 `AD-LocalGateSetIncomplete-1` 的一個新變體**：既有的那條講的是
+「本機 gate 集合 ≠ CI gate 集合」（某些 job 只在 CI 跑）。**本次差異不在 gate 集合** ——
+兩邊跑的是同一支 detector、同一個 `run_all` —— **差在環境狀態**。
+⇒ 同一支 gate 在兩個環境給出不同答案，而那正是它該偵測的東西之外的東西。
+
+⛔ **我沒有只憑本機綠就宣稱修好**：修完後用 `git worktree` 建乾淨 checkout
+（無 `generated/`）重現 CI 條件再驗一次，結果記於下方。
+
 ### 完成摘要
 
 五把尺 + 12 列里程碑錨點上線，`run_all` 由 10 → **11** 個 detector。

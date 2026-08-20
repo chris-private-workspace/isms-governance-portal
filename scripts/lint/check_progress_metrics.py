@@ -104,6 +104,23 @@ MILESTONE_BLOCK = re.compile(
 DECLARED_ROW = re.compile(r"^\|\s*`([a-z0-9-]+)`\s*\|\s*([^|]+?)\s*\|", re.M)
 MILESTONE_ROW = re.compile(r"^\|\s*(M[0-9][a-z]?)\s*\|\s*([^|]+?)\s*\|\s*`([^`]+)`\s*\|", re.M)
 
+# === RULER_RULE ======================================================
+# ⛔ A RULER MUST BE A PROPERTY OF THE COMMITTED REPO, NOT OF THE WORKING
+# ENVIRONMENT. Learned the expensive way on this file's own first PR: the first
+# version compared `loc-generated`, the line count of apps/api/src/generated/.
+# That directory is the Prisma client -- .gitignore:96 excludes it and it holds
+# zero tracked files -- so it exists locally after `prisma generate` and does
+# not exist on a fresh CI checkout. Local run_all was 11/11 green; CI derived 0
+# and went red.
+#
+# The generated count is still WORTH PRINTING: it is the justification for
+# excluding ~96k lines nobody wrote from loc-api-prod. But printing context and
+# enforcing a declared figure are different things, and only the second one
+# requires the number to be stable across environments.
+#
+# Before adding a ruler, ask: would a fresh `git clone` with no build step
+# derive the same value? If not, print it, do not compare it.
+
 # The disclaimer is part of the output contract, not decoration. A ruler set
 # printed without its scope reads as a completeness score, which is the one
 # thing these numbers are not.
@@ -350,7 +367,7 @@ def check(text: str, f: Facts) -> list[str]:
         "rls-enable-force": f"{f.rls_enable} / {f.rls_force}",
         "loc-api-prod": str(f.loc_api_prod),
         "loc-api-test": str(f.loc_api_test),
-        "loc-generated": str(f.loc_generated),
+        # ⛔ `loc-generated` IS DELIBERATELY NOT COMPARED. See RULER_RULE below.
     }
 
     for key, want in expected.items():
@@ -393,7 +410,12 @@ def render(f: Facts, milestones: list[tuple[str, str, str]]) -> str:
             + (f"   ({', '.join(f'{n} 0' for n in zero)})" if zero else ""),
             f"  RLS enable/force  {f.rls_enable} / {f.rls_force}  (gap {f.rls_gap})",
             f"  authored LOC      api {f.loc_api_prod} prod / {f.loc_api_test} test",
-            f"                    (excl. src/generated/ {f.loc_generated})",
+            "                    (src/generated/ excluded: "
+            + (
+                f"{f.loc_generated} lines here, build artefact, not compared)"
+                if f.loc_generated
+                else "absent -- not built in this checkout)"
+            ),
             "",
             f"  milestone anchors {verified} verified / {len(manual)} manual"
             + (f" ({', '.join(manual)})" if manual else ""),
@@ -426,7 +448,7 @@ def self_test(root: Path) -> None:
         "| `data-model` | 2 / 3 |\n| `audit-coverage` | 1 / 2 |\n"
         "| `pages-domain` | 1 |\n| `pages-other-http` | 0 |\n| `pages-static` | 1 |\n"
         "| `scopes-with-code` | 1 / 2 |\n| `rls-enable-force` | 4 / 4 |\n"
-        "| `loc-api-prod` | 10 |\n| `loc-api-test` | 20 |\n| `loc-generated` | 30 |\n"
+        "| `loc-api-prod` | 10 |\n| `loc-api-test` | 20 |\n"
         "<!-- /progress-metrics:declared -->\n"
         "<!-- progress-metrics:milestones -->\n"
         "| M1 | done | `data_model_built() == 2` |\n"

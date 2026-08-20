@@ -46,7 +46,6 @@ Wave 2（合規與義務）、事件模組、供應商模組、AI agent、稽核
 | `rls-enable-force` | 27 / 27 |
 | `loc-api-prod` | 7765 |
 | `loc-api-test` | 14663 |
-| `loc-generated` | 96617 |
 
 <!-- /progress-metrics:declared -->
 
@@ -59,7 +58,19 @@ Wave 2（合規與義務）、事件模組、供應商模組、AI agent、稽核
 | **`pages-*`** | `apps/web/src/app/**/page.tsx` 分三類 | ⭐ 見下方 §1.1 —— **這裡有兩個合理定義** |
 | **`scopes-with-code`** | 八個範疇中有非測試 `.ts` 的個數 | 七個在 `apps/api/src/`，第八個 `ui` 是整個 `apps/web` |
 | **`rls-enable-force`** | migration 裡 `ENABLE` / `FORCE` 的出現次數 | 兩者相等且 gap 0 是 guardrail 4 的可觀察形式 |
-| **`loc-*`** | 手寫行數，**排除 `src/generated/`** | `generated/` 是 Prisma client，把它算進去等於把 9.6 萬行不是人寫的東西記成產出 |
+| **`loc-*`** | 手寫行數，**排除 `src/generated/`** | `generated/` 是 Prisma client，把它算進去等於把 ~9.6 萬行不是人寫的東西記成產出 |
+
+### 1.0 ⛔ 一把尺必須是**版控內容**的屬性，不是**工作環境**的屬性
+
+本檔第一版多了一把 `loc-generated`（`src/generated/` 的行數）。
+**本機 `run_all` 11/11 綠，CI 紅** —— 因為 `.gitignore:96` 排除該目錄，
+它在本機是 `prisma generate` 之後才存在的，在乾淨的 CI checkout 上**根本不存在**（0 行）。
+
+⇒ 那不是「進度」，是「我跑過 build 沒有」。**已移除該把尺**；
+generated 的行數仍**印在輸出裡**（它是排除 9.6 萬行的理由），但**不被比對**。
+
+> **加新尺之前先問**：一個乾淨的 `git clone`、不跑任何 build，導得出同一個值嗎？
+> 導不出 ⇒ **印它，不要比對它。**
 
 ### 1.1 ⭐ 「接線」為什麼是三個數字不是一個
 
