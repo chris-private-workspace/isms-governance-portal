@@ -1,5 +1,5 @@
 ---
-status: active   # draft | active | closed | closed_partial —— 機器可讀的唯一權威
+status: closed   # draft | active | closed | closed_partial —— 機器可讀的唯一權威
 ---
 
 # Phase W24 Plan — Unclaim the platform, wire policies, guard the prose
@@ -17,7 +17,8 @@ claim 與 shell 的 `"v2.4 · SOC 2 Type II"`（**25 個畫面**，且已隨 W21
 User-facing ⇒ **drive-through MANDATORY**（兩個表面：`/login` · `/policies`，外加 shell 迴歸抽查）。
 非 spike ⇒ 不產 design note。
 
-**Status**: Approved-to-execute（使用者 2026-08-19 核可）。範圍由使用者五次裁決收斂：
+**Status**: **`closed`**（2026-08-20 closeout —— 8 個 US 全交付，`/policies/[id]` 依 Day-0 D3
+移出範圍且解封條件見 §9）。原為 Approved-to-execute（使用者 2026-08-19 核可）。範圍由使用者五次裁決收斂：
 「接 /policies + 守衛」·「27 頁存量不動只盤點」·「`/login` + shell 納入且**排在 policies 之前**」·
 「盤點缺口全部補掃」·**Day-0 後**：「vitest 根因修（一行）」·「**只接列表頁**」。
 

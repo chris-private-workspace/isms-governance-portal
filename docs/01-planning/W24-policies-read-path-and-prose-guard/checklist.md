@@ -248,29 +248,56 @@
 
 ### 4.1 Change record
 
-- [ ] **`docs/03-implementation/changes/CH-044-<slug>.md`**（Problem / Root Cause /
-      Solution / Verification / Impact —— 含 drive-through PASS + 關掉的 AD）
-  - DoD: 明寫兩個**射程限制**：規則 2 是開放集合會漏 · 未標記的新 export 對規則 1 不可見；
-        並明記 US-1 是「有記錄的設計偏離」（W19 先例）
-  - DoD: ⭐ 保留 vitest 的**同負載對照**（`npm run test` 1 檔+exit 1 vs `--maxWorkers=4` 10 檔+exit 0）
+- [x] **`docs/03-implementation/changes/CH-044-unclaim-the-platform-and-guard-the-prose.md`**
+      （Problem / Root Cause / Solution / Verification / Impact —— 含 drive-through PASS + 關掉的 AD）
+  - DoD: 兩個射程限制已明寫於 §Impact；US-1 明記為「有記錄的設計偏離」（`15-design-alignment.md` ——
+        「平台是否通過 SOC 2」是事實問題不是設計問題）
+  - DoD: ⭐ vitest 同機對照**四列**已補（修正前無旗標 `Test Files 1` + exit 1 · 修正前加旗標 10 檔 ·
+        修正後 Day 1 10 檔 · 修正後 Day 4 **11 檔 / 104 tests**）。⚠️ 起草第一版**漏了這一格**，
+        是回頭核對 checklist DoD 才補上的
 
 ### 4.2 Closeout
 
-- [ ] `retrospective.md` Q1-Q7 + calibration（`pattern-reuse-feature` 0.50，**第 12 個資料點**；
+- [x] `retrospective.md` Q1-Q7 + calibration（`pattern-reuse-feature` 0.50，**第 12 個資料點**；
       ⚠️ 該 class 的判準是「第 12 點同量法再 <0.7 則 re-point 0.45」）
-- [ ] ⭐ **B1 vs B2 比較**（`AD-BottomUpEstimateInflated-1` 第 3 個資料點）
+  - DoD: actual **~2.9 hr** / committed 7.7 ⇒ ratio **0.377 UNDER**，量法與 W18 相同
+        ⇒ **判準字面觸發** ⇒ **re-point 0.50 → 0.45**（本專案第一次 re-point）
+- [x] ⭐ **B1 vs B2 比較**（`AD-BottomUpEstimateInflated-1` 第 3 個資料點）
   - DoD: `actual` 落在 B1（20.5 hr）還是 B2（7.6 hr）附近。⚠️ **本片分辨力低** ——
         B2 與 calibrated B1（7.7）幾乎重合，不得把「兩者都接近」當成兩種方法都對
-- [ ] `calibration-matrix.md` 那一行 —— **≤ 1 行 ~250 字元**（完整敘述 → `calibration-log.md`）
-- [ ] Final gate sweep: lint 0 · type 0 · api test ≥ 484 · api int ≥ 269 ·
+  - DoD: ⭐ **警告成立** —— `actual/B2` **0.382** vs `actual/calibrated-B1` **0.377**，只差 **0.005**。
+        已在 retro Q2 與 calibration-log 明寫正確讀法是**兩者都高估約 2.6 倍**，不是兩種方法都對。
+        真訊號在 `actual/bottom-up` **0.141**（W22 0.26 · W23 0.25）⇒ 該修估算方法不是乘數
+- [x] `calibration-matrix.md` 那一行 —— **≤ 1 行 ~250 字元**（完整敘述 → `calibration-log.md`）
+- [x] Final gate sweep: lint 0 · type 0 · api test ≥ 484 · api int ≥ 269 ·
       web **`Test Files 11`** · build clean · `run_all` **10/10**
-- [ ] 導航檔: `CLAUDE.md` Current-Phase + Last-Updated（**只有 2 行**）· `MEMORY.md` pointer + subfile ·
+  - DoD: **api test 484 / 40 suites** · **api int 269 / 21** · api build exit 0 ·
+        web build `✓ Compiled successfully in 2.7min` **31 routes**（與 Day-0 baseline 一致）·
+        web test **`Test Files 11 (11)` / `Tests 104 (104)`** · `run_all` **10/10**
+  - DoD: ⚠️ **lint / format / type 引用 Day 3 的實測值（0 / clean ×2 / 0）** ——
+        Day 3 commit 之後**零 code 變更**（`git status` 只有 `.md`），所以那是同一份 code 的量測。
+        Day 4 的重跑因機器 I/O 飽和（build 剛產出大量檔案）在 15 分鐘後仍未推進，
+        依 `local-runtime-ops.md` §1 未殺掉重跑。⛔ **不寫成「Day 4 重跑通過」** —— 那會是捏造
+- [x] 導航檔: `CLAUDE.md` Current-Phase + Last-Updated（**只有 2 行**）· `MEMORY.md` pointer + subfile ·
       `BACKLOG.md`
   - DoD: CLOSE —— `AD-FixtureProseBecomesForgedEvidence-1` 機械層 · `AD-UndiagnosedWebTestFailure-1`（D1 根因已修）
+        ⇒ **兩條都已從 §Open 移除**（腳本逐行核對，印出被刪行的字元數與前 160 字作為證據）
   - DoD: 新增 —— D2 斷鏈 · D3 詳情頁後端未備 · D6 死檔 · D7 硬編碼 posture · D8 分級偏離 ·
         D9 錯字 · D12 白勾 · D15「量測方式吃掉紅燈」第 2 次
-- [ ] Anti-pattern 自檢（retro Q5）：AP-1..AP-7 → 違規數
-- [ ] ⭐ **已採納的 ADR 已複查** —— 本 phase 有沒有讓某份**已採納**的 ADR 變得不準確？
+        ⇒ **新增 14 條**（含 D5 `/controls/[id]` 與 Day 3 的 5 條）。**D15 併入既有的
+        `AD-GrepAssertion-1`** —— 它是該形狀的收集器；⚠️ 我一度想略過這一格，是回頭核對本 DoD 才加的。
+        另補 2 條既有 AD 的 W24 資料點（`AD-ScopeSelectorInertOnLiveScreens-1` ·
+        ⛔ `AD-ShaDetectorConsoleEncoding-1` —— **今天又撞到一次**，證明它的影響面比登記的大）
+  - Verify: `python scripts/lint/check_backlog_counts.py` → detector 報 total 177→**189** /
+        P1 96→**101** / P2 76→**83**（P0 不變 5），**照抄不手數**
+- [x] Anti-pattern 自檢（retro Q5）：AP-1..AP-7 → 違規數
+  - DoD: **總計 1** —— ⛔ **AP-6 一件（已修）**：測試 mock 丟掉 `trf` 的插值變數。
+        其餘 6 項 0 / N/A。⚠️ 不寫成 0 —— 那件事真的發生了，而且是本片最重要的發現
+- [x] ⭐ **已採納的 ADR 已複查** —— 本 phase 有沒有讓某份**已採納**的 ADR 變得不準確？
+  - DoD: **ADR-0004** 本片是它的第 2 個消費者，行為與描述一致（範疇來自憑證，跨實體 id 回 404）⇒ 無需修改。
+        ⚠️ **ADR-0007 已被 ADR-0015 取代（W23）而 `/policies` 的 `_warning` 仍引用它** ——
+        既有 orphan claim，非本片造成且在 `apps/api`（不屬本片範疇）⇒ 記 BACKLOG 不順手改
+  - DoD: ⭐ `RISK_REGISTER.md` **E5 一列已改寫** —— 本片正是它的處置；敞口降低但**未歸零**
 - [ ] **Commit** → ⏳ PR push + open → CI → merge: **PENDING USER CONFIRMATION**
       （push 是 outward-facing）→ merge 經 `gh` 驗證後翻狀態標籤
 - [ ] ⭐ **`PR-pending` 標記已翻** —— 以 `gh pr view <N> --json state,mergedAt` **驗證**，

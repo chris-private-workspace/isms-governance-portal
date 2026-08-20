@@ -364,3 +364,53 @@ shell），所以**使用者上次 kill 掉的是 task 追蹤，不是程序** �
 `npm run test -w apps/web` **`Test Files 11 (11)` / `Tests 104 (104)` / exit 0** ·
 `python scripts/lint/run_all.py` **10/10**
 ⚠️ api test / api int / build 仍留到 Day 4 final gate（本日零 API 邏輯變更）
+
+---
+
+## Day 4 — 2026-08-20 — Closeout (US-7)
+
+### Today's Accomplishments
+
+- **4.1** `CH-044-unclaim-the-platform-and-guard-the-prose.md`（單檔 1-page —— phase 產出的
+  變更記錄一律用單檔，過程已記在四件套裡）
+- **4.2** `retrospective.md` Q1-Q7 · `CALIBRATION-MATRIX` **re-point 0.50 → 0.45** ·
+  `CALIBRATION-LOG` W24 條目 · `BACKLOG`（關 2 / 新增 14 / 補 2 條既有 AD 的資料點 /
+  §Shipped 加 W24 一行）· `CLAUDE.md`（**只有 2 行**）· `MEMORY.md` 指標 + subfile ·
+  `RISK_REGISTER` **E5 改寫** · plan `status: active → closed`
+
+### ⭐ Final gate（全套，含 Day 2 起未重跑的三項）
+
+| Gate | 結果 |
+|---|---|
+| api test | **484 passed / 40 suites** · exit 0 |
+| api int | **269 passed / 21 suites** · exit 0 |
+| api build | exit 0 |
+| web build | `✓ Compiled successfully in 2.7min` · **31 routes**（與 Day-0 baseline 一致，本片未加路由）· exit 0 |
+| web test | `Test Files 11 (11)` / `Tests 104 (104)` · exit 0（Day 3 乾淨負載） |
+| `run_all` | **10/10** —— ⭐ `status-markers` 報 `E5 landed-gate ACTIVE`，確認 `status: closed` + `PR-pending` 並存時**不 fire**（因為尚未 push），與 W23 設計的 landed gate 一致 |
+| lint / format / type | ⚠️ **引用 Day 3 的實測值**（0 / clean ×2 / 0）—— Day 3 commit 之後**零 code 變更**（`git status` 只有 `.md` 與新 `.png`），所以那是**同一份 code** 的量測，不是推論代替量測。Day 4 的重跑見下 |
+
+### Issues / Discoveries (Day 4)
+
+- ⚠️ **我漏了 checklist §4.1 的一格 DoD**（「保留 vitest 的同機對照」），CH-044 第一版沒有那張表。
+  **是回頭逐項核對 checklist 才發現的** —— 這正是 checklist 存在的理由：
+  它不是給讀者看的清單，是給作者回頭對的清單。已補四列對照。
+- ⚠️ **我一度打算略過 D15 不記 BACKLOG**（理由是 `AD-GrepAssertion-1` 已嚴重超長）。
+  但 checklist §4.2 的 DoD **明列 D15**。⇒ 改為加一句到該條目。
+  ⛔ 「這條規則已經很長了」不是跳過已核可 DoD 的理由 —— 那是把格式問題當成內容決定。
+- ⛔ **`AD-ShaDetectorConsoleEncoding-1` 今天又撞到一次**：一支臨時 closeout 腳本（印 BACKLOG
+  中文行以確認刪對了）死在 `cp1252`。⭐ 這證明**登記的影響面太窄** ——
+  它不是某支 detector 的缺陷，是**任何印中文的 Python 腳本**在此環境的預設行為。
+  已把這個更正寫進該 AD。⚠️ 崩在 `print` 而 write 在其後 ⇒ **檔案未被部分寫入**，
+  且我先跑了一次 `git diff` 確認，而不是假設。
+- ⚠️⚠️ **Day 4 的 lint 重跑在 15 分鐘後仍未推進，而症狀說明它不是「慢」**：
+  eslint 程序活著但 **15 分鐘只累積 1.4s CPU** ⇒ 幾乎全在 I/O 等待
+  （build 剛產出大量檔案，磁碟掃描把 I/O 吃滿是最可能的解釋，**未證實**）。
+  ⭐ 過程中發現**兩個 eslint 實例並存**：一個是被 harness 以 7 分鐘 timeout 殺掉的前景命令
+  留下的（`39424`，11:18:36），另一個是背景任務的（`42392`，11:26:17）。
+  前者的輸出已無人接收 ⇒ 殺掉它、保留後者。**⛔ 判斷依據是時間戳與命令生命週期，不是「看起來像殘留」**
+  （`local-runtime-ops.md` §4）。
+  ⇒ **final gate 的 lint / format / type 明記為「引用 Day 3 實測 + 之後零 code 變更」**，
+  ⛔ 不寫成「Day 4 重跑通過」—— 那會是捏造一個我沒看到的結果。
+- ⚠️ 另兩次 gate 超時（`run_all` 300s · lint 7 min 前景）同因。依 §1 改為背景執行而非殺掉重跑
+  —— **殺掉重啟是負收益**。
