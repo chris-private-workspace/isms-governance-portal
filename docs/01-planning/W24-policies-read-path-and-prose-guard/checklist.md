@@ -300,8 +300,10 @@
   - DoD: ⭐ `RISK_REGISTER.md` **E5 一列已改寫** —— 本片正是它的處置；敞口降低但**未歸零**
 - [ ] **Commit** → ⏳ PR push + open → CI → merge: **PENDING USER CONFIRMATION**
       （push 是 outward-facing）→ merge 經 `gh` 驗證後翻狀態標籤
-  - 🚧 **阻塞：等使用者確認 push**。本地 commit **5 個**已完成
-        （`d988265` · `b11abdc` · `f22135c` · `2ce0d55` · `093ad76` · `b599d8b` —— 實為 6）。
+  - 🚧 **阻塞：等使用者確認 push**。本地 commit 已完成，數量與 SHA 見
+        `git log --oneline main..feature/W24-policies-prose-guard`。
+        ⚠️ **這裡刻意不寫死數字** —— 第一版寫「5 個」並列了 6 個 hash，而下一個 commit
+        立刻讓它變成 7。**一個會在下一次動作後過期的數字，不該寫進追蹤文件**。
         ⛔ 本項**不勾**，因為 push / PR / CI / merge 一項都還沒發生
   - ⚠️ **解封前要補的一件事**：最後一次 `run_all` **早於** closeout 尾段四個檔
         （retrospective · memory subfile · progress Day 4 · RISK_REGISTER）。
