@@ -82,7 +82,26 @@ Grep  pattern: TODO\(|FIXME|HACK\(       glob: **/*.{py,ts,tsx,go,rs,java}   out
 ## 收尾
 
 1. 更新 `STATUS_AUDIT.md` frontmatter `last_audit`
-2. **在 `BACKLOG.md` 加一行**指向本次 §2.7（PROCESS R7）—— **一行，不要複製細節**
+2. **在 `BACKLOG.md` 落兩樣東西**（PROCESS R7）—— ⛔ **兩樣都要，不是二選一**：
+   - **一行指標**指向本次 §2.7 —— **一行，不要複製細節**
+   - **每條漂移在 §Open Carryover ADs 有一列。** 先查**有沒有現成的具名 AD 在追它**
+     （`AD-33` 就是被 `AD-RegisterUpkeep-1` 涵蓋的）——
+     - **有** → 在那一列的備註補一筆「審計 #{N} 第 M 次」，不要開新的
+     - **沒有** → 新增一列：`AD-{審計編號}` · 症狀一句話 · 來源填 `審計 #{N}` ·
+       優先度 · 備註留 `→ STATUS_AUDIT.md §2.7-#{N}`（**細節留快照，這裡只放指標**）
+
+   ⚠️ **加了列就要同步改 `BACKLOG.md` 檔頭的 §Open 計數宣告** ——
+   `check_backlog_counts.py` 會比對兩邊，忘了它的後果是自己把 gate 弄紅。
+
+   > **為什麼這一步不是可選的**：實測 2026-08-20 —— §Open 表裡 `AD-{數字}` 形式的
+   > 列數是 **0**，審計 #7 ~ #9 的 **33 條**發現沒有一條**以自己的 ID** 進到那張表。
+   > 而 `check_backlog_counts.py` 檔頭已寫明 ——
+   > **沒進 §Open 表的 AD 對每一個工具都不可見。**
+   > 落進 BACKLOG 才是它從「發現」變成「工作」的那一步。
+   > ⭐ 審計 **#1 做過**（`AD-4` → `AD-SecDoDAutomation-1`），之後停了。
+   >
+   > ⚠️ **落進表不保證被修**（`AD-RegisterUpkeep-1` 在表裡而它指的漂移仍重複三次）。
+   > 那是排序問題，本步只保證漂移**進得了排序的隊伍**。
 3. Commit：`docs(planning): status audit <日期>`
 
 ---
@@ -90,7 +109,11 @@ Grep  pattern: TODO\(|FIXME|HACK\(       glob: **/*.{py,ts,tsx,go,rs,java}   out
 ## 不可以做的事
 
 - ❌ **不可以在 `STATUS_AUDIT.md` 複製 BACKLOG / REGISTER 的逐項細節** —— 那是在製造下一次漂移
-- ❌ **不可以順手修漂移**（除非使用者要求）—— 審計負責揪出來，修是另一件事
+- ❌ **不可以順手修漂移**（除非使用者要求）—— 審計負責揪出來，修是另一件事。
+  理由不是潔癖：**被修掉的那一行往往正是那條發現的實據**（#9 的 `AD-51`，
+  矛盾的兩半都在 `BACKLOG.md` 裡），而且當場修會改掉下一次審計的基準。
+  ⚠️ **但「不修」不等於「寫完快照就結束」** —— 每條漂移仍必須在 `BACKLOG.md`
+  §Open 有一列（見上方 §收尾 2）。**「不修來源」與「不留待辦」是兩件事。**
 - ❌ **不可以用本 command 取代 session start** —— 那個是載入 active phase context，這個是全景審計
 
 ---
