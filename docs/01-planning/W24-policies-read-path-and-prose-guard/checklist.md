@@ -300,5 +300,15 @@
   - DoD: ⭐ `RISK_REGISTER.md` **E5 一列已改寫** —— 本片正是它的處置；敞口降低但**未歸零**
 - [ ] **Commit** → ⏳ PR push + open → CI → merge: **PENDING USER CONFIRMATION**
       （push 是 outward-facing）→ merge 經 `gh` 驗證後翻狀態標籤
+  - 🚧 **阻塞：等使用者確認 push**。本地 commit **5 個**已完成
+        （`d988265` · `b11abdc` · `f22135c` · `2ce0d55` · `093ad76` · `b599d8b` —— 實為 6）。
+        ⛔ 本項**不勾**，因為 push / PR / CI / merge 一項都還沒發生
+  - ⚠️ **解封前要補的一件事**：最後一次 `run_all` **早於** closeout 尾段四個檔
+        （retrospective · memory subfile · progress Day 4 · RISK_REGISTER）。
+        已手動核對它們引用的 8 個路徑全部存在，但 detector pass 仍欠著 ——
+        機器 I/O 飽和（eslint 21 分鐘只累積 1.4s CPU）。**push 前補跑**
 - [ ] ⭐ **`PR-pending` 標記已翻** —— 以 `gh pr view <N> --json state,mergedAt` **驗證**，
       不採信「已 merge」的宣稱。機械守衛：`check_status_markers.py` **E5**
+  - 🚧 **阻塞：merge 尚未發生**。目前 `CH-044` / `retrospective` / `MEMORY.md` /
+        `CLAUDE.md` / BACKLOG §Shipped 五處都寫 `PR-pending`，⭐ 而 `run_all` 的
+        **E5 landed-gate 確認這是合法狀態**（plan 已 `closed` 但該 close 尚未落到 `origin/main`）
