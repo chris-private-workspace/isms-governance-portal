@@ -253,3 +253,114 @@ import 移除不完整，會**多報**而非漏報。**多報也算預測失敗*
 - ⚠️ **盤點的總數是約數，不是精算** —— 「一群 hash 列」算 1 條還是 5 條沒有統一定義。
   文件裡明說了這一點：**逐頁小節才是可用的單位，總數不是**。
   ⛔ 這是刻意不製造一個會被引用的假精確數字（`AD-ProxyMetricAsAnswer-1` 家族）
+
+---
+
+## Day 3 — 2026-08-20 — Drive-through (US-6) — 真 UI + 真後端 + 真 DB
+
+工具：Playwright MCP（獨立瀏覽器實例）。上一次 session 用 claude-in-chrome 導航被使用者拒絕，
+改用不碰使用者自有 Chrome 的實例。
+
+### 3.1 Clean restart —— 我對程序狀態的第一個判斷是錯的
+
+盤點時看到 API listener（`46148`）的 parent 是 `2628`，而 nest CLI 是 `39876`，
+我當場判定為「Risk Class C 的孤兒 worker 形狀」。**查了才知道 `2628` 是 nest CLI 自己
+spawn 的 `cmd.exe` wrapper 且活著** —— 那正是 `local-runtime-ops.md` §4 第一行寫的
+「一個服務兩個進程」。⭐ 兩條 supervisor 鏈的祖先都是 `bash.exe`（上個 session 的 background
+shell），所以**使用者上次 kill 掉的是 task 追蹤，不是程序** —— 兩個 server 一直活著。
+
+| 項 | 值 |
+|---|---|
+| 殺掉 | 9 個 PID（api 5 + web 4），playwright MCP 4 個與 codex 1 個**不動** |
+| 重啟後 | `3200` pid `21032`（09:56:43）· `3210` pid `57180`（09:58:27）—— 各 **1 個** listener |
+| 晚於全部 commit | 是（最後 commit `2ce0d55` 是 2026-08-19 17:19:02） |
+| startup log | `DevPrincipal` WARN（SG1 硬編碼）· `Nest application successfully started` · `listening on http://127.0.0.1:3210` · `/policies` GET/`:id`/POST 三條路由 mapped |
+
+⚠️ **`[::1]:3210` 連線被拒是預期行為**，不是故障 —— API 綁 `127.0.0.1`，Windows 的 `localhost`
+偶爾先解析到 IPv6。我的第一輪等待迴圈因此在 180 秒後回報「API 未起來」，而它其實在 09:59:21
+就起來了。**三種 loopback 形式各測一次**才分辨得出來。
+
+### ⛔ Drive-through 抓到的缺陷（gate 全綠，測試全過）
+
+`/policies` meta 行的兩個數字**用了不同母體**：
+
+| 篩選 | 列數 | meta 行 | 畫面上實際 under review |
+|---|---|---|---|
+| Published | 1 | `1 policies · **1 under review**` | **0** |
+| Draft | 3 | `3 policies · **1 under review**` | **0** |
+| All statuses | 8 | `8 policies · 1 under review` | 1 |
+
+根因 `policies/page.tsx:136-139` —— `view` 是篩選後、`underReview` 從 `rows`（全集）算，
+而 `:242-245` 把兩者印在同一句話裡。**在 Published 篩選下，畫面宣稱有 1 筆審查中而一筆都看不到**
+—— 對讀者不可見的記錄做出的計數陳述，正是本 phase 存在的理由。
+
+⭐ **為什麼所有 gate 都是綠的**：`policies.test.tsx:52-55` 的 shell mock 把 `trf` 的插值變數
+丟掉（`void vars; return t(...)`），所以 meta 行在測試裡永遠是**未插值的模板字串**，
+那一行的任何數字錯誤在這個檔案裡**結構上不可觀測**。這是 **AP-6**（mock 簡化掉關鍵行為），
+不是「測試沒寫到」。修法是讓 mock 用真的 `tf()`，缺口才會露出來。
+
+修正（本日 2 個檔）：`page.tsx:139` 改從 `view` 算 + `policies.test.tsx` mock 忠實插值 +
+1 個新測試。⚠️ 新測試第一版**紅**：我用 `getAllByText(...)[1]` 取 filter button，
+但 filter 區塊在 `<table>` **之前**，`[1]` 是 `<th>`，沒有 button 祖先。
+改成「取有 button 祖先的那一個」——不綁 DOM 順序。
+
+### 3.2 逐項結果（observed vs intended）
+
+| 檢查 | Intended | Observed | 判定 |
+|---|---|---|---|
+| `/login` 三條 claim | 零認證宣稱 | `Built to ISO/IEC 27001 & 27017` · `Tamper-evident, append-only audit trail` · `Entity-scoped access, enforced in the database` | ✅ |
+| `/login` footer | 有標示 | `Demonstration build · not a production environment` | ✅ |
+| ⭐ 綠勾 affordance | 換成中性 | 三個勾 computed stroke 全為 `rgb(124,135,148)` = `--rag-n`；`--rag-g`(`#1e8a5c`) 一次未出現 | ✅ |
+| persona 按鈕有效果 | 非死控件 | POST `/api/demo-session` → 200 → `/dashboard` | ✅ |
+| `/policies` 列數 | == API 筆數 | **8 == 8**，逐筆 refCode 對上，六個 status 全覆蓋 | ✅ |
+| 負面測試 | fixture 不得出現 | `Information Security Policy` 不在 DOM | ✅ |
+| 四個無來源欄 | 標記而非空白 | 32 個 `data-no-source`（8 列 × 4） | ✅ |
+| `DemoBadge` | `partial` 非 `fixture` | `PART REAL` | ✅ |
+| category 篩選器 | 移除或有來源 | 已移除，只剩 `Status` | ✅ |
+| `New policy` | 非死控件 | `disabled` + `cursor:not-allowed` + `opacity:.5` + title 說明理由 | ✅ |
+| `Status` 篩選器 | 有效果 | 7 選項；Draft→3 列 / Published→1 列 / All→8 列，皆命中預測 | ✅ |
+| 列不可點 | 無 affordance | `cursor:auto`、無 onclick、**0 連結 0 按鈕** | ✅ |
+| ⭐ scope selector | 「只改 label，不改列」 | 切到 `Ricoh Hong Kong Ltd` → **8 列一列未動**，仍全 `POL-SG1-*` | ✅ 註記為真 |
+| shell 迴歸 ×2 | 沒壞 | `/controls`（14 nav · 10 header btn · 10 列）·`/isms-profiles`（**shell chrome 內 0 個 RAG 綠元素**） | ✅ |
+| `/policies/[id]` | shell 沒壞 | `POL-301` 正常渲染，`DEMO` badge 在，env dot 中性 | ✅ |
+| ⭐ 停掉 API | 錯誤狀態，零 fixture | `data-source-state="error"` · 0 列 · `Information Security Policy` / `POL-301/318/330` **皆不在 DOM** · 「Nothing is shown rather than sample data in its place」 | ✅ |
+| API 恢復 | 回到正常 | 8 列 · meta 正確 · 32 個 no-source cell | ✅ |
+
+證據：`artifacts/day3-01-login.png` · `day3-02-policies-list.png` · `day3-03-policies-api-down.png`
+
+### Issues / Discoveries (Day 3)
+
+- ⛔ **本日最重要的一條**：一個「所有 gate 綠 + 8 個測試全過」的畫面，
+  在真 UI 上**點第二下**（套用篩選）就露出不成立的陳述。
+  `verification-discipline.md` 的三層模型在這裡是逐字成立的 —— 零件對、API 會回應，
+  而人一操作就看到假話。
+- ⭐ **`AD-UndiagnosedWebTestFailure-1` 可以 CLOSE，但本日量到了一個不同根因的新問題**。
+  同一天、同一份 code、兩種負載：
+
+  | 負載 | 結果 |
+  |---|---|
+  | 高（2 個 dev server + Playwright 瀏覽器 + codex 同時跑） | **7/11 檔**，4 個 worker 啟動 timeout，exit 1 |
+  | 乾淨（兩個 dev server 都停掉） | **`Test Files 11 (11)` · `Tests 104 (104)` · exit 0** |
+
+  ⇒ Day 1 的 `poolOptions` → `maxWorkers: 4` 修正**是有效的**（原 AD 的根因已關）。
+  高負載下的 worker timeout 是**另一件事**，要開新 AD 而不是把舊的留著不關。
+  ⚠️ 我在拿到乾淨負載數據前寫過「該 AD 可能不得 CLOSE」——那是拿一次高負載的執行結果
+  去回答一個關於根因的問題，`AD-ProxyMetricAsAnswer-1` 的形狀。**兩種負載各跑一次才分辨得出來。**
+- 📝 **待記 BACKLOG（本日新發現，皆未當場修）**：
+  - API 掛掉時 `PART REAL` badge 仍宣稱「part is live data from the API」，
+    而此刻畫面上**一筆 live 資料都沒有** —— 當下不成立的陳述，正是本 phase 關切的形狀。
+    修它要讓 `DemoBadge` 支援動態狀態，那是**跨 25 頁的 shell 元件** ⇒ 依 Step 0.0 節流閘不當場動
+  - header scope selector 顯示 `Ricoh Hong Kong Ltd` 時，sidebar 同時顯示 `SG-1`（伺服器真實範疇）。
+    sidebar 說的是真話且列表註記已明說，但**同一畫面同時顯示兩個範疇**仍值得排期
+  - `/policies` 的 `_warning` 引用 **ADR-0007**，而它已被 **ADR-0015 取代**（W23）⇒ orphan claim
+  - **新 AD**：web 測試套件在高負載下 4 個 worker 啟動 timeout（見上表）。
+    症狀是 `[vitest-pool-runner]: Timeout waiting for worker to respond`，
+    ⛔ 危險之處在於**它讓套件少跑 4 個檔卻仍印出綠色的 7 passed** —— 與
+    `AD-GateGreenDecaysAfterFix-1` 同一家族：**綠色可以是「沒跑到」而不是「通過」**
+
+### Day 3 gate（乾淨負載）
+
+`lint` **0** · `format:check` **clean** · `type-check` **0** ·
+`npm run test -w apps/web` **`Test Files 11 (11)` / `Tests 104 (104)` / exit 0** ·
+`python scripts/lint/run_all.py` **10/10**
+⚠️ api test / api int / build 仍留到 Day 4 final gate（本日零 API 邏輯變更）

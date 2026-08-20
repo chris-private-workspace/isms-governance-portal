@@ -38,9 +38,10 @@
  *   - Source: rows / failed / loading — no fourth state, and no fixture fallback
  *
  * Created: 2026-08-17 (Phase W19)
- * Last Modified: 2026-08-19
+ * Last Modified: 2026-08-20
  *
  * Modification History (newest-first):
+ *   - 2026-08-20: Count under-review over the filtered view (Phase W24) — CH-044
  *   - 2026-08-19: Read the API; four columns have no source (Phase W24) — CH-044
  *   - 2026-08-17: Disable server-backed actions (Phase W19) — Day-3 dead controls
  *   - 2026-08-17: Initial creation (Phase W19)
@@ -136,7 +137,13 @@ export default function PoliciesPage() {
   const rows = source.rows ?? [];
   const view = rows.filter((p) => fStatus === null || p.status === fStatus);
 
-  const underReview = rows.filter((p) => p.status === 'in_review').length;
+  // Counted over `view`, not `rows`, because the meta line prints it in the same
+  // sentence as `view.length`. Counting the two over different populations made
+  // the Published filter read "1 policies · 1 under review" with no such row on
+  // screen — a count of records the reader cannot see is exactly the kind of
+  // unsupported statement this phase exists to remove. Found by drive-through;
+  // every gate was green, because the tests only ever assert the unfiltered view.
+  const underReview = view.filter((p) => p.status === 'in_review').length;
 
   const unique = (values: string[]) => [...new Set(values)];
 
