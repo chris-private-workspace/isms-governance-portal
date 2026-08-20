@@ -274,10 +274,16 @@
   - DoD: **api test 484 / 40 suites** · **api int 269 / 21** · api build exit 0 ·
         web build `✓ Compiled successfully in 2.7min` **31 routes**（與 Day-0 baseline 一致）·
         web test **`Test Files 11 (11)` / `Tests 104 (104)`** · `run_all` **10/10**
-  - DoD: ⚠️ **lint / format / type 引用 Day 3 的實測值（0 / clean ×2 / 0）** ——
-        Day 3 commit 之後**零 code 變更**（`git status` 只有 `.md`），所以那是同一份 code 的量測。
-        Day 4 的重跑因機器 I/O 飽和（build 剛產出大量檔案）在 15 分鐘後仍未推進，
-        依 `local-runtime-ops.md` §1 未殺掉重跑。⛔ **不寫成「Day 4 重跑通過」** —— 那會是捏造
+  - DoD: ✅ **lint / format / type 已於機器恢復後補跑（2026-08-20 13:43–13:48）**：
+        web lint **0** · api lint **0** · web type **0** · api type **0** ·
+        web fmt **clean** · api fmt **clean**，六項 exit 0，**耗時約 4 分鐘**
+  - DoD: ⚠️ **補跑前這一格寫的是「引用 Day 3 實測值」** —— 當時 Day 4 的重跑因機器 I/O 飽和
+        在 21 分鐘後仍未推進（eslint 活著但只累積 1.4s CPU），依 `local-runtime-ops.md` §1
+        未殺掉重跑，且**明確不寫成「Day 4 重跑通過」**。⭐ 保留這段是因為它是本片的一個決定：
+        **寧可標「欠著」也不標綠**；4 分鐘的實際耗時反證了當時不是工作量問題
+  - DoD: ✅ **`run_all` 已重跑並涵蓋 closeout 尾段四個檔** —— **10/10**，
+        `doc-links` 與 `path-references` 皆綠（先前那次 run_all 早於 retrospective /
+        memory subfile / progress Day 4 / RISK_REGISTER）
 - [x] 導航檔: `CLAUDE.md` Current-Phase + Last-Updated（**只有 2 行**）· `MEMORY.md` pointer + subfile ·
       `BACKLOG.md`
   - DoD: CLOSE —— `AD-FixtureProseBecomesForgedEvidence-1` 機械層 · `AD-UndiagnosedWebTestFailure-1`（D1 根因已修）
@@ -305,10 +311,9 @@
         ⚠️ **這裡刻意不寫死數字** —— 第一版寫「5 個」並列了 6 個 hash，而下一個 commit
         立刻讓它變成 7。**一個會在下一次動作後過期的數字，不該寫進追蹤文件**。
         ⛔ 本項**不勾**，因為 push / PR / CI / merge 一項都還沒發生
-  - ⚠️ **解封前要補的一件事**：最後一次 `run_all` **早於** closeout 尾段四個檔
-        （retrospective · memory subfile · progress Day 4 · RISK_REGISTER）。
-        已手動核對它們引用的 8 個路徑全部存在，但 detector pass 仍欠著 ——
-        機器 I/O 飽和（eslint 21 分鐘只累積 1.4s CPU）。**push 前補跑**
+  - ✅ **解封前欠的那件事已補**（使用者裁決「等機器恢復，補跑 run_all 和 lint 再說」）：
+        `run_all` **10/10**（涵蓋 closeout 尾段四個檔）+ lint/type/format **六項全 0/clean**。
+        ⇒ **gate 側已無欠項**，剩下的純粹是 push / PR / CI / merge
 - [ ] ⭐ **`PR-pending` 標記已翻** —— 以 `gh pr view <N> --json state,mergedAt` **驗證**，
       不採信「已 merge」的宣稱。機械守衛：`check_status_markers.py` **E5**
   - 🚧 **阻塞：merge 尚未發生**。目前 `CH-044` / `retrospective` / `MEMORY.md` /

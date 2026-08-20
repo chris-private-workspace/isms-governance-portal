@@ -388,7 +388,8 @@ shell），所以**使用者上次 kill 掉的是 task 追蹤，不是程序** �
 | web build | `✓ Compiled successfully in 2.7min` · **31 routes**（與 Day-0 baseline 一致，本片未加路由）· exit 0 |
 | web test | `Test Files 11 (11)` / `Tests 104 (104)` · exit 0（Day 3 乾淨負載） |
 | `run_all` | **10/10** —— ⭐ `status-markers` 報 `E5 landed-gate ACTIVE`，確認 `status: closed` + `PR-pending` 並存時**不 fire**（因為尚未 push），與 W23 設計的 landed gate 一致 |
-| lint / format / type | ⚠️ **引用 Day 3 的實測值**（0 / clean ×2 / 0）—— Day 3 commit 之後**零 code 變更**（`git status` 只有 `.md` 與新 `.png`），所以那是**同一份 code** 的量測，不是推論代替量測。Day 4 的重跑見下 |
+| lint / format / type | ✅ **13:43–13:48 補跑，六項 exit 0** —— web lint 0 · api lint 0 · web type 0 · api type 0 · web fmt clean · api fmt clean。⚠️ 補跑前這一格寫的是「引用 Day 3 實測值 + 之後零 code 變更」，見下方 Issues |
+| `run_all`（補跑） | ✅ **10/10**，`doc-links` / `path-references` 皆綠 ⇒ **涵蓋了 closeout 尾段四個檔**（先前那次 run_all 早於它們） |
 
 ### Issues / Discoveries (Day 4)
 
@@ -410,7 +411,13 @@ shell），所以**使用者上次 kill 掉的是 task 追蹤，不是程序** �
   留下的（`39424`，11:18:36），另一個是背景任務的（`42392`，11:26:17）。
   前者的輸出已無人接收 ⇒ 殺掉它、保留後者。**⛔ 判斷依據是時間戳與命令生命週期，不是「看起來像殘留」**
   （`local-runtime-ops.md` §4）。
-  ⇒ **final gate 的 lint / format / type 明記為「引用 Day 3 實測 + 之後零 code 變更」**，
+  ⇒ **final gate 的 lint / format / type 當時明記為「引用 Day 3 實測 + 之後零 code 變更」**，
   ⛔ 不寫成「Day 4 重跑通過」—— 那會是捏造一個我沒看到的結果。
+  ⭐⭐ **後續（使用者裁決「等機器恢復再補跑」）—— 而補跑的耗時反證了當時的判斷**：
+  約 1.5 小時後重測，`python -c print` **1 秒**、走訪 `docs/` 284 個 `.md` **0.26 秒**
+  ⇒ 機器已恢復。接著 `run_all` **10/10**、lint/type/format 六項全 0，**整批只花約 4 分鐘**
+  （13:43 → 13:48）。⇒ 同一份 code、同一組指令，**21 分鐘無進展 vs 4 分鐘全綠**，
+  差異完全來自機器狀態。⛔ 若當時把它殺掉重跑（或更糟，標成綠），得到的都會是錯的結論：
+  前者浪費一輪、後者是捏造。**「慢 ≠ hang」與「寧可標欠著也不標綠」在這裡各救了一次。**
 - ⚠️ 另兩次 gate 超時（`run_all` 300s · lint 7 min 前景）同因。依 §1 改為背景執行而非殺掉重跑
   —— **殺掉重啟是負收益**。
