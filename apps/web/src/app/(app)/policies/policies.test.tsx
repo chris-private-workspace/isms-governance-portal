@@ -11,20 +11,21 @@
  *   not render green — the last one is this phase's whole subject in miniature.
  *
  * Created: 2026-08-19 (Phase W24)
- * Last Modified: 2026-08-19
+ * Last Modified: 2026-08-20
  *
  * Modification History (newest-first):
+ *   - 2026-08-20: Interpolate in the mock; cover the meta count (Phase W24) — CH-044
  *   - 2026-08-19: Initial creation (Phase W24) — CH-044
  *
  * Related:
  *   - apps/web/src/app/(app)/risks/risks.test.tsx — the shape this follows
  */
-import { render, screen, waitFor } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import type { ReactNode } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { ShellStateContext, type ShellState } from '@/components/shell/shell-state';
-import { t } from '@/i18n';
+import { t, tf } from '@/i18n';
 import { ApiUnavailableError } from '@/lib/api/client';
 import { type PolicyRow } from '@/lib/api/policies';
 
@@ -49,10 +50,10 @@ const { default: PoliciesPage } = await import('./page');
 const shell: ShellState = {
   locale: 'zh-Hant',
   tr: (key) => t('zh-Hant', key),
-  trf: (key, vars) => {
-    void vars;
-    return t('zh-Hant', key);
-  },
+  // Interpolates for real. The first version dropped `vars` and returned the
+  // raw template, which made every number the shell prints structurally
+  // invisible to this file — the meta-line count below could not have failed.
+  trf: (key, vars) => tf('zh-Hant', key, vars),
   scopeCode: 'APAC',
   scopeLabel: 'APAC',
   entity: null,
@@ -200,6 +201,48 @@ describe('only a policy that is in force renders green', () => {
     }
     // A state the mapping missed would fall through to the raw enum string.
     expect(screen.queryByText('under_revision')).toBeNull();
+  });
+});
+
+describe('the meta line counts what the reader can see', () => {
+  /** The meta line is the only prose on this screen that carries numbers. */
+  const metaLine = () => screen.getByRole('heading', { level: 1 }).parentElement!.textContent!;
+
+  const scope = () => t('zh-Hant', 'policies.scope.serverSide');
+
+  it('counts under-review over the filtered rows, not the whole register', async () => {
+    listPolicies.mockResolvedValue({
+      data: [row(), row({ id: 'b', refCode: 'POL-SG1-900005', status: 'in_review' })],
+    });
+    renderList();
+    await waitFor(() => expect(screen.queryByText('POL-SG1-900005')).not.toBeNull());
+
+    expect(metaLine()).toContain(
+      tf('zh-Hant', 'policies.meta', { n: 2, review: 1, scope: scope() }),
+    );
+
+    // Filter to the one published policy. The in-review row is now off screen.
+    // The label appears twice — once on the filter button, once as the column
+    // header. Picking by index binds this to the DOM order of two unrelated
+    // regions; picking the one with a button ancestor does not.
+    const trigger = screen
+      .getAllByText(t('zh-Hant', 'policies.col.status'))
+      .map((el) => el.closest('button'))
+      .find(Boolean) as HTMLElement;
+    fireEvent.click(trigger);
+    const published = [...trigger.parentElement!.querySelectorAll('button')].find(
+      (b) => b.textContent === t('zh-Hant', 'policies.status.published'),
+    ) as HTMLElement;
+    fireEvent.click(published);
+
+    await waitFor(() => expect(screen.queryByText('POL-SG1-900005')).toBeNull());
+
+    // Counting the two halves over different populations printed "1 policy · 1
+    // under review" with no such row rendered — a claim about records the
+    // screen is not showing. Drive-through found it; every gate was green.
+    expect(metaLine()).toContain(
+      tf('zh-Hant', 'policies.meta', { n: 1, review: 0, scope: scope() }),
+    );
   });
 });
 

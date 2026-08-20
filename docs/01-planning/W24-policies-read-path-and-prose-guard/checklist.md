@@ -203,21 +203,44 @@
 
 ### 3.1 Clean restart
 
-- [ ] **殺光 3200 / 3210 上的孤兒 worker，確認新程序是唯一擁有者，擷取 startup log**
-  - DoD: 依 `task-workflow.md` §Risk Class C —— 列出所有 node 程序、檢視 PID/PPID/StartTime，
-        強制殺掉父程序已死或 StartTime 早於本次重啟的 worker
-  - Verify: startup log 行 + `netstat` 確認唯一擁有者
+- [x] **殺光 3200 / 3210 上的孤兒 worker，確認新程序是唯一擁有者，擷取 startup log**
+  - DoD: ⭐ **沒有孤兒** —— 我第一眼判定 `2628` 是孤兒 worker，查了才知道它是 nest CLI 自己
+        spawn 的 `cmd.exe` wrapper（`local-runtime-ops.md` §4「一個服務兩個進程」）。
+        兩條鏈的祖先都是上個 session 的 `bash.exe`：**使用者 kill 的是 task 追蹤不是程序**。
+        仍全數重啟（9 個 PID），playwright MCP × 4 與 codex × 1 不動
+  - Verify: `3200` pid `21032` / `3210` pid `57180`，各 **1 個** listener，皆晚於最後 commit；
+        startup log 有 `DevPrincipal` WARN + `Nest application successfully started` +
+        `listening on http://127.0.0.1:3210` + `/policies` 三條路由 mapped。
+        ⚠️ `[::1]:3210` 被拒是綁 `127.0.0.1` 的預期行為，非故障
 
 ### 3.2 Drive-through（MANDATORY — 不是 gate-only）
 
-- [ ] **`/login`** —— 三條 claim 與 footer 一起看：**沒有任何未經標示的認證宣稱**，綠勾已處置
-- [ ] **`/policies`** —— 列數 == API 筆數；切到另一個 persona 看範疇；停掉 API 看錯誤狀態；
+- [x] **`/login`** —— 三條 claim 與 footer 一起看：**沒有任何未經標示的認證宣稱**，綠勾已處置
+  - DoD: 三條 claim 逐字如 Day 1 所改；footer `Demonstration build · not a production environment`。
+        ⭐ affordance 用 computed style 驗（不是看截圖）：三個勾 stroke 全 `rgb(124,135,148)` =
+        `--rag-n`，`--rag-g`(`#1e8a5c`) 在這三處**一次未出現**
+- [x] **`/policies`** —— 列數 == API 筆數；切到另一個 persona 看範疇；停掉 API 看錯誤狀態；
       category 篩選器的處置在真 UI 上成立
-- [ ] **shell 迴歸抽查**（plan §8 R7 —— 改 shell 影響 25 個畫面）
-  - DoD: 額外開 **2 個未接 API 的畫面**確認 shell 沒壞
-- [ ] **逐控件走查**：可點 / 有效果 / 標籤真實 / 結果真的渲染
-- [ ] 截圖 + observed-vs-intended → progress.md Day 3
-- [ ] 🚧 ~~**`/policies/[id]`**~~ **移出範圍**（見 §2.3）—— 但**仍要開一次確認 shell 改動沒弄壞它**
+  - DoD: **8 == 8** 逐筆對上，六 status 全覆蓋，軟刪除的 `900004` 不在其中；
+        fixture `Information Security Policy` 不在 DOM；32 個 `data-no-source`（8×4）；
+        `PART REAL`；category 篩選器已移除；`Status` 篩選器有效果（Draft→3 / Published→1 / All→8）
+  - DoD: 範疇 —— scope selector 切到 `Ricoh Hong Kong Ltd` ⇒ **8 列一列未動**，
+        證實頁面註記「changes the label and nothing else」為真（範疇由伺服器 DevPrincipal 決定）
+  - DoD: 停掉 API（真的 kill 5 個 PID，非 mock）⇒ `data-source-state="error"` · 0 列 ·
+        **fixture 零洩漏** · 「Nothing is shown rather than sample data in its place」；重啟後回復 8 列
+- [x] **shell 迴歸抽查**（plan §8 R7 —— 改 shell 影響 25 個畫面）
+  - DoD: 額外開 **2 個未接 API 的畫面**確認 shell 沒壞 → `/controls`（14 nav · 10 header btn · 10 列）
+        + `/isms-profiles`（⭐ **shell chrome 內 0 個 RAG 綠元素**）
+- [x] **逐控件走查**：可點 / 有效果 / 標籤真實 / 結果真的渲染
+  - DoD: ⛔ **「標籤真實」這一格抓到一個缺陷** —— meta 行的 `N policies` 算篩選後、
+        `M under review` 算全集，Published 篩選下印出「1 policies · 1 under review」而畫面上 0 筆。
+        已修（`page.tsx:139` 改從 `view` 算）+ 補測試。根因見 progress.md Day 3
+  - DoD: `New policy` 非死控件（`disabled` + `not-allowed` + `opacity:.5` + title 說明理由）；
+        列不可點（`cursor:auto`、無 onclick、0 連結 0 按鈕）；persona 按鈕 → POST 200 → `/dashboard`
+- [x] 截圖 + observed-vs-intended → progress.md Day 3
+  - Verify: `artifacts/day3-01-login.png` · `day3-02-policies-list.png` · `day3-03-policies-api-down.png`
+- [x] 🚧 ~~**`/policies/[id]`**~~ **移出範圍**（見 §2.3）—— 但**仍要開一次確認 shell 改動沒弄壞它**
+  - DoD: `POL-301` 正常渲染，h1 = `Information Security Policy`，`DEMO` badge 在，env dot 中性 ⇒ 未弄壞
 
 ---
 
