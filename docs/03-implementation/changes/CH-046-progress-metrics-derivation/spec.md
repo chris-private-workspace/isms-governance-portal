@@ -9,7 +9,7 @@ affects_components: []
 **Phase**: 無 —— 獨立 CH（目前無 active phase）
 **Scope**: 治理工具 —— `scripts/lint/` 新 detector + `docs/01-planning/` 新 living 文件（**NO migration · NO 新依賴 · 不動產品碼**）
 **Status**: 已完成（使用者 2026-08-20 核准 —— 含「**不輸出整體百分比**」的裁決）
-**PR**: PR-pending
+**PR**: **MERGED** (PR #96, `16128e5`) —— 2026-08-20T14:19:05Z，經 `gh pr view` 驗證
 
 ---
 

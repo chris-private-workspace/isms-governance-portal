@@ -76,4 +76,8 @@
   - ⭐ 依 **CH-045** 規矩先查有無現成 AD：`AD-ShaDetectorConsoleEncoding-1` **已在追**
     ⇒ **在那一列補一筆並放寬射程**，未開新列 ⇒ §Open 計數**不變（197）**
 - [x] 架構級決定有 ADR（R5）—— **確認不需要**：本片不約束未來架構，只量測現況
-- [ ] PR merge 後翻 `PR-pending`，並以 `gh pr view <N> --json state,mergedAt` **驗證**
+- [x] PR merge 後翻 `PR-pending`，並以 `gh pr view <N> --json state,mergedAt` **驗證**
+  - `gh pr view 96` 回 `state: MERGED` · `mergedAt: 2026-08-20T14:19:05Z` · `16128e5`
+  - ⭐ **E5 在翻之前先抓到它**（`run_all` 10/11，指名 `spec.md:12`）——
+    這是 `AD-62` 的差別被演示成可觀察的：`CH-045` 那種獨立單檔 E5 結構上看不見，
+    本片這種資料夾 + `status:` frontmatter 抓得到
