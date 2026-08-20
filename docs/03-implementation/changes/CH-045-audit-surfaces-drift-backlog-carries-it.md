@@ -4,7 +4,7 @@
 **Phase**: 無 —— 獨立 CH
 **Scope**: 治理流程指令（`.claude/skills/status-audit/` · `.claude/commands/status-audit.md`）
 **Components**: —
-**PR**: PR-pending
+**PR**: **MERGED** (PR #94, `5c768ce`) —— 2026-08-20T07:37:02Z，經 `gh pr view` 驗證
 
 ---
 
