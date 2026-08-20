@@ -273,7 +273,7 @@ shell），所以**使用者上次 kill 掉的是 task 追蹤，不是程序** �
 |---|---|
 | 殺掉 | 9 個 PID（api 5 + web 4），playwright MCP 4 個與 codex 1 個**不動** |
 | 重啟後 | `3200` pid `21032`（09:56:43）· `3210` pid `57180`（09:58:27）—— 各 **1 個** listener |
-| 晚於全部 commit | 是（最後 commit `2ce0d55` 是 2026-08-19 17:19:02） |
+| 晚於全部 commit | 是（Day 2 最後一個 commit 是 2026-08-19 17:19:02 —— 分支側 `2ce0d55`，**rebase merge 後在 `main` 上是 `d6aff4a`**） |
 | startup log | `DevPrincipal` WARN（SG1 硬編碼）· `Nest application successfully started` · `listening on http://127.0.0.1:3210` · `/policies` GET/`:id`/POST 三條路由 mapped |
 
 ⚠️ **`[::1]:3210` 連線被拒是預期行為**，不是故障 —— API 綁 `127.0.0.1`，Windows 的 `localhost`

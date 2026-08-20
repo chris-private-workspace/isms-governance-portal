@@ -3,7 +3,7 @@
 **Phase**: W24 — Unclaim the platform, wire policies, guard the prose
 **Period**: 2026-08-19 ~ 2026-08-20
 **Plan**: [plan.md](./plan.md)
-**PR**: PR-pending
+**PR**: **MERGED** (PR #91, `662d658`) —— 2026-08-20T06:03:23Z，經 `gh pr view` 驗證
 **Change record**: `docs/03-implementation/changes/CH-044-unclaim-the-platform-and-guard-the-prose.md`
 
 ---
@@ -177,7 +177,10 @@ D8（`Restricted`/「機密」分級偏離，guardrail 9 實質違反）· D9（
 - [x] ⭐ `RISK_REGISTER.md` 已複查 —— 見下
 - [x] **`plan.md` frontmatter `status:` 已翻成 `closed`，內文標記一致（R9）**
 - [x] ⭐ **已採納的 ADR 已複查** —— 見下
-- [ ] ⭐ **`PR-pending` 標記已翻** —— 待 merge 後以 `gh pr view` 驗證再翻
+- [x] ⭐ **`PR-pending` 標記已翻** —— `gh pr view 91` 回 `state: MERGED` ·
+      `mergedAt: 2026-08-20T06:03:23Z` · mergeCommit `662d658`；**六處**已翻
+      （不是原先寫的五處 —— `MEMORY.md` 的指標也帶著它）。
+      順帶修掉 rebase 造成的 stale SHA：`progress.md:276` 的 `2ce0d55` 不在 `origin/main` 上
 - [x] `python scripts/lint/run_all.py` 全綠
 
 **RISK_REGISTER 複查結果**：本片**降低**了一條敞口 —— 平台對外宣稱未持有的認證

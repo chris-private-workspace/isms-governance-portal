@@ -95,7 +95,7 @@
 - W23 [break-glass 從未被禁止，與 closeout 缺的那一格](memory/project_w23_break_glass_and_closeout_gate.md) — MERGED #89 (`bca8373`) 2026-08-19, **`closed`**; ADR-0015 取代 0007（衝突不是「該不該有 break-glass」而是「**它可不可以是本地的**」—— 0007 把它指派給了 Entra，而那正是它存在時已經壞掉的東西）；**本專案第一個被關掉的 P0**。⭐⭐ **3 個真實迴歸下 `run_all` 仍然 9/9**。
   Keywords: gate 綠 ≠ gate 還在運作 · 偵測力隨缺陷被修好而歸零 · 變異測試 · 預測先 commit · **枚舉了開放集合**（錨定欄位不要猜值）· landed gate（closeout 窗口的合法 pending）· 條件子句被轉述時拿掉 · actual/bottom-up 0.25 第 2 點
 
-- W24 [平台停止宣稱它沒有的認證，以及一個讓整行輸出隱形的 mock](memory/project_w24_unclaim_and_prose_guard.md) — PR-pending 2026-08-20, **`closed`**; `/login` 三條 claim **只改兩條**（第三條實測為真 —— 拿掉一句真話換來的誠實是負的）· `/policies` 列表接 API · 那條 AD 拿到機械承載（守衛錨定**封閉集合**）。⭐⭐ drive-through 抓到假陳述而 8 個測試全過，因為 **mock 丟掉插值變數使整行不可觀測**（AP-6，不是覆蓋率問題）。**calibration 第一次 re-point**。
+- W24 [平台停止宣稱它沒有的認證，以及一個讓整行輸出隱形的 mock](memory/project_w24_unclaim_and_prose_guard.md) — MERGED #91 (`662d658`) 2026-08-20, **`closed`**; `/login` 三條 claim **只改兩條**（第三條實測為真 —— 拿掉一句真話換來的誠實是負的）· `/policies` 列表接 API · 那條 AD 拿到機械承載（守衛錨定**封閉集合**）。⭐⭐ drive-through 抓到假陳述而 8 個測試全過，因為 **mock 丟掉插值變數使整行不可觀測**（AP-6，不是覆蓋率問題）。**calibration 第一次 re-point**。
   Keywords: mock 簡化掉轉換 ⇒ 斷言變不可能 · 同一句話兩個母體 · 移除三條的正確答案是兩條 · affordance 用 computed style 驗不是看截圖 · 型別位置放行同時是洞 · 守衛第一次執行抓到自己 · re-point 治標（該修 bottom-up）· 高負載 7/11 vs 乾淨 11/11
 
 ---

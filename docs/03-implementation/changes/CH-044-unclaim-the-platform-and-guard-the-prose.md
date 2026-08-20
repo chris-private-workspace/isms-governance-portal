@@ -4,7 +4,7 @@
 **Phase**: W24
 **Scope**: `ui`（`/login` · shell · `/policies` 列表 · fetch 層）· `core-model`（dev seed）· 治理工具（`scripts/lint`）
 **Components**: —
-**PR**: PR-pending —— push 是 outward-facing，待使用者確認
+**PR**: **MERGED** (PR #91, `662d658`) —— 2026-08-20T06:03:23Z，經 `gh pr view` 驗證
 
 ---
 
