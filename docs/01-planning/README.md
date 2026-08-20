@@ -15,6 +15,7 @@
 | [`BACKLOG.md`](./BACKLOG.md) | 中央待辦 dashboard —— 想知道「**有什麼**可以做」的第一站 |
 | [`ROADMAP.md`](./ROADMAP.md) | 執行順序層 —— 想知道「**先做哪個**」的第一站（每項一行，細節一律 link 回 BACKLOG）|
 | [`STATUS_AUDIT.md`](./STATUS_AUDIT.md) | 跨來源審計快照 —— 揪出上述文件**彼此之間**的漂移（`/status-audit` 重跑）|
+| [`PROGRESS-METRICS.md`](./PROGRESS-METRICS.md) | 想知道「**進度到哪了**」的第一站 —— Wave 1 的五把尺 + 里程碑錨點，由 `check_progress_metrics.py` 強制與 repo 一致。⛔ **刻意不給整體百分比** |
 | [`DEFERRED_REGISTER.md`](./DEFERRED_REGISTER.md) | 反覆 / 結構性的「暫時不做」決定 + **恢復條件** |
 | [`RISK_REGISTER.md`](./RISK_REGISTER.md) | Living 風險登記 |
 | [`CALIBRATION-MATRIX.md`](./CALIBRATION-MATRIX.md) | 工時乘數決策表（起草 plan §Workload 時查）|

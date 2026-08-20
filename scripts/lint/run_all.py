@@ -81,6 +81,12 @@ DETECTORS: list[tuple[str, str, list[str]]] = [
     # ⚠️ It measures whether anyone bypassed the two mechanisms, NOT whether
     # the prose on a screen is honest. That is the drive-through's job.
     ("fixture-prose", "check_fixture_prose.py", []),
+    # The five Wave-1 progress rulers, derived from the repo and compared to
+    # what PROGRESS-METRICS.md declares (CH-046). It holds no expected figure of
+    # its own, and it does NOT compute milestone verdicts -- each milestone
+    # declares the machine-checkable fact its verdict rests on, and only that
+    # anchor is re-checked. Anchors that are not cheaply derivable say `manual`.
+    ("progress-metrics", "check_progress_metrics.py", []),
     # ("your-detector", "check_your_pattern.py", ["--root", "src"]),
 ]
 
