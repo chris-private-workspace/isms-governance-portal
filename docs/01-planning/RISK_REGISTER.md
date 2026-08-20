@@ -2,7 +2,13 @@
 
 **Purpose**: Living 風險登記。**不是寫一次就算的文件** —— 每次 phase 收尾要複查。
 **Created**: 2026-08-07
-**Last Reviewed**: 2026-08-16（W17 closeout）—— **只複查並改寫 R3 / R4 兩列**：
+**Last Reviewed**: 2026-08-20（W24 closeout）—— **改寫 E5 一列**：本片交付它的機械承載
+（守衛錨定兩個封閉集合 + checklist 模板的具名格），敞口從「靠記性」降為「一個守衛 + 一格檢查表」，
+⛔ **未歸零** —— 存量 27 頁文案仍在，且守衛看不見還沒接 API 的頁。
+⭐ 本片同時**降低了一條從未登記的敞口**：平台在 `/login` 與 shell 上宣稱兩項它沒有的認證，
+而那些畫面**已隨 W21 上了公開 URL**（guardrail 1 / 2）—— 已移除，affordance 一併換掉。
+⛔ **R1 / R2 / R5 / R6 / R7 / R8 仍停在 2026-08-10，跨十九個 phase** —— `AD-RegisterUpkeep-1`。
+前次：2026-08-16（W17 closeout）—— **只複查並改寫 R3 / R4 兩列**：
 **R3** 全域表類別長大而「屏障有沒有被裝上」無機械檢查（`AD-EntityScopeNoDriftGuard-1`）；
 **R4** ⭐⭐ **敞口沒有變大，W02 以來第一次** —— 三張新表 `GRANT SELECT` only，
 「無寫入路徑可稽核」是**構造保證**不是「還沒接」；導出值 **16 / 25**（分母 +3 分子不變是正確的）。
@@ -50,7 +56,7 @@
 | E2 | **R6 漂移：拿代理指標回答需要讀內容的問題** | **6 次**（W02 一個 session 內）+ ⭐ **W19 又 7 次（同樣一個 session 內）** + ⭐⭐ **W23 又 2 次，而第 2 次升了一層**（Day 1 把 `docs/architecture.md` 依它的**角色**「薄轉址層」分類而沒讀它，漏掉一張帶 ✅ 標記的活決策表；Day 2 為寫 detector 做的**枚舉本身是窄的** —— 枚舉了「我想得到的拼法」這個**開放集合**，漏 3 種格式 + 1 個搜錯範圍 ⇒ 上線時對 9 個活的 stale marker 漏 4 個）：`.env` 未同步 → 殘留 fixture 汙染斷言 → detector 對註解開火 → `grep "^\[warn\]"` 撞 ANSI 色碼 → `super=f` 撞 `true/false` → haste 警告本機快取熱 | 其中一次**把「format clean」寫進了 commit message 與 PR 描述**，而那個 0 命中是 pattern 永不匹配造成的 | 已於 `bd107cf` 更正。第 5 次起改結構：斷言用退出碼或 SQL 述詞，不 grep 格式化輸出（`AD-GrepAssertion-1`） ⭐⭐ **W19 的 7 次裡有 4 次是別人發現的**（agent 回報衝突 ×3、我自己回頭跑加總 ×1）⇒ **自我察覺對這個形狀無效**，這是 W02 那 6 次沒有量到的新事實。已開 `AD-ProxyMetricAsAnswer-1`（P1）。|
 | E3 | ⭐ **R3 隔離失敗（開發環境）** | W02 Day 2：改了 `.env.example` 但 `.env` 沒改，整輪探測以 **superuser** 連線 —— `FORCE ROW LEVEL SECURITY` 對 superuser 無效，**十二項全綠而 RLS 全程未生效** | **一列 fixture 從 SG1 被搬到了 HK1** —— 這是一次真實的跨實體寫入。發生在開發資料庫，非 production。⚠️ 若沒跑那一輪而直接寫 provider 加測試，**測試會全綠而且證明不了任何事** | 無 postmortem（開發環境）。修法：每個量測腳本與 `int-global-setup.js` **先斷言前提**（角色 `super=f bypassrls=f`）。缺口仍在應用程式啟動時 —— `AD-EnvDrift-1` |
 | E4 | ⭐⭐ **R5 的新形狀：不是設定失效，是「可用性」從來沒有被任何 gate 表達過** | W19 Day 3 drive-through：**25 個按鈕無 handler、未停用、`cursor:pointer`，其中 4 個還會 hover 發亮** | 它們通過了 format · lint · type-check · build · **76 個測試** · `run_all` **9/9** —— 包含**本片自己當天新加的 hover 守衛**。⚠️ 與 E1 的差別要記著：E1 是「gate 宣稱檢查了但什麼都沒檢查」，**E4 是「沒有任何 gate 宣稱要檢查這件事」** —— 前者是守衛壞了，後者是**根本沒有守衛，而全綠讓人以為有**。⇒ drive-through 不是 gate 的補充，是**唯一**覆蓋這一層的東西 | 25 個全部處置（2 個接上變成真的能用 · 24 鈕+2 span 停用 · 3 列移除假可點外觀），複驗零違規。⛔ **沒有新增機械守衛** —— 這一層目前仍只能靠開車，這件事本身就是結論 |
-| E5 | ⭐⭐ **R4 + R6 的新形狀：畫面對真實資料做出了平台做不到的陳述** | W22 Day 3 drive-through：詳情頁對一筆**真實**風險渲染簽核鏈（含具名簽核人與日期）、**6 筆帶 SHA-256 hash 的稽核軌跡**、`append-only` / `Tamper-evident` / `Record locked` | 全部是 W19 的 fixture 字串，**整頁都是樣本時無害** —— 敞口在「表頭變成真實資料」的那一刻打開，而那次改動的 diff 裡**一個字都沒碰到那些區塊**。⇒ 這不是 E4 的「沒有守衛」，是**守衛存在而方向反了**：`DemoBadge` 的存在理由是防止「樣本被當成真的」，混血畫面讓它宣稱整頁是樣本而表頭是真的。通過 lint · type-check · **484 + 95 測試** · build · `run_all` **9/9** | 已清空並在真瀏覽器覆驗（`forgedStillPresent: []`）。⛔ **第一版修正只換文字保留綠色盾牌徽章 —— 綠色盾牌不管寫什麼都讀作認證通過**。**沒有新增機械守衛**；緩解是 `AD-FixtureProseBecomesForgedEvidence-1` 要求每一片接 API 的 phase 有一個具名 `[ ]`，逐條問「這一句是對這筆記錄的陳述嗎、API 送得出來嗎」 |
+| E5 | ⭐⭐ **R4 + R6 的新形狀：畫面對真實資料做出了平台做不到的陳述** | W22 Day 3 drive-through：詳情頁對一筆**真實**風險渲染簽核鏈（含具名簽核人與日期）、**6 筆帶 SHA-256 hash 的稽核軌跡**、`append-only` / `Tamper-evident` / `Record locked` | 全部是 W19 的 fixture 字串，**整頁都是樣本時無害** —— 敞口在「表頭變成真實資料」的那一刻打開，而那次改動的 diff 裡**一個字都沒碰到那些區塊**。⇒ 這不是 E4 的「沒有守衛」，是**守衛存在而方向反了**：`DemoBadge` 的存在理由是防止「樣本被當成真的」，混血畫面讓它宣稱整頁是樣本而表頭是真的。通過 lint · type-check · **484 + 95 測試** · build · `run_all` **9/9** | 已清空並在真瀏覽器覆驗（`forgedStillPresent: []`）。⛔ **第一版修正只換文字保留綠色盾牌徽章 —— 綠色盾牌不管寫什麼都讀作認證通過**。**沒有新增機械守衛**；緩解是 `AD-FixtureProseBecomesForgedEvidence-1` 要求每一片接 API 的 phase 有一個具名 `[ ]`，逐條問「這一句是對這筆記錄的陳述嗎、API 送得出來嗎」 ⭐⭐ **W24 交付了它的機械承載，而承載只有一半**：`check_fixture_prose.py` 錨定**兩個封閉集合**（已接 API 的表面 **+ shell** × 標了 `@record-claim` 的 export），⛔ **它看不見硬編碼在 i18n / JSX 裡的陳述** —— 那一半由 checklist 模板 §2.y 的具名格承接。⇒ 敞口從「靠記性」變成「一個守衛 + 一格檢查表」，**未歸零**：存量 27 頁文案仍在，`/controls/[id]` 是其中最高風險的一頁（`AD-ControlDetailForgedProse-1` —— 它仍在做 `/risks/[id]` 已被明令禁止的事，且**守衛看不到它**，因為那頁還沒接 API 所以不在掃描面內）。⚠️ 同片另量到一個**同形但宣稱對象是平台自己**的實例：`/login` 與 shell 宣稱兩項未持有的認證且**已在公開 URL 上**（guardrail 1/2）—— 已移除，affordance 一併換掉 |
 
 | E6 | ⭐⭐ **R5 的第三種形狀：不是設定失效，是 gate 的偵測力隨它守的缺陷被修好而歸零** | W23 Day 3 變異測試：對新加的 E5 做 5 個變異，其中 **3 個是真實迴歸**（刪掉一種 marker 格式 · 授權解不出來時改用猜的 · **E5 算完但不被 `find_violations` 收集**）| 三者的 `check_status_markers` **全部回報 `OK (30 pre-doc(s), E1/E2/E3/E4/E5 clean)`**、`run_all` **全部 9/9**。⛔ `test_live_repo_is_clean` 在 Day 2 修掉 5 個真陽性之後，對其中 2 個變異**完全失明** —— 它守的東西已經不在了。⚠️ 第 3 個變異是教科書等級的 Potemkin：函式跑了、結論沒進聚合，**任何 end-to-end 觀察都看不出來** | **`run_all` 9/9 不是「某個檢查有效」的證據。** 守住射程的是**具名單元測試**，每個變異各只有 1 個會紅 —— 而那 3 個測試若被當成「太囉唆」刪掉，沒有任何 gate 會反對。⇒ `AD-GateGreenDecaysAfterFix-1`；候選結構解法：變異測試列為改 detector 時的常規動作 + `run_all` 輸出附每個 detector 的**檢查項數** |
 

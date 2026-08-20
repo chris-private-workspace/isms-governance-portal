@@ -51,7 +51,7 @@ Bottom-up ~X hr → class-calibrated ~Y hr (mult Z) → agent-adjusted ~Y' hr (a
 | Scope class | Mult | 3-phase mean | Status（1 行）|
 |-------------|------|---------------|--------------|
 | `greenfield-scaffold` | 0.60 | n/a (1 pt) | KEEP (W01 ratio ~0.35 UNDER band; 工時未逐項記錄，數字由 commit 時間戳回推故品質打折; if 2nd <0.70 → 0.40; → calibration-log) |
-| `pattern-reuse-feature` | 0.50 | n/a (11 pt, 跨 0.23~1.24) | KEEP (W18 ratio **0.545 UNDER**, 第 11 點, ⭐ **第一個乾淨 UNDER** —— T0 蓋在**讀第一個檔案前**故分子完整; ⛔ W17 判準寫 0.7-0.85 而本點更低 ⇒ 字面不觸發; ⚠️ ratio 對分子方向與直覺相反 ⇒ 舊 UNDER 部分是量測 artifact; 新判準: 第 12 點**同量法**再 <0.7 則 re-point 0.45; 3-phase 平均不得跨量法; → calibration-log) |
+| `pattern-reuse-feature` | **0.45** | n/a (12 pt, 跨 0.23~1.24) | **RE-POINT 0.50→0.45** (W24 ratio **0.377 UNDER**, 第 12 點, **同量法** ⇒ W18 訂的判準字面觸發, 照做; ⛔ **re-point 治標** —— 0.45 只把 committed 7.7→6.9, ratio 仍 0.42; ⭐ 真訊號在 `actual/bottom-up` **0.141** (W22 0.26 · W23 0.25) ⇒ 該修的是估算方法不是乘數; → calibration-log) |
 | `mockup-port` | 0.55 | n/a (1 pt) | KEEP (W19 ratio **0.40-0.47 UNDER**, 第 1 點, 區間非單值 —— 窗口內含關機中斷且比例不可量; ⭐ 疑因 **3 agent 平行**而非 agent_factor 0.45 本身; 單點不 re-point; 若第 2 點同為多 agent 且 <0.7 → 改動 `agent_factor` 而非 class mult; → `AD-AgentParallelismFactor-1`) |
 | `greenfield-feature` | 0.55 | n/a (1 pt) | KEEP (W22 ratio **0.46 UNDER**, 第 1 點, ⭐ **本專案第一個四段全部當日量到的分子** —— 提醒移到 checklist 每個 Day 一個 `[ ]`; ⚠️ `actual/bottom-up` **0.26** 遠低於 0.4 ⇒ 該修的是估算不是乘數; 單點不 re-point; 若第 2 點同 <0.7 → 0.45 且同時重估 bottom-up 方法; → calibration-log) |
 | `docs / audit / template` | 0.40 | n/a (1 pt) | KEEP (W23 ratio **0.62 UNDER**, 第 1 點; ⛔ 分子含**計畫外工作** —— 扣掉後 ~0.51, 故本點偏高不是估得準; ⭐ `actual/bottom-up` **0.25** 與 W22 的 0.26 連成訊號 ⇒ **該修 bottom-up 方法不是乘數**（表頭 0.4 下限已明寫）; 單點不 re-point; → `AD-BottomUpEstimateInflated-1` · calibration-log) |
