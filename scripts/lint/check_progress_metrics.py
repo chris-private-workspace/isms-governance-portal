@@ -107,10 +107,11 @@ MILESTONE_ROW = re.compile(r"^\|\s*(M[0-9][a-z]?)\s*\|\s*([^|]+?)\s*\|\s*`([^`]+
 # === RULER_RULE ======================================================
 # ⛔ A RULER MUST BE A PROPERTY OF THE COMMITTED REPO, NOT OF THE WORKING
 # ENVIRONMENT. Learned the expensive way on this file's own first PR: the first
-# version compared `loc-generated`, the line count of apps/api/src/generated/.
-#   path-check: ignore — that path is gitignored, so it resolves locally and not
-#   on a clean checkout. check_path_references flagged THIS LINE for exactly the
-#   reason the line is describing, which is the same shape one layer up.
+# version compared `loc-generated`, the line count of apps/api/src/generated/.  # path-check: ignore
+#   ^ the pragma must sit on the SAME physical line as the path
+#   (check_path_references.py:168 is `if PRAGMA in line`). That path is
+#   gitignored, so it resolves locally and not on a clean checkout -- the
+#   checker flagged this line for exactly the reason the line describes.
 # That directory is the Prisma client -- .gitignore:96 excludes it and it holds
 # zero tracked files -- so it exists locally after `prisma generate` and does
 # not exist on a fresh CI checkout. Local run_all was 11/11 green; CI derived 0
