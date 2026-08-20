@@ -1,7 +1,7 @@
 ---
 artifact: status-audit-living
 status: active
-last_audit: 2026-08-19
+last_audit: 2026-08-20
 ---
 
 # 全項目狀態審計（Status Audit）
@@ -14,6 +14,7 @@ last_audit: 2026-08-19
 **Status**: Active
 
 > **Modification History**
+> - 2026-08-20: Audit #9 (post-W23+W24) — AD-50–59; three of the ten have both halves inside one file
 > - 2026-08-19: Audit #8 (post-W22) — AD-45–49; four of the five are older drifts one phase worse
 > - 2026-08-18: Audit #7 (post-W15..W21) — AD-27–44; eight sit in the ADR layer, which no closeout checks
 > - 2026-08-15: Audit #6 (post-W13+W14) — AD-21–26; four contradict their own row or paragraph
@@ -70,7 +71,94 @@ code 內的 `TODO(` / `FIXME` / `HACK(` · 各 track 自己的 `TRACKER.md` ·
 
 ---
 
-## 2. 最新快照 — 2026-08-19（**#8**，W22 收尾後）
+## 2. 最新快照 — 2026-08-20（**#9**，W23 + W24 收尾後）
+
+**基準**：`main` · **`3773e1c`** · **開著的 PR = 0** · 工作樹 clean（`git status --short` 零行）
+**當前 active phase / change / bug = 0** —— `check_status_markers.py` 掃 **31 個 pre-doc**，
+`E1/E2/E3/E4/E5 clean`；**24 個** `plan.md` 全部 `closed`（19）或 `closed_partial`（5）；`run_all` **10 / 10**
+
+✅ 基準在 `main` 上。W24 的兩個 PR（**#91** 本體 · **#92** post-merge）皆已用
+`gh pr view --json state,mergedAt` 驗證 `state=MERGED`（`662d658` / `3773e1c`）。
+⛔ **本次跨兩個 phase**（W23 · W24），與 #8 同為小落差 —— 但同樣**不是紀律改善，是使用者主動問了**。
+
+### 涵蓋聲明
+
+**掃了**（§1 全部 8 個來源。**委派 1 個 agent** 做 A/B/C 三節 broad scan，其餘自己讀）：
+`BACKLOG.md`（detector 導出 + §Open priority cell 逐列解析 + §Shipped / §Pending / §Known 四個分區）·
+`ROADMAP.md`（四張表逐列 + P0 落點對照）· `DEFERRED_REGISTER.md`（D001–D005 恢復條件**逐條去找它指名的東西**）·
+`RISK_REGISTER.md`（header + 逐列日期）· `docs/14-adr/` 全部 `**Status**:` + 編號空缺 ·
+三軌 pre-doc（跑腳本）· `docs/` 非終態 `status:`（agent A 節，三種格式 sweep）· `decision-form.md`（8 列，2 開放 / 6 已拍板）。
+補充：`git log` · `gh pr view 91/92` · `check_entity_index`（**34 / 36**）· `check_backlog_counts`（**189**）·
+`check_sha_anchors`（**OK**）· `run_all`（**10/10**）· **實裝版本由 `node -e require(...)` 讀出**（非讀文件）·
+全 repo `TODO(`/`FIXME`/`HACK(`（**0**，agent 以 `import` 1326 命中作對照組證明搜對了地方）。
+
+**沒掃到 / 不在範圍**：`docs/02-architecture/` 19 份設計文件內文一致性 · `reference/`（刻意不在版控）·
+branch protection API（未重查）· ⚠️ **AD-27 ~ AD-49 未逐條重驗原文** —— 只查它們**有無處置紀錄**，
+所以「仍未處置」是**狀態陳述不是內容複驗**（同 #7 / #8 的限制，**第三次**）。
+
+| 層級 | 數量 | 一句話 |
+|---|---|---|
+| 🔴 上線硬關卡 | **5** | `AD-RiskForm-1` · `AD-Incident-1` · `AD-NegativeGate-1` 候選 · `AD-UniqueKeyOracle-1` 候選 · `AD-NarrowPatternWideClaim-1` 候選。⭐ **五條全部在 ROADMAP 找得到落點** ⇒ **AD-34 消解**（它指的 `AD-LocalPasswordFallback-1` 已於 W23 關閉，本專案第一條被關掉的 P0）|
+| 🟠 已規劃、未執行 | **101** | P1（+9，自 #8 的 92）—— 全部來自 W24 |
+| 🟢 持續技術債 | **83** | P2（+8）|
+| ⚫ 卡使用者 / 卡外部 | **1.5** | 未變（`AD-DAST-1` 全卡外部 · `AD-IaCEvidence-1` 一半）|
+| ⚪ 已實證 defer | **5** | D001–D005。⚠️ **本次再次逐條複查，恢復條件皆未成立** —— D004 綁 **OQ-7 拍板**而 OQ-7 仍開放；D005 的「同時開兩個以上 PR」，**#91 / #92 仍是序列**（第二次擦邊）|
+| ⚠️ 漂移發現 | **10 新 + 19 舊** | **AD-50 ~ AD-59**（見 §2.7-#9）。AD-27 ~ AD-49 共 23 條中**已處置 4 條**：`AD-30` / `AD-43`（W23）· `AD-46`（W22 post-merge）· **`AD-47`（本次 W24 closeout 修掉 RISK_REGISTER header）**，其餘 **19 條**仍未處置 |
+
+> 上表數字由 **`check_backlog_counts.py` 導出**：**189 列**（P0 **5** / P1 **101** / P2 **83**）。
+> ⭐ **本次沒有重蹈 #8 的窄 pattern** —— 列 P0 名單時直接解析 priority cell（`$5 ~ /P0/`）
+> 而非 grep `🔴 P0` 字面，三種寫法一次到齊。**#8 的教訓這次生效了。**
+
+### 2.7-#9 ⚠️ 本次漂移發現（AD-50 ~ AD-59）
+
+> 編號續 §2.7-#8 的 AD-49。⛔ **共同形狀變了**：#8 是「舊病計數器往前跳」，
+> 本次**十條裡有七條是新種類**，而且**三條住在同一份文件的兩個地方**（矛盾不需要跨檔就能成立）。
+
+| AD | 漂移 | 實據 |
+|----|------|------|
+| **AD-50** ⭐⭐ | **`CLAUDE.md` 的 ADR 清單把已被取代的 0007 列為「已採納」，且完全沒有 0015** —— 而它是 **always-loaded**，每個 session 開場都複製一次這個錯誤 | `CLAUDE.md:84`（Tech Stack）與 `:413`（docs 導覽）皆寫「0001 / 0003 / 0004 / 0005 / **0007** / 0010–0014 已採納」。對照 `0007-identity-provider.md:4`「**已被 ADR-0015 取代**」· `0015-*.md:4`「**已採納**」· `14-adr/README.md:79,87` **正確** · `decision-form.md:46` **正確** ⇒ **CLAUDE.md 是唯一停在舊狀態的來源**。⛔⭐ **根因不是沒有機制，是機制在它最該生效的那次自我漏掉**：`task-workflow.md` §Closeout 有「⭐ 已採納的 ADR 已複查」一格，而 **W23 正是產出 0015 的 phase**，那一格沒抓到；**W24 closeout 我勾了同一格，也沒抓到** —— 我當時查的是 ADR-0004 與 API `_warning` 裡的 0007 引用，**沒有想到要查 CLAUDE.md 自己的清單** |
+| **AD-51** ⭐⭐ | **`BACKLOG.md` 同一份文件的兩處狀態相反** —— `:15` 寫「⛔ **審計 #7 的 18 條全部仍未處置**」，而同檔 `:58` / `:74` 寫「審計 #7 的 **`AD-30` / `AD-43` 同步關閉**」 | 兩處皆為現行文字，非歷史區塊。`:13-16` 是 #8 當天寫的摘要行，W23 closeout 關掉兩條後**沒有回頭改它**。⇒ 這正是本檔 §0 表格第一行點名的失效模式（「同一項在兩個分區狀態相反」），**而它現在活在 BACKLOG 裡** |
+| **AD-52** ⭐ | **ROADMAP 押後表把一條已關閉 3 天的 AD 仍標為 🔴 P0** —— `AD-Mockup-3` 於 **2026-08-17（W19 closeout）已關閉**；同列的 `AD-Mockup-2` 也已由 P0 降為 🟡 **P1** | `ROADMAP.md:134`「`AD-Mockup-2` · `AD-Mockup-3`（🔴 P0）| **M8 移植前**」與 `:153`「其餘 P0（…）在 §押後表」。對照 `BACKLOG.md:143`「W19 Day 4 closeout：**關閉 4 條**（…`AD-Mockup-3`…）」· §Open 逐列解析：`AD-Mockup-2 -> 🟡 P1`、**`AD-Mockup-3` 零命中**。⇒ ROADMAP 的職責第一條就是「已完成的有沒有標回去」 |
+| **AD-53** | **`AD-36` / `AD-48` 第 3 次惡化** —— ROADMAP 主線第 4 項「M1 — Data foundation」的進度停在 **slice 13（W18，2026-08-17）**，而實體已 **34 / 36**；W19–W24 **六個 phase** 在四張表上零落點 | `ROADMAP.md` `**Last Modified**: 2026-08-15`，最後一個 commit 是 `3b55acb`（W21 closeout）；全檔 `W2[0-9]` 僅命中 **W20 / W21**。⇒ 今天讀 ROADMAP 問「先做哪個」，**仍然答不出任何跟瀏覽器有關的事**，而 W22 / W24 兩個垂直切片正是當前主要工作方向 |
+| **AD-54** ⭐ | **框架版本在三份文件間不一致，而只有一份帶免責說明** —— 實裝 `@nestjs/core` **11.1.28**（`node -e` 讀 `node_modules`），`ADR-0001` 內文三處寫 **NestJS 10**，`decision-form.md` OQ-2 也寫 **NestJS 10** | `0001-backend-framework.md:24,50,58` · `decision-form.md` OQ-2 列。⚠️ **CLAUDE.md 是對的且自帶說明**（「ADR-0001 決定的是**框架不是版本**；W01 實裝當前主版本（ADR 內文未改）」）—— 但另外兩份**沒有那句話**，單獨讀它們的人會以為是 10。⇒ 不是「誰錯」，是**免責說明只寫在一處** |
+| **AD-55** | **`AD-33` / `AD-49` 第 3 次** —— `DEFERRED_REGISTER` 內容自 2026-08-12 未動，**跨 12 個 phase**（#8 時是 10 個）| `DEFERRED_REGISTER.md:6`。⚠️ **本次仍逐條去找解封條件指名的東西，五條皆未成立** ⇒ 內容不需要改。**但「有沒有人看過」與「需不需要改」是兩件事，而只有後者有紀錄** —— 這句話 #8 寫過，原文照抄，因為情況一字未變 |
+| **AD-56** | **一份已收尾工作的 `progress.md` 仍標 `draft`** —— `CH-012` 的 PR **#20 已 merged**（`2a4160f`）、checklist **24 勾 0 未勾**、完成摘要已填 | `CH-012-resident-negative-gates/progress.md:3` `**Status**: draft` vs 同資料夾 `spec.md:2` `status: done` / `:12` `**PR**: #20（MERGED）`。純標記債，非未完成工作 |
+| **AD-57** ⭐ | **`check_status_markers.py` 的 E4 有結構性盲點，而 AD-56 就是它的實例** —— E4 讀 sibling **只讀 frontmatter，不讀 body**；E2 會做 frontmatter-vs-body 比對，**但只對 pre-doc 自己，從不對 sibling** | `check_status_markers.py:561` `sib = frontmatter_status(...)` vs `:545-546` 的 E2 比對。⇒ AD-56 那個 coarse 矛盾（body `draft` vs pre-doc `done`）**結構上不可能被 E4 看見**。腳本回報 `clean` 是誠實的，**但那個 clean 有洞** —— `AD-NegativeGate-1` 家族（設定型強制力靜默失效）在 detector 自身上的又一個實例 |
+| **AD-58** | **一份 Draft 文件的未解矛盾直接掛著 M4 的前置條件** —— PAR 表單的「Integration with existing system?」於 2026-08-10 手改為 **No**，而下方「If yes」區塊仍完整描述 Entra ID 整合，**包含 RIT 必須建立的三個 App Registrations** | `06-reference/02-azure-resource-request-form/PAR-fill-notes.md:9` `**Status**: Draft`（**誠實**，不是漂移）· `:103-106` 三項未勾 · `:110-127` §4b。文件自述「**M4 cannot start without those App Registrations**」，commit `6aece5d` 的 message 也自認未完。⚠️ 附帶：`:8` `Last Modified: 2026-08-09` 而內文有 2026-08-10 回填 ⇒ 該欄位 stale |
+
+| **AD-59** ⭐ | **這個 skill 的兩份指令文件對「要不要順手修漂移」給出相反指示** —— 而我是在執行它的過程中撞到的 | `.claude/skills/status-audit/SKILL.md` §三條硬規矩第 3 條：「**發現的漂移要回頭修來源**，不是只寫進快照…只寫快照 = 下次再發現一次」 vs `.claude/commands/status-audit.md` §不可以做的事：「❌ **不可以順手修漂移**（除非使用者要求）—— 審計負責揪出來，修是另一件事」。⚠️ **本次依 command 執行**（skill 自己說「完整程序在 command，先 Read 那一份」⇒ command 是執行層）。⛔ 但兩份都是現行文字，下一個執行者會依他先讀到哪一份而做出不同的事。⇒ 需要一句裁決：**審計當下修，還是列進優先序讓使用者排**（我的讀法是後者，因為「修」會改變下一次審計的基準，而 §6 說沒有 merge 的審計等於沒發生過）|
+
+### 2.8-#9 優先序建議
+
+⛔ **審計不代為決定，下列是排序候選不是指令。**
+
+| # | 候選 | 為什麼是它 |
+|---|---|---|
+| 1 | **`CLAUDE.md` 的 ADR 清單（AD-50）** | 兩行的修正，但它是 **always-loaded** —— 每個 session 都在讀一份把已被取代的 ADR 列為現行的清單。⭐ 且應**同時**問一句：那一格 closeout 檢查連續兩次沒抓到，**是不是該把「CLAUDE.md 的 ADR 清單」明文寫進那一格** |
+| 2 | **`AD-58` PAR §4b 的 integration 矛盾** | 唯一一條**有下游里程碑後果**的：M4 沒有那三個 App Registrations 起不來，而表單目前送出去會是「No」。⚠️ 它卡外部（RIT），所以前置時間比修文件長 |
+| 3 | **ROADMAP 的三條（AD-52 / AD-53）一次處理** | 已關的標回去、降級的改對、把 W19–W24 的垂直切片補進主線。⭐ **AD-36 → AD-48 → AD-53 是同一條病的第三次**，依 `.claude/rules/README.md` 強度階梯，**≥3 次應改結構性解法**而不是再修一次內容 |
+| 4 | **`AD-51` BACKLOG 的自我矛盾 + `AD-56` 的一行標記** | 兩條都是分鐘級。⚠️ 但 AD-51 的價值不在修，在於它證明**同檔矛盾不需要跨文件就能成立** |
+| 5 | **`AD-57` 的 E4 盲點** | 治理工具，受 Step 0.0 每 phase 1 個 CH 的配額約束 ⇒ **要跟一個產品 phase 一起排，不是自己占一片** |
+
+### 2.9-#9 一個觀察 —— **這次的漂移有三條住在同一份文件裡**
+
+#8 的觀察是「單一視角看不見自己的錯」。本次它以更窄的形式出現：
+**AD-50**（CLAUDE.md 兩處都錯）· **AD-51**（BACKLOG `:15` vs `:58`）· **AD-52**（ROADMAP `:134` vs `:153`）
+—— 三條的矛盾兩半**都在同一份文件內**，不需要跨來源就能發現，
+而它們**仍然存在了好幾天**，因為沒有人會為了「檢查這份文件跟自己一致嗎」而重讀它。
+
+⭐ 這使 §0 的論證更強而不是更弱：跨來源審計之所以有效，
+**不是因為它比對了不同文件，是因為它是唯一一次有人從頭到尾讀完它們。**
+
+⛔ 而本次最該記住的一條是 **AD-50 的根因**：機制存在（closeout 有「ADR 已複查」那一格），
+**它在產出該 ADR 的那個 phase 自己漏掉了，下一個 phase 又漏一次，而第二次是我勾的。**
+⇒ 一格檢查表若沒有指名**要查哪些檔**，它就只會被查在你當下想得到的地方。
+
+---
+
+<details><summary>📁 審計 #8（2026-08-19，W22 收尾後）及更早的 #7 / #6 / #4 原文 —— 全部保留</summary>
+
+### 2-#8 最新快照 — 2026-08-19（**#8**，W22 收尾後）
 
 **基準**：`main` · **`a3259fc`** · **開著的 PR = 0** · 工作樹 clean（`git status --short` 零行）
 **當前 active phase / change / bug = 0** —— `check_status_markers.py` 掃 **29 個 pre-doc**，
@@ -723,12 +811,17 @@ drive-through 抓的正是**你沒想到要問的那些**。
 - ⇒ **判準因此明確**：委派可以擴大**掃描**的射程，**不能代替判讀**。
   每一條進入 §2.7 的發現，都必須由審計者自己重讀那一處原文 —— 這次做了，而且**擋下了一條**。
 
+</details>
+
+---
+
 ## 3. 歷史快照
 
 <!-- 舊快照精簡成 3-5 行放這裡，保 audit trail。不要保留全文。 -->
 
 | 日期 | 基準 sha | 當時 active | 漂移數 | 一句話 |
 |---|---|---|---|---|
+| 2026-08-19 (#8) | `a3259fc` | 0 | 5 | W22 收尾後。173 條 open AD（P0 6 / P1 92 / P2 75）；⭐ **五條裡四條是「已被指名的舊漂移又過了一個 phase」** —— 幾乎沒有新種類，只有計數器往前跳。本次自己貢獻一條（AD-47 改列不改 header）也自己抓到一次窄 pattern（P0 計數 4 vs 6）|
 | 2026-08-18 (#7) | `3b55acb` | 0 | **18** | **W15–W21 收尾後 —— 歷來最大落差（跨七個 phase，前六次最多兩個），且觸發它的不是任何機制而是使用者開口問。** 160 條 open AD（P0 **6** ← 7：`AD-Mockup-3` 由 W19 關閉、`AD-Mockup-2` 降 P1、新增 `AD-LocalPasswordFallback-1`）。⭐⭐ **18 條裡 8 條在 ADR 層，而根因是一個結構缺口不是八次疏忽** —— 沒有任何 ADR 檔在 2026-08-14 之後被改過，因為 **phase closeout 的檢查表沒有一格是 ADR**（`RISK_REGISTER` 有那一格，是審計 #3 加的）。最尖銳的三條：`AD-27`（`CH-041` 在自己的表格裡列出 `ADR-0011:119` 是受影響處然後沒修它 —— **一次修復動作列出了自己的漏網**）· `AD-30`（`ADR-0007:90-92` 仍是一條「M4 必須建造兩套身分平面」的現在式指令，而 Azure China 十天前就移出範圍）· `AD-31`（`decision-form` 宣稱四個法律問題未經複查，**而它在同一句話裡連結的 ADR-0010 寫著它們 moot**）。⭐ **死線歸零，本專案第一次**（`AD-TrivyExempt-1` 由 CH-032 拆掉）。⭐ **UI drive-through 連續 14 個 phase 零次的紀錄由 W19 終結，且第一次執行就抓到 25 個死控件**。⭐ **本次首度把掃描委派給四個平行 agent** —— 擴大了射程（ADR 層的可證偽條件前六次從未逐條讀過），**而其中一條回報是錯的**（宣稱 CLAUDE.md 仍寫 W20）⇒ **委派可以擴大掃描，不能代替判讀**。⛔ 基準**不在 `main` 上**（歷來第一次）—— W21 的 closeout 仍在 PR #84 |
 | 2026-08-15 (#6) | `c403522` | 0 | 6 | W13 + W14 收尾後（**首次一次審計跨兩個 phase**）。108 條 open AD（P0 **7** ← 8，`AD-AuditCoverageOneTable-1` 由 W13 關閉 —— **十個 phase 以來第一條被關掉的 P0**）。⭐ **本次六條有四條的矛盾兩半住在同一列或同一段裡**（ROADMAP 的「第 5 條 P0」而真值 7 且兩條 P0 無落點 · `decision-form` 表格 2 列而敘述寫「三項」· R4 狀態欄 15/21 而同列內文寫「第 16 個」· `RISK_REGISTER` header 歸給 W13 而 W14 也改過）—— **跨來源審計的價值不全在「跨」**。⭐⭐ **M0 DoD 第 5 項首度取得實據**：三個子項裡兩個早已做完且有負面測試守著，只有 TLS 是本專案結構上無標的 ⇒ 連續四次的「未取得實據」涵蓋了兩件性質不同的事。⛔ **審計 #5 的四條只處置了一條**（AD-20，而且是被 closeout 順手改對的）|
 | 2026-08-14 (#5) | `91dd1cb` | 0 | 4 | W12 收尾後。100 條 open AD（P0 8 / P1 56 / P2 36，detector 導出）；⭐ **本次四條有兩條是「條件成立了但沒有人回頭翻」**（W05 的 `closed_partial` 早在 W06 解封、`DEFERRED_REGISTER` 停更跨五個 phase），另兩條是**我自己在 W12 closeout 造成的**（同一個錯的表數留在兩份活文件、BACKLOG header 日期沒跟上）。⭐⭐ **兩個「疑似漂移」被實據推翻**：W01 的 `closed_partial` 是**對的**（digest 釘定仍未做），`asset.int.spec.ts` 的四項範疇測試**存在**（我第一次用的 pattern 太窄）。M0 仍 3/2/1 未動（連續**十個** phase）|
