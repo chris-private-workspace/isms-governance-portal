@@ -71,7 +71,152 @@ code 內的 `TODO(` / `FIXME` / `HACK(` · 各 track 自己的 `TRACKER.md` ·
 
 ---
 
-## 2. 最新快照 — 2026-08-20（**#9**，W23 + W24 收尾後）
+## 2. 最新快照 — 2026-08-20（**#10**，使用者要求的全面盤點）
+
+**基準**：`main` · **`5c768ce`** · **開著的 PR = 0** · 工作樹 **1 檔未 commit**
+（`CH-045` 的 `PR-pending` 翻牌 —— 見 §2.7-#10 `AD-62`，那正是本次的一條發現）
+**當前 active phase / change / bug = 0** —— `check_status_markers.py` 掃 **31 個 pre-doc**，
+`E1/E2/E3/E4/E5 clean`；**24 個** `plan.md` 全部終態（`closed` **19** / `closed_partial` **5**）；
+`run_all` **10 / 10** · `check_sca_allowlist`（**未註冊進 `run_all`**，CI `security-scan.yml:170` 跑）**OK，1 條接受中且在期**
+
+✅ PR **#93**（審計 #9）與 **#94**（`CH-045`）皆以 `gh pr view --json state,mergedAt` 驗證
+`state=MERGED`（`93151a1` / `5c768ce`）。
+
+⛔ **本次與 #9 同一天**，觸發的是使用者「先停一停，全面盤點」而非 phase 收尾 ⇒
+**交付面（§2.1 / §2.6 / ADR / 里程碑）與 #9 相同是預期的**，中間沒有 phase 落地。
+變化集中在 §2.7 與下方的**里程碑對照**（#9 沒有做這一張）。
+
+⭐ **本次是 `CH-045` 生效後的第一次審計** —— 新規矩要求每條漂移在 `BACKLOG.md` §Open 有一列。
+**已執行**（§Open 191 → **197**），見 §2.7-#10 末。
+
+### 涵蓋聲明
+
+**掃了**（§1 全部 **8** 個來源，**全部自己讀，本次零 agent 委派**）：
+`BACKLOG.md`（detector 導出 + P0 逐列 priority-cell 解析 + §Shipped 以**列首錨定**逐個查）·
+`ROADMAP.md`（主線 / 死線 / 等外部 / 押後 / 不排序 P0 五張表）·
+`DEFERRED_REGISTER.md`（header + D001–D005 + `git log` 最後內容變更日）·
+`RISK_REGISTER.md`（header + R1–R8 **逐格拆解**，狀態欄改用**全格 vocabulary 比對**不用位置）·
+`docs/14-adr/` 全部 `**Status**:`（13 檔）+ 編號空缺 + `README.md` 對空缺的解釋 ·
+三軌 pre-doc（跑腳本）· `docs/` 非終態 `status:`（**唯一命中是本檔自己**）· `decision-form.md`（8 列）
+
+**補充**：`git log -8` · `git status --short` · `gh pr list --state open`（**0**）·
+`gh pr view 93/94` · `check_entity_index`（**34 / 36**，schema 35 models / 1 刻意排除）·
+`check_backlog_counts`（**191 → 197**）· `check_sha_anchors` · `run_all` ·
+`AUDITED_MODELS` **從 `audit.module.ts:82` 讀出**（非讀文件）· 八個範疇的 `.ts` 檔數 ·
+`apps/web` `page.tsx` 數（**29**）· 全 repo `TODO(` / `FIXME` / `HACK(`（**0**）·
+`CH` 編號 **1–45 無缺號** · `docs/03-implementation/bugs/` **只有 `.gitkeep`（史上零筆 BUG 記錄）**
+
+**沒掃到 / 不在範圍**（⚠️ 這一段是判讀本快照的前提，不是免責）：
+- `docs/02-architecture/` 19 份設計文件的**內文**一致性 —— 只查了 `07` 的里程碑表與 M0 DoD
+- `reference/` 與 `docs/reference/`（刻意不在版控）· branch protection API（未重查）
+- ⚠️ **191 列 §Open 未逐列重驗原文** —— P0 五條逐條讀了，其餘只取 detector 的計數與優先度
+- ⚠️ **AD-27 ~ AD-59 未逐條重驗原文** —— 只查**有無處置紀錄**；「仍未處置」是**狀態陳述不是內容複驗**
+  （同 #7 / #8 / #9 的限制，**第四次**）
+
+### 2.0-#10 ⭐ 規劃 vs 已實現 —— 里程碑對照（`07-wave1-build-plan.md:31-42`）
+
+> **本節是 #10 新增的**，因為使用者問的是「規劃的內容實現了多少」而非「有什麼漂移」。
+> ⛔ **判定依據是 code 與機械導出，不是文件宣稱**；每一格的實據寫在該格內。
+
+| 里程碑 | 判定 | 實據（機械導出 / `file:line`）|
+|---|---|---|
+| **M0** Repo · pipeline · deployment | ⚠️ **3 關 / 2 部分 / 1 待裁決** | 見 §2.6（#7 起逐次追蹤，本次未變）。**結構上不會靠本專案單方面關掉** —— DAST 卡外部、ACA 憑證是平台預設 |
+| **M1** Data foundation | 🟢 **34 / 36**（機械） | `check_entity_index` · slice **W04–W18 共 13 片**。缺的 2 個實體見該 detector 輸出 |
+| **M2** Entity & jurisdiction | 🟢 **實質完成** | `entity-scope/` **8 檔**；RLS `ENABLE 27 / FORCE 27 / 缺口 0`（W18 實測）。⛔ 殘餘是**守衛**不是功能（`AD-EntityScopeNoDriftGuard-1`）|
+| **M3** Audit trail | 🟡 **骨幹完成，覆蓋 16 / 34** | `audit-trail/` **11 檔**；`AUDITED_MODELS` = **16**（`audit.module.ts:82-98`，逐名讀出）。W24 對 `/login` 的 `Tamper-evident, append-only audit trail` 逐條驗證**為真** |
+| **M4** Identity & RBAC | 🔴 **未開始** | `apps/api/src/identity/` **0 個 `.ts`**。ADR-**0015** 已採納，但前置是 RIT 建三個 App Registration ⇒ `AD-58` |
+| **M5** Workflow engine | 🔴 **未開始** | `apps/api/src/workflow/` **0 個 `.ts`**。**OQ-7 開放中**、ADR-**0002 需先 spike** ⇒ 這是 M5 的實際路障 |
+| **M6** Proof module: Policy | 🟡 **模組在，讀路徑剛接上** | `modules/policy` + `modules/attestation`；W24 接上 `/policies` 列表。⛔ 詳情頁**仍未接**（W24 checklist §2.3 🚧）|
+| **M6b** Asset + threat/vuln | 🟢 **完成** | `modules/asset`（W05）+ 三庫（W15）|
+| **M6c** APAC ISMS profile | 🟢 **完成** | W16 |
+| **M7** Proof modules: Risk + Control | 🟡 **後端在，表單方法論未對齊** | `modules/{risk,control,control-test,evidence,issue,action}`；W22 接上 `/risks`。⛔ **`AD-RiskForm-1`（🔴 P0）** —— 表單實作的是另一套方法論，押到 M7 前 |
+| **M8** Roll-up dashboard（**旗艦**）| 🔴 **未開始** | 前置 `AD-Mockup-2`（🔴 P0，`data.js` 以國家為鍵，容不下 13 OpCo）押在 **M8 移植前** |
+| **M9** Entity Zero | 🔴 **未開始** | `RISK_REGISTER` **R8**：guardrail 2 在 Wave 1 **沒有承載體** |
+
+**一句話**：**資料層與隔離層做完了（M1/M2/M3 骨幹），身分與流程層一行未寫（M4/M5），
+旗艦儀表板尚未開始（M8）。** 前端有 **29 個 `page.tsx`**，其中真正接上 API 的是
+**2 條讀路徑**（`/risks` W22 · `/policies` 列表 W24）—— 其餘仍是 W19 port 進來的 fixture 畫面。
+
+| 層級 | 數量 | 一句話 |
+|---|---|---|
+| 🔴 上線硬關卡 | **5** | 未變。`AD-RiskForm-1` · `AD-Incident-1` · `AD-NegativeGate-1` · `AD-UniqueKeyOracle-1` · `AD-NarrowPatternWideClaim-1`（後三條是**紀律**不是待辦，ROADMAP 只列名不排序）|
+| 🟠 已規劃、未執行 | **105** | P1（+3，全部來自本次審計）|
+| 🟢 持續技術債 | **87** | P2（+3，同上）|
+| ⚫ 卡使用者 / 卡外部 | **1.5** | 未變（`AD-DAST-1` 全卡 · `AD-IaCEvidence-1` 一半 —— 量測部分 W21 已完成）|
+| ⚪ 已實證 defer | **5** | D001–D005。⚠️ **本次未逐條重查恢復條件** —— #9 剛查過且無 phase 落地，但 `Last Reviewed` 仍停 **2026-08-12**（見 §2.7-#10）|
+| ⏰ 有死線的 | **0** | 連續第二次為零（`AD-TrivyExempt-1` 已於 CH-032 關閉）|
+| ⚠️ 漂移發現 | **6 新 + 24 舊** | **AD-60 ~ AD-65**（見 §2.7-#10）。#7–#9 的 33 條中已處置 **5** 條（+`AD-59`），**28 條**仍未處置 |
+| 📐 決策 | **2 開放 / 6 已拍板** | OQ-7（→ADR-0002，擋 M5）· OQ-8（→ADR-0008/0009，Wave 3）|
+| 📐 ADR | **10 已採納 / 2 已取代 / 0 提案中** | 0006→0010 · 0007→0015。**0002 / 0008 / 0009 是有主題的預留，尚未撰寫** —— `14-adr/README.md:109-111` 有解釋，**不是無解釋空缺** |
+
+> 上表 §Open 數字由 **`check_backlog_counts.py` 導出**（本次寫入後 **197 列**：P0 **5** / P1 **105** / P2 **87**）。
+> ⭐ 本次列 P0 名單同樣**解析 priority cell 而非 grep 字面** —— #8 的教訓連續第二次生效。
+
+### 2.7-#10 ⚠️ 本次漂移發現（AD-60 ~ AD-65）
+
+> 編號續 §2.7-#9 的 `AD-59`。⛔ **共同形狀**：#9 是「矛盾兩半住在同一份文件裡」，
+> #10 是「**做對的事沒有留下指標**」—— 六條裡有四條的內容都是對的、都在，缺的是那一行指向它的東西。
+
+| # | 漂移 | 實據 | 優先度 |
+|---|---|---|---|
+| **AD-60** | ⛔ **§Shipped Phases Pointer Index 缺三個 phase** —— `W16` / `W17` / `W20` 各 **0 列**，而該表註解自寫「每個完成的 phase 一行」。⚠️ **內容沒遺失**（三者的 `retrospective.md` 與 `memory/project_w1{6,7}_*` / `w20_*` 皆在），缺的是**指標** ⇒ 只讀該索引的人會看到 21 個 phase 而不是 24 個 | 以列首錨定 `^\|\s*\**\s*W16\b` 等：W16 / W17 / W20 各 **0**，對照組 W23 / W24 各 **1** | 🟡 P1 |
+| **AD-61** | **稽核模型數手抄漂移 15 vs 16** —— `CH-044` 與 `memory/project_w24_*` 都寫「**15** 個被稽核的模型」，實際枚舉是 **16**。這是本專案第 **5** 個被發現的手寫計數器 | `audit.module.ts:82-98` 逐名讀出 16 個；`CH-044:49` · `memory/project_w24_unclaim_and_prose_guard.md:27` 寫 15 | 🟢 P2 |
+| **AD-62** | ⛔ **E5 對「獨立 CH 記錄」結構上不可見** —— `CH-045` 的 `**Phase**: 無 —— 獨立 CH` 讓 `FILE_PHASE_RE` 抓不到 phase id ⇒ 沒有 owning phase 可判定矛盾 ⇒ 它的 `PR-pending` **永遠不會被檢查**。⚠️ 今天是靠我自己記得翻的，而 **E5 存在的全部理由就是「靠人記得翻會失敗」** | `check_status_markers.py:243` `FILE_PHASE_RE` · `:474` 只讀該欄。反證：同一份檔在 `**Phase**` 含 `W24` 時 E5 **會**開火（本次實測 9/10） | 🟡 P1 |
+| **AD-63** | **`RISK_REGISTER` R4 的首句今日為假** —— 「稽核軌跡尚不存在…**沒有任何稽核軌跡**…今日十七張表、無一有稽核」。⛔ **本條刻意標低**：同一列的**狀態欄是 🟡 部分緩解**、後段附註自寫「平台有簽核鏈是真的」—— 對的部分都在，錯的只有那一句 | 首句 vs `AUDITED_MODELS`=16 vs 同列狀態欄（全格比對）| 🟢 P2 |
+| **AD-64** | **`ROADMAP.md` 的 `Last Modified` 比實際落後 3 天** —— 檔頭 `2026-08-15`，最後一次內容變更 `3b55acb` **2026-08-18** | `git log -1 -- docs/01-planning/ROADMAP.md` | 🟢 P2 |
+| **AD-65** | ⭐⭐ **本次審計自己貢獻的一條，而它是一個已被解決過的問題在別處復發** —— 我用**位置**讀 `RISK_REGISTER` 的欄位，得到「R4 狀態 = 確定（現況）」並據此起草了一條 P1 級發現；實際那格是**可能性**欄，狀態欄是 🟡 部分緩解。根因是**儲存格內含裸 pipe**（R3 拆出 8 格 / R4 拆出 9 格，而表頭只有 **7** 欄）。⛔ **`check_backlog_counts.py:33-38` 已經為完全相同的失效模式改用全格比對** ⇒ 教訓不是「小心一點」，是**一個 detector 解決過的問題，解法沒有被帶到其他讀表的地方** | `RISK_REGISTER.md:29` 表頭 7 欄 vs R3/R4 split 得 8/9 格；`check_backlog_counts.py:33-38` | 🟡 P1 |
+
+**舊漂移計數器往前跳（無新 ID，本次只更新次數）**：
+
+| 舊 ID | 現況 | 次數 |
+|---|---|---|
+| `AD-33` / `AD-49` / `AD-55` | `DEFERRED_REGISTER` `Last Reviewed` 仍 **2026-08-12**，跨 **12** 個 phase（與 #9 相同，其間無 phase 落地）。載體 `AD-RegisterUpkeep-1` **在 §Open 表裡（🟡 P1）而從未被排到** | **第 4 次** |
+| `AD-50` | ⛔ **`CLAUDE.md:84` 與 `:413` 仍把 0007 列為「已採納」且完全沒有 0015** —— always-loaded，每個 session 複製一次。**未修** | **第 2 次** |
+| `AD-54` | `decision-form.md:45` OQ-2 仍寫 **NestJS 10**（實裝 11.1.28）| **第 2 次** |
+| `AD-56` | `ROADMAP.md:134` / `:153` 仍把 **W19 已關閉的 `AD-Mockup-3`** 與**已降 P1 的 `AD-Mockup-2`** 列為 🔴 P0；主線 M1 那列仍停在 **W18**，W19–W24 **六個 phase 在排序層沒有落點** | **第 2 次** |
+| `AD-58` | PAR §4b integration 矛盾未解 —— **唯一一條有下游里程碑後果的**（擋 M4）| **第 2 次** |
+
+⭐ **本次已依 `CH-045` 把六條全部落進 `BACKLOG.md` §Open**（`AD-60` ~ `AD-65`，6 列），
+§Open **191 → 197**（P1 102→105 · P2 84→87 · P0 不變 5），`check_backlog_counts.py` 已驗。
+⛔ **`AD-50` / `AD-54` / `AD-56` / `AD-58` 仍未回填** —— 它們屬於 #9，依 `CH-045` 射程限制 2
+歸 `AD-AuditFindingIdNeverEntersBacklog-1`（🟡 P1）承接，本次未擴大範圍代辦。
+
+### 2.8-#10 優先序建議
+
+> ⛔ **審計不排順序，只給判準。** 排序是使用者的權（`task-workflow.md` §Step 0.0）。
+
+1. ⛔ **`AD-50` 先修，而且它便宜** —— 兩行字，在 always-loaded 的檔案裡，
+   內容是「平台對自己的架構決策說了錯話」。它已經連續兩次審計在榜，
+   且 closeout 有一格**專門**該抓到它（W23 / W24 連兩次沒抓到，W24 那次是我勾的）。
+2. **`AD-58` 是唯一擋著里程碑的** —— M4 的前置是 RIT 建三個 App Registration，
+   而 PAR §4b 自己矛盾。這一條**卡外部**，越早送出越好。
+3. **要動產品就選 M5 或 M6 詳情頁** —— M5 的路障是 **OQ-7 拍板**（要先 spike，不是要先寫 code）；
+   M6 詳情頁的解封條件在 W24 plan §9（`Policy` 要能承載文件本體 + 版本歷史）。
+4. **`AD-60` / `AD-62` 一起做比較划算** —— 兩條都是「指標缺席」，
+   且都可以用同一種機械守衛承接（phase 資料夾數 vs §Shipped 列數；獨立 CH 的 `PR` 欄位檢查）。
+5. ⚠️ **治理工具受配額約束** —— §Step 0.0 每個 phase 最多帶 1 個治理 CH。
+   本次一口氣產出 3 條 P1 治理項（`AD-60` / `AD-62` / `AD-65`），**它們要排隊，不是一起做**。
+
+### 2.9-#10 一個觀察 —— **這次的漂移，四條是「做對了但沒留下指標」**
+
+`AD-60`（三個 phase 收尾做完了，索引沒加列）· `AD-62`（標記翻對了，但沒有守衛看得見）·
+`AD-63`（狀態欄與附註都對，只有首句沒改）· `AD-64`（檔案改了，`Last Modified` 沒跟）。
+
+**四條的共同結構**：**工作本身完成，而那個讓別人知道它完成的東西沒有跟上。**
+這與 #9 的形狀（矛盾兩半住同一份文件）不同 —— #9 是**內容互相打架**，#10 是**內容對、指標缺**。
+
+⛔ 而這正是 `CH-045` 今天要解的那個病的另一個面：
+**「發現了」與「有人知道它被發現了」是兩件事**，`CH-045` 處理漂移的那一半，
+`AD-60` / `AD-62` 說明**交付**那一半也有同樣的洞。
+
+⭐ **第五條（`AD-65`）不屬於這個家族，它更值得記**：一個 detector（`check_backlog_counts.py`）
+已經為「裸 pipe 讓位置讀取失效」寫過解法並留下註解，而我在讀**另一張表**時原封不動地重犯。
+⇒ **解法留在原地不會自己擴散。** 這是 `AD-NarrowPatternWideClaim-1`（🔴 P0）家族的一個新形狀 ——
+不是 pattern 太窄，是**已知的正確方法沒有被套用到第二個場合**。
+
+---
+
+### 2-#9 快照 — 2026-08-20（**#9**，W23 + W24 收尾後）
 
 **基準**：`main` · **`3773e1c`** · **開著的 PR = 0** · 工作樹 clean（`git status --short` 零行）
 **當前 active phase / change / bug = 0** —— `check_status_markers.py` 掃 **31 個 pre-doc**，
