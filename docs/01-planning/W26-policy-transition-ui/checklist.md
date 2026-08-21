@@ -308,9 +308,22 @@
 
 ### 3.3 ⭐ 提早讓 CI 跑一次（`AD-VerificationEnvironmentIsAnAxis-1`）
 
-- [ ] **Day 3 結束就 push，不要等文件全部寫完**
+- [x] **Day 3 結束就 push，不要等文件全部寫完**
+      → ✅ 使用者核可後 push，**PR #100** 已開（Day 4 的 CH-048 / retrospective / BACKLOG 尚未寫，這是刻意的）
   - DoD: ⛔ W25 的教訓：三層驗證全做且全真，缺陷仍同時穿過三層 —— 因為三層都在同一台機器同一份 `.env` 上。**CI 是本 repo 今天唯一的第二個環境**
-  - DoD: 若 CI 紅，**先在本機重現該環境**再修（W25 用 `DEV_PRINCIPAL_ENTITIES=HK1` 重現）
+  - [x] **CI 結果** → ✅ **6 / 6 pass**（gates 2m38s · SCA · trivy · gitleaks 全歷史 · 映像 build + 啟動探測 · SAST）
+        - DoD: ⚠️ **int 套件非決定性**（`AD-IntSuiteNonDeterministic-1`）⇒ CI 若在 int 紅，
+          第一件事是判斷它是否為那三條已知的（bench × 2 + policy ref code），**不要當成本片弄壞了東西**
+          → **未觸發**：CI int **280 passed / 22 suites**
+        - DoD: ⛔ **「CI 綠」要自帶射程，不能因為 job 叫 `gates` 就認定它涵蓋什麼** ——
+          逐 step 查證：Format / Lint / Negative gates / Type check / Tests / Build /
+          **Integration tests**（step 17）皆 success。**不涵蓋 drive-through**（CI 沒有瀏覽器）
+        - DoD: ⭐ **意外的量測：CI int 24.057 s vs 本機 228.9 s —— 同樣 280 條、同一份 code，差 9.5 倍。**
+          ⇒ 本機的並發時序與 CI 完全不同，**本機才是那三條偶發失敗的溫床**（競爭窗口大得多）。
+          ⚠️ 這是**一個資料點不是結論**；且反過來的錯同樣要避免 ——
+          慢環境暴露的競爭條件**是真的競爭條件**，不能因為 CI 綠就當它不存在
+        - DoD: ⭐ `AD-VerificationEnvironmentIsAnAxis-1` 這次**沒有**抓到本機漏掉的缺陷（W25 有）。
+          但它仍然回本了，只是方向不同：**它給了 int 時長的對照**，讓那三條偶發有了新的解釋方向
   - Verify: `gh pr checks <N>`（push 前需使用者核可）
 
 ---
@@ -319,36 +332,109 @@
 
 ### 4.1 Change record
 
-- [ ] **`docs/03-implementation/changes/CH-048-policy-transition-ui.md`**
-  - DoD: Problem / Root Cause / Solution / Verification / Impact
-  - DoD: §Verification 含 **drive-through PASS + 它的射程**（無權限閘）
-  - DoD: 關掉的 AD：`AD-PolicyTransitionNoUiEntry-1`
+- [x] **`docs/03-implementation/changes/CH-048-policy-transition-ui.md`**（單檔 1-page 形式）
+  - DoD: Problem / Root Cause / Solution / Verification / Impact → ✅ 五節齊備
+  - DoD: §Verification 含 **drive-through PASS + 它的射程**（無權限閘）→ ✅
+  - DoD: 關掉的 AD：`AD-PolicyTransitionNoUiEntry-1` → ✅
+  - DoD: ⭐ **Root Cause 寫的是「為什麼當初的設計會留下這個洞」不是「還沒做」** ——
+        交付物把 policy 模型成**受控文件**、`02a` 模型成**七邊生命週期**，兩者都對而交付物從未畫第二個
+        ⇒ **沒有可對齊的對象，約束 6 的 STOP 結構上不會觸發**
 
 ### 4.2 Closeout
 
-- [ ] `retrospective.md` Q1-Q7 + calibration（`greenfield-feature` 0.55，**第 2 個**資料點；ratio 出 band 就標記 re-point）
+- [x] `retrospective.md` Q1-Q7 + calibration（`greenfield-feature` 0.55，**第 2 個**資料點；ratio 出 band 就標記 re-point）
   - DoD: ⭐ **兩個預測都要驗**：(a) 三段式 committed ~9.35 hr · (b) plan §7 的區間預測 **1.6–3.2 hr**
-  - DoD: ⛔ **中或不中都照實記** —— W25 登記的預測往下沒中，而那本身是資訊
+        → (a) actual **~2.75 hr**，ratio **0.29 UNDER**。(b) **命中** ——
+        ⛔ **但命中的份量要打折**：那個區間寬 2 倍且近四片 actual 全部落在其中
+        ⇒ 它預測的其實是「和最近幾片差不多」。**一個永遠會中的預測不是預測**
+        → 新條 `AD-WeakIntervalPrediction-1`（retro Q6）
+  - DoD: ⛔ **中或不中都照實記** —— W25 登記的預測往下沒中，而那本身是資訊 → ✅
   - DoD: matrix 該行寫著「若第 2 點同 < 0.7 → 0.45 且同時重估 bottom-up 方法」⇒ 判準字面觸發就照做
-- [ ] `CALIBRATION-MATRIX.md` 那一行 —— **≤ 1 行 ~250 字元**（lint 上限 400；完整敘述 → `CALIBRATION-LOG.md`）
-- [ ] Final gate sweep: format **0** · lint **0** · type **0** · api unit **≥ 507** · api int **280/22** · web **≥ 104** · build clean · `run_all` **11/11**
+        → ✅ **re-point 0.55 → 0.45**。⛔ **但論證刻意不建立在 0.29 上**：
+        W22 是當日逐筆量測、W26 是事後由 commit 反推，**不同量法**
+        （`AD-CalibrationT0PlacementShift-1` 禁跨量法算移動平均）⇒ 改用區間論證：
+        推估 actual 是**下限**，即使翻倍到 5.5 hr，ratio 也只有 **0.59，仍 < 0.7**
+        ⇒ 判準**在任何合理量法下都觸發**
+  - DoD: ⛔ **而「事後反推」本身是 `AD-CalibrationNoTimeRecord-1` 的第 4 次** ——
+        且比前三次更值得記：**W22 已發明並驗證了解法**（checklist 每個 Day 一個具名計時 `[ ]`，四天四筆全中），
+        W26 復發的根因是**那個解法沒有進 frozen template**，只活在 W22 那一份實例裡
+        ⇒ 與 `AD-65` 同形：**已知的正確方法沒有被套用到第二個場合**
+- [x] `CALIBRATION-MATRIX.md` 那一行 —— **≤ 1 行 ~250 字元**（lint 上限 400；完整敘述 → `CALIBRATION-LOG.md`）
+      → ✅ matrix 一行 + log 完整敘述（含 re-point 的區間論證與量法差異）
+- [x] Final gate sweep: format **0** · lint **0** · type **0** · api unit **≥ 507** · api int **280/22** · web **≥ 104** · build clean · `run_all` **11/11**
+      → format **0** · lint **0** · type **0** · api unit **511 / 41** · web **120 / 12** · `run_all` **11/11**
   - DoD: ⛔ **「全綠」要連「在哪裡綠」一起講**（W25 的教訓）—— 本機綠不是 CI 綠的證據
-- [ ] 導航檔: `CLAUDE.md` Current-Phase + Last-Updated · `MEMORY.md` pointer + subfile · `BACKLOG.md`
-  - DoD: CLOSE `AD-PolicyTransitionNoUiEntry-1`（移出 §Open，§Shipped Pointer Index 加一行）
-  - DoD: 新增本輪順路發現（見下格）
+        → **本機**：上列。**CI**（PR #100，Day 3 push 的樹）：**6 / 6**，逐 step 查證含 Integration tests。
+        ⛔ **不涵蓋 drive-through**（CI 沒有瀏覽器）。
+        ⭐ **api int 與 build 未於 Day 4 重跑**，理由可驗證：`git status` 顯示 Day 4 的 diff
+        **全部是 `.md`，零非文件變更** ⇒ Day 2 的 280/22 與 CI 的 280/22 仍是當前 code 的證據
+- [x] 導航檔: `CLAUDE.md` Current-Phase + Last-Updated · `MEMORY.md` pointer + subfile · `BACKLOG.md`
+      → ✅ CLAUDE.md **恰好 2 行**（Current Phase + Last Updated）· MEMORY.md 1 條指標 + subfile
+  - DoD: CLOSE `AD-PolicyTransitionNoUiEntry-1`（移出 §Open，§Shipped Pointer Index 加一行）→ ✅
+  - DoD: 新增本輪順路發現（見下格）→ ✅ 6 條
   - DoD: 計數由 `check_backlog_counts.py` **導出後照抄**，⛔ 不手數也不 grep
-- [ ] ⭐ **本輪待記的順路發現**（W25→W26 之間查到、尚未落表）
-  - [ ] `AD-Adr0002VsDesignDoc-1` — ⛔ `05-platform-foundation-services.md:15`「configuration, not code」vs `0002:79`「編譯期，無執行期設定路徑」；**設計文件權威高於 ADR**；ADR-0002 全檔只引用 `05:16` 從未 engage `:15`
-  - [ ] `AD-ProgressMetricsProseStale-1` — `PROGRESS-METRICS.md:119` 與 `:144` 互相矛盾（「已拍板/已通」vs「未建/未拍板」）；W25 只修了表格列沒修散文
-  - [ ] `AD-RoadmapStalePriorityCells-1` — `ROADMAP.md:134,153` 仍把 `AD-Mockup-2`（實為 P1）與 `AD-Mockup-3`（已關閉）標為 🔴 P0；審計已第 3 次
-- [ ] Anti-pattern 自檢（retro Q5）：AP-1..AP-7 → 違規數
+        → ✅ 先改表 → 讓 detector fail 並印出真值（`+5 / +1 / +4`）→ 照抄 → 重跑 OK。
+        **211 → 216**（P0 **5** 不變 / P1 111 / P2 100）
+- [x] ⭐ **本片讓 `PROGRESS-METRICS.md` 的 M5 判定失準了，已修** ——
+      `:119` 表格列（「UI 無入口」→「UI 入口已建（W26）」+ **新射程：無權限閘**）
+      與 `:157` 區塊一併重寫。⚠️ **`run_all` 對此沉默**，因為 detector 只驗**錨點**不驗**判定**
+      （該檔 `:100-104` 自己說的），而 M5 的錨點 `scope_ts_count('workflow') == 2` 未變
+  - DoD: ⭐ 順帶修掉 `:141-145` 的摘要句（W25 留下的矛盾，`AD-ProgressMetricsProseStale-1`）——
+        判斷理由：本片人已在該段落內，而那是整份文件**最多人讀的一句**。
+        ⛔ **AD 不關閉**，因為修掉的是實例不是機制（散文段結構上在 detector 射程外）
+- [x] ⭐ **本輪待記的順路發現**（W25→W26 之間查到、尚未落表）→ **3 條全部落表 + 本輪新增 3 條**
+  - [x] `AD-Adr0002VsDesignDoc-1` — ⛔ `05-platform-foundation-services.md:15`「configuration, not code」vs `0002:79`「編譯期，無執行期設定路徑」；**設計文件權威高於 ADR**；ADR-0002 全檔只引用 `05:16` 從未 engage `:15`
+        → ✅ 落表 🟡 P1。⭐ 落表時發現它與 **ADR-0002 自己的可證偽條件 #4** 是同一件事的兩面 ——
+        差別在 FC4 等的是「需求出現」，而這裡是「**一份既有的設計文件早就這樣寫了**」
+  - [x] `AD-ProgressMetricsProseStale-1` — `PROGRESS-METRICS.md:119` 與 `:144` 互相矛盾（「已拍板/已通」vs「未建/未拍板」）；W25 只修了表格列沒修散文
+        → ✅ 落表 🟢 P2，且**該實例已於本片順帶修掉**（AD 保留為機制）
+  - [x] `AD-RoadmapStalePriorityCells-1` — `ROADMAP.md:134,153` 仍把 `AD-Mockup-2`（實為 P1）與 `AD-Mockup-3`（已關閉）標為 🔴 P0；審計已第 3 次
+        → ✅ 落表 🟢 P2。⛔ **同形第 3 次 ⇒ 依強度階梯應改結構性解法**（優先度欄改成**引用** BACKLOG 的 ID 而非複寫），不是再修一次那兩格
+  - [x] **本輪新增**：`AD-Adr0003Fc3Triggered-1` 🟡（見下）· `AD-RefusalChipsLowContrast-1` · `AD-FaviconMissing-1`
+- [x] Anti-pattern 自檢（retro Q5）：AP-1..AP-7 → **違規數 0**
   - DoD: ⭐ AP-3 特別看：按鈕有沒有變成「有 handler 但沒效果」；AP-6 看失敗路徑的呈現有沒有靠 mock 撐著
-- [ ] ⭐ **已採納的 ADR 已複查** —— 本 phase 有沒有讓某份**已採納**的 ADR 變得不準確？
+        → **AP-3 0**（drive-through PASS，狀態真的改變、稽核真的落列）·
+        **AP-6 0**（422/404 的回應是伺服器自己的判斷，攔截只改請求；unreachable 是真的殺進程）
+  - DoD: ⭐ **AP-7 修掉 2 個**（D4 / D5）—— 兩者都是**新增正確的 code 讓舊的真話變成假話**，
+        而**沒有任何 lint 會叫**（註解與文案不參與型別檢查）
+- [x] ⭐ **已採納的 ADR 已複查** —— 本 phase 有沒有讓某份**已採納**的 ADR 變得不準確？
   - DoD: ⚠️ **這一格的方向是單向的，W25 已證明它漏得掉** —— 它問「本片是否讓既有 ADR 失準」，**不問**「本片新產的東西是否違反更高權威的文件」。⇒ 本片**額外**問第二個方向
+        → **方向二清潔**：§4.1 的動詞命名對已確認參數 #9 是**弱主張**，
+        已在設計文件與 `ACTION` 的 code 註解**兩處**明寫射程 ⇒ 不違反，
+        但也**不可被引用為「照程序命名」**
   - DoD: 特別複查 ADR-0002（本片建立其上）與 ADR-0003（稽核，本片新增 update 呼叫）
-- [ ] **Commit** → ⏳ PR push + open → CI → merge: **PENDING USER CONFIRMATION**
-      （push 是 outward-facing）→ merge 經 `gh` 驗證後翻狀態標籤
-- [ ] ⭐ **`PR-pending` 標記已翻** —— merge 後翻標記，並以
-      `gh pr view <N> --json state,mergedAt` **驗證**，不採信「已 merge」的宣稱
+        → **ADR-0002**：四條可證偽條件**全部未觸發**（無 OpCo 分流 · 無 SLA/升級 · 無第三條流程 ·
+        無執行期變更），且本片**強化**它 —— `allowed` 由 `modules` 層導出，
+        證明編譯期表能服務執行期 UI 需求而不需要設定路徑
+        → ⛔⭐⭐ **ADR-0003 FC3 的「現況」欄過期，這是本片最重的發現**：
+        `:154` 寫「Any requirement needs the true prior state in `before`」，
+        現況 **`Not required by any built feature`（2026-08-14）**。
+        本片建出 approval flow 的 UI 入口 ⇒「這份政策**從哪個狀態**被核准」成為真實的稽核問題。
+        ⚠️ **`before` 為 NULL 不是 bug** —— `:118` 明文記錄它（`runScoped` 把未啟動的 promise
+        交給 `$transaction`，稽核列不能依賴寫入結果）。
+        ⛔ **刻意不自行宣告 FC3 觸發**：ADR 說觸發時要把稽核寫入移進 per-table trigger，
+        那是重大架構變更 ⇒ 表面化為 `AD-Adr0003Fc3Triggered-1`，待使用者裁定。
+        ⭐ **抓到它的正是這一格的手動複查，沒有任何機制會問起**
+- [x] **Commit** → PR push + open → CI → merge
+      → ⚠️ **變成兩個 PR，而且不是計畫的**：**PR #100** 於 `2026-08-21T09:32:05Z` 被 merge
+      （merge 的是 Day 3 的 `8a405b0`，squash 成 main 的 `1743be8`），
+      遠端分支隨之自動刪除 ⇒ **Day 4 的 closeout 不在 #100 裡**。
+      → 使用者裁定：從 `origin/main` 開乾淨分支 `feature/W26-closeout` +
+      cherry-pick 那 2 個未 merge 的 commit（exit 0，無衝突）⇒ **PR #101**。
+      diff 對 main 恰為 **670 行**，等於那兩個 commit 的總和 ⇒ 無重複內容
+  - DoD: ⭐ **發現它的不是任何 gate** —— 我以為自己在「push 到 PR #100」，
+        而 `git push` 回的是 **`* [new branch]`**。一個已 push 過的分支不該這樣回答。
+        **是那個異常字串觸發查證的。** 若當時把它讀成雜訊，closeout 會靜靜地留在本機
+- [x] ⭐ **`PR-pending` 標記已翻** —— PR #100 以 `gh pr view --json state,mergedAt` **驗證**為 MERGED
   - DoD: ⛔ **先跑 `python scripts/lint/check_status_markers.py` 拿清單，再動手翻** ——
         不要先翻再驗。`AD-MarkerCountUnderReported-1`：連兩個 phase 手數都少算一個，兩次都是 E5 抓到的
+        → ✅ 先跑（clean）再以 `Grep -o` 取全清單：本片相關 **8 檔 11 處**
+  - DoD: ⭐ **這次沒漏算，而原因是方法變了不是更仔細** —— 用 `-o` 之後長行不再被折成
+        `[Omitted long matching line]`，**那正是前兩次少算的成因**
+  - DoD: ⛔ **並非全部都要翻**：`CH-048:87`（「PR #100 的 CI 6/6」）與本檔 `:312`
+        （「PR #100 已開」）是**歷史陳述且為真** —— 翻掉它們反而是竄改紀錄。只翻宣稱**當前狀態**的
+  - DoD: ⛔⭐ **detector 對這整件事沉默** —— `check_status_markers.py` 是靜態的、**不查 GitHub**，
+        所以 `PR-pending` 在 merge 那一刻起就是假的，而它照樣回 clean。
+        **只有 `gh pr view` 會說實話**，這正是規則寫「不採信宣稱」的理由
+- [ ] ⏳ **PR #101 的 CI + merge** —— merge 後需再翻一次（本檔與 `retrospective` / `plan` /
+      `CLAUDE.md` / `MEMORY.md` / memory subfile / `BACKLOG` 的 `#101` 皆為 pending 狀態）

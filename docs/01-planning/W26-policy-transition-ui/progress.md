@@ -377,9 +377,41 @@ id | operation     | before | after
 | 2 | `GET /favicon.ico` 404 | 既有、與本片無關 |
 | 3 | refusal chips 的 `--surface-2` 在白底對比很弱 | 可讀、非缺陷；且無交付物指定 chip 樣式 ⇒ 改成什麼都是我在發明 |
 
+## 3.3 提早 push —— CI 綠，但綠的射程要講清楚
+
+**PR #100**，CI **6 / 6 pass**：`gates` 2m38s · SCA · trivy · gitleaks（全歷史）· 映像 build + 啟動探測 · SAST。
+
+⛔ **不能因為 job 叫 `gates` 就認定它涵蓋什麼** —— 那是「檔名當內容」的形態。
+逐 step 查證：Format / Lint / Negative gates / Type check / Tests / Build /
+**Integration tests**（step 17）皆 success。
+**不涵蓋 drive-through** —— CI 沒有瀏覽器，那一層只有 Day 3 §3.2 的人工驗證。
+
+### ⭐ 一個沒預料到的量測：int 在 CI 快 9.5 倍
+
+| | 條數 | 時間 |
+|---|---|---|
+| 本機（Windows + Docker Desktop）| 280 / 22 | **228.9 s** |
+| CI（Linux + service container）| 280 / 22 | **24.057 s** |
+
+同一份 code、同樣 280 條。⇒ **兩邊的並發時序根本不是同一回事**，
+而 `AD-IntSuiteNonDeterministic-1` 那三條偶發（bench 的 8 個並發 writer + 40 個競爭 ref code）
+**正好都是競爭類**。本機慢 9.5 倍 ⇒ 競爭窗口大得多 ⇒ **本機才是它們的溫床**。
+
+⚠️ **一個資料點不是結論。** 而且反方向的錯同樣要避免：
+**慢環境暴露的競爭條件是真的競爭條件** —— 不能因為 CI 綠就當它不存在。
+解封條件不改：下次它再紅時完整保留輸出再判。
+
+### `AD-VerificationEnvironmentIsAnAxis-1` 這次的結算
+
+它**沒有**抓到本機漏掉的缺陷（W25 有，那是它被開出來的原因）。
+但它仍然回本，只是方向不同：**它給了 int 時長的對照**，
+讓「那三條為什麼只在本機紅」第一次有了可檢驗的解釋方向。
+⇒ 第二個環境的價值不只是「多一次抓錯的機會」，也包括**讓第一個環境的怪異變得可解釋**。
+
 ## Notes
 
 - 收尾時**重新啟動了 API**（drive-through 為了測 unreachable 把它殺了），讓環境回到可用狀態
+- ⚠️ drive-through **改了 dev DB 一筆 seed 資料**：`POL-SG1-900002` `draft` → `approved`
 - artifacts：`day3-01-after-two-steps.png`（全頁）· `day3-02-refused-422.png` · `day3-03-unreachable.png`
 
 #### 一個我自己植入又拆掉的恆真陷阱

@@ -76,7 +76,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 | Attribute | Value |
 |-----------|-------|
 | **Stage** | Wave 1 backbone — 建立共用骨幹，並用 Policy + Risk/Control 兩個最小模組端到端證明它 |
-| **Current Phase** | **W25**（**MERGED (PR #98, `c527319`)**）`closed` —— **OQ-7 拍板**：Wave 1 生命週期是宣告式轉換表不是 workflow engine（**ADR-0002 已採納**）。兩個候選都真的建出來跑同一條流程；分出高下的**不是行數**（`wc -l` 的差距量到的是註解密度）而是 **schema↔實作的型別綁定**。順帶建出**本 repo 第一條 domain update 路徑**。⛔ 轉換能力已 drive-through 驗證但 **`/policies` 無 UI 入口** —— 見 `AD-PolicyTransitionNoUiEntry-1`，不可讀成「使用者可以推進政策狀態」 |
+| **Current Phase** | **W26**（**MERGED (PR #100, `1743be8`)** ＋ closeout **PR #101**）`closed` —— `/policies` 長出**唯一一個會推進政策狀態的控件**，關掉 M5 的 Potemkin 缺口。設計交付物**沒有任何**推進狀態的控件（實測），裁決記於 `15-design-alignment.md` **§4.1**。⛔ **射程**：證明的是「**任何**打開此畫面的人都能推進狀態」，**不是**「有權限的人能」——`AD-RbacUnenforced-1` 仍開著。⭐ drive-through 的最大產出是 **`ADR-0003` FC3 的現況欄過期**（稽核的 `before`/`actor_id` 皆 NULL ⇒「誰、從哪個狀態核准」答不出來），**刻意不自行宣告觸發** —— 見 `AD-Adr0003Fc3Triggered-1` |
 | **History** | See [`MEMORY.md`](./MEMORY.md) + 各 phase 的 `retrospective.md` |  <!-- doc-links: ignore — MEMORY.md 由 bootstrap 複製到專案根 -->
 | **Pending / Next** | See [`docs/01-planning/BACKLOG.md`](./docs/01-planning/BACKLOG.md)（**有什麼**）· [`ROADMAP.md`](./docs/01-planning/ROADMAP.md)（**先做哪個**）|
 | **跨來源狀態** | See [`docs/01-planning/STATUS_AUDIT.md`](./docs/01-planning/STATUS_AUDIT.md) —— 問「現在全項目怎樣」時跑 `/status-audit`，**不要只讀 BACKLOG** |
@@ -510,6 +510,6 @@ python scripts/lint/run_all.py
 
 ---
 
-**Last Updated**: 2026-08-21（W25 closeout —— `closed`，ADR-0002 已採納；**`AD-50` 修正**：0007 → 0015）
+**Last Updated**: 2026-08-21（W26 closeout —— `closed`，M5 的 UI 入口已建；`AD-PolicyTransitionNoUiEntry-1` 關閉）
 **Project Start**: 2026-08-07
 **Template Version**: 2.6.1 (claude-code-dev-template)

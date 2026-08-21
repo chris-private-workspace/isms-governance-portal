@@ -116,7 +116,7 @@ generated 的行數仍**印在輸出裡**（它是排除 9.6 萬行的理由）�
 | M2 | 🟢 完成 | `rls_gap() == 0` |
 | M3 | 🟡 部分（覆蓋 16 / 34）| `audited_models() == 16` |
 | M4 | 🔴 未開始 | `scope_ts_count('identity') == 0` |
-| M5 | 🟡 部分（OQ-7 已拍板 + 轉換端點已通；**UI 無入口**、SLA / 簽核 / 升級未做、issue→action 未做）| `scope_ts_count('workflow') == 2` |
+| M5 | 🟡 部分（OQ-7 已拍板 · 轉換端點已通 · **UI 入口已建（W26）**；⛔ **無權限閘** · SLA / 簽核 / 升級未做 · issue→action 未做）| `scope_ts_count('workflow') == 2` |
 | M6 | 🟡 部分（列表已接，詳情未接）| `page_class('(app)/policies/[id]') == 'static'` |
 | M6b | 🟢 完成 | `manual` |
 | M6c | 🟢 完成 | `manual` |
@@ -138,11 +138,17 @@ generated 的行數仍**印在輸出裡**（它是排除 9.6 萬行的理由）�
 
 ---
 
-## 3. 判讀（2026-08-20；**M5 於 2026-08-21 隨 W25 Day 1 重判**）
+## 3. 判讀（2026-08-20；**M5 於 2026-08-21 隨 W25 / W26 兩度重判**）
 
 **一句話**：**資料層與隔離層做完了（M1 / M2 / M3 骨幹），身分層仍是一行未寫（M4），
-流程層今天落下第一塊（M5 —— W25 spike 的轉換表 + 守衛，端點未建、OQ-7 未拍板），
+流程層有了第一條完整路徑（M5 —— 轉換表 + 守衛 + 端點 + UI 入口，OQ-7 已拍板；
+⛔ 但**沒有權限閘**，且簽核 / SLA / 升級未做），
 旗艦儀表板尚未開始（M8）。**
+
+> ⚠️ **這一句在 2026-08-21 之前寫著「端點未建、OQ-7 未拍板」，而同一份文件的表格說已建已拍板。**
+> W25 closeout 修了表格列沒修這裡；W26 修掉。⛔ **機制仍在**：
+> `check_progress_metrics.py` 驗的是宣告值與錨點，**散文段結構上在它的射程外**
+> —— 見 `AD-ProgressMetricsProseStale-1`（該實例已修，AD 保留是為了那個機制）。
 
 ⚠️ 若一定要一個粗略比例：里程碑計數 **4 完成 / 4 部分 / 4 未開始**
 （嚴格 33%，部分給半分 50%）。⛔ **但那個數字偏樂觀**，三個理由：
@@ -154,11 +160,16 @@ generated 的行數仍**印在輸出裡**（它是排除 9.6 萬行的理由）�
    ⚠️ **M5 的 🟡 不要讀成「快好了」** —— 落地的是**一條轉換路徑**（表 + predicate + 端點），
    而 `07:36` 的「drives the policy approval flow」還需要**簽核、SLA、升級**，
    以及 issue→action 那條流程。W25 只做 policy 一條。
-   ⛔ **而且使用者今天用不到它**：`/policies` 上沒有任何控件會呼叫轉換端點
-   （`AD-PolicyTransitionNoUiEntry-1`）。**能力在、無入口** ——
-   任何引用 M5 進度的地方都要帶著這句，不可寫成「使用者可以推進政策狀態」。
+   ⭐ **2026-08-21（W26）UI 入口已建** —— `/policies` 每列依 API 回傳的 `allowed` 渲染動詞按鈕，
+   drive-through PASS。`AD-PolicyTransitionNoUiEntry-1` 已關閉。
+   ⛔ **但射程換了一個，不是消失了**：今天**沒有權限閘**（M4，`AD-RbacUnenforced-1`）——
+   引用 M5 進度時要寫「**任何**打開這個畫面的人都能推進政策狀態」，
+   **不可**寫成「有權限的人可以推進政策狀態」。畫面上以 `policies.actions.noRoleCheck` 說明此事。
    ⛔ 且 W25 Day 1 量到 M4 直接卡住 M5 的驗收：`audit.recorder.ts:146` 寫死 `actorId: null`，
    ⇒ **「誰核准了這份政策」今天記不下來**，那正是 approval flow 的核心欄位。
+   ⭐ W26 drive-through 進一步實測 `audit_log.before` **也是 NULL**
+   ⇒ 連「**從哪個狀態**核准的」都答不出來。⚠️ 那不是 bug，是 `ADR-0003:118` 的已知取捨，
+   而它使該 ADR 的**可證偽條件 FC3** 的現況欄過期 → `AD-Adr0003Fc3Triggered-1`（待裁定）。
    ⚠️ `entity-scope.resolver.ts` 確實是角色感知的，但那是「看得到哪些實體」，不是「能做哪些動作」。
 3. **UI 是殼** —— 29 頁、3 頁接上領域資料。
 
