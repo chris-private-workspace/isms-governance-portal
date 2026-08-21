@@ -727,7 +727,10 @@ drive-through 改了 `isms_dev` 的兩列，**不會自己回復**：
 要回到原狀就重跑 `npm run prisma:seed -w apps/api`，
 但**沒有必要** —— 它們現在的狀態正是本次 drive-through 的證據。
 
-**dev server 仍在跑**：api pid 42408（3210）· web pid 10224（3200）。
+~~**dev server 仍在跑**：api pid 42408（3210）· web pid 10224（3200）。~~
+⛔ **已停**（2026-08-21，Day 4 post-push）—— 3200 / 3210 實測皆 free。
+本節是**寫給下個 session 讀的當前狀態**，不是歷史快照，所以就地更正而非留著。
+⚠️ 上方 `isms_dev` 那兩列**沒有**跟著回復 —— 資料庫狀態與程序狀態是兩回事。
 
 #### E2 ⭐ — enum 與實作脫節時，**誰在建置期就攔下來**
 
