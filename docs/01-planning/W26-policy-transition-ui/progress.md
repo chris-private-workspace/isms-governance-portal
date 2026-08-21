@@ -148,3 +148,47 @@ for (const row of listed.data) { expect(row.allowed).toEqual(allowedTargets(row.
 ### 1.x Day 1 partial gate
 
 format **0** · lint **0** · type **0** · api unit **511 / 41**（baseline 507 → **+4**）
+
+### 1.y ⛔ int 完整跑紅了 3 條，重跑全綠 —— 以及我弄丟的證據
+
+加 `allowed` 之後第一次跑完整 int：**3 failed / 277 passed**，散在兩個套件。
+
+| 執行 | 結果 |
+|---|---|
+| 完整 int（第一次）| **3 failed / 277 passed** |
+| `bench.int` 單獨（**同一份 code**）| **3 passed**（263 s）|
+| `policy.int` 單獨（**同一份 code**）| **15 passed** |
+| 完整 int（重跑，**同一份 code**）| **280 / 280，exit 0**（253.5 s）|
+
+⇒ 同一份 code 完整跑一次紅一次綠 ⇒ **不是本片弄壞的**。單獨跑全綠也**排除了形狀類斷言**
+（若加欄位破壞回應形狀，單獨跑一樣會紅）。
+
+#### ⛔ 我把診斷所需的證據自己過濾掉了
+
+第一次跑時輸出接的是 `Select-String -Pattern "●|Tests:|Test Suites:"` ——
+那條 pattern **只留測試名稱，把 `Expected/Received` 全丟了**。
+於是我手上只有「哪三條紅」，沒有「為什麼紅」，只能靠重跑來回答本來一次就能回答的問題。
+
+⇒ **失敗輸出不要用窄 pattern 過濾。** 這與 `AD-NarrowPatternWideClaim-1` 同族，
+但形狀不同：那條是「用窄 pattern 下寬結論」，這條是**用窄 pattern 銷毀證據**。
+⇒ `AD-FilteredAwayFailureEvidence-1`
+
+#### 關於原因，我只能講到這裡
+
+讀 `bench.int.spec.ts` 的斷言：**沒有一條是時間門檻** ——
+全是 `auditRowCount()` 差值（`:212,217`）· `triggerExists()` 真假（`:220,230,237,314,322,330`）·
+`n` 計數（`:267,351,352`）· `toHaveLength`（`:377`）· `intact === true`（`:382,406`）。
+所以「benchmark 太慢」這個直覺是**錯的**。
+
+三條紅的共同形狀是**共用 DB 上的並發**：bench 會在 try/finally 裡**暫時拔掉 DB trigger** 再還原，
+並跑 8 個並發 writer；第三條是 `issues forty contending reference codes with no collision`。
+
+⚠️ **但這是假說不是結論** —— 我沒看到斷言訊息（見上）。⇒ `AD-IntSuiteNonDeterministic-1`，
+解封條件寫成可觀察的：**下次它再紅時，完整保留輸出**再判。
+
+#### 一個順帶被推翻的認知
+
+先前兩次完整 int 是 **121 s / 167 s**，而 `bench.int` 單獨就要 **263 s**，
+我當時據此推論「那兩次不可能跑完 bench」。這次完整跑 **253.5 s** ——
+與 bench 單獨同量級 ⇒ **121/167 那兩次才是異常值**，我的推論方向是反的。
+⚠️ 記下來是因為：那個推論**聽起來很合理**，而它建立在「兩個數字不相容」這種看似硬的證據上。
