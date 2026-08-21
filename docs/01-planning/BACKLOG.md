@@ -64,7 +64,10 @@
 > **本檔回答「有什麼工作」，不回答「先做哪個」。**
 > 順序層 [`ROADMAP.md`](./ROADMAP.md) **已於 2026-08-10 啟用**（CH-016）——
 > 啟用當時本檔 §Open 達 48 條，超過「讀完仍不知道下一步」的門檻
-> （**現為 209 條 —— P0 5 / P1 109 / P2 95**，⛔ **不要手數也不要 grep** ——
+> （**現為 211 條 —— P0 5 / P1 110 / P2 96**，⛔ **不要手數也不要 grep** ——
+> 2026-08-21 **W26 Day 1**：**新增 2 條**（`AD-IntSuiteNonDeterministic-1` 🟡 ·
+> `AD-FilteredAwayFailureEvidence-1`）—— 完整 int 同一份 code 一次紅一次綠，
+> 而我把診斷所需的失敗輸出用窄 pattern 過濾掉了。
 > 2026-08-21 **W25 post-merge**：**新增 1 條**（`AD-MarkerCountUnderReported-1` 🟡）——
 > 連兩個 phase 手數 `PR-pending` 都少算一個，兩次都由 E5 抓到。
 > 2026-08-21 **W25 post-push（CI 轉紅）**：**新增 2 條**
@@ -557,6 +560,9 @@
 | AD-VerificationEnvironmentIsAnAxis-1 | ⭐⭐ **三層驗證全做了、全是真的，缺陷仍同時穿過三層** —— W25 的 gate（全綠）、真 DB 直查、drive-through（真 UI + 真後端 + 真 DB 九步全中）都做了，PR #98 首推後 CI `gates` 仍轉紅：int **5 failed**。根因是三層**都跑在同一台機器、同一份 `.env` 上** ⇒ 共用同一個隱含前提（呼叫者是 `SG1`），而 CI 的 `.env` 來自 `cp .env.example .env`（`ci.yml:235`）⇒ `HK1` | W25 Day 4 | 🟡 P1 | ⛔ `verification-discipline.md` 的三層是「**驗多深**」的軸；本次證明還有第二個軸「**驗過幾個環境**」，而**深度補不上環境數**。提議寫進該檔：user-facing 收尾前**先讓 CI 跑過一次**，不要把 push 排在所有文件都寫完之後 —— 本片的 CI 紅字是在 closeout 全部寫完、retro 都定稿之後才出現的。⚠️ 這條**不是**「要跑 CI」的老生常談：重點是 CI 今天是本 repo **唯一**提供第二個環境的東西，一旦有第二個環境來源（例如 devcontainer），這條的解法就不只一種 |
 | AD-Day0NoPrecedentSearch-1 | **修法的先例早就存在、有註解、且寫著同樣的理由，Day 0 沒有找到它** —— `risk.int.spec.ts:434-448` 逐字寫了「The scope comes from `DEV_PRINCIPAL_ENTITIES` … read per call — so setting it here is how a test says *this caller is SG1*」，而 W25 寫新 int 測試時完全沒有查到它 | W25 Day 4 | 🟢 P2 | Day-0 三-prong 查的是「**plan 對現有 code 的斷言對不對**」，「**這個問題別人解過沒有**」落在射程外。提議：prong 2 加**一句話**（不是加第四個 prong）—— 寫新測試前，grep 同類測試對同一個 ambient 依賴（env var / 全域單例 / 共用 DB 列）的既有處理。⚠️ 與 `AD-65` 同族：**已知的正確方法沒有被套用到第二個場合** |
 | AD-MarkerCountUnderReported-1 | ⛔⛔ **連續兩個 phase 手數 `PR-pending` 標記、兩次都少算一個** —— W24 的 post-merge commit 標題逐字是「**six markers, not the five I had counted**」（`3773e1c`）；W25 我報「恰好 6 處」前先報了「恰好 5 處」，`check_status_markers.py` **E5** 抓到 `BACKLOG.md` §Shipped Pointer Index 那一個。⚠️ 根因**不是 pattern 太窄**（`PR-pending` 是完整字串，命中 80+），是**讀 grep 結果時跳過了被截斷的行**——`BACKLOG.md` 有三行顯示為 `[Omitted long matching line]`，只回頭讀了其中一行就下了「其餘都是散文」的結論 | W25 post-merge（第 2 次）| 🟡 P1 | ⭐ **正確的解法已經存在而且兩次都有效**：E5 就是那個數得對的東西。⇒ 判準不是「下次數仔細一點」，是**順序** —— closeout 翻標記時**先跑 `check_status_markers.py` 拿清單，再動手翻**，不要先翻再驗。⚠️ 這條與 `AD-NarrowPatternWideClaim-1`（🔴 P0）同族但**不同根因**：那條是 pattern 漏，這條是**輸出被截斷而當成看完了**（`verification-discipline.md` §證據層變體的「撞上限當搜完」）。提議寫進 `phase-closeout` skill §6：翻標記那一步的第一個動作是跑 detector |
+
+| AD-IntSuiteNonDeterministic-1 | ⛔ **完整 int 套件同一份 code 一次紅一次綠** —— W26 Day 1 加 `allowed` 後首跑 **3 failed / 277 passed**（`bench.int` × 2 · `policy.int` 的 `issues forty contending reference codes`），`bench.int` 與 `policy.int` **各自單獨跑全綠**，完整重跑 **280/280 exit 0**。⇒ 非本片造成、非形狀問題 | W26 Day 1 | 🟡 P1 | ⚠️ **原因是假說不是結論**：讀過 `bench.int.spec.ts` 的斷言 —— **沒有一條是時間門檻**（全是 `auditRowCount()` 差值 `:212,217` · `triggerExists()` `:220,230,237,314,322,330` · `n` 計數 `:267,351,352` · `intact` `:382,406`），所以「太慢所以紅」是錯的直覺。三條的共同形狀是**共用 DB 上的並發**（bench 在 try/finally 裡**暫時拔掉 DB trigger**、跑 8 個並發 writer；第三條是 40 個競爭 ref code）。⛔ **解封條件寫成可觀察的**：下次它再紅時**完整保留輸出**（見 `AD-FilteredAwayFailureEvidence-1`）再判，不要再靠重跑。⚠️ 這條對 CI 是地雷 —— W25 剛因 CI 紅字付過一次代價，而一個非決定性的 int 套件會讓 `AD-VerificationEnvironmentIsAnAxis-1` 提議的「Day 3 先讓 CI 跑一次」產生假警報 |
+| AD-FilteredAwayFailureEvidence-1 | ⛔ **用窄 pattern 過濾失敗輸出，把診斷所需的證據自己銷毀了** —— W26 Day 1 跑 int 時輸出接 `Select-String -Pattern "●\|Tests:\|Test Suites:"`，那條 pattern **只留測試名稱、丟掉全部 `Expected/Received`** ⇒ 手上只有「哪三條紅」沒有「為什麼紅」，只能靠重跑回答本來一次就能回答的問題 | W26 Day 1 | 🟢 P2 | 與 `AD-NarrowPatternWideClaim-1`（🔴 P0）**同族但形狀不同**：那條是「用窄 pattern 下寬結論」，這條是**用窄 pattern 銷毀證據**。⭐ 判準很簡單且不需要記憶力：**成功的輸出可以過濾，失敗的輸出不可以** —— 因為過濾條件是在知道要找什麼之前寫的。提議寫進 `verification-discipline.md` §證據層變體的形態表（該表已有「撞上限當搜完」，這是它的鄰居）|
 
 **優先度判準**：
 
