@@ -3,7 +3,7 @@
 **Phase**: W25 — OQ-7 spike：精簡狀態機的邊界在哪
 **Period**: 2026-08-21 ~ 2026-08-21（單日）
 **Plan**: [plan.md](./plan.md)
-**PR**: #98 — **PR-pending**（首推 CI `gates` 轉紅，修法見 `progress.md` §4；重推後結果待驗）
+**PR**: **MERGED (PR #98, `c527319`)** —— 首推 CI `gates` 轉紅（int 5 failed），修法見 `progress.md` §4；重推後 **6/6 綠**
 **Change record**: `docs/03-implementation/changes/CH-047-policy-lifecycle-transition.md`
 
 ---
@@ -212,7 +212,8 @@ gate 全綠、drive-through 開了真 UI + 真後端 + 真 DB 走完九步。
 - [x] ⭐ **`RISK_REGISTER.md` 已複查** —— 見下方 §ADR / Risk 複查
 - [x] **`plan.md` frontmatter `status:` 已翻成 `closed`，內文標記一致（R9）**
 - [x] ⭐ **已採納的 ADR 已複查** —— 見下方 §ADR / Risk 複查
-- [ ] ⭐ **`PR-pending` 標記已翻** —— ⏳ 待 merge 後以 `gh pr view` 驗證再翻
+- [x] ⭐ **`PR-pending` 標記已翻** —— `gh pr view 98` 回 `MERGED` / `2026-08-21T05:25:54Z`，
+      **驗證後才翻**（不採信宣稱）。5 處，逐處讀過
 - [x] `python scripts/lint/run_all.py` 全綠
 
 ---

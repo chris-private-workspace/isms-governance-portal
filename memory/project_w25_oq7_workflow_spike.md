@@ -1,6 +1,6 @@
 # W25 — OQ-7 spike：精簡狀態機的邊界
 
-**Phase**: W25 · **Period**: 2026-08-21（單日）· **Status**: `closed` · **PR**: PR-pending
+**Phase**: W25 · **Period**: 2026-08-21（單日）· **Status**: `closed` · **PR**: MERGED (PR #98, `c527319`)
 **權威來源**: `docs/01-planning/W25-oq7-workflow-spike/retrospective.md`
 
 ---

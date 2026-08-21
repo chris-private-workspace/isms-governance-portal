@@ -4,7 +4,7 @@
 **Phase**: W25
 **Scope**: `workflow`（新）· `core-model`（repository / 型別 / 錯誤分類）· `modules`（policy controller）
 **Components**: —
-**PR**: #98 — **PR-pending**
+**PR**: **MERGED (PR #98, `c527319`)**
 
 ---
 
