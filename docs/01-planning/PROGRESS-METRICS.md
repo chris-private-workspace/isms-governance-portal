@@ -45,7 +45,7 @@ Wave 2（合規與義務）、事件模組、供應商模組、AI agent、稽核
 | `scopes-with-code` | 7 / 8 |
 | `rls-enable-force` | 27 / 27 |
 | `loc-api-prod` | 8165 |
-| `loc-api-test` | 15206 |
+| `loc-api-test` | 15247 |
 
 <!-- /progress-metrics:declared -->
 

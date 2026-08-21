@@ -4,7 +4,7 @@
 **Phase**: W25
 **Scope**: `workflow`（新）· `core-model`（repository / 型別 / 錯誤分類）· `modules`（policy controller）
 **Components**: —
-**PR**: **PR-pending**
+**PR**: #98 — **PR-pending**
 
 ---
 
@@ -98,6 +98,27 @@ web **104**（不變）· build clean · `run_all` **11/11**
 （plan §3.x 排除建控件）。**使用者今天無法從介面推進政策狀態。**
 
 **Verdict**: ✅ PASS（含上述射程限制）
+
+### ⛔ Drive-through 抓到而 gate 沒抓到的 —— 以及**兩者都沒抓到、只有 CI 抓到的**
+
+前者：`/policies` 無轉換控件（上述射程）。**後者才是這一片真正的發現。**
+
+PR #98 首推後 CI `gates` 轉紅：int **5 failed**，全在本片新增的 `workflow.int.spec.ts`。
+根因**不在產品碼** —— 測試的呼叫者身分來自 `DEV_PRINCIPAL_ENTITIES`，
+CI 跑 `cp .env.example .env`（`ci.yml:235`）拿到 **`HK1`**，我的 `.env` 沒有這個變數
+所以 fallback 成 **`SG1`**（`dev-principal.ts:100-110`，**每次呼叫**讀）。
+測試在 SG1 建政策、卻以 HK1 的身分去讀 ⇒ 404 —— 而**回 404 完全正確**（約束 8）。
+
+修法照 `risk.int.spec.ts:434-448` 的既有先例（`beforeAll` 釘住、`afterAll` 還原），
+並在**產生失敗的那個環境**下驗證：`DEV_PRINCIPAL_ENTITIES=HK1` ⇒ int **280/22 全綠**；
+本機預設 ⇒ 同樣 **280/22**。
+
+> **為什麼三層驗證全做了還是漏掉**：gate / curl / drive-through 是「**驗多深**」的軸，
+> 而三層都跑在同一台機器、同一份 `.env` 上 —— 共用同一個隱含前提，所以缺陷同時穿過三層。
+> 第二個軸是「**驗過幾個環境**」。⇒ `AD-VerificationEnvironmentIsAnAxis-1`
+
+**預防**：22 個 `.int.spec.ts` 中只有 2 個取得 Controller（`risk` / `workflow`），
+**兩個現在都釘住了**（用兩種不同的 grep pattern 複驗，同答案 —— `AD-NarrowPatternWideClaim-1` 的形狀）。
 
 ---
 
