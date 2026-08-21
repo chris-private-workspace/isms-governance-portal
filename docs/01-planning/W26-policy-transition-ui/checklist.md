@@ -308,9 +308,22 @@
 
 ### 3.3 ⭐ 提早讓 CI 跑一次（`AD-VerificationEnvironmentIsAnAxis-1`）
 
-- [ ] **Day 3 結束就 push，不要等文件全部寫完**
+- [x] **Day 3 結束就 push，不要等文件全部寫完**
+      → ✅ 使用者核可後 push，**PR #100** 已開（Day 4 的 CH-048 / retrospective / BACKLOG 尚未寫，這是刻意的）
   - DoD: ⛔ W25 的教訓：三層驗證全做且全真，缺陷仍同時穿過三層 —— 因為三層都在同一台機器同一份 `.env` 上。**CI 是本 repo 今天唯一的第二個環境**
-  - DoD: 若 CI 紅，**先在本機重現該環境**再修（W25 用 `DEV_PRINCIPAL_ENTITIES=HK1` 重現）
+  - [x] **CI 結果** → ✅ **6 / 6 pass**（gates 2m38s · SCA · trivy · gitleaks 全歷史 · 映像 build + 啟動探測 · SAST）
+        - DoD: ⚠️ **int 套件非決定性**（`AD-IntSuiteNonDeterministic-1`）⇒ CI 若在 int 紅，
+          第一件事是判斷它是否為那三條已知的（bench × 2 + policy ref code），**不要當成本片弄壞了東西**
+          → **未觸發**：CI int **280 passed / 22 suites**
+        - DoD: ⛔ **「CI 綠」要自帶射程，不能因為 job 叫 `gates` 就認定它涵蓋什麼** ——
+          逐 step 查證：Format / Lint / Negative gates / Type check / Tests / Build /
+          **Integration tests**（step 17）皆 success。**不涵蓋 drive-through**（CI 沒有瀏覽器）
+        - DoD: ⭐ **意外的量測：CI int 24.057 s vs 本機 228.9 s —— 同樣 280 條、同一份 code，差 9.5 倍。**
+          ⇒ 本機的並發時序與 CI 完全不同，**本機才是那三條偶發失敗的溫床**（競爭窗口大得多）。
+          ⚠️ 這是**一個資料點不是結論**；且反過來的錯同樣要避免 ——
+          慢環境暴露的競爭條件**是真的競爭條件**，不能因為 CI 綠就當它不存在
+        - DoD: ⭐ `AD-VerificationEnvironmentIsAnAxis-1` 這次**沒有**抓到本機漏掉的缺陷（W25 有）。
+          但它仍然回本了，只是方向不同：**它給了 int 時長的對照**，讓那三條偶發有了新的解釋方向
   - Verify: `gh pr checks <N>`（push 前需使用者核可）
 
 ---
