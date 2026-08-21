@@ -328,12 +328,23 @@
     （它沒宣稱那些事）· 0004 / 0014 仍準確（本片實測 `FOR ALL` policy 對 UPDATE 同樣生效）·
     0005 仍準確（但揭露它涵蓋**欄位**不涵蓋**流程** —— 那是 OQ-9 的前提，非 ADR 失準）
   - **`RISK_REGISTER.md` 亦已複查** —— 逐條看過，**無一條因本片而變**；複查日期已更新
-- [ ] **Commit** → PR push + open → CI → merge
+- [x] **Commit** → PR push + open → CI → merge
   - [x] 使用者核可 push（2026-08-21）→ 推送 → **PR #98 開啟**
   - [x] CI 第一輪：5 綠 / **1 紅**（`gates` — int 5 failed）⇒ 修 `workflow.int.spec.ts` 的
         ambient scope 前提（**不是產品碼**），雙環境驗證後重推
-  - [ ] 🚧 CI 第二輪綠 —— 重推後待驗，**不採信本機結果推論 CI**（這一格存在的理由就是它被推翻過一次）
-  - [ ] 🚧 merge —— 經 `gh pr view 98 --json state,mergedAt` 驗證後才翻狀態標籤
-- [ ] ⭐ **`PR-pending` 標記已翻** —— merge 後翻標記，並以
-      `gh pr view <N> --json state,mergedAt` **驗證**，不採信「已 merge」的宣稱。
-      機械守衛：`check_status_markers.py` **E5**
+  - [x] CI 第二輪 **6/6 綠**（`gates` pass 2m9s，上一輪同一個 job 是 fail 2m14s）——
+        `headRefOid` 比對確認 CI 跑的是**當時的 branch head 而非舊版**
+        （該 SHA 為 rebase 前的物件，merge 後已不存在；main 上對應 `c527319`）；
+        `mergeStateStatus` 由 `BLOCKED` → **`CLEAN`**
+  - [x] merge —— `gh pr view 98 --json state,mergedAt` 回 **`MERGED`** ·
+        `2026-08-21T05:25:54Z` · merge commit **`c527319`**（rebase merge，`git cherry` 四個 commit 全 `-`）
+- [x] ⭐ **`PR-pending` 標記已翻** —— **6 處**：`CLAUDE.md` · `MEMORY.md` ·
+      `memory/project_w25_oq7_workflow_spike.md` · `retrospective.md` · `CH-047` ·
+      **`BACKLOG.md` §Shipped Pointer Index**
+  - ⛔ **我先報「恰好 5 處」，而那是錯的 —— E5 抓到第 6 個。** 根因不是 pattern 太窄
+        （`PR-pending` 就是完整字串），是**我讀 grep 結果時跳過了 `[Omitted long matching line]`**：
+        `BACKLOG.md` 有三行被省略，我只回去讀了其中一行就下了「其餘都是散文」的結論。
+  - ⛔⛔ **這是連續第二個 phase 犯同一個錯** —— W24 的 post-merge commit 標題逐字是
+        「**six markers, not the five I had counted**」（`3773e1c`）。⇒ `AD-MarkerCountUnderReported-1`
+  - ⚠️ 全 repo `PR-pending` 80+ 命中，其餘確為**討論它的散文**與 fixture（E5 遮蔽三類）——
+        但這次的教訓是：**該由 E5 來數，不是由我數**。機械守衛：`check_status_markers.py` **E5**（landed-gate 已生效）
