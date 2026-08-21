@@ -98,6 +98,9 @@
 - W24 [平台停止宣稱它沒有的認證，以及一個讓整行輸出隱形的 mock](memory/project_w24_unclaim_and_prose_guard.md) — MERGED #91 (`662d658`) 2026-08-20, **`closed`**; `/login` 三條 claim **只改兩條**（第三條實測為真 —— 拿掉一句真話換來的誠實是負的）· `/policies` 列表接 API · 那條 AD 拿到機械承載（守衛錨定**封閉集合**）。⭐⭐ drive-through 抓到假陳述而 8 個測試全過，因為 **mock 丟掉插值變數使整行不可觀測**（AP-6，不是覆蓋率問題）。**calibration 第一次 re-point**。
   Keywords: mock 簡化掉轉換 ⇒ 斷言變不可能 · 同一句話兩個母體 · 移除三條的正確答案是兩條 · affordance 用 computed style 驗不是看截圖 · 型別位置放行同時是洞 · 守衛第一次執行抓到自己 · re-point 治標（該修 bottom-up）· 高負載 7/11 vs 乾淨 11/11
 
+- W25 [OQ-7：分出高下的不是行數，是型別綁定](memory/project_w25_oq7_workflow_spike.md) — **PR-pending** 2026-08-21, **`closed`**; ADR-0002 已採納（自建轉換表），候選 B 與 xstate **已刪**。⭐ `wc -l` 說「B 少 45%」是量到註解密度（真實 46 vs ≈47 打平）；唯一分出高下的是 **schema↔實作的型別綁定**（B 刪掉一個狀態 `tsc` 完全沉默）。⭐⭐ **替換實驗**讓「接合成本」與「rollback 成本」都是量出來的而非估的。順帶是本 repo **第一條 domain update 路徑**。
+  Keywords: 代理指標被寫進 plan 的量法 · 單獨跑綠不是套件綠 · 事件驅動 vs 目標驅動的橋接就是候選 A 本身 · compare-and-set 不是 read-then-write · updateMany 會 commit 出假稽核列 · 錨點破 4 次每次都抓到失真敘述 · 預測往下沒中 · AD-50 連三次才修掉
+
 ---
 
 ## Project — Planning / Roadmap
