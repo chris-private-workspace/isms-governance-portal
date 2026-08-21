@@ -133,6 +133,122 @@ plan 只說 `list()` 與 `byId()`。可是 AC-5 要求「以回應的 `data` 就
 ⭐ N1 的價值：它證明那條測試**真的在測「新舊之分」**而不只是「有沒有 `allowed` 欄位」。
 ⛔ 我先只看到「1 紅」就想收工 —— 但**「1 紅」不等於「紅的是那一條」**，所以回頭抓了 `●` 的逐字名稱。
 
+---
+
+# Phase W26 Progress — 2026-08-21（Day 2）
+
+## Today's Accomplishments
+
+**Day 2 全部完成**：前端寫入半邊 + 動詞按鈕 + i18n + D4/D5 兩個 Day-0 發現的順手修正。
+
+### 2.1 `client.ts` — 本 app 的第一個寫入動詞
+
+| 加了什麼 | 為什麼是這個形狀 |
+|---|---|
+| `ApiRefusedError` | 寫入有第三種失敗：伺服器**看懂了、做得到、而拒絕**。把它併進 `ApiUnavailableError` 等於把一個治理決定歸檔成故障，畫面於是對著一個蓄意的拒絕說「請確認 API 是否在執行」 |
+| `patch<T>` | 422→refusal · 404→`null` · 其餘非 ok→outage · 網路失敗→outage |
+
+⭐ **刻意不與 `get()` 共用**。兩者重疊約 5 行 fetch boilerplate，差別在關鍵處：
+**422 在寫入路徑有意義、在讀取路徑沒有**。合併之後只會多出一個「為了讓合併成立而存在」的
+method 分支 —— 那是共用本身製造的複雜度，不是被消除的複雜度。
+（同理不動 `get()` 的 422 行為：那會波及 `risks.ts` 與既有測試，是本片沒有預期的爆炸半徑。）
+
+⭐ **`client.test.ts` 的第七條是讓前六條有意義的那一條**。前六條驗證的全是狀態碼映射，
+而 mock 不管被問什麼都照答 ⇒ **`patch` 改送 GET 且不帶 body，前六條全部照樣綠**。
+`sends a PATCH carrying the body as JSON` 是唯一把這個檔綁回它自己名字的斷言。
+
+### 2.2 / 2.3 頁面、型別與字典
+
+- `PolicyRow.allowed` **必填非選填** —— `retired` 的 `[]` 是「後面沒有了」這個**主張**，
+  與「這個欄位不存在」不是同一件事，型別上不可讓它退化成後者
+- 動詞按鈕放**最後一欄**（新 key `policies.col.actions`）。⭐ 刻意不插在 status 欄旁：
+  既有測試用 `td:nth-child(5)` 取狀態徽章，插在中間會**靜靜地讓那條斷言改測別的東西**
+- `pending` 存的是 **row id 不是 boolean** ⇒「送出中只鎖那一列」是型別的結果，不是額外邏輯
+- 成功時**整列由回應取代**，不是 patch 一個 `status` 欄位
+
+### ⭐ 兩個 Day-0 發現的順手修正（D4 / D5）—— 都是「本片讓一句既有的真話變成假話」
+
+| | 原文 | 本片讓它怎麼變假 | 修法 |
+|---|---|---|---|
+| **D4** | `shell.inert`：「This port has **no backend** that can perform it」 | `/policies` 從今天起**有**可寫入的後端 —— 同一頁上這句話與下面的按鈕自相矛盾 | 新 key `policies.new.inert`：缺的是**路由**不是**伺服器**。**其餘 23 個 call site 不動**（它們說的仍是真話） |
+| **D5** | `page.tsx` 列註解：「there is no action here to disable」 | 這一列現在**有**動作，就在最後一格 | 收窄成「**列級導覽**動作仍不存在，所以 `<tr>` 沒有 cursor 也沒有 hover，而它裡面的按鈕有」 |
+
+⭐ 這兩條的共同形狀：**AP-7 的 orphan claim 不是靠改壞舊 code 產生的，是靠新增正確的 code 產生的。**
+沒有任何 lint 會紅 —— 註解與文案不參與型別檢查。
+
+## §2.y 治理陳述檢查 —— **16 條逐條唸，2 條沒通過**
+
+⛔ **兩條都是 gate 全綠、測試全綠，而陳述本身是假的。**
+
+1. **`transition.unreachable` 原文「Nothing was changed.」** —— 假。網路錯誤可能發生在請求
+   **送達之後**（伺服器已寫入、回應遺失），5xx 同理。
+   ⇒ 改成「無法從這裡判斷變更是否送達，請重新載入確認伺服器上的實際狀態」。
+   ⭐ 相較之下 `refused` 與 `gone` 說「沒有變更」**是真的** ——
+   guard 在 write 之前（`policy.controller.ts:161-166`），compare-and-set 落空也沒寫入。
+   **同一句話在三個分支裡有兩個真一個假**，這正是為什麼要逐條唸而不是整批判斷。
+
+2. **按鈕本身暗示了權限** —— 檔頭確實寫了「不是權限過濾的」，但**檔頭使用者看不到**，
+   而被誤導的正是使用者：一排治理動詞按每一條 UI 慣例都讀成「你被允許做這些」。
+   ⇒ 新增 `policies.actions.noRoleCheck` **渲染在畫面上**。
+   與 §4.1:121「deliberately not faked」一致 —— 不假裝有閘，也不假裝沒有這件事。
+
+## ⭐ 訂正 plan §8 R8 的理由（結論不變，理由是錯的）
+
+R8 說「用字面量對照表，因為 `i18n.test.ts:143` 的掃描只看得見字面量」。
+
+實際讀 `:143`：`/\bt\(\s*[A-Za-z0-9_.]+\s*,\s*'([^']+)'\s*\)/g` ——
+它匹配的是 **`t(locale, 'key')` 這個呼叫形狀**，不是任意字面量。
+⇒ 對照表裡的 `'policies.action.approve'` **同樣掃不到**。
+既有的 `STATUS` 六個狀態 key 也一直掃不到，而**那從來沒讓任何東西變紅**。
+
+真正擋住錯 key 的是 **TypeScript**：`TranslationKey = keyof typeof zhHant`，寫錯即編譯失敗；
+模板拼裝要 `as TranslationKey`，而**那個 cast 正是會抓到它的檢查**。
+
+⇒ **照做，理由換掉。** 這是「證據要真的支持結論」的直接應用 ——
+R8 拿一個**看起來有機械守衛**的理由，去支持一個其實由型別系統支持的結論。
+
+## 中性化（Day 2）—— 預測寫在執行之前，兩次逐條命中
+
+| | 動作 | 預測 | 實測 |
+|---|---|---|---|
+| **N1** | `advance()` 忽略 `to`，永遠送 `policy.allowed[0]` | 恰好 **1 紅**：`sends the target its own button names` | ✅ **1 failed / 119 passed**，`×` 逐字為該條 |
+| **N2** | 成功時只更新 `status`，不取代整列 | 恰好 **1 紅**：`swaps the badge AND the verbs` | ✅ **1 failed / 119 passed**，`×` 逐字為該條 |
+
+⭐ **N1 的必要性**：其餘每一條測試都點**第一顆**按鈕 ⇒ 忽略參數的實作會讓它們**全部照樣綠**。
+沒有這條，「按鈕送出它自己宣告的目標」從未被驗證過。
+⭐ **N2 危險在它只壞一半**：徽章更新正確，只有動詞停在**上一個狀態**的清單 ——
+而那些動詞一秒之前確實是對的，畫面看起來完全正常。
+
+## Gate（**本機**，2026-08-21）
+
+format web/api **0** · lint web/api **0** · type web/api **0** ·
+api unit **511 / 41** · api int **280 / 22** exit 0（228.9 s）·
+web **120 / 12**（baseline 104 / 11 ⇒ **+16 測試 / +1 檔**）·
+build web **clean**（29 route）· build api **clean** · `run_all` **11/11**
+
+⛔ **全部是本機。CI 未跑** —— Day 3 §3.3 的存在理由（`AD-VerificationEnvironmentIsAnAxis-1`）。
+
+### int 這次全綠，但 `AD-IntSuiteNonDeterministic-1` **不解封**
+
+280/22 exit 0，且**這次用 `Tee-Object` 完整保留輸出**（Day 1 用窄 pattern 過濾掉了
+`Expected/Received`，那是 `AD-FilteredAwayFailureEvidence-1`）。
+⚠️ 全綠時 Jest 本來就只印 4 行 summary ⇒ **這次的完整輸出裡沒有失敗證據可看**。
+解封條件仍是原文：**下次它再紅時完整保留輸出**再判。方法已就位，事件還沒發生。
+
+## Remaining for Next Day
+
+**Day 3 drive-through**（真 UI + 真後端 + 真服務）。
+⚠️ 預期流程**必須寫在觀察之前**，且 §3.2 明訂不可用截圖判斷 disabled 狀態（W25 誤判過一顆）。
+
+## Notes
+
+- ⭐ **不派 subagent，理由是形狀不是規模**：Day 2 是一條垂直切片，
+  `ApiRefusedError` 的欄位名直接決定 `page.tsx` 怎麼呈現 422。拆給兩個 agent 會各自**猜**這個介面。
+  i18n 那 8 個 key 看起來最像可並行的獨立單元，卻**最不該外包** ——
+  動詞命名的權威是 `15:116` 的射程收窄，轉述那段脈絡的成本已超過自己寫，
+  而 `feedback-delegation-conflict-reporting` 記著的正是「agent 安靜地消化掉衝突」這個失敗模式。
+  該 fan-out 的是**成品的多角度 review**（彼此獨立、不需猜介面）。
+
 #### 一個我自己植入又拆掉的恆真陷阱
 
 第一版的 `attaches the legal next states to every listed row` 寫成：
