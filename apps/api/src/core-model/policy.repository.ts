@@ -32,12 +32,15 @@
  *
  * Key Components:
  *   - PolicyRepository.list(): scoped read
+ *   - PolicyRepository.byId(): one row, or null — absent and out-of-scope are one thing
  *   - PolicyRepository.create(): catalog read -> validate -> issue ref_code -> insert -> translate
+ *   - PolicyRepository.transitionStatus(): compare-and-set; the legality check is the caller's
  *
  * Created: 2026-08-10 (Phase W03)
- * Last Modified: 2026-08-10
+ * Last Modified: 2026-08-21
  *
  * Modification History (newest-first):
+ *   - 2026-08-21: Add byId + transitionStatus (W25) — the tree's first domain update
  *   - 2026-08-10: Issue a ref_code on create (W04) — counter is entity-scoped
  *   - 2026-08-10: Translate an RLS-refused insert (W03) — drive-through saw 500
  *   - 2026-08-10: Initial creation (Phase W03) — first scoped-client consumer
@@ -47,10 +50,10 @@
  *   - apps/api/src/core-model/scoped-client.types.ts — why a shape, not a token
  */
 import { Injectable } from '@nestjs/common';
-import type { Policy } from '../generated/prisma';
+import type { Policy, PolicyStatus } from '../generated/prisma';
 import { validateExtensions } from './extension-validator';
 import { issueRefCode } from './ref-code';
-import { ScopeRefusedError, isScopeRefusal } from './scope-refusal';
+import { ScopeRefusedError, isRecordNotFound, isScopeRefusal } from './scope-refusal';
 import type { ScopedPolicyClient } from './scoped-client.types';
 
 const ENTITY_TYPE = 'policy';
@@ -78,6 +81,16 @@ export interface CreatePolicyInput {
   readonly extensions?: Readonly<Record<string, unknown>>;
 }
 
+export interface TransitionPolicyStatusInput {
+  readonly id: string;
+  /**
+   * The status the caller observed. It is a WHERE condition, not a hint — see
+   * transitionStatus() for why the check has to happen inside the write.
+   */
+  readonly expected: PolicyStatus;
+  readonly next: PolicyStatus;
+}
+
 @Injectable()
 export class PolicyRepository {
   /** Every policy within the client's scope. No entity filter here — the client carries it. */
@@ -86,6 +99,73 @@ export class PolicyRepository {
       where: { retiredAt: null },
       orderBy: { createdAt: 'desc' },
     });
+  }
+
+  /**
+   * One policy within the client's scope, or null.
+   *
+   * ⚠️ Uses `findMany` rather than `findUnique` so the interface stays as narrow
+   * as it was: `findUnique` would be a third delegate method to reach one row
+   * the existing one already returns.
+   */
+  async byId(client: ScopedPolicyClient, id: string): Promise<Policy | null> {
+    const [found] = await client.policy.findMany({
+      where: { id, retiredAt: null },
+      take: 1,
+    });
+    return found ?? null;
+  }
+
+  /**
+   * Move a policy from the status the caller observed to the next one.
+   *
+   * ⭐ COMPARE-AND-SET, IN ONE STATEMENT, AND THAT IS THE WHOLE DESIGN. `expected`
+   * goes into the WHERE clause, so PostgreSQL decides whether the row is still in
+   * that state at the moment of the write. The alternative — read the status,
+   * check it here, then write — spans TWO runScoped calls and therefore two
+   * transactions (scoped-prisma.provider.ts:97-113), leaving a window where the
+   * row moves between the check and the set. The audit row would then attest to a
+   * transition out of a state the policy had already left.
+   *
+   * ⚠️ Returns null rather than throwing for the not-applied case, and does NOT
+   * say which of the three reasons applied: out of scope, absent, or already
+   * moved. See isRecordNotFound() — telling the third apart would confirm the id.
+   *
+   * ⚠️ `update` (not `updateMany`) is deliberate. A matched-nothing `updateMany`
+   * returns `{count: 0}` and the transaction COMMITS — which would leave an audit
+   * row claiming a transition that did not happen, because runScoped builds the
+   * audit entry before the write and cannot read its result. `update` raises, the
+   * transaction rolls back, and the audit row goes with it (the property
+   * audit.int.spec.ts already pins for a failed write).
+   *
+   * ⛔ THIS METHOD DOES NOT DECIDE WHETHER THE TRANSITION IS LEGAL. core-model may
+   * import ['api', 'core-model'] only, so it cannot reach the workflow scope where
+   * the lifecycle lives. The caller applies the guard; this applies the write.
+   * That split is not a workaround — a repository that knew the lifecycle would be
+   * a second place the state machine is defined.
+   */
+  async transitionStatus(
+    client: ScopedPolicyClient,
+    input: TransitionPolicyStatusInput,
+  ): Promise<Policy | null> {
+    try {
+      return await client.policy.update({
+        where: { id: input.id, status: input.expected, retiredAt: null },
+        data: {
+          status: input.next,
+          // updated_by stays NULL for the reason create() records: the only
+          // source of "who is acting" is a credential, and there is none until M4.
+        },
+      });
+    } catch (error) {
+      if (isRecordNotFound(error)) {
+        return null;
+      }
+      if (isScopeRefusal(error)) {
+        throw new ScopeRefusedError(input.id);
+      }
+      throw error;
+    }
   }
 
   async create(client: ScopedPolicyClient, input: CreatePolicyInput): Promise<Policy> {

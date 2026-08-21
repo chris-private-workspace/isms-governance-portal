@@ -56,11 +56,13 @@
  *   - UnknownReferenceError / isUnknownReference(): the same, for 23503
  *   - isCheckViolation(): the same, for 23514 — a stated rule, not a hidden one
  *   - DuplicateKeyError / isUniqueViolation(): 23505 — safe only for scoped keys
+ *   - isRecordNotFound(): P2025 — the first non-SQLSTATE code, for compare-and-set
  *
  * Created: 2026-08-10 (Phase W03)
- * Last Modified: 2026-08-13
+ * Last Modified: 2026-08-21
  *
  * Modification History (newest-first):
+ *   - 2026-08-21: Add the P2025 predicate (W25) — compare-and-set has no SQLSTATE
  *   - 2026-08-13: Add the 23505 predicate (W10) — a unique index ignores RLS
  *   - 2026-08-13: Add the 23514 predicate (W09) — a CHECK is a rule, not a refusal
  *   - 2026-08-11: Add the 23503 half (W05) — a composite FK moved the refusal point
@@ -159,6 +161,28 @@ const CHECK_VIOLATION_SQLSTATE = '23514';
  */
 export function isCheckViolation(error: unknown): boolean {
   return collectCodes(error, 0).includes(CHECK_VIOLATION_SQLSTATE);
+}
+
+/**
+ * Prisma `record_not_found` — what `update` raises when its `where` matched no row.
+ *
+ * ⚠️ NOT A SQLSTATE, and the first non-SQLSTATE code in this file. It lives here
+ * for the reason 23514 does: the classification machinery is here, and a second
+ * home for "what does this driver error mean" is how two answers to one question
+ * start. `collectCodes` finds it without changing — a Prisma error carries `code`
+ * at the top level, which is already the first key it reads.
+ *
+ * ⭐ W25 uses this for a compare-and-set transition, where THREE situations
+ * produce it and are deliberately not told apart: the row is out of scope, the
+ * row does not exist, or its status is no longer the one the caller observed.
+ * Distinguishing the third would confirm the id to a caller who guessed it —
+ * the oracle 約束 8 forbids — so all three answer 404.
+ */
+const RECORD_NOT_FOUND_CODE = 'P2025';
+
+/** True when anywhere in the error chain Prisma reported P2025. */
+export function isRecordNotFound(error: unknown): boolean {
+  return collectCodes(error, 0).includes(RECORD_NOT_FOUND_CODE);
 }
 
 /** postgres `unique_violation` — a caller-chosen tuple that already exists. */

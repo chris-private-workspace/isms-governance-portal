@@ -50,12 +50,15 @@ interface Recorder {
   catalogQueries: unknown[];
   /** W04: every allocation attempt, so a rejected write can be shown not to burn one. */
   counterUpserts: unknown[];
+  /** W25: every transition attempt, so the compare-and-set WHERE can be inspected. */
+  updateCalls: unknown[];
 }
 
 function recordingClient(catalog: ExtensionField[]): Recorder {
   const createCalls: unknown[] = [];
   const catalogQueries: unknown[] = [];
   const counterUpserts: unknown[] = [];
+  const updateCalls: unknown[] = [];
 
   const client: ScopedPolicyClient = {
     policy: {
@@ -65,6 +68,12 @@ function recordingClient(catalog: ExtensionField[]): Recorder {
       },
       create: async (args) => {
         createCalls.push(args);
+        return { id: 'p-1', ...(args.data as object) } as unknown as Policy;
+      },
+      // W25: the delegate the transition needs. Tests that care override it, the
+      // way every other method here is overridden.
+      update: async (args) => {
+        updateCalls.push(args);
         return { id: 'p-1', ...(args.data as object) } as unknown as Policy;
       },
     },
@@ -88,7 +97,7 @@ function recordingClient(catalog: ExtensionField[]): Recorder {
     },
   };
 
-  return { client, createCalls, catalogQueries, counterUpserts };
+  return { client, createCalls, catalogQueries, counterUpserts, updateCalls };
 }
 
 const input: CreatePolicyInput = { orgEntityId: SG1, title: 'Access Control' };
@@ -201,5 +210,82 @@ describe('PolicyRepository', () => {
     // The distinction is the whole point: swallowing this one would file a real
     // failure as "not found" and hide it from anyone watching error rates.
     await expect(repo.create(client, input)).rejects.toBe(boom);
+  });
+
+  // === W25: the transition path ===========================================
+
+  it('puts the observed status in the WHERE clause, not in a prior check', async () => {
+    // ⭐ THE LOAD-BEARING ASSERTION OF THE WHOLE TRANSITION DESIGN. If `expected`
+    // moved out of `where` and into an `if` above the write, this test still
+    // reads sensibly while the operation stops being atomic — so it asserts the
+    // location, not merely the outcome.
+    const { client, updateCalls } = recordingClient([]);
+
+    await repo.transitionStatus(client, { id: 'p-1', expected: 'draft', next: 'in_review' });
+
+    expect(updateCalls).toHaveLength(1);
+    expect(updateCalls[0]).toMatchObject({
+      where: { id: 'p-1', status: 'draft', retiredAt: null },
+      data: { status: 'in_review' },
+    });
+  });
+
+  it('returns null when the row moved, vanished, or was never in scope', async () => {
+    const { client } = recordingClient([]);
+    client.policy.update = async () => {
+      // What Prisma raises when `where` matched nothing.
+      throw { code: 'P2025', meta: { cause: 'Record to update not found.' } };
+    };
+
+    // Null, not an error: all three reasons are the same answer to the caller,
+    // and the controller turns it into the same 404 a missing policy gets.
+    await expect(
+      repo.transitionStatus(client, { id: 'p-1', expected: 'draft', next: 'in_review' }),
+    ).resolves.toBeNull();
+  });
+
+  it('translates a scope-refused transition rather than leaking a driver error', async () => {
+    const { client } = recordingClient([]);
+    client.policy.update = async () => {
+      throw { code: 'P2039', meta: { driverAdapterError: { cause: { code: '42501' } } } };
+    };
+
+    const error = await repo
+      .transitionStatus(client, { id: 'p-1', expected: 'draft', next: 'in_review' })
+      .catch((e: unknown) => e);
+
+    expect(error).toBeInstanceOf(ScopeRefusedError);
+  });
+
+  it('leaves an outage alone on the transition path too', async () => {
+    const { client } = recordingClient([]);
+    const boom = new Error('connection lost');
+    client.policy.update = async () => {
+      throw boom;
+    };
+
+    await expect(
+      repo.transitionStatus(client, { id: 'p-1', expected: 'draft', next: 'in_review' }),
+    ).rejects.toBe(boom);
+  });
+
+  it('reads one policy by id without naming an entity', async () => {
+    const { client } = recordingClient([]);
+    const seen: unknown[] = [];
+    client.policy.findMany = async (args) => {
+      seen.push(args);
+      return [{ id: 'p-1', status: 'draft' } as Policy];
+    };
+
+    await expect(repo.byId(client, 'p-1')).resolves.toMatchObject({ id: 'p-1' });
+    expect(JSON.stringify(seen[0])).not.toContain('orgEntityId');
+  });
+
+  it('returns null for a policy the scoped client cannot see', async () => {
+    const { client } = recordingClient([]);
+
+    // The default double returns no rows — which is exactly what a scoped client
+    // returns for another entity's policy. Absent and out-of-scope are one thing.
+    await expect(repo.byId(client, 'p-1')).resolves.toBeNull();
   });
 });
