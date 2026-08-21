@@ -6,7 +6,7 @@
  * Owner: docs/01-planning/W24-policies-read-path-and-prose-guard/plan.md §3.3
  *
  * Description:
- *   One call. The fetch, the envelope and the error type live in ./client.ts.
+ *   Two calls. The fetch, the envelope and the error types live in ./client.ts.
  *
  *   ⚠️ THE TYPE BELOW IS THIS APPLICATION'S VIEW OF THE WIRE, NOT A CONTRACT.
  *   The API declares no DTO for policies — policy.controller.ts returns the
@@ -45,19 +45,21 @@
  *
  * Key Components:
  *   - PolicyRow: the fields the API actually returns and this app actually reads
- *   - listPolicies: the one call
+ *   - listPolicies: the read
+ *   - transitionPolicy: the write — one lifecycle step, guarded server-side
  *
  * Created: 2026-08-19 (Phase W24)
- * Last Modified: 2026-08-19
+ * Last Modified: 2026-08-21
  *
  * Modification History (newest-first):
+ *   - 2026-08-21: Add transitionPolicy and the `allowed` field (W26) — CH-048
  *   - 2026-08-19: Initial creation (Phase W24) — CH-044
  *
  * Related:
  *   - apps/api/src/modules/policy/policy.controller.ts — the endpoint
  *   - apps/web/src/lib/api/risks.ts — the same shape, one phase earlier
  */
-import { ApiUnavailableError, get, type ScopedResponse } from './client';
+import { ApiUnavailableError, get, patch, type ScopedResponse } from './client';
 
 /** Names this endpoint family in ApiUnavailableError's message. */
 const RESOURCE = 'policy register API';
@@ -72,6 +74,19 @@ export interface PolicyRow {
   version: number;
   /** The API's own six-state vocabulary (02a:300-312), NOT the fixture's three. */
   status: string;
+  /**
+   * The legal next states, derived server-side from the transition table
+   * (policy.controller.ts:123-125). Required, not optional: the API attaches it
+   * to every policy it returns, and `retired` carries `[]` — an empty list is
+   * the claim "nothing follows this", which is not the same fact as a missing
+   * field and must not degrade into it.
+   *
+   * ⚠️ This app does NOT hold a copy of the table. That is the whole reason the
+   * field is on the wire: a second copy here would compile fine and drift the
+   * first time 02a §4 gains an edge, rendering buttons that are wrong rather
+   * than buttons that are missing.
+   */
+  allowed: readonly string[];
   updatedAt: string;
 }
 
@@ -82,4 +97,22 @@ export async function listPolicies(): Promise<ScopedResponse<PolicyRow[]>> {
     throw new ApiUnavailableError('GET /policies answered 404', RESOURCE);
   }
   return answer;
+}
+
+/**
+ * Advance one policy by one lifecycle step.
+ *
+ * ⚠️ NULL IS A REAL OUTCOME AND IT IS NOT SIMPLY "NOT FOUND". The endpoint
+ * answers 404 for absent, out-of-scope, AND "the row moved since the server read
+ * it" (policy.controller.ts:202-207), so the caller's message has to hold all
+ * three without asserting any one of them.
+ *
+ * A refusal — the transition is illegal from the current state — arrives as
+ * ApiRefusedError instead, carrying what the server says is legal.
+ */
+export async function transitionPolicy(
+  id: string,
+  to: string,
+): Promise<ScopedResponse<PolicyRow> | null> {
+  return patch<PolicyRow>('/policies/' + id + '/status', { to }, RESOURCE);
 }
