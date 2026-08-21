@@ -152,6 +152,13 @@ bottom-up 的 17 hr 裡最大的三塊是 `page.tsx` 3.5 · client 寫入半邊 
 **帶到下個 phase 的**：
 
 - `ADR-0003` FC3 是否觸發 → `AD-Adr0003Fc3Triggered-1`（**需使用者裁定**，本片刻意不決定）
+- ⭐ **ROADMAP 對 M5 完全沉默** → `AD-RoadmapHasNoM5Slot-1`（**需使用者裁定**）——
+  closeout 自檢「兩份都存在，收尾要同時改兩處」查出來的。逐項讀完 10 個項次：
+  `OQ-4 spike`（4b）與 `OQ-6 spike`（3）都有列，而 **`OQ-7 spike`（W25）與 M5 的 UI 入口（W26）都沒有**
+  ⇒ 這兩片是**繞過排序層**被選出來的。
+  ⛔ **本片刻意不補一列** —— 補列會掩蓋真正的判準問題：ROADMAP 到底是「所有工作的排序」
+  還是「AD / spike 的排序」？10 項裡 9 項是 AD 或 OQ spike ⇒ **後者才符合現況**，
+  若是如此該修的是它的自我描述而不是補列
 - `ADR-0002` vs `05:15` 的權威衝突 → `AD-Adr0002VsDesignDoc-1`
 - 稽核缺 `actor_id` → 既有，等 **M4**
 - refusal chip 樣式 / favicon → `AD-RefusalChipsLowContrast-1` · `AD-FaviconMissing-1`
