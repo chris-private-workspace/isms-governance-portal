@@ -247,7 +247,140 @@ build web **clean**（29 route）· build api **clean** · `run_all` **11/11**
   i18n 那 8 個 key 看起來最像可並行的獨立單元，卻**最不該外包** ——
   動詞命名的權威是 `15:116` 的射程收窄，轉述那段脈絡的成本已超過自己寫，
   而 `feedback-delegation-conflict-reporting` 記著的正是「agent 安靜地消化掉衝突」這個失敗模式。
-  該 fan-out 的是**成品的多角度 review**（彼此獨立、不需猜介面）。
+  ⛔ **我當時接著說「該 fan-out 的是成品的多角度 review」，那句是錯的** ——
+  CLAUDE.md delegation policy 有一條更具體的：**「不要派 subagent 去驗證自己剛完成的工作」**。
+  而且就算派了也抓不到重點：AP-3 的唯一有效偵測機制是**開車**，
+  一個讀 code 的 agent 讀不出「按鈕有 handler 但 handler 是空的」。
+
+---
+
+# Phase W26 Progress — 2026-08-21（Day 3 — Drive-through）
+
+## 3.1 Clean restart —— 這次的實質是「確認沒有要殺的」
+
+Preflight 量到：**3200 / 3210 都 free**，PostgreSQL 在 docker 內 healthy（`Up 28 hours`）。
+唯四的 node 進程全部是 **Playwright MCP**（我自己的工具伺服器，不屬於本專案）⇒ **一個都不動**。
+
+⭐ 所以「clean restart」這一格今天**沒有殺任何東西**。如實記錄，
+因為 `task-workflow.md` Risk Class C 的重點是「驗證活著的服務進程」而不是「一定要殺點什麼」。
+
+**Startup log 證據**（`w26-api-dev.log`）：
+
+```
+[RouterExplorer] Mapped {/policies/:id/status, PATCH} route
+```
+
+⚠️ **我差點把「慢」讀成「壞」。** 編譯在 17:41 報 `Found 0 errors`，我當下查 3210 → not listening，
+於是寫下「編譯完成 ≠ 應用啟動」。那句話字面正確，但我的**語氣**把它當成故障徵兆 ——
+實際上應用在 **18:23** 才開始 `NestFactory`，中間 42 秒它一直在啟動。
+`local-runtime-ops.md` §1 講的正是這個，而我讀完規則之後仍然差一點犯。
+
+## 3.2 Drive-through —— 預期寫在觀察之前，逐條對照
+
+**預期表寫在點開瀏覽器之前**（見本節下方原文）。結果：**畫面部分 8/8 命中，主路徑 2/2，失敗路徑 3/3。**
+
+### 畫面（觀察 vs 預期）
+
+| 狀態 | 預期 | 實測 |
+|---|---|---|
+| `draft` | 1 顆 Submit for review | ✅ |
+| `in_review` | 2 顆 Approve · Request changes | ✅ |
+| `approved` | 1 顆 Publish | ✅ |
+| `published` | 2 顆 Revise · Retire | ✅ |
+| `under_revision` | 1 顆 Submit for review | ✅ |
+| `retired` | **0 顆** | ✅ `totalButtons: 0`（不是「0 顆 enabled」）|
+| 表頭末欄 | Lifecycle | ✅ |
+| noRoleCheck 在畫面上 | 是 | ✅ |
+
+⚠️ **8 列而非 DB 的 13 列** —— entity scope 正常運作（HK1 那筆看不到），不是缺陷。
+
+### 主路徑：「不重整」是**量到的**不是推論的
+
+⭐ 點任何按鈕之前先種一個 `window.__driveThrough.marker`。**頁面若重整，這個變數會消失。**
+全程（2 次成功 + 3 次失敗，共 5 次互動）marker **一直存活** ⇒ 沒有任何一次是靠重載達成的。
+
+| 步 | 動作 | 徽章 | 動詞 |
+|---|---|---|---|
+| 1 | `POL-SG1-900002` Submit for review | `Draft` → `Under review`（`--surface-3` → `--rag-a-bg`）| `[in_review]` → `[Approve, Request changes]` |
+| 2 | 同列 Approve | → `Approved` | → `[Publish]` |
+
+- 未觸碰的 `POL-SG1-900001` **完全不變** ✅
+- meta 行跟著更新：`8 policies · 2 under review · server-set scope` ✅
+- 挑的是 **seed 資料**（Day 0 `D-seed-states` 的要求）✅
+
+### 三條失敗路徑：**互不相同，且都是伺服器真的回的**
+
+⭐ 422 / 404 用 fetch 攔截**只改請求、不碰回應** ⇒ 走的是真正的按鈕點擊路徑，
+回應是伺服器自己的判斷。**這不是 mock。** unreachable 則是**真的把 API 殺掉**。
+
+| | 方法 | banner | 內容 | 列是否變動 |
+|---|---|---|---|---|
+| **422** | 改 body 為 `to: published`（`in_review` 的非法目標）| `refused` | 「…is Under review. Moving it to Published is not a legal step…」+ chips **Approved / Draft** | 未變、按鈕未鎖 |
+| **404** | 改 id 為 `…00ff` | `gone` | 三義並陳，**不主張其中任何一個**；上一次的 chips 已清空 | 未變 |
+| **unreachable** | `Stop-Process` 殺掉 API 進程 | `unreachable` | 「無法從這裡判斷變更是否送達」 | 未變、**按鈕沒有卡在 disabled** |
+
+⭐ **§2.y 的修正在這裡被實際看到了。** 若沒做那次逐條檢查，unreachable 這一格今天會印
+「Nothing was changed.」—— 而畫面看起來完全正常，**沒有任何 gate 會紅**。
+這是本片「文案檢查」與「drive-through」兩道程序**接在一起**才擋下來的唯一一條。
+
+### 逐控件走查 —— ⚠️ 用 computed style，不用截圖
+
+`New policy` 在全頁截圖上看起來是**飽和藍、完全可按**。查 DOM：
+
+```
+disabled: true · opacity: "0.5" · cursor: "not-allowed" · data-hov: null
+title: "There is no /policies/new route in this port yet…"   ← D4 的新文案，真畫面上生效
+```
+
+⛔ **截圖是錯的，DOM 是對的。** W25 Day 3 在截圖上把 50% 透明的藍看成可用的藍；
+我今天差點犯**同一個陷阱的反向版本**。⇒ 這是同一個視覺陷阱第 **2** 次。
+checklist §3.2 那條「不要用截圖判斷 disabled」不是形式主義。
+
+動詞按鈕本身：`opacity 1` · `cursor pointer` · `1px solid rgb(206,213,221)` 白底 ⇒ 是控件不是文字 ✅
+
+## 真 DB 直查
+
+**稽核列數**：本次 drive-through 的 30 分鐘內恰好 **2 筆 `Policy.update`** ——
+對應兩次成功轉換；**三次失敗零筆** ✅（這正是 `policy.controller.ts:161-166` 說的：
+guard 在 write 之前，所以「什麼都沒發生」。）
+
+**Hash 鏈**：全表 6 列，`prev_hash = lag(row_hash)` 對 id 2-6 **全部為 t**。
+id 1 為 `f`，因為它是**鏈頭**（`lag` 為 NULL，其 `prev_hash` 是全零 genesis）——
+⚠️ 那是正確的鏈頭，**不可讀成斷鏈**。
+
+## ⛔ Drive-through 抓到而 gate 沒抓到的：稽核少了一半
+
+```
+id | operation     | before | after
+ 5 | Policy.update | NULL   | {"status": "in_review"}
+ 6 | Policy.update | NULL   | {"status": "approved"}
+```
+
+**`before` 是 NULL。** 稽核記了「它變成了 in_review」，**沒記「它原本是什麼」**。
+`actor_id` 同樣是 NULL（W25 已量到 `audit.recorder.ts:146` 寫死）。
+
+⇒ 今天的稽核軌跡對「**誰**、把這份政策**從哪個狀態**核准的」兩個問題**都答不出來**，
+而那正是 approval flow 的兩個核心欄位（guardrail 5 / `07:36`）。
+
+**為什麼不當場修**（PROCESS Step 0.0 節流閘）：
+- 這是 **W25 的產出**，不是本片；本片的範疇是 `ui`，修它要動 `audit-trail` / `core-model`
+- 它**不阻塞**本片 —— UI 入口確實能用
+- ⚠️ **但本片讓它從今天起開始累積真實資料**：在此之前沒有 UI 入口，
+  所以沒有人在產生這些不完整的稽核列。這使它比一般的既有缺陷更急迫，
+  ⇒ **表面化給使用者排序**，不自行動手（節流閘：什麼時候處理是使用者的排序權）
+
+## 順路發現（記 BACKLOG，不當場修）
+
+| # | 發現 | 判斷 |
+|---|---|---|
+| 1 | `audit_log.before` 為 NULL（見上）| 🔴 guardrail 5 類，本片使其開始累積資料 |
+| 2 | `GET /favicon.ico` 404 | 既有、與本片無關 |
+| 3 | refusal chips 的 `--surface-2` 在白底對比很弱 | 可讀、非缺陷；且無交付物指定 chip 樣式 ⇒ 改成什麼都是我在發明 |
+
+## Notes
+
+- 收尾時**重新啟動了 API**（drive-through 為了測 unreachable 把它殺了），讓環境回到可用狀態
+- artifacts：`day3-01-after-two-steps.png`（全頁）· `day3-02-refused-422.png` · `day3-03-unreachable.png`
 
 #### 一個我自己植入又拆掉的恆真陷阱
 
