@@ -310,6 +310,11 @@
         **命中與否都要寫**，那是 `AD-BottomUpEstimateInflated-1` 的第 4 個資料點
 - [x] `CALIBRATION-MATRIX.md` 那一行 —— 301 字元（落在既有各列 152-316 的常態內，lint 上限 400）；完整敘述已進 `CALIBRATION-LOG.md` §1 的 `spike` 段
 - [x] Final gate sweep: **全綠** —— format **0** · lint **0** · type **0** · api unit **507/41** · api int **280/22** · web **104/11** · build **EXIT 0** · `run_all` **11/11** · lint 測試 **122**（6 檔 0 fail）
+  - ⛔ **這一格當時為真，但射程不完整** —— 上列全部跑在**我這台機器、我這份 `.env`** 上。
+        push 後 CI `gates` 轉紅：int **5 failed**（`workflow.int.spec.ts`，呼叫者身分 CI 是 `HK1` / 本機是 `SG1`）。
+        ⇒ 「全綠」永遠要連**在哪裡綠**一起講。詳見 `progress.md` §4 · `AD-VerificationEnvironmentIsAnAxis-1`
+  - [x] **修後在兩個環境各驗一次**：`DEV_PRINCIPAL_ENTITIES=HK1`（= CI）⇒ int **280/22**；
+        本機預設 ⇒ int **280/22**。format/lint/type **0**，api unit **507/41**，`run_all` **11/11**
 - [x] 導航檔: `CLAUDE.md` Current-Phase + Last-Updated + **`AD-50` 修正兩處**（見下格）· `MEMORY.md` pointer + `memory/project_w25_oq7_workflow_spike.md` · `BACKLOG.md` §Open **197→206**（新增 9 條，計數由 `check_backlog_counts.py` 導出後照抄）+ §Shipped Pointer Index 一行
 - [x] ⭐ **`PROGRESS-METRICS.md`** —— 最終：M5 **🟡 部分**（OQ-7 已拍板 + 端點已通；**UI 無入口**、SLA/簽核/升級未做、issue→action 未做），錨點回到 `scope_ts_count('workflow') == 2`。⭐ **錨點今天共破 4 次（0→2→3→2），其中兩次抓到判定敘述已失真**（「端點未建」在端點通了之後、「OQ-7 未拍板」在拍板之後）—— 那是它在做事，`loc-*` 才是粒度太細的那個
 - [x] Anti-pattern 自檢（retro Q5）：**新增違規 0**。⚠️ 但**揭露三個既有的** → BACKLOG：`/policies` 無轉換控件（AP-3）· `shell.inert` 文案理由不實（AP-7）· `audit-coverage` 註解宣稱平行而 config 是序列（AP-7）
@@ -323,8 +328,12 @@
     （它沒宣稱那些事）· 0004 / 0014 仍準確（本片實測 `FOR ALL` policy 對 UPDATE 同樣生效）·
     0005 仍準確（但揭露它涵蓋**欄位**不涵蓋**流程** —— 那是 OQ-9 的前提，非 ADR 失準）
   - **`RISK_REGISTER.md` 亦已複查** —— 逐條看過，**無一條因本片而變**；複查日期已更新
-- [ ] **Commit** → ⏳ PR push + open → CI → merge: **PENDING USER CONFIRMATION**
-      （push 是 outward-facing）→ merge 經 `gh` 驗證後翻狀態標籤
+- [ ] **Commit** → PR push + open → CI → merge
+  - [x] 使用者核可 push（2026-08-21）→ 推送 → **PR #98 開啟**
+  - [x] CI 第一輪：5 綠 / **1 紅**（`gates` — int 5 failed）⇒ 修 `workflow.int.spec.ts` 的
+        ambient scope 前提（**不是產品碼**），雙環境驗證後重推
+  - [ ] 🚧 CI 第二輪綠 —— 重推後待驗，**不採信本機結果推論 CI**（這一格存在的理由就是它被推翻過一次）
+  - [ ] 🚧 merge —— 經 `gh pr view 98 --json state,mergedAt` 驗證後才翻狀態標籤
 - [ ] ⭐ **`PR-pending` 標記已翻** —— merge 後翻標記，並以
       `gh pr view <N> --json state,mergedAt` **驗證**，不採信「已 merge」的宣稱。
       機械守衛：`check_status_markers.py` **E5**

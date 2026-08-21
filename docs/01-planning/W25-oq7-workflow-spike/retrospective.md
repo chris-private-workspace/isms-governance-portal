@@ -3,7 +3,7 @@
 **Phase**: W25 — OQ-7 spike：精簡狀態機的邊界在哪
 **Period**: 2026-08-21 ~ 2026-08-21（單日）
 **Plan**: [plan.md](./plan.md)
-**PR**: **PR-pending**
+**PR**: #98 — **PR-pending**（首推 CI `gates` 轉紅，修法見 `progress.md` §4；重推後結果待驗）
 **Change record**: `docs/03-implementation/changes/CH-047-policy-lifecycle-transition.md`
 
 ---
@@ -123,6 +123,29 @@ plan §3.1 原本寫「守衛接在 `D-status-writers` 找出的**共同下游**
 **這次的緩解**：closeout 時拆成**兩個邏輯 commit**（code / docs）而不是一坨 ——
 但那是補救不是遵守。⚠️ 本片只有 2.6 hr，代價還小；同樣的習慣放在一個真正跨四天的 phase 上會很痛。
 
+### ⛔ 第二個沒做好的 —— 而它是本片**最有價值**的一條
+
+**push 後 CI `gates` 轉紅**：int **5 failed**，五條全在本片新增的 `workflow.int.spec.ts`。
+根因、重現、修法、雙環境驗證全記在 `progress.md` §4.1-4.7。一句話：
+**測試的呼叫者身分來自環境變數 `DEV_PRINCIPAL_ENTITIES`，CI 是 `HK1`、我的機器是 fallback 的 `SG1`**
+（CI 跑 `cp .env.example .env`，而 `.env.example:42` 就是 `HK1`）。
+
+**這條為什麼比前一條重要**：三層驗證我**全做了而且都是真的** ——
+gate 全綠、drive-through 開了真 UI + 真後端 + 真 DB 走完九步。
+但**三層都跑在同一台機器、同一份 `.env` 上**，所以三層共用同一個隱含前提，
+於是這個缺陷**同時穿過全部三層**。
+
+> `verification-discipline.md` 的三層是「**驗證得多深**」的軸。
+> 這次證明還有第二個軸：「**在幾個環境裡驗過**」。深度再深，也補不上只有一個環境這件事。
+> ⇒ `AD-VerificationEnvironmentIsAnAxis-1`
+
+⚠️ **並且這不是新知識**：`risk.int.spec.ts:434-448` 早就處理過同一件事，
+連註解都寫明了為什麼要 set 與 restore。**Day 0 的 Prong 2 沒有去找「同類測試的既有先例」** ——
+它查的是 plan 對現有 code 的斷言，而這條屬於「別人已經解過的問題」，落在它的射程外。
+
+⭐ **一個該記的正面事實**：修的是**測試的前提**，不是產品碼 ——
+`byId` 對範疇外的列回 404 完全正確（約束 8）。CI 抓到的是我的測試說謊，不是平台會壞。
+
 ---
 
 ## Q5 — Anti-Pattern 自檢
@@ -151,6 +174,8 @@ plan §3.1 原本寫「守衛接在 `D-status-writers` 找出的**共同下游**
 | `AD-ProxyMetricInPlanItself-1` | plan §3.4 指定用 `wc -l` 量「定義行數」，而它量到的是註解密度（191 vs 105 → 真實 46 vs ≈47） | plan 寫量測維度時，**量法必須自帶「這個代理指標會在什麼情況下說謊」** | 候選 |
 | `AD-RulerGranularity-1` | `loc-api-prod`/`loc-api-test` 一天內轉紅 **4 次**，**沒有一次需要判斷** | `loc-*` 改為「僅在 phase closeout 比對」或改記數量級。⭐ **M5 錨點不要動** —— 它同樣破 **4** 次（0→2→3→2）但**每次都逼出一次重判**，且其中**兩次抓到判定敘述已失真**（「端點未建」在端點通了之後、「OQ-7 未拍板」在拍板之後）。那是它在做事 | 候選 |
 | `AD-SuiteGreenNotSuiteGreen-1` | 新 int 套件單獨跑 11/11 綠，完整跑弄紅**別人的 3 條**；而這個坑逐字寫在 `jest.int.config.js:51-55`（W03 踩過） | 「單獨跑綠」不可作為套件綠的證據 —— **寫入 `verification-discipline.md` §證據層變體**的形態表 | 候選 |
+| `AD-VerificationEnvironmentIsAnAxis-1` 🟡 | gate + curl + drive-through **三層全做且全真**，缺陷仍同時穿過三層 —— 因為三層都在同一台機器、同一份 `.env` 上（CI `HK1` vs 本機 `SG1`）| `verification-discipline.md` 增列**第二個軸**：驗證深度之外還有「驗過幾個環境」。最小可執行形式 = **user-facing 收尾前先讓 CI 跑過一次**，不要把 push 排在所有文件都寫完之後 | 候選（**P1**）|
+| `AD-Day0NoPrecedentSearch-1` | 修法的先例（`risk.int.spec.ts:434-448`）**早就存在且有註解**，Day 0 三-prong 沒有去找它 —— prong 2 查的是 plan 的斷言，「別人解過沒有」在射程外 | Day-0 加一條 sub-prong：**寫新測試前，grep 同類測試對同一個 ambient 依賴的既有處理**。⚠️ 不是加第四個 prong，是 prong 2 的一句話 | 候選 |
 
 - [x] 已記入 `docs/01-planning/BACKLOG.md`
 

@@ -760,3 +760,85 @@ drive-through 改了 `isms_dev` 的兩列，**不會自己回復**：
 
 ⚠️ **兩條都不是 grep 命中數能回答的** —— D1 要讀 controller 確認沒有 `@Put`/`@Patch`，
 D2 要讀 recorder 的檔頭才知道 `before` 恆為 NULL 是**結構性**的而非未實作。
+
+---
+
+## 2026-08-21 — Day 4（續）：push → PR #98 → **CI 紅** → 修 → 綠
+
+### 4.1 ⛔ 「本機綠但 CI 未驗」不是免責聲明，它兌現了
+
+closeout 報告與 PR #98 描述都寫著這面紅旗。它在 push 後 **2 分 14 秒**兌現：
+
+| Check | 結果 |
+|---|---|
+| 憑證外洩 — gitleaks（全歷史）· 依賴漏洞 — SCA · 容器映像 — trivy · 靜態安全 — SAST | ✅ pass |
+| 映像 build + 啟動探測 | ✅ pass 1m56s |
+| **`gates`** | ❌ **fail 2m14s** —— int **5 failed / 275 passed** |
+
+五條全在**本片新增的** `workflow.int.spec.ts`，全是同一個錯：
+`NotFoundException: policy <uuid> not found` —— 政策剛建好，下一步 `byId` 就找不到它。
+
+### 4.2 根因：測試的呼叫者身分是**環境變數**，而兩邊的環境不同
+
+不是猜的，三段各有直接證據：
+
+| 段 | 證據 | 值 |
+|---|---|---|
+| CI 有 `.env` | `.github/workflows/ci.yml:235` `[ -f .env ] \|\| cp .env.example .env` | `.env.example:42` = **`HK1`** |
+| `.env` 進得了 `process.env` | `app.module.ts:54,58` `ConfigModule.forRoot({ envFilePath: [cwd/.env, cwd/../../.env] })` | jest 的 cwd 是 `apps/api` ⇒ 讀到 repo 根 `.env` |
+| 誰在讀它 | `dev-principal.ts:100-110` `entityCodes()` —— **每次呼叫**讀，fallback `['SG1']` | 我的 `.env` **沒有這個變數**（該字串零命中）⇒ 本機 = `SG1` |
+
+⇒ 測試在 **SG1** 建政策，`controller.transition()` 卻以 **HK1** 的身分去看它 ⇒ 404。
+**而 404 正是正確行為**（約束 8：查無資料回 404 不回 403）—— 壞的是測試的前提，不是產品碼。
+
+### 4.3 ⭐ 先重現，才動手
+
+沒有直接改。先在本機把 CI 的環境重建出來：
+
+```
+$env:DEV_PRINCIPAL_ENTITIES='HK1'; npm run test:int -w apps/api -- src/workflow/workflow.int.spec.ts
+⇒ Tests: 5 failed, 6 passed, 11 total   ← 與 CI 同樣的 5 條、同樣的錯
+```
+
+⇒ 根因由**重現**確認，不是由推論確認。
+
+### 4.4 修法：照既有先例，不發明新的
+
+`risk.int.spec.ts:434-448` **早就處理過這件事**，連註解都寫明了
+（「The scope comes from DEV_PRINCIPAL_ENTITIES … read per call — so setting it here
+is how a test says *this caller is SG1*」）。我在 Day 1 沒有找到這個先例。
+
+⇒ 在 `beforeAll` 釘住 `DEV_PRINCIPAL_ENTITIES='SG1'` + `DEV_PRINCIPAL_ROLLUP='false'`，
+`afterAll` 還原（`maxWorkers: 1`，洩漏會跟著整輪跑進別人的套件 —— 就是 §1.x 那個坑的同一形狀）。
+
+⚠️ **ROLLUP 也釘，理由是量到的不是假想的**：本檔 scope 4 證明
+**滾升 scope 根本不能轉換**，所以環境若帶 `DEV_PRINCIPAL_ROLLUP=true`，
+這半邊會以「would guess an entity」轉紅 —— 一個**沒有指出任何真問題**的訊息。
+
+### 4.5 驗證：修法必須在**產生失敗的那個環境**下被證明
+
+| 環境 | int 結果 |
+|---|---|
+| **`DEV_PRINCIPAL_ENTITIES=HK1`（= CI）** | **280 / 22 全綠**（單檔 11/11） |
+| 本機預設（變數不存在 ⇒ `SG1`） | **280 / 22 全綠** |
+
+⇒ 兩個方向都綠，且還原機制沒有污染其他 21 個套件。
+format **0** · lint **0** · type-check **0** · api unit **507 / 41**。
+
+### 4.6 這個危害在 repo 裡還剩多少
+
+22 個 `.int.spec.ts` 中**只有 2 個**取得 Controller（`risk` 與 `workflow`），
+**兩個現在都釘住了**。⚠️ 第一次的 pattern（`get(.*Controller)`）太窄 ——
+`AD-NarrowPatternWideClaim-1` 的形狀 —— 換成 `grep -rl "Controller"` 複驗，**兩者同答案**。
+
+### 4.7 ⭐ 這一片真正的教訓（不是「要跑 CI」）
+
+Day 3 的 drive-through **是對的、也是真的**，它用真 UI + 真後端 + 真 DB 走完了流程。
+但它與 int 測試**共用同一個隱含前提**：呼叫者是 SG1。
+`verification-discipline.md` 分了三層（gate / curl / drive-through），
+**這次失敗穿過了全部三層** —— 因為三層都在同一台機器、同一份 `.env` 上。
+
+> **第四個軸不是「更深的驗證」，是「同一件事在不同環境跑一次」。**
+> 而本 repo 目前唯一提供這個軸的東西就是 CI。
+> ⇒ `AD-VerificationEnvironmentIsAnAxis-1`
+

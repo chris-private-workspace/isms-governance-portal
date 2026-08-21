@@ -34,6 +34,7 @@
  * Last Modified: 2026-08-21
  *
  * Modification History (newest-first):
+ *   - 2026-08-21: Pin the dev-principal scope (W25) — CI runs it as HK1, local as SG1
  *   - 2026-08-21: Initial creation (Phase W25) — the tree's first update, measured
  */
 import { NotFoundException, UnprocessableEntityException } from '@nestjs/common';
@@ -69,7 +70,46 @@ describe('policy lifecycle transition (integration)', () => {
   let repo: PolicyRepository;
   let controller: PolicyController;
 
+  /**
+   * ⛔ THE CONTROLLER'S SCOPE IS AMBIENT, SO THIS SUITE HAS TO PIN IT.
+   *
+   * dev-principal.ts:100-110 reads DEV_PRINCIPAL_ENTITIES on EVERY call, and the
+   * legality half below creates its subjects in SG1. A machine whose .env omits
+   * the variable gets ['SG1'] by fallback and sees green; CI copies .env.example
+   * (ci.yml:235), which sets HK1 — and app.module.ts:54 loads that file. So the
+   * caller was looking at a different entity than the one holding the row, and
+   * five tests that passed locally answered 404 on CI. Local green was never
+   * evidence about CI here, because the two runs disagreed about who was asking.
+   *
+   * Roll-up is pinned for a measured reason, not a hypothetical one: scope 4
+   * below shows a roll-up scope CANNOT transition at all, so a developer running
+   * with DEV_PRINCIPAL_ROLLUP=true would turn this half red with a message about
+   * guessing an entity, which names nothing that is actually wrong.
+   *
+   * Restored in afterAll because maxWorkers is 1 — a leaked value follows the
+   * rest of the run into other suites. risk.int.spec.ts:434-448 saves and
+   * restores for exactly this reason; W25 shipped without noticing that precedent.
+   */
+  const priorEntities = process.env.DEV_PRINCIPAL_ENTITIES;
+  const priorRollUp = process.env.DEV_PRINCIPAL_ROLLUP;
+
+  const restoreDevPrincipalEnv = () => {
+    for (const [key, prior] of [
+      ['DEV_PRINCIPAL_ENTITIES', priorEntities],
+      ['DEV_PRINCIPAL_ROLLUP', priorRollUp],
+    ] as const) {
+      if (prior === undefined) {
+        delete process.env[key];
+      } else {
+        process.env[key] = prior;
+      }
+    }
+  };
+
   beforeAll(async () => {
+    process.env.DEV_PRINCIPAL_ENTITIES = 'SG1';
+    process.env.DEV_PRINCIPAL_ROLLUP = 'false';
+
     moduleRef = await Test.createTestingModule({ imports: [AppModule] }).compile();
     await moduleRef.init();
     resolver = moduleRef.get(EntityScopeResolver);
@@ -96,6 +136,7 @@ describe('policy lifecycle transition (integration)', () => {
       await retire();
     }
     await moduleRef.close();
+    restoreDevPrincipalEnv();
   });
 
   let seq = 0;
