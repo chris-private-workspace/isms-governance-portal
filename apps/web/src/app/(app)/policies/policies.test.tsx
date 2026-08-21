@@ -20,13 +20,13 @@
  * Related:
  *   - apps/web/src/app/(app)/risks/risks.test.tsx — the shape this follows
  */
-import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import type { ReactNode } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { ShellStateContext, type ShellState } from '@/components/shell/shell-state';
 import { t, tf } from '@/i18n';
-import { ApiUnavailableError } from '@/lib/api/client';
+import { ApiRefusedError, ApiUnavailableError } from '@/lib/api/client';
 import { type PolicyRow } from '@/lib/api/policies';
 
 vi.mock('next/link', () => ({
@@ -40,9 +40,14 @@ vi.mock('next/navigation', () => ({
 }));
 
 const listPolicies = vi.fn();
+const transitionPolicy = vi.fn();
 vi.mock('@/lib/api/policies', async (importOriginal) => {
   const actual = await importOriginal<typeof import('@/lib/api/policies')>();
-  return { ...actual, listPolicies: () => listPolicies() };
+  return {
+    ...actual,
+    listPolicies: () => listPolicies(),
+    transitionPolicy: (id: string, to: string) => transitionPolicy(id, to),
+  };
 });
 
 const { default: PoliciesPage } = await import('./page');
@@ -62,14 +67,35 @@ const shell: ShellState = {
   periodLabel: '2026-Q3',
 };
 
+/**
+ * What the API says follows each state, copied from transitions.ts FOR THE
+ * FIXTURE ONLY.
+ *
+ * ⚠️ The application holds no such table — that is the entire reason `allowed`
+ * travels on the wire. This copy exists so a fixture row can be internally
+ * consistent (a `published` row that offers `Approve` would be testing a
+ * situation the server cannot produce). If it drifts from the server, what
+ * degrades is these tests' realism, not the product's correctness.
+ */
+const ALLOWED: Record<string, readonly string[]> = {
+  draft: ['in_review'],
+  in_review: ['approved', 'draft'],
+  approved: ['published'],
+  published: ['under_revision', 'retired'],
+  under_revision: ['in_review'],
+  retired: [],
+};
+
 function row(over: Partial<PolicyRow> = {}): PolicyRow {
+  const status = over.status ?? 'published';
   return {
     id: '0000ff00-0000-0000-0000-000000000001',
     refCode: 'POL-SG1-900001',
     orgEntityId: '00000000-0000-0000-0000-0000000000c0',
     title: 'DEMO SEED — Cryptographic key handling standard',
     version: 3,
-    status: 'published',
+    status,
+    allowed: ALLOWED[status] ?? [],
     updatedAt: '2026-08-19T08:25:15.448Z',
     ...over,
   };
@@ -84,8 +110,16 @@ const renderList = () =>
 
 beforeEach(() => {
   listPolicies.mockReset();
+  transitionPolicy.mockReset();
   push.mockReset();
 });
+
+/** The <tr> a reference code sits in. */
+const rowOf = (refCode: string) => screen.getByText(refCode).closest('tr') as HTMLElement;
+
+/** The verb buttons in that row, in render order. */
+const verbs = (refCode: string) =>
+  [...rowOf(refCode).querySelectorAll('[data-transition-to]')] as HTMLButtonElement[];
 
 /** The pill's background is the only place the RAG decision is observable. */
 function pillBackground(container: HTMLElement, refCode: string): string {
@@ -255,5 +289,182 @@ describe('an empty scope and an empty filter are different facts', () => {
       expect(container.querySelector('[data-source-state="empty"]')).not.toBeNull(),
     );
     expect(screen.getByText(t('zh-Hant', 'policies.source.empty.title'))).toBeTruthy();
+  });
+});
+
+describe('the row offers exactly the steps the API said were legal', () => {
+  it('renders one verb per target the server named, in the order it named them', async () => {
+    listPolicies.mockResolvedValue({ data: [row()] }); // published
+    renderList();
+    await screen.findByText('POL-SG1-900001');
+
+    expect(verbs('POL-SG1-900001').map((b) => b.dataset.transitionTo)).toEqual([
+      'under_revision',
+      'retired',
+    ]);
+    expect(
+      within(rowOf('POL-SG1-900001')).getByText(t('zh-Hant', 'policies.action.retire')),
+    ).toBeTruthy();
+  });
+
+  it('renders NO button on a terminal state, rather than a disabled one', async () => {
+    listPolicies.mockResolvedValue({ data: [row({ status: 'retired' })] });
+    renderList();
+    await screen.findByText('POL-SG1-900001');
+
+    // A disabled Approve on a retired policy would offer an action that does
+    // not exist and invite the reader to ask who could enable it.
+    expect(rowOf('POL-SG1-900001').querySelectorAll('button')).toHaveLength(0);
+  });
+
+  it('sends the target its own button names, not whichever came first', async () => {
+    listPolicies.mockResolvedValue({ data: [row()] }); // [under_revision, retired]
+    transitionPolicy.mockResolvedValue({ data: row({ status: 'retired' }) });
+    renderList();
+    await screen.findByText('POL-SG1-900001');
+
+    // ⭐ THE SECOND BUTTON, deliberately. If advance() ignored its argument and
+    // always sent allowed[0], every other test in this file still passes.
+    fireEvent.click(verbs('POL-SG1-900001')[1]!);
+
+    await waitFor(() =>
+      expect(transitionPolicy).toHaveBeenCalledWith(
+        '0000ff00-0000-0000-0000-000000000001',
+        'retired',
+      ),
+    );
+  });
+});
+
+describe('a successful transition updates the row without a reload', () => {
+  it('swaps the badge AND the verbs, from the response alone', async () => {
+    listPolicies.mockResolvedValue({ data: [row({ status: 'approved' })] });
+    transitionPolicy.mockResolvedValue({ data: row({ status: 'published' }) });
+    renderList();
+    await screen.findByText('POL-SG1-900001');
+
+    expect(verbs('POL-SG1-900001').map((b) => b.dataset.transitionTo)).toEqual(['published']);
+    fireEvent.click(verbs('POL-SG1-900001')[0]!);
+
+    // The verbs are the assertion that matters. Setting only `status` would
+    // leave `Publish` on screen next to a Published badge — and it would look
+    // right, because it was right one moment earlier.
+    await waitFor(() =>
+      expect(verbs('POL-SG1-900001').map((b) => b.dataset.transitionTo)).toEqual([
+        'under_revision',
+        'retired',
+      ]),
+    );
+    expect(
+      within(rowOf('POL-SG1-900001')).getByText(t('zh-Hant', 'policies.status.published')),
+    ).toBeTruthy();
+
+    // No refetch: the response IS the new row (policy.controller.ts:209-214).
+    expect(listPolicies).toHaveBeenCalledTimes(1);
+  });
+
+  it('disables only the row in flight, and drops its hover with it', async () => {
+    listPolicies.mockResolvedValue({
+      data: [row(), row({ id: 'b', refCode: 'POL-SG1-900002', status: 'approved' })],
+    });
+    let settle!: (value: unknown) => void;
+    transitionPolicy.mockReturnValue(
+      new Promise((resolve) => {
+        settle = resolve;
+      }),
+    );
+    renderList();
+    await screen.findByText('POL-SG1-900002');
+
+    fireEvent.click(verbs('POL-SG1-900001')[0]!);
+
+    await waitFor(() => expect(verbs('POL-SG1-900001')[0]!.disabled).toBe(true));
+    expect(verbs('POL-SG1-900001')[0]!.title).toBe(t('zh-Hant', 'policies.transition.pending'));
+    // W19 measured this: a disabled button still matches [data-hov]:hover, so
+    // the attribute has to go, not just the enabled state.
+    expect(verbs('POL-SG1-900001')[0]!.getAttribute('data-hov')).toBeNull();
+    // The other row is untouched — pending is an id, not a boolean.
+    expect(verbs('POL-SG1-900002')[0]!.disabled).toBe(false);
+
+    settle({ data: row() });
+    await waitFor(() => expect(verbs('POL-SG1-900001')[0]!.disabled).toBe(false));
+  });
+});
+
+describe('the three ways a transition fails stay three different messages', () => {
+  it('names what the server accepts instead when it refuses', async () => {
+    listPolicies.mockResolvedValue({ data: [row({ status: 'draft' })] });
+    transitionPolicy.mockRejectedValue(
+      new ApiRefusedError('illegal transition', 'draft', 'published', ['in_review']),
+    );
+    const { container } = renderList();
+    await screen.findByText('POL-SG1-900001');
+
+    fireEvent.click(verbs('POL-SG1-900001')[0]!);
+
+    const banner = (await waitFor(() => {
+      const found = container.querySelector('[data-transition-state="refused"]');
+      expect(found).not.toBeNull();
+      return found;
+    })) as HTMLElement;
+
+    // The alternatives ARE the reason the endpoint sends `allowed`. Dropping
+    // them turns a helpful refusal into a bare no.
+    expect(banner.querySelector('[data-refusal-alternative="in_review"]')).not.toBeNull();
+    expect(banner.textContent).toContain(t('zh-Hant', 'policies.status.underReview'));
+  });
+
+  it('says the server named none rather than rendering an empty list', async () => {
+    listPolicies.mockResolvedValue({ data: [row({ status: 'draft' })] });
+    transitionPolicy.mockRejectedValue(
+      new ApiRefusedError('illegal transition', 'retired', 'draft', []),
+    );
+    const { container } = renderList();
+    await screen.findByText('POL-SG1-900001');
+
+    fireEvent.click(verbs('POL-SG1-900001')[0]!);
+
+    const banner = (await waitFor(() => {
+      const found = container.querySelector('[data-transition-state="refused"]');
+      expect(found).not.toBeNull();
+      return found;
+    })) as HTMLElement;
+
+    expect(container.querySelectorAll('[data-refusal-alternative]')).toHaveLength(0);
+    // textContent, not getByText: the banner holds the refusal sentence and this
+    // one as sibling text nodes, so no single element carries only this string.
+    expect(banner.textContent).toContain(t('zh-Hant', 'policies.transition.refused.none'));
+  });
+
+  it('does not claim "no such policy" when the API answers 404', async () => {
+    listPolicies.mockResolvedValue({ data: [row({ status: 'approved' })] });
+    transitionPolicy.mockResolvedValue(null);
+    const { container } = renderList();
+    await screen.findByText('POL-SG1-900001');
+
+    fireEvent.click(verbs('POL-SG1-900001')[0]!);
+
+    await waitFor(() =>
+      expect(container.querySelector('[data-transition-state="gone"]')).not.toBeNull(),
+    );
+    // 404 also covers "already moved" and "outside your scope"; the row on
+    // screen is unchanged because nothing was changed.
+    expect(
+      within(rowOf('POL-SG1-900001')).getByText(t('zh-Hant', 'policies.status.approved')),
+    ).toBeTruthy();
+  });
+
+  it('reports an unreachable API as an outage, not as a refusal', async () => {
+    listPolicies.mockResolvedValue({ data: [row({ status: 'approved' })] });
+    transitionPolicy.mockRejectedValue(new ApiUnavailableError('connection refused'));
+    const { container } = renderList();
+    await screen.findByText('POL-SG1-900001');
+
+    fireEvent.click(verbs('POL-SG1-900001')[0]!);
+
+    await waitFor(() =>
+      expect(container.querySelector('[data-transition-state="unreachable"]')).not.toBeNull(),
+    );
+    expect(container.querySelector('[data-transition-state="refused"]')).toBeNull();
   });
 });
