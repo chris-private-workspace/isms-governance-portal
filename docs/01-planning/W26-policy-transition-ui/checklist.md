@@ -250,28 +250,61 @@
 
 ### 3.1 Clean restart
 
-- [ ] **殺掉 3200 / 3210 上所有陳舊程序，確認新程序是唯一擁有者**
+- [x] **殺掉 3200 / 3210 上所有陳舊程序，確認新程序是唯一擁有者**
+      → ⭐ **這次沒有要殺的**：preflight 量到 3200 / 3210 **都 free**，
+      唯四的 node 進程全部是 Playwright MCP（我自己的工具伺服器，不屬本專案）⇒ 一個都不動。
+      如實記錄 —— Risk Class C 要的是「驗證活著的服務進程」，不是「一定要殺點什麼」
   - DoD: 含**孤兒 spawn worker**（父程序已死但仍因 SO_REUSEADDR 服務該 port）—— 見 `task-workflow.md` §Risk Class C
+        → ✅ 逐一列出 PID / PPID / StartTime / CmdLine 比對，無孤兒
   - DoD: 擷取 startup log 證明新路由已掛載
+        → ✅ `[RouterExplorer] Mapped {/policies/:id/status, PATCH} route`
+  - DoD: ⚠️ **我差點把「慢」讀成「壞」** —— 編譯 17:41 報 `Found 0 errors`，
+        我查 3210 是 not listening 就寫下「編譯完成 ≠ 應用啟動」。字面正確，但語氣當成故障徵兆；
+        實際上應用 **18:23** 才開始 `NestFactory`，中間 42 秒一直在啟動。
+        **讀完 `local-runtime-ops.md` §1 之後仍然差一點犯**
   - Verify: `docs/rules-on-demand/local-runtime-ops.md` 的程序 + `/preflight`
 
 ### 3.2 Drive-through（MANDATORY — 不是 gate-only）
 
-- [ ] **預期流程寫在觀察之前**
+- [x] **預期流程寫在觀察之前**
+      → ✅ 六狀態的按鈕預期表 + 主路徑兩步 + 三條失敗，全部寫在開瀏覽器**之前**（progress.md Day 3）
   - DoD: ⭐ 先寫下「我預期會看到什麼」再開瀏覽器 —— 事後寫等於用結果反推預期
-- [ ] **主路徑：至少推進兩步，徽章跟著變**
+- [x] **主路徑：至少推進兩步，徽章跟著變**
+      → ✅ `POL-SG1-900002`：`Draft` →（Submit for review）→ `Under review` →（Approve）→ `Approved`；
+      動詞同步換成 `[Publish]`；未觸碰的列完全不變；meta 行跟著更新
   - DoD: **不重整**就更新（AC-5）；⭐ 驗法是**製造變化再觀察**，不是看截圖推論
-  - DoD: 刻意挑一筆 **seed 資料**推進（Day 0 `D-seed-states` 的發現）
-- [ ] **三條失敗路徑各走一次**
+        → ✅ **量到的不是推論的**：點任何按鈕前先種 `window.__driveThrough.marker`，
+        頁面若重整它會消失。全程 5 次互動後 marker **仍存活**
+  - DoD: 刻意挑一筆 **seed 資料**推進（Day 0 `D-seed-states` 的發現）→ ✅ `DEMO SEED — Remote working security baseline`
+- [x] **三條失敗路徑各走一次** → ✅ `refused` / `gone` / `unreachable` 三個互斥的 `data-transition-state`
   - DoD: 422（送一個非法目標 —— 需要繞過按鈕，用 devtools 或直接改請求）· 404（不存在的 id）· 連不上（殺掉 API）
-  - DoD: 三者的畫面呈現**確實不同**
-- [ ] **逐控件走查**：可點 / 有效果 / 標籤真實 / 結果真的渲染
+        → ✅ 422/404 用 fetch 攔截**只改請求、不碰回應** ⇒ 走真正的點擊路徑，回應是伺服器自己的判斷，**不是 mock**；
+        unreachable 是**真的 `Stop-Process` 殺掉 API**
+  - DoD: 三者的畫面呈現**確實不同** → ✅ 422 帶 chips（Approved / Draft）· 404 三義並陳且清掉上一次的 chips ·
+        unreachable 說「不知道是否送達」
+  - DoD: ⭐ **§2.y 的修正在這裡被實際看到** —— 若沒做那次逐條唸，unreachable 今天會印
+        「Nothing was changed.」，而畫面看起來完全正常、**沒有任何 gate 會紅**
+- [x] **逐控件走查**：可點 / 有效果 / 標籤真實 / 結果真的渲染
   - DoD: ⚠️ **不要用截圖判斷 disabled 狀態** —— W25 Day 3 在截圖上把 50% 透明的藍看成可用的藍，誤判了一顆。要查 computed style / DOM
-- [ ] **真 DB 直查**：稽核列數與 `prev_hash` 鏈
+        → ⛔ **這條今天再次生效，方向相反**：`New policy` 在截圖上看起來是飽和藍、完全可按；
+        查 DOM 為 `disabled: true · opacity "0.5" · cursor "not-allowed" · data-hov null`，
+        title 是 **D4 的新文案**。**截圖錯、DOM 對** ⇒ 同一個視覺陷阱第 **2** 次
+- [x] **真 DB 直查**：稽核列數與 `prev_hash` 鏈
   - DoD: 成功轉換各留一筆 `Policy.update`；失敗的**零筆**；`prev_hash` 逐列等於前一列 `row_hash`
-- [ ] 截圖 + observed-vs-intended → progress.md Day 3
-- [ ] ⭐ **本次 drive-through 的射程**（收尾報告必須照抄）
+        → ✅ 30 分鐘內**恰好 2 筆**，三次失敗**零筆**；hash 鏈 id 2-6 全部 `t`，
+        id 1 為 `f` 因為它是**鏈頭**（`lag` 為 NULL，`prev_hash` 是全零 genesis）—— **不可讀成斷鏈**
+  - [x] ⛔ **drive-through 抓到而 gate 沒抓到的**：`audit_log.before` **為 NULL** ⇒
+        稽核記了「變成 in_review」但**沒記「原本是什麼」**；`actor_id` 同樣 NULL。
+        「誰、從哪個狀態核准的」今天**兩個都答不出來**，而那是 approval flow 的核心欄位。
+        ⇒ **不當場修**（W25 的產出、範疇是 `audit-trail` 不是 `ui`、不阻塞本片），
+        但**本片使它從今天起開始累積真實資料** ⇒ 表面化給使用者排序（Day 4.2 落表）
+- [x] 截圖 + observed-vs-intended → progress.md Day 3
+      → ✅ `artifacts/day3-01-after-two-steps.png`（全頁）· `day3-02-refused-422.png` · `day3-03-unreachable.png`
+- [x] ⭐ **本次 drive-through 的射程**（收尾報告必須照抄）
   - DoD: 明寫**沒有權限閘**（`AD-RbacUnenforced-1`）—— 不可讀成「有權限的人才能推進」
+        → ✅ **射程**：本次證明的是「**任何**開啟這個畫面的人都能推進政策狀態」，
+        **不是**「有權限的人能推進」。今天沒有權限閘，`policies.actions.noRoleCheck` 在畫面上說明了這件事。
+        另**兩項未證明**：稽核缺 `before` 與 `actor_id`（見上格）
 
 ### 3.3 ⭐ 提早讓 CI 跑一次（`AD-VerificationEnvironmentIsAnAxis-1`）
 
