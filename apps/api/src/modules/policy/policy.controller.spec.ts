@@ -31,15 +31,19 @@ import type { PolicyRepository } from '../../core-model/policy.repository';
 import { ScopeRefusedError } from '../../core-model/scope-refusal';
 import type { EntityScope, EntityScopeResolver } from '../../entity-scope/entity-scope.resolver';
 import type { ScopedPrismaFactory } from '../../entity-scope/scoped-prisma.provider';
-import type { Policy } from '../../generated/prisma';
+import type { Policy, PolicyStatus } from '../../generated/prisma';
+import { POLICY_STATUSES, POLICY_TRANSITIONS, allowedTargets } from '../../workflow/transitions';
 import { PolicyController } from './policy.controller';
 
 const SG1 = '00000000-0000-0000-0000-0000000000c0';
 const HK1 = '00000000-0000-0000-0000-0000000000c1';
 const MINE = 'policy-mine';
 
-function policy(id: string): Policy {
-  return { id, orgEntityId: SG1, title: 't', extensions: {} } as unknown as Policy;
+// `status` defaults rather than being omitted: every real row has one, and a
+// fixture without it would let `allowed` be computed from undefined and still
+// look green.
+function policy(id: string, status: PolicyStatus = 'draft'): Policy {
+  return { id, orgEntityId: SG1, title: 't', extensions: {}, status } as unknown as Policy;
 }
 
 function build(rows: Policy[] = [policy(MINE)]) {
@@ -206,5 +210,78 @@ describe('PolicyController', () => {
     };
 
     await expect(controller.create({ orgEntityId: SG1, title: 'x' })).rejects.toBe(boom);
+  });
+
+  // ---- `allowed`: the edges, derived (W26) ----
+  //
+  // ⛔ EVERY EXPECTATION BELOW IS DERIVED FROM POLICY_TRANSITIONS, NEVER TYPED
+  // OUT. A hand-written expectation would be edited in the same commit as any
+  // change to the table, so it could never catch the table changing — it would
+  // only assert that two hand-copies agree, which is the shape W25 measured as
+  // worthless (`wc -l` counting comment density). Derived, these tests fail the
+  // moment the controller stops reading the table.
+
+  it('attaches the legal next states to every listed row', async () => {
+    const rows = POLICY_STATUSES.map((status) => policy(`p-${status}`, status));
+    const { controller } = build(rows);
+
+    const listed = (await controller.list()) as {
+      data: { status: PolicyStatus; allowed: readonly PolicyStatus[] }[];
+    };
+
+    // ⛔ Anti-vacuity first: an empty POLICY_STATUSES would make the loop below
+    // run zero times and `toHaveLength(0)` agree with it, so this test would
+    // pass while asserting nothing. Same guard i18n.test.ts:149 uses.
+    expect(POLICY_STATUSES.length).toBeGreaterThan(0);
+
+    // Every state, not a sample: the map has as many keys as the result has rows.
+    expect(listed.data).toHaveLength(POLICY_STATUSES.length);
+    for (const row of listed.data) {
+      expect(row.allowed).toEqual(allowedTargets(row.status));
+    }
+  });
+
+  it('gives a terminal state an empty list, not a missing field', async () => {
+    // transitions.ts:63-67 argues the empty array is a CLAIM. A caller that got
+    // `undefined` would have to decide what absence meant, and the two obvious
+    // readings — "no edges" and "not computed" — render differently.
+    const { controller } = build([policy('p-retired', 'retired')]);
+
+    const listed = (await controller.list()) as { data: { allowed: unknown }[] };
+
+    expect(listed.data[0]).toHaveProperty('allowed');
+    expect(listed.data[0]?.allowed).toEqual([]);
+    expect(POLICY_TRANSITIONS.retired).toEqual([]); // the premise, asserted
+  });
+
+  it('attaches them on the single-row read too', async () => {
+    const { controller } = build([policy(MINE, 'in_review')]);
+
+    const single = (await controller.byId(MINE)) as {
+      data: { allowed: readonly PolicyStatus[] };
+    };
+
+    expect(single.data.allowed).toEqual(allowedTargets('in_review'));
+  });
+
+  it('⭐ a transition answers with the NEW state edges, not the old ones', async () => {
+    // This is the half AC-5 depends on. The caller replaces its row with this
+    // response; if `allowed` described the state the row just left, the screen
+    // would offer the wrong actions until something refetched — and it would
+    // look right, because the status beside them would already be correct.
+    const before = policy(MINE, 'draft');
+    const after = policy(MINE, 'in_review');
+    const { controller, repo } = build([before]);
+    (repo as { byId: unknown }).byId = async () => before;
+    (repo as { transitionStatus: unknown }).transitionStatus = async () => after;
+
+    const answer = (await controller.transition(MINE, { to: 'in_review' })) as {
+      data: { status: PolicyStatus; allowed: readonly PolicyStatus[] };
+    };
+
+    expect(answer.data.status).toBe('in_review');
+    expect(answer.data.allowed).toEqual(allowedTargets('in_review'));
+    // Named explicitly so the failure message says WHICH state leaked through.
+    expect(answer.data.allowed).not.toEqual(allowedTargets('draft'));
   });
 });

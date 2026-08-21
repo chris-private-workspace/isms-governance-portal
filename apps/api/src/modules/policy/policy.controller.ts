@@ -32,11 +32,13 @@
  *   - GET /policies/:id — the 404-not-403 case
  *   - POST /policies — catalog-validated write
  *   - PATCH /policies/:id/status — the lifecycle transition; guard here, set in the repository
+ *   - withAllowed() — attaches the legal next states, derived so no client holds a second table
  *
  * Created: 2026-08-10 (Phase W03)
  * Last Modified: 2026-08-21
  *
  * Modification History (newest-first):
+ *   - 2026-08-21: Attach `allowed` to every policy response (W26) — the UI needs the edges
  *   - 2026-08-21: Add the status transition endpoint (W25) — the repo's first update path
  *   - 2026-08-10: Answer 404 for a scope-refused write (W03) — was leaking 500
  *   - 2026-08-10: Initial creation (Phase W03)
@@ -63,7 +65,7 @@ import { EntityScopeResolver } from '../../entity-scope/entity-scope.resolver';
 import { ScopedPrismaFactory } from '../../entity-scope/scoped-prisma.provider';
 import type { PolicyStatus } from '../../generated/prisma';
 import { IllegalTransitionError, assertTransition } from '../../workflow/transition.guard';
-import { POLICY_STATUSES } from '../../workflow/transitions';
+import { POLICY_STATUSES, allowedTargets } from '../../workflow/transitions';
 import { DEV_PRINCIPAL_MARKER, devPrincipal } from './dev-principal';
 
 interface CreatePolicyBody {
@@ -99,10 +101,33 @@ export class PolicyController {
     return this.scoped.forScope(scope);
   }
 
+  /**
+   * Attach the legal next states, so a caller never has to hold a second copy
+   * of the transition table.
+   *
+   * ⚠️ This is DERIVED, not stored and not a second source of truth:
+   * allowedTargets() reads the one exhaustive Record that ADR-0002 chose
+   * precisely because it binds to the Prisma enum at compile time. A UI that
+   * duplicated the table would throw that binding away and drift silently —
+   * and worse than silently, because the drift would render buttons that are
+   * wrong rather than buttons that are missing.
+   *
+   * ⭐ It is computed server-side rather than shipped as a table for a reason
+   * that only pays off at M4: once roles exist, the server filters this list by
+   * the caller's verbs (15-design-alignment.md §5.1) and no client changes.
+   *
+   * `retired` yields `[]`, which is a claim and not an omission — see
+   * transitions.ts:63-67. An empty array renders no buttons; an absent field
+   * would render whatever the client decided absence meant.
+   */
+  private withAllowed<T extends { status: PolicyStatus }>(row: T) {
+    return { ...row, allowed: allowedTargets(row.status) };
+  }
+
   @Get()
   async list() {
-    const data = await this.policies.list(await this.client());
-    return { data, ...DEV_PRINCIPAL_MARKER };
+    const rows = await this.policies.list(await this.client());
+    return { data: rows.map((row) => this.withAllowed(row)), ...DEV_PRINCIPAL_MARKER };
   }
 
   @Get(':id')
@@ -117,7 +142,7 @@ export class PolicyController {
       throw new NotFoundException(`policy ${id} not found`);
     }
 
-    return { data: found, ...DEV_PRINCIPAL_MARKER };
+    return { data: this.withAllowed(found), ...DEV_PRINCIPAL_MARKER };
   }
 
   /**
@@ -181,7 +206,12 @@ export class PolicyController {
       throw new NotFoundException(`policy ${id} not found`);
     }
 
-    return { data, ...DEV_PRINCIPAL_MARKER };
+    // Carries `allowed` for the SAME reason the reads do, and one more: the
+    // caller replaces its row with this response, so a transition that returned
+    // only the new status would leave the client rendering the OLD state's
+    // buttons until something refetched. The list of what you can do next
+    // changes at exactly the moment the state does.
+    return { data: this.withAllowed(data), ...DEV_PRINCIPAL_MARKER };
   }
 
   @Post()
