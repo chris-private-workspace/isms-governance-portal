@@ -31,11 +31,13 @@
  *   - GET /policies — scoped list
  *   - GET /policies/:id — the 404-not-403 case
  *   - POST /policies — catalog-validated write
+ *   - PATCH /policies/:id/status — the lifecycle transition; guard here, set in the repository
  *
  * Created: 2026-08-10 (Phase W03)
- * Last Modified: 2026-08-10
+ * Last Modified: 2026-08-21
  *
  * Modification History (newest-first):
+ *   - 2026-08-21: Add the status transition endpoint (W25) — the repo's first update path
  *   - 2026-08-10: Answer 404 for a scope-refused write (W03) — was leaking 500
  *   - 2026-08-10: Initial creation (Phase W03)
  *
@@ -50,6 +52,7 @@ import {
   Get,
   NotFoundException,
   Param,
+  Patch,
   Post,
   UnprocessableEntityException,
 } from '@nestjs/common';
@@ -58,12 +61,28 @@ import { PolicyRepository } from '../../core-model/policy.repository';
 import { ScopeRefusedError } from '../../core-model/scope-refusal';
 import { EntityScopeResolver } from '../../entity-scope/entity-scope.resolver';
 import { ScopedPrismaFactory } from '../../entity-scope/scoped-prisma.provider';
+import type { PolicyStatus } from '../../generated/prisma';
+import { IllegalTransitionError, assertTransition } from '../../workflow/transition.guard';
+import { POLICY_STATUSES } from '../../workflow/transitions';
 import { DEV_PRINCIPAL_MARKER, devPrincipal } from './dev-principal';
 
 interface CreatePolicyBody {
   orgEntityId?: unknown;
   title?: unknown;
   extensions?: unknown;
+}
+
+interface TransitionBody {
+  to?: unknown;
+}
+
+/**
+ * ⚠️ Narrows an unknown body field against the SAME list the state machine is
+ * keyed on, so an unrecognised status is a 400 here rather than reaching Prisma
+ * as an invalid enum value and surfacing as a 500.
+ */
+function isPolicyStatus(value: unknown): value is PolicyStatus {
+  return typeof value === 'string' && (POLICY_STATUSES as readonly string[]).includes(value);
 }
 
 @Controller('policies')
@@ -99,6 +118,70 @@ export class PolicyController {
     }
 
     return { data: found, ...DEV_PRINCIPAL_MARKER };
+  }
+
+  /**
+   * The lifecycle transition — and the first endpoint in this repo that UPDATES.
+   *
+   * Three steps, and the order is the design:
+   *   1. read the policy through the scoped client (404 covers absent AND
+   *      out-of-scope, exactly as byId does, and for the same reason)
+   *   2. apply the workflow guard to (observed status -> requested status).
+   *      ⚠️ This is why the check runs HERE: core-model may not import workflow,
+   *      so the repository cannot know the lifecycle, and the modules layer is
+   *      the one place permitted to see both.
+   *   3. compare-and-set on the OBSERVED status, so a row that moved between
+   *      step 1 and step 3 answers 404 rather than being overwritten
+   *
+   * ⚠️ Step 2 before step 3 means an illegal transition is refused WITHOUT a
+   * write being attempted — so it leaves no audit row. That is correct: nothing
+   * happened. What it also means is that the audit trail records transitions,
+   * not attempts; refused attempts are not visible to an auditor today. Recorded
+   * here rather than fixed, because "log the refusal" needs an actor to be worth
+   * reading and there is none until M4.
+   */
+  @Patch(':id/status')
+  async transition(@Param('id') id: string, @Body() body: TransitionBody) {
+    if (!isPolicyStatus(body?.to)) {
+      throw new BadRequestException(`to must be one of ${POLICY_STATUSES.join(', ')}`);
+    }
+
+    const client = await this.client();
+    const current = await this.policies.byId(client, id);
+    if (!current) {
+      throw new NotFoundException(`policy ${id} not found`);
+    }
+
+    // Throws IllegalTransitionError, which carries the legal alternatives — the
+    // caller gets told what it should have asked for, not merely that it was wrong.
+    try {
+      assertTransition(current.status, body.to);
+    } catch (error) {
+      if (error instanceof IllegalTransitionError) {
+        throw new UnprocessableEntityException({
+          message: error.message,
+          from: error.from,
+          to: error.to,
+          allowed: error.allowed,
+        });
+      }
+      throw error;
+    }
+
+    const data = await this.policies.transitionStatus(client, {
+      id,
+      expected: current.status,
+      next: body.to,
+    });
+
+    // Null means the row is gone, out of scope, or no longer in the status just
+    // read. All three answer 404 — see transitionStatus() for why the third is
+    // not told apart.
+    if (!data) {
+      throw new NotFoundException(`policy ${id} not found`);
+    }
+
+    return { data, ...DEV_PRINCIPAL_MARKER };
   }
 
   @Post()

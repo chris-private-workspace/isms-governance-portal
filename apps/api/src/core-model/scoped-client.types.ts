@@ -37,9 +37,10 @@
  *   - ScopedAssessment{Template,Instance,Response}Client: the first omission that cost something
  *
  * Created: 2026-08-10 (Phase W03)
- * Last Modified: 2026-08-13
+ * Last Modified: 2026-08-21
  *
  * Modification History (newest-first):
+ *   - 2026-08-21: Add policy.update (W25) — the file's first, for a lifecycle transition
  *   - 2026-08-13: Add the assessment trio (W09) — a trigger keeps the parent unread
  *   - 2026-08-12: Add Issue + Action (W08) — the guard swings back to a composite key
  *   - 2026-08-12: Add ControlTest + Evidence (W07) — parent guard is a trigger here
@@ -86,6 +87,29 @@ export interface ScopedPolicyClient extends ScopedRefCodeClient, ScopedExtension
   readonly policy: {
     findMany(args?: Prisma.PolicyFindManyArgs): Promise<Policy[]>;
     create(args: Prisma.PolicyCreateArgs): Promise<Policy>;
+    /**
+     * ⭐ THE FIRST `update` DELEGATE IN THIS FILE, AND IT IS WORTH KNOWING WHY
+     * IT TOOK UNTIL W25 (measured: zero `client.*.update` in the product tree
+     * before this).
+     *
+     * Two earlier interfaces wanted one and were refused. ScopedRmReportClient
+     * needed to move a pointer and ScopedAttestationClient needed a correction;
+     * both went to the database instead — a trigger, and "a correction is a new
+     * attestation". The reason each time was that runScoped gives every
+     * operation its own transaction, so two writes could come apart.
+     *
+     * A lifecycle transition cannot take either escape. It is an UPDATE by
+     * definition, and putting it in a trigger would move the state machine into
+     * SQL — which is one of the answers OQ-7 exists to weigh, not something to
+     * settle by omission here.
+     *
+     * ⚠️ What keeps it to ONE transaction is the shape of the call, not this
+     * type: the caller passes the observed status in `where`, so the check and
+     * the set are one statement. A read-then-write would be two transactions
+     * with a window between them, and the audit row would attest to a
+     * transition the row had already left.
+     */
+    update(args: Prisma.PolicyUpdateArgs): Promise<Policy>;
   };
 }
 
