@@ -87,6 +87,17 @@ Day 2 兩次（`advance()` 忽略 `to` · 成功時只更新 `status`）
 ⭐ **N1（忽略 `to`）不可省**：其餘每一條測試都點**第一顆**按鈕
 ⇒ 忽略參數的實作會讓它們**全部照樣綠**。
 
+## 刪東西之前的安全檢查，本身也會用錯工具
+
+刪殭屍分支前我寫的檢查是 `git diff HEAD..<branch>`，非空就判定不可刪 —— 它回了非空。
+⚠️ **但它必然非空**：那 19 insertions 是**被我改掉的舊版本文字**（`CLAUDE.md` 裡舊的
+`PR-pending` 字串），不是獨有內容。**一個檔案被修改過，雙向 diff 本來就都非空。**
+
+⇒ 正確工具是 **patch-id 比對**：`git cherry HEAD <branch>`，實測 10 個 `-`、獨有 patch **0**。
+
+⭐ 這是 `feedback_evidence_must_support_claim` 的新形態，而且**特別難自己抓到**：
+它**偏向保守**（誤報「不安全」而非「安全」），而**沒有人會回頭挑戰一個說「不安全」的檢查**。
+
 ## Calibration
 
 `greenfield-feature` **0.55 → 0.45 re-point**（第 2 點 ratio **0.29 UNDER**，判準字面觸發）。

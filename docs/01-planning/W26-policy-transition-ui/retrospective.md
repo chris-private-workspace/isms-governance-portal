@@ -136,6 +136,7 @@ bottom-up 的 17 hr 裡最大的三塊是 `page.tsx` 3.5 · client 寫入半邊 
 | AD ID | 症狀 | 提議 | 狀態 |
 |-------|------|------|------|
 | `AD-Adr0003Fc3Triggered-1` | 一份**已採納** ADR 的可證偽條件，其「現況」欄的證據基礎被本片改變；而**沒有任何機制會問起** —— 是 closeout 那一格的手動複查抓到的 | ⭐ 提議：ADR 的可證偽條件表若含「現況（日期）」欄，該欄應**被 closeout 檢查表點名**（現行那格問的是「ADR 是否變得不準確」，而 FC 的現況欄不是「不準確」，是**過期**）| 候選 |
+| `AD-DiffEmptinessAsSafetyProof-1` | ⭐ **刪分支前的安全檢查用錯了工具，而它的輸出看起來像「不安全」** —— 我寫的是 `git diff HEAD..<branch>`，非空就判定不可刪。它**必然**非空：那 19 insertions 是**被我改掉的舊版本文字**（`CLAUDE.md` 的舊 `PR-pending` 字串），不是獨有內容。⇒ **一個檔案被修改過，雙向 diff 本來就都非空** | 「這個分支/檔案能不能刪」要用 **patch-id 比對**（`git cherry`）不是 diff 空不空。實測 `git cherry` 給 10 個 `-`、獨有 patch **0** ⇒ 安全。⚠️ 這是 `feedback_evidence_must_support_claim` 的新形態：**拿便宜的代理指標（diff 是否為空）回答一個需要 patch 級比對的問題**，而且它**偏向保守**所以不會被質疑 —— 「檢查說不安全」沒有人會回頭挑戰 | 候選 |
 | `AD-WeakIntervalPrediction-1` | plan §7 的第二預測「1.6–3.2 hr」**命中了，但區間寬 2 倍且近四片全部落在其中** ⇒ 它預測的是「和最近幾片差不多」 | 登記可證偽預測時，區間寬度必須 < 最近三片 actual 的全距，否則不算預測 | 候選 |
 | `AD-CalibrationNoTimeRecord-1`（**第 4 次**）| retro Q2 的 Actual 是**從 commit 時間戳推估的**，不是量到的 | ⛔ **修正我第一版的判斷** —— 我原本記成一條新 AD。它不是：**W22 已經發明並驗證了解法**（把提醒從 plan §7 的散文移到 **checklist 每個 Day 一個具名 `[ ]`**，四天四筆全中）。W26 復發的根因是**那個解法沒有進 frozen template**，只活在 W22 那一份 checklist 的實例裡 ⇒ 與 `AD-65` 同形：**已知的正確方法沒有被套用到第二個場合**。提議：`_templates/phase/checklist.md.tpl` 每個 Day 尾端加具名計時格（模板變更 ⇒ 需 2-3 phase 驗證後回流）| 驗證中(1/3) |
 
