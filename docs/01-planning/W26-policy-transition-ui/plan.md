@@ -11,7 +11,8 @@ status: closed   # draft | active | closed | closed_partial —— 機器可讀�
 ⇒ 本片同時要建**前端的寫入半邊**（動詞 + 能承載 422 結構化 body 的錯誤型別 + 第一個 mutation state pattern）。
 **Drive-through MANDATORY**（user-facing）。**不需要 design note**（非 spike —— 但需要一筆**已核可的設計偏離**，見 §3.1）。
 
-**Status**: **`closed`** 2026-08-21 —— 八個 US 全數交付，drive-through PASS，PR #100（`PR-pending`）。
+**Status**: **`closed`** 2026-08-21 —— 八個 US 全數交付，drive-through PASS。
+**MERGED (PR #100, `1743be8`)** ＋ closeout **PR #101**（#100 **不含** Day 4）。
 ⛔ 交付射程見 [retrospective.md](./retrospective.md) Q7：證明的是「**任何**打開此畫面的人都能推進狀態」，
 不是「有權限的人能」。（起草時：使用者 2026-08-21 核可；控件形狀與合法轉換來源同日拍板 —— 見 §3.1 / §3.2）
 

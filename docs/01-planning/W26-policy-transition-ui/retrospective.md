@@ -3,7 +3,8 @@
 **Phase**: W26 — 政策狀態推進的 UI 入口
 **Period**: 2026-08-21 ~ 2026-08-21
 **Plan**: [plan.md](./plan.md)
-**PR**: #100（PR-pending）
+**PR**: **MERGED (#100, `1743be8`)** ＋ closeout **#101** —— ⚠️ **兩個**：#100 交付功能與 drive-through
+並於 `2026-08-21T09:32:05Z` merge（`gh pr view` 驗證），**不含** Day 4；closeout 在 #101
 **Change record**: `docs/03-implementation/changes/CH-048-policy-transition-ui.md`
 
 ---
@@ -32,8 +33,12 @@
 - **Bottom-up est**: **17.0 hr**
 - **Committed (calibrated)**: **9.35 hr**（mult 0.55）
 - **Actual**: **~2.75 hr** —— ⚠️ **量法必須寫清楚**：
-  commit 區間 `7747cfe`(15:39) → `3b85990`(17:33) = **1.9 hr**，
-  加 Day 4 closeout（~0.6 hr）與 plan 起草（commit 之前，~0.3 hr）。
+  commit 區間 **15:39 → 17:33 = 1.9 hr**（首「plan, checklist, and a Day-0…」→
+  末「CI is green, and int runs 9.5x faster…」），加 Day 4 closeout（~0.6 hr）與
+  plan 起草（commit 之前，~0.3 hr）。
+  ⛔ **刻意用 subject + 時間而不是 SHA**：第一版寫了 SHA，PR #100 以 rebase merge 之後
+  兩個 SHA **雙雙不再解析**，`check_sha_anchors.py` 當場打紅。
+  ⇒ **量法不該錨在會被改寫的識別碼上** —— 那會讓它每次 rebase merge 失效一次。
   ⛔ **這是估計不是碼表**：本 repo 沒有逐任務計時，progress.md 的每日條目也沒有記時數。
   區間下界 1.9（純 commit 跨距），上界 ~3.0。
 - **Ratio**: 2.75 / 9.35 = **0.29**
@@ -164,6 +169,11 @@ bottom-up 的 17 hr 裡最大的三塊是 `page.tsx` 3.5 · client 寫入半邊 
 ## Closeout Self-Check
 
 - [x] `CLAUDE.md` 變更只有導航 / 原則 / 規則層級（**沒有**加 phase 歷史列）
+      ⭐ **而這一格是被機械擋下來才做對的**：翻 PR 標記時我在 Current Phase 那格加了一句
+      「⚠️ 兩個 PR：#100 不含 Day 4 closeout」的說明 —— `check_rules_hygiene.py` 當場報
+      **30,037 > 30,000 bytes**。那句話是**歷史紀錄**，正是 closeout policy 禁止進導航檔的東西。
+      ⇒ 拿掉後 29,931。⛔ **兩個 PR 的來龍去脈留在 retrospective / memory subfile / BACKLOG**，
+      導航檔只留狀態指標。**byte 預算不是為了省空間，是為了讓「只能改 2 行」這條規則有牙齒**
 - [x] `MEMORY.md` 新條目是 ~250-300 字元的品質指標
 - [x] Phase 細節完整保存在 memory subfile + 本檔
 - [x] Carryover 記在 `docs/01-planning/BACKLOG.md`
@@ -178,9 +188,17 @@ bottom-up 的 17 hr 裡最大的三塊是 `page.tsx` 3.5 · client 寫入半邊 
       **ADR-0003 FC3 的現況欄過期** ⇒ `AD-Adr0003Fc3Triggered-1`。
       **方向二**（本片新產物是否違反更高權威）：§4.1 的動詞命名對已確認參數 #9 是**弱主張**，
       已在文件與 code 註解兩處明寫射程 ⇒ 不違反，但也不可被引用為「照程序命名」。
-- [ ] ⭐ **`PR-pending` 標記已翻** —— **待 merge**。⛔ 先跑 `check_status_markers.py` 拿清單再翻，
-      並以 `gh pr view 100 --json state,mergedAt` 驗證（`AD-MarkerCountUnderReported-1`：
-      連兩個 phase 手數都少算一個）
+- [x] ⭐ **`PR-pending` 標記已翻** —— **PR #100 以 `gh pr view` 驗證為 MERGED**
+      （`1743be8`，`2026-08-21T09:32:05Z`）。本片相關 **8 個檔案 11 處**，逐處處理。
+      ⭐ **這次沒有漏算，方法變了**：改用 `Grep -o`，長行不再被折成
+      `[Omitted long matching line]` —— **那正是前兩次少算的成因**，
+      而不是「數的時候不夠仔細」（`AD-MarkerCountUnderReported-1`）。
+      ⛔ **並非全部都要翻**：`CH-048:87`（「PR #100 的 CI 6/6」）與 `checklist:312`
+      （「PR #100 已開」）是**歷史陳述且為真**，翻掉它們反而是竄改紀錄。
+      翻的是宣稱**當前狀態**的那些。
+      ⛔⭐ **而 detector 對這整件事沉默**：`check_status_markers.py` 是靜態的、**不查 GitHub**，
+      所以 `PR-pending` 在 PR 被 merge 那一刻起就是假的，而它照樣回 clean。
+      **只有 `gh pr view` 會說實話** —— 這正是那條規則寫「不採信宣稱」的理由
 - [x] `python scripts/lint/run_all.py` 全綠
 
 > **`RISK_REGISTER.md` 複查結果**：本片沒有讓任何一條活躍風險的敞口變大或變小。

@@ -4,7 +4,7 @@
 **Phase**: W26
 **Scope**: `ui`（`apps/web`）+ `modules`（`policy.controller.ts` 的 `allowed`）
 **Components**: —
-**PR**: #100
+**PR**: **MERGED (#100, `1743be8`)** ＋ closeout **#101** —— ⚠️ #100 交付功能與 drive-through，**不含**本記錄
 
 ---
 

@@ -89,8 +89,20 @@ Log 是**歷史紀錄** —— 只有在要調整某個乘數、或要理解某�
 #### Phase W26 — ratio **0.29 (UNDER)** ⛔ 分子是**推估**，不是量測 —— 而這本身是本條目最重要的內容
 
 - Bottom-up **17.0 hr** → committed **9.35 hr** (mult 0.55) → actual **~2.75 hr**
-- **量法（與 W22 不同，必須寫明）**：commit 跨距 `7747cfe`(15:39) → `3b85990`(17:33) = **1.9 hr**，
+- **量法（與 W22 不同，必須寫明）**：commit 跨距 **15:39 → 17:33 = 1.9 hr**
+  （首 `docs(W26): plan, checklist, and a Day-0 that moved three things` →
+  末 `docs(W26): CI is green, and int runs 9.5x faster there than it does here`），
   加 Day 4 closeout（~0.6）與 plan 起草（~0.3）。⇒ **這是反推得到的下限，不是碼表。**
+
+##### ⛔ 這段第一版用 SHA 錨定跨距，而 `check_sha_anchors.py` 當場把它打紅
+
+原文寫的是 `` `7747cfe`(15:39) → `3b85990`(17:33) ``。PR #100 以 **rebase/squash** merge，
+兩個 SHA **雙雙不再解析** —— detector 逐條指名並說明「old object is gone, `git show` cannot help」。
+
+⭐ **正確的修法不是 repoint，是不要用 SHA 表達這件事。**
+Calibration 的量法若錨在**會被改寫的識別碼**上，它每一次 rebase merge 都會失效一次；
+而換成 **commit subject + 時間**之後，同一句話在 rebase 前後都成立。
+⇒ 這是「引用不複製」的同一條原則，套在 git 物件上。
 
 ##### ⛔ 這是 `AD-CalibrationNoTimeRecord-1` 的第 4 次，而且比前三次更值得記
 

@@ -415,9 +415,26 @@
         ⛔ **刻意不自行宣告 FC3 觸發**：ADR 說觸發時要把稽核寫入移進 per-table trigger，
         那是重大架構變更 ⇒ 表面化為 `AD-Adr0003Fc3Triggered-1`，待使用者裁定。
         ⭐ **抓到它的正是這一格的手動複查，沒有任何機制會問起**
-- [ ] **Commit** → ⏳ PR push + open → CI → merge: **PENDING USER CONFIRMATION**
-      （push 是 outward-facing）→ merge 經 `gh` 驗證後翻狀態標籤
-- [ ] ⭐ **`PR-pending` 標記已翻** —— merge 後翻標記，並以
-      `gh pr view <N> --json state,mergedAt` **驗證**，不採信「已 merge」的宣稱
+- [x] **Commit** → PR push + open → CI → merge
+      → ⚠️ **變成兩個 PR，而且不是計畫的**：**PR #100** 於 `2026-08-21T09:32:05Z` 被 merge
+      （merge 的是 Day 3 的 `8a405b0`，squash 成 main 的 `1743be8`），
+      遠端分支隨之自動刪除 ⇒ **Day 4 的 closeout 不在 #100 裡**。
+      → 使用者裁定：從 `origin/main` 開乾淨分支 `feature/W26-closeout` +
+      cherry-pick 那 2 個未 merge 的 commit（exit 0，無衝突）⇒ **PR #101**。
+      diff 對 main 恰為 **670 行**，等於那兩個 commit 的總和 ⇒ 無重複內容
+  - DoD: ⭐ **發現它的不是任何 gate** —— 我以為自己在「push 到 PR #100」，
+        而 `git push` 回的是 **`* [new branch]`**。一個已 push 過的分支不該這樣回答。
+        **是那個異常字串觸發查證的。** 若當時把它讀成雜訊，closeout 會靜靜地留在本機
+- [x] ⭐ **`PR-pending` 標記已翻** —— PR #100 以 `gh pr view --json state,mergedAt` **驗證**為 MERGED
   - DoD: ⛔ **先跑 `python scripts/lint/check_status_markers.py` 拿清單，再動手翻** ——
         不要先翻再驗。`AD-MarkerCountUnderReported-1`：連兩個 phase 手數都少算一個，兩次都是 E5 抓到的
+        → ✅ 先跑（clean）再以 `Grep -o` 取全清單：本片相關 **8 檔 11 處**
+  - DoD: ⭐ **這次沒漏算，而原因是方法變了不是更仔細** —— 用 `-o` 之後長行不再被折成
+        `[Omitted long matching line]`，**那正是前兩次少算的成因**
+  - DoD: ⛔ **並非全部都要翻**：`CH-048:87`（「PR #100 的 CI 6/6」）與本檔 `:312`
+        （「PR #100 已開」）是**歷史陳述且為真** —— 翻掉它們反而是竄改紀錄。只翻宣稱**當前狀態**的
+  - DoD: ⛔⭐ **detector 對這整件事沉默** —— `check_status_markers.py` 是靜態的、**不查 GitHub**，
+        所以 `PR-pending` 在 merge 那一刻起就是假的，而它照樣回 clean。
+        **只有 `gh pr view` 會說實話**，這正是規則寫「不採信宣稱」的理由
+- [ ] ⏳ **PR #101 的 CI + merge** —— merge 後需再翻一次（本檔與 `retrospective` / `plan` /
+      `CLAUDE.md` / `MEMORY.md` / memory subfile / `BACKLOG` 的 `#101` 皆為 pending 狀態）
