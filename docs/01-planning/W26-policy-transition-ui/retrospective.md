@@ -3,8 +3,9 @@
 **Phase**: W26 — 政策狀態推進的 UI 入口
 **Period**: 2026-08-21 ~ 2026-08-21
 **Plan**: [plan.md](./plan.md)
-**PR**: **MERGED (#100, `1743be8`)** ＋ closeout **#101** —— ⚠️ **兩個**：#100 交付功能與 drive-through
-並於 `2026-08-21T09:32:05Z` merge（`gh pr view` 驗證），**不含** Day 4；closeout 在 #101
+**PR**: **MERGED (#100, `1743be8`)** ＋ closeout **MERGED (#101, `a5c6117`)** —— ⚠️ **兩個**：
+#100 交付功能與 drive-through 並於 `2026-08-21T09:32:05Z` merge，**不含** Day 4；
+closeout 在 #101，`2026-08-21T15:43:22Z` merge。兩者皆以 `gh pr view` 驗證，非採信宣稱
 **Change record**: `docs/03-implementation/changes/CH-048-policy-transition-ui.md`
 
 ---

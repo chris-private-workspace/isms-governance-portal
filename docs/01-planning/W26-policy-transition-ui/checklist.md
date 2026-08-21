@@ -436,5 +436,14 @@
   - DoD: ⛔⭐ **detector 對這整件事沉默** —— `check_status_markers.py` 是靜態的、**不查 GitHub**，
         所以 `PR-pending` 在 merge 那一刻起就是假的，而它照樣回 clean。
         **只有 `gh pr view` 會說實話**，這正是規則寫「不採信宣稱」的理由
-- [ ] ⏳ **PR #101 的 CI + merge** —— merge 後需再翻一次（本檔與 `retrospective` / `plan` /
-      `CLAUDE.md` / `MEMORY.md` / memory subfile / `BACKLOG` 的 `#101` 皆為 pending 狀態）
+- [x] ⭐ **PR #101 的 CI + merge** → CI **6 / 6 pass**（gates 2m1s）；
+      **MERGED `2026-08-21T15:43:22Z`**，merge commit **`a5c6117`**（`gh pr view` 驗證，非採信宣稱）。
+      三個 closeout 產出物逐一以 `git cat-file -e origin/main:<path>` 確認落地
+  - DoD: ⭐ **翻牌需要自己的 PR，這是這個工作流的固有成本** —— main 有 branch protection，
+        所以「翻掉最後一個 PR 的標記」本身要走一個 PR（W25 是 #98 主體 + #99 翻牌，同一形狀）
+  - DoD: ⛔⭐ **完整清單差點又是不完整的** —— 第一次 `Grep` 帶了 `head_limit 40`，
+        輸出以 `Showing results with pagination` 截斷，**漏掉 5 處**
+        （memory subfile:4 · plan.md:15 · 本檔 :423/:439/:440）。
+        改 `head_limit 0` 後真值是 **7 檔 12 處**。
+        ⚠️ 這是「**撞上限當搜完**」（`verification-discipline.md` §證據層明列的形態），
+        也是本片同一形狀的**第 4 次** —— 前三次是窄 pattern 過濾、diff 空不空、自製 settle 迴圈
