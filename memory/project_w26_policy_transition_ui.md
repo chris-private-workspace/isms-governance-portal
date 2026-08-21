@@ -87,16 +87,20 @@ Day 2 兩次（`advance()` 忽略 `to` · 成功時只更新 `status`）
 ⭐ **N1（忽略 `to`）不可省**：其餘每一條測試都點**第一顆**按鈕
 ⇒ 忽略參數的實作會讓它們**全部照樣綠**。
 
-## 刪東西之前的安全檢查，本身也會用錯工具
+## ⛔⭐ 同一天三次同形：自製代理判斷去回答一個有專用工具的問題
 
-刪殭屍分支前我寫的檢查是 `git diff HEAD..<branch>`，非空就判定不可刪 —— 它回了非空。
-⚠️ **但它必然非空**：那 19 insertions 是**被我改掉的舊版本文字**（`CLAUDE.md` 裡舊的
-`PR-pending` 字串），不是獨有內容。**一個檔案被修改過，雙向 diff 本來就都非空。**
+| # | 我做了什麼 | 為什麼錯 | 專用工具 |
+|---|---|---|---|
+| 1 | 用 `Select-String -Pattern "●\|Tests:"` 接 int 輸出 | 把 `Expected/Received` 全丟了 ⇒ 只知道**哪三條**紅、不知道**為什麼** | 不過濾（`Tee-Object`）—— **成功的輸出可以過濾，失敗的不可以** |
+| 2 | 用 `git diff HEAD..<branch>` 非空判定「不可刪」 | **它必然非空** —— 那 19 insertions 是被我改掉的**舊版本文字**（`CLAUDE.md` 裡舊的 `PR-pending`）。一個檔案被修改過，雙向 diff 本來就都非空 | **patch-id 比對** `git cherry`（實測 10 個 `-`、獨有 patch **0** ⇒ 才是安全的證據） |
+| 3 | 自寫 CI 等待迴圈，條件是「輸出裡沒有 `pending`」 | 剛 push 後 check 未註冊時 `gh` 回 **`no checks reported`** —— 沒有 `pending` ⇒ 迴圈宣告 settle 並 **exit 0**。**把「零個 check」讀成「全部通過」** | `gh pr checks --watch`（它自己知道什麼叫 settle） |
 
-⇒ 正確工具是 **patch-id 比對**：`git cherry HEAD <branch>`，實測 10 個 `-`、獨有 patch **0**。
+⭐ **第 2 個特別難自己抓到**：它誤報的方向是**「不安全」**，
+而**沒有人會回頭挑戰一個說「不安全」的檢查**。
 
-⭐ 這是 `feedback_evidence_must_support_claim` 的新形態，而且**特別難自己抓到**：
-它**偏向保守**（誤報「不安全」而非「安全」），而**沒有人會回頭挑戰一個說「不安全」的檢查**。
+⚠️ **第 3 個的規則我讀過** —— Monitor 的工具說明逐字寫著 *silence is not success* 與
+「若這個 process 現在崩潰，我的 filter 會吐出東西嗎」。**讀過仍然犯。**
+⇒ 這三條的價值不在「知道這個道理」，在於**動手前先問一句：這件事有沒有專用工具**。
 
 ## Calibration
 
