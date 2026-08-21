@@ -12,7 +12,7 @@ status: closed   # draft | active | closed | closed_partial —— 機器可讀�
 **Drive-through MANDATORY**（user-facing）。**不需要 design note**（非 spike —— 但需要一筆**已核可的設計偏離**，見 §3.1）。
 
 **Status**: **`closed`** 2026-08-21 —— 八個 US 全數交付，drive-through PASS。
-**MERGED (PR #100, `1743be8`)** ＋ closeout **PR #101**（#100 **不含** Day 4）。
+**MERGED (PR #100, `1743be8`)** ＋ closeout **MERGED (PR #101, `a5c6117`)**（#100 **不含** Day 4）。
 ⛔ 交付射程見 [retrospective.md](./retrospective.md) Q7：證明的是「**任何**打開此畫面的人都能推進狀態」，
 不是「有權限的人能」。（起草時：使用者 2026-08-21 核可；控件形狀與合法轉換來源同日拍板 —— 見 §3.1 / §3.2）
 

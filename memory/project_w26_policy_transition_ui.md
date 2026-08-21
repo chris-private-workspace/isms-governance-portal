@@ -1,7 +1,7 @@
 # W26 — 政策狀態推進的 UI 入口
 
 **Closed**: 2026-08-21 · **Change record**: `CH-048`
-**PR**: **MERGED (#100, `1743be8`)** ＋ closeout **#101**
+**PR**: **MERGED (#100, `1743be8`)** ＋ closeout **MERGED (#101, `a5c6117`)**
 ⚠️ **兩個 PR，而且不是計畫的** —— #100 在我報告 CI 綠之後被 merge（`09:32:05Z`，merge 的是 Day 3
 的 `8a405b0`，squash 成 `1743be8`），遠端分支隨之自動刪除。⇒ Day 4 的 closeout **不在 #100 裡**。
 ⭐ 發現它的方式值得記：我以為自己在「push 到 PR #100」，而 `git push` 回的是 **`* [new branch]`** ——
