@@ -42,10 +42,10 @@ Wave 2（合規與義務）、事件模組、供應商模組、AI agent、稽核
 | `pages-domain` | 3 |
 | `pages-other-http` | 2 |
 | `pages-static` | 24 |
-| `scopes-with-code` | 6 / 8 |
+| `scopes-with-code` | 7 / 8 |
 | `rls-enable-force` | 27 / 27 |
-| `loc-api-prod` | 7765 |
-| `loc-api-test` | 14663 |
+| `loc-api-prod` | 8165 |
+| `loc-api-test` | 15206 |
 
 <!-- /progress-metrics:declared -->
 
@@ -116,7 +116,7 @@ generated 的行數仍**印在輸出裡**（它是排除 9.6 萬行的理由）�
 | M2 | 🟢 完成 | `rls_gap() == 0` |
 | M3 | 🟡 部分（覆蓋 16 / 34）| `audited_models() == 16` |
 | M4 | 🔴 未開始 | `scope_ts_count('identity') == 0` |
-| M5 | 🔴 未開始 | `scope_ts_count('workflow') == 0` |
+| M5 | 🟡 部分（OQ-7 已拍板 + 轉換端點已通；**UI 無入口**、SLA / 簽核 / 升級未做、issue→action 未做）| `scope_ts_count('workflow') == 2` |
 | M6 | 🟡 部分（列表已接，詳情未接）| `page_class('(app)/policies/[id]') == 'static'` |
 | M6b | 🟢 完成 | `manual` |
 | M6c | 🟢 完成 | `manual` |
@@ -138,9 +138,10 @@ generated 的行數仍**印在輸出裡**（它是排除 9.6 萬行的理由）�
 
 ---
 
-## 3. 判讀（2026-08-20）
+## 3. 判讀（2026-08-20；**M5 於 2026-08-21 隨 W25 Day 1 重判**）
 
-**一句話**：**資料層與隔離層做完了（M1 / M2 / M3 骨幹），身分層與流程層一行未寫（M4 / M5），
+**一句話**：**資料層與隔離層做完了（M1 / M2 / M3 骨幹），身分層仍是一行未寫（M4），
+流程層今天落下第一塊（M5 —— W25 spike 的轉換表 + 守衛，端點未建、OQ-7 未拍板），
 旗艦儀表板尚未開始（M8）。**
 
 ⚠️ 若一定要一個粗略比例：里程碑計數 **4 完成 / 4 部分 / 4 未開始**
@@ -150,6 +151,14 @@ generated 的行數仍**印在輸出裡**（它是排除 9.6 萬行的理由）�
    等於把它跟 M6c（一個實體擴充）當成同一份量。
 2. **M4 / M5 不是旁邊還缺兩塊，它們在下面。** `07:36` 明寫 M5「drives the policy approval flow」
    ⇒ M6 的「部分」有一半卡在 M5。已確認參數 #13 的**六角色 × 十一模組**權限模型伺服器端零實作。
+   ⚠️ **M5 的 🟡 不要讀成「快好了」** —— 落地的是**一條轉換路徑**（表 + predicate + 端點），
+   而 `07:36` 的「drives the policy approval flow」還需要**簽核、SLA、升級**，
+   以及 issue→action 那條流程。W25 只做 policy 一條。
+   ⛔ **而且使用者今天用不到它**：`/policies` 上沒有任何控件會呼叫轉換端點
+   （`AD-PolicyTransitionNoUiEntry-1`）。**能力在、無入口** ——
+   任何引用 M5 進度的地方都要帶著這句，不可寫成「使用者可以推進政策狀態」。
+   ⛔ 且 W25 Day 1 量到 M4 直接卡住 M5 的驗收：`audit.recorder.ts:146` 寫死 `actorId: null`，
+   ⇒ **「誰核准了這份政策」今天記不下來**，那正是 approval flow 的核心欄位。
    ⚠️ `entity-scope.resolver.ts` 確實是角色感知的，但那是「看得到哪些實體」，不是「能做哪些動作」。
 3. **UI 是殼** —— 29 頁、3 頁接上領域資料。
 

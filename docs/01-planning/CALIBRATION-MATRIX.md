@@ -55,7 +55,7 @@ Bottom-up ~X hr → class-calibrated ~Y hr (mult Z) → agent-adjusted ~Y' hr (a
 | `mockup-port` | 0.55 | n/a (1 pt) | KEEP (W19 ratio **0.40-0.47 UNDER**, 第 1 點, 區間非單值 —— 窗口內含關機中斷且比例不可量; ⭐ 疑因 **3 agent 平行**而非 agent_factor 0.45 本身; 單點不 re-point; 若第 2 點同為多 agent 且 <0.7 → 改動 `agent_factor` 而非 class mult; → `AD-AgentParallelismFactor-1`) |
 | `greenfield-feature` | 0.55 | n/a (1 pt) | KEEP (W22 ratio **0.46 UNDER**, 第 1 點, ⭐ **本專案第一個四段全部當日量到的分子** —— 提醒移到 checklist 每個 Day 一個 `[ ]`; ⚠️ `actual/bottom-up` **0.26** 遠低於 0.4 ⇒ 該修的是估算不是乘數; 單點不 re-point; 若第 2 點同 <0.7 → 0.45 且同時重估 bottom-up 方法; → calibration-log) |
 | `docs / audit / template` | 0.40 | n/a (1 pt) | KEEP (W23 ratio **0.62 UNDER**, 第 1 點; ⛔ 分子含**計畫外工作** —— 扣掉後 ~0.51, 故本點偏高不是估得準; ⭐ `actual/bottom-up` **0.25** 與 W22 的 0.26 連成訊號 ⇒ **該修 bottom-up 方法不是乘數**（表頭 0.4 下限已明寫）; 單點不 re-point; → `AD-BottomUpEstimateInflated-1` · calibration-log) |
-| `spike` | 0.65 | n/a (6 pt, 跨 0.30~1.03) | KEEP (W12 ratio **1.025 IN —— 本欄第一個 IN 點**; ⭐ `actual/bottom-up` **0.667** 首次高於 0.4 下限，但 bottom-up 是 Day-0 後**重估**的故非事前證據; 無等待間隙; 單點不調乘數; → calibration-log) |
+| `spike` | 0.65 | n/a (7 pt, 跨 0.20~1.03) | KEEP (W25 ratio **0.199 UNDER**, 第 7 點, ⛔ **plan §7 登記的預測 0.22-0.40 往下沒中，而該預測正是用前三點外推的**; ⭐ `actual/bottom-up` **0.129** 接上 W22 0.26 · W23 0.25 · W24 0.141 ⇒ **四點單調下降，跨 class** ⇒ `AD-BottomUpEstimateInflated-1` 升為**已驗證**; ⛔ 不 re-point —— 追的會是被污染的分子; → calibration-log) |
 | `integration-with-external` | 0.70 | n/a (1 pt, **CONTAMINATED**) | KEEP (W21 ratio **0.58 UNDER** 第 1 點但**不可用**: ⛔ phase 為 `closed_partial`，分母含未做的 CI 3 hr ⇒ 已交付範圍 ratio **0.79 IN**; 分子四段由 author date 反推 = `AD-CalibrationNoTimeRecord-1` 第 3 次; 起手值 0.70 未經驗證; → `AD-PartialPhaseRatioArtifact-1` · calibration-log) |
 
 ### 常見 scope class 起始建議值

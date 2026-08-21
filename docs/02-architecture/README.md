@@ -78,7 +78,11 @@
 
 | # | 文件 | Phase | 主題 | Verified ratio |
 |---|---|---|---|---|
-| | | | | |
+| 1 | [`W25-workflow-state-machine.md`](./design-notes/W25-workflow-state-machine.md) | W25 | Wave 1 生命週期的形狀：宣告式轉換表 + 純 predicate 守衛 + **compare-and-set** 並行控制 | **16/16 = 100%**（分母 = §1-§3 的技術 claim；§4 的 8 項是**宣告為未驗**的，依 8-point gate 第 6 點不計入）|
+
+> ⛔ **這張表在 2026-08-21 之前是空的，而 `design-notes/` 裡已經有 7 份**
+> （W01 / W02 / W03 / W04 / W06 / W07 / W12）。⇒ **索引宣稱在索引，實際什麼都沒索引。**
+> W25 只補了自己那一行（closeout 義務），存量 7 份的回填記為 `AD-DesignNoteIndexEmpty-1`。
 
 **寫作規則**：[`../rules-on-demand/spike-design-note-gate.md`](../rules-on-demand/spike-design-note-gate.md)（8-Point Quality Gate）
 **模板**：[`_TEMPLATE-design-note.md`](./_TEMPLATE-design-note.md)

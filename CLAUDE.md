@@ -76,12 +76,12 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 | Attribute | Value |
 |-----------|-------|
 | **Stage** | Wave 1 backbone — 建立共用骨幹，並用 Policy + Risk/Control 兩個最小模組端到端證明它 |
-| **Current Phase** | **W24**（PR #91 已 merge）`closed` —— 平台停止宣稱它沒有的認證（三條 claim **只改兩條**，第三條逐條驗證後實測為真），`/policies` 列表接上 API，`AD-FixtureProseBecomesForgedEvidence-1` 拿到**機械承載**（守衛錨定封閉集合，不枚舉文案）。⛔ drive-through 抓到一條**所有 gate 都看不見**的假陳述 —— mock 丟掉插值變數使整行輸出不可觀測，見 `AD-MockDropsInterpolation-1` |
+| **Current Phase** | **W25**（**PR-pending**）`closed` —— **OQ-7 拍板**：Wave 1 生命週期是宣告式轉換表不是 workflow engine（**ADR-0002 已採納**）。兩個候選都真的建出來跑同一條流程；分出高下的**不是行數**（`wc -l` 的差距量到的是註解密度）而是 **schema↔實作的型別綁定**。順帶建出**本 repo 第一條 domain update 路徑**。⛔ 轉換能力已 drive-through 驗證但 **`/policies` 無 UI 入口** —— 見 `AD-PolicyTransitionNoUiEntry-1`，不可讀成「使用者可以推進政策狀態」 |
 | **History** | See [`MEMORY.md`](./MEMORY.md) + 各 phase 的 `retrospective.md` |  <!-- doc-links: ignore — MEMORY.md 由 bootstrap 複製到專案根 -->
 | **Pending / Next** | See [`docs/01-planning/BACKLOG.md`](./docs/01-planning/BACKLOG.md)（**有什麼**）· [`ROADMAP.md`](./docs/01-planning/ROADMAP.md)（**先做哪個**）|
 | **跨來源狀態** | See [`docs/01-planning/STATUS_AUDIT.md`](./docs/01-planning/STATUS_AUDIT.md) —— 問「現在全項目怎樣」時跑 `/status-audit`，**不要只讀 BACKLOG** |
 | **Open questions** | See [`docs/decision-form.md`](./docs/decision-form.md) |
-| **Tech Stack** | **NestJS 11 + Prisma 7 · PostgreSQL 18 · Next.js 16 · Entra ID · Azure Container Apps（單一區域 × 3 環境）** —— ADR-0001 / **0003** / 0004 / 0005 / 0007 / 0010–0014 已採納（**0010 取代 0006**）。ADR-0001 決定的是**框架不是版本**；W01 實裝當前主版本（ADR 內文未改）。**Tailwind 尚未安裝** —— 隨設計交付物 port 一併進來。ADR-0002 待 spike，0008/0009 待 Wave 3，見 [`docs/14-adr/README.md`](./docs/14-adr/README.md) |
+| **Tech Stack** | **NestJS 11 + Prisma 7 · PostgreSQL 18 · Next.js 16 · Entra ID · Azure Container Apps（單一區域 × 3 環境）** —— ADR-0001 / **0002** / **0003** / 0004 / 0005 / 0010–0015 已採納（**0010 取代 0006**、**0015 取代 0007**）。ADR-0001 決定的是**框架不是版本**；W01 實裝當前主版本（ADR 內文未改）。**Tailwind 尚未安裝** —— 隨設計交付物 port 一併進來。ADR-0002 待 spike，0008/0009 待 Wave 3，見 [`docs/14-adr/README.md`](./docs/14-adr/README.md) |
 | **Main Branch** | `main` |
 | **Branch Protection** | PR required · **review_count=0**（單人開發 —— 沒有 reviewer）· no force-push · no deletions · linear history · enforce_admins。 補償機制：PR 開著睡一晚，隔天用 reviewer 的心態重讀一次。 |
 
@@ -410,7 +410,7 @@ python scripts/lint/run_all.py
 | [`docs/01-planning/`](./docs/01-planning/README.md) | PROCESS · BACKLOG · ROADMAP · registers · calibration · `_templates/` · phase folder `W{NN}-*/` |
 | [`docs/03-implementation/`](./docs/03-implementation/README.md) | `changes/CH-NNN-*` · `bugs/BUG-NNN-*` |
 | [`docs/06-reference/`](./docs/06-reference/README.md) | ⭐ 設計交付物 `design_handoff_isms_grc_platform/` + mockup→production playbook |
-| [`docs/14-adr/`](./docs/14-adr/README.md) | ⭐ 架構決定記錄 —— **0001 / 0003 / 0004 / 0005 / 0007 / 0010–0014 已採納（0006 已被 0010 取代）；0002 待 spike，0008 / 0009 待 Wave 3** |
+| [`docs/14-adr/`](./docs/14-adr/README.md) | ⭐ 架構決定記錄 —— **0001 / 0002 / 0003 / 0004 / 0005 / 0010–0015 已採納（0006 已被 0010 取代、0007 已被 0015 取代）；0008 / 0009 待 Wave 3** |
 | [`docs/INFORMATION-FLOW.md`](./docs/INFORMATION-FLOW.md) | ⭐ 開發資訊流地圖 |
 | `MEMORY.md` + `memory/` | 跨 session 記憶（index + subfile）|
 
@@ -510,6 +510,6 @@ python scripts/lint/run_all.py
 
 ---
 
-**Last Updated**: 2026-08-20（W24 closeout —— `closed`，calibration 第一次 re-point）
+**Last Updated**: 2026-08-21（W25 closeout —— `closed`，ADR-0002 已採納；**`AD-50` 修正**：0007 → 0015）
 **Project Start**: 2026-08-07
 **Template Version**: 2.6.1 (claude-code-dev-template)
