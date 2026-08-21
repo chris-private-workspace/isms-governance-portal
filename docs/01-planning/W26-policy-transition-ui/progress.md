@@ -74,3 +74,77 @@ retired        → []                           (0)
 
 ⛔ 依 `day0-plan-verify.md` §記錄 drift findings 的鐵律：
 **不默默改 plan §Technical Spec** —— D3 / D4 / D5 加進 §Risks，保留「原本計畫什麼 vs 現實逼你改成什麼」的軌跡。
+
+---
+
+## 2026-08-21 — Day 1：設計權威 + API 的 `allowed`
+
+### 1.0 D4 已裁決：**最小修**
+
+使用者選定：只給 `/policies` 的 `New policy` 一個自己的 key，**不動其餘 23 個 call site**。
+⇒ plan §3.x 的「❌ 拆 `shell.inert` key」**部分推翻**，理由是**本片製造了那個矛盾** ——
+你只修自己弄壞的那一處。存量 23 處仍歸 `AD-SharedInertProseInaccurate-1`。記入 plan §8 R12。
+
+### 1.1 設計偏離已寫入 `15-design-alignment.md`
+
+⭐ **plan 猜錯了放置位置。** plan §3.1 說寫進「§7 加一列」，但讀過該文件後：
+**§4「Where the design simplifies domain logic — the procedures win」才是 CLAUDE.md 指向的那一節**
+（「保真度的例外由 `15-design-alignment.md` 單一來源管理」）。§7 是 *Actions arising*，是待辦清單。
+
+⇒ 實際做法是**兩處**，各司其職：
+
+| 位置 | 放什麼 |
+|---|---|
+| **§4.1**（新增子節）| 完整裁決：量測結果、ruling、命名射程、兩條既有規則的裁定 |
+| **§7 第 11 列** | 一行 `✅ Decided` 指標，照該表 row 1/3/4/10 已有的形狀 |
+
+⛔ **既有行零變更** —— 只加。文件自身慣例是「章節前言 + 編號子節」（§3 / §5 皆然），§4.1 照此。
+
+#### ⭐ 一個 Day 0 沒抓到、寫的時候才發現的射程收窄
+
+D3 說「動詞要照來源文件」。但實際讀 `02a:358-372` 後：
+
+**那張 mermaid 圖只標了一條邊** —— `InReview --> Draft: changes requested`（`02a:365`）。
+其餘**六條邊全部無標籤**。
+
+⇒ D3 的射程比它自己說的**窄**：只有一個動詞是「轉寫」，其餘五個**來源文件根本沒給名字**，
+它們是**目標狀態名的轉寫**（`Approved` → "Approve"）而不是憑空發明。
+
+這個區別已寫進 §4.1，並附一句：**若公司程序日後為這些轉換命名，以它的用語取代**。
+不寫這一句的話，下一個讀的人會以為六個動詞都有來源背書。
+
+### 1.2 API 附加 `allowed`
+
+- `withAllowed()` 私有 helper，值取自**既有的** `allowedTargets()`（Day-0 D2 —— 不重寫導出邏輯）
+- 套用於 **`list()` · `byId()` · `transition()`** 三處
+
+⭐ **`transition()` 那一處是 plan §3.2 沒寫、但 AC-5 蘊含的**：
+plan 只說 `list()` 與 `byId()`。可是 AC-5 要求「以回應的 `data` 就地取代該列」——
+若轉換回應不帶新的 `allowed`，畫面會在狀態已經正確的情況下**繼續提供舊狀態的動作**，
+而且看起來完全正常。已補，並寫成一條測試。
+
+#### 中性化 —— **預測寫在執行之前，兩次都精確命中**
+
+| | 動作 | 預測 | 實測 |
+|---|---|---|---|
+| **N1** | `transition()` 改回傳 `withAllowed(current)`（**舊**狀態）| 恰好 **1 紅**，且是 `⭐ a transition answers with the NEW state edges` | ✅ **1 failed / 16 passed**，`●` 逐字為該條 |
+| **N2** | `withAllowed` 直接 `return row` | **4 紅**（四條新測試全滅）| ✅ **4 failed / 13 passed**，四條逐字命中 |
+
+⭐ N1 的價值：它證明那條測試**真的在測「新舊之分」**而不只是「有沒有 `allowed` 欄位」。
+⛔ 我先只看到「1 紅」就想收工 —— 但**「1 紅」不等於「紅的是那一條」**，所以回頭抓了 `●` 的逐字名稱。
+
+#### 一個我自己植入又拆掉的恆真陷阱
+
+第一版的 `attaches the legal next states to every listed row` 寫成：
+
+```ts
+expect(listed.data).toHaveLength(POLICY_STATUSES.length);
+for (const row of listed.data) { expect(row.allowed).toEqual(allowedTargets(row.status)); }
+```
+
+**若 `POLICY_STATUSES` 為空**，迴圈跑零次、`toHaveLength(0)` 也成立 ⇒ **整條測試恆真**。
+已補 `expect(POLICY_STATUSES.length).toBeGreaterThan(0)` —— 與 `i18n.test.ts:149` 同一招。
+
+### 1.x Day 1 partial gate
+
+format **0** · lint **0** · type **0** · api unit **511 / 41**（baseline 507 → **+4**）

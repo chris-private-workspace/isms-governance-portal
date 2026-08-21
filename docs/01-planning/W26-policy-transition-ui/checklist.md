@@ -77,27 +77,46 @@
 
 ### 1.1 已核可的設計偏離
 
-- [ ] **`docs/02-architecture/15-design-alignment.md` §7 加一列**
-  - DoD: 內容含五項 —— 偏離什麼 · 為何交付物答不出（引用兩份 fragment 的 `file:line`）· 選了什麼形狀 · 誰核可 · 何時
+- [x] **`docs/02-architecture/15-design-alignment.md` §7 加一列**
+      → ⭐ **實際做在兩處，而且主體不在 §7**：plan 猜錯了位置。
+      **§4.1**（新增子節，完整裁決）+ **§7 第 11 列**（一行 `✅ Decided` 指標）。
+      §4「the procedures win」才是 CLAUDE.md 指向的那一節；§7 是 *Actions arising*（待辦清單）
+  - DoD: 內容含五項 —— 偏離什麼 · 為何交付物答不出（引用兩份 fragment 的 `file:line`）· 選了什麼形狀 · 誰核可 · 何時 → ✅ 五項齊備
   - DoD: ⭐ 明確寫出**它與 `:103`（缺動詞不渲染）的關係** —— 今天 RBAC 未強制，所以那條規則無對應物
-  - DoD: ⛔ 不改 `15` 既有的任何一行 —— 只加
+        → ✅ 且**明寫「deliberately not faked」**；一併裁定 §6 `:165`（狀態絕不只靠顏色 —— 動詞是文字，構造上滿足）
+  - DoD: ⛔ 不改 `15` 既有的任何一行 —— 只加 → ✅ 零既有行變更
+  - DoD: ⭐ **新增的射程收窄**（Day 1 才發現）：`02a` §4 **只標了一條邊**（`:365` "changes requested"），
+        其餘六條無標籤 ⇒ 只有一個動詞是轉寫，另五個是**目標狀態名**的轉寫。§4.1 已寫明，
+        並附「若公司程序日後為這些轉換命名，以它的用語取代」
   - Verify: 讀回該節；`python scripts/lint/check_path_references.py`
 
 ### 1.2 API 附加 `allowed`
 
-- [ ] **`policy.controller.ts` 的 `list()` / `byId()` 每列附加 `allowed`**
+- [x] **`policy.controller.ts` 的 `list()` / `byId()` 每列附加 `allowed`**
   - DoD: 值 = `POLICY_TRANSITIONS[row.status]`，**由表導出不是第二份真相**
-  - DoD: `transitions.ts` **零變更**（plan §4 標 UNTOUCHED —— 那是 ADR-0002 的核心）
-  - DoD: `retired` 回 `[]` 而非 undefined / 缺欄位
+        → ✅ 用**既有的** `allowedTargets()`（Day-0 D2），不重寫導出邏輯
+  - DoD: `transitions.ts` **零變更**（plan §4 標 UNTOUCHED —— 那是 ADR-0002 的核心）→ ✅
+  - DoD: `retired` 回 `[]` 而非 undefined / 缺欄位 → ✅ 有專屬測試斷言 `toHaveProperty` + `toEqual([])`
+  - DoD: ⭐ **plan 沒寫但 AC-5 蘊含的第三處**：`transition()` 的回應也必須帶**新**狀態的 `allowed` ——
+        否則畫面會在狀態已正確的情況下繼續提供**舊**狀態的動作，且看起來完全正常 → ✅ 已補
   - Verify: `npm run test -w apps/api`
-- [ ] **`policy.controller.spec.ts` 測試**
-  - DoD: ⭐ 期望值**由表導出比對，不硬編碼** —— 硬編碼會在表改動時一起改而測不出漂移
-  - DoD: 含 `retired` 的空陣列案例
+- [x] **`policy.controller.spec.ts` 測試** → **+4 條**（507 → **511**）
+  - DoD: ⭐ 期望值**由表導出比對，不硬編碼** —— 硬編碼會在表改動時一起改而測不出漂移 → ✅ 全部經 `allowedTargets()` 比對
+  - DoD: 含 `retired` 的空陣列案例 → ✅
+  - DoD: ⛔ **反恆真守衛**：`POLICY_STATUSES` 若為空，迴圈跑零次而 `toHaveLength(0)` 照樣通過 ⇒
+        已補 `expect(POLICY_STATUSES.length).toBeGreaterThan(0)`（同 `i18n.test.ts:149`）
+  - DoD: ⭐ **中性化，預測寫在執行之前，兩次逐條命中** ——
+        N1（回傳舊狀態的 `allowed`）⇒ 預測 1 紅、實測 **1 failed/16 passed** 且 `●` 逐字為該條；
+        N2（`withAllowed` 直接 return row）⇒ 預測 4 紅、實測 **4 failed/13 passed** 四條逐字命中
   - Verify: `npm run test -w apps/api`
 
 ### 1.x partial gate
 
-- [ ] `npm run lint -w apps/api` · `npm run type-check -w apps/api` · `npm run test -w apps/api`
+- [x] `npm run lint -w apps/api` · `npm run type-check -w apps/api` · `npm run test -w apps/api`
+      → format **0** · lint **0** · type **0** · api unit **511 / 41**（baseline 507 → **+4**）
+- [ ] ⭐ **api int 未回歸** —— 加欄位到回應形狀可能弄紅對形狀做斷言的 int 測試
+  - DoD: **280 / 22 維持**（baseline）；若有紅，先判斷是「測試在測形狀」還是「本片弄壞了行為」
+  - Verify: `npm run test:int -w apps/api`
 
 ---
 

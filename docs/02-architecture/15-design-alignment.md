@@ -93,6 +93,33 @@ The risk form in the design captures a **single impact value** (`imp`, `lik`, `i
 
 *(The design's sample data is also arithmetically inconsistent in places — e.g. `imp:4, lik:4, inh:20`. Treat sample data as illustrative only.)*
 
+### 4.1 A second case, and a different kind: where the design is SILENT — the policy lifecycle has no control
+
+The case above is the design **simplifying** something the procedure specifies. This one is the design **saying nothing at all**, which needs a different ruling because there is no simplification to correct — there is a hole.
+
+**Measured 2026-08-21 (W26 Day 0), both fragments read in full:**
+
+| Fragment | Interactive controls | How status appears |
+|---|---|---|
+| `fragments/screens/09-policies.html:14-18` | `Category ▼`, `Status ▼` (**both filters**), `New policy` | read-only pill, `:39` |
+| `fragments/screens/10-policy-detail.html:67-68` | `Open in new tab`, `Download` | read-only badge, `:20` |
+
+Across both files, the words `approve|publish|submit|retire|workflow|transition` match **once** — `10-policy-detail.html:28`, a read-only metadata row pairing the label "Published" with an effective date. **There is no control anywhere in the handoff that advances a policy's state.** This document had nothing on it either: before this subsection, `policy` appeared here exactly once, as a nav item (§6).
+
+The handoff models a policy as a **controlled document** (download it, open it, read its version history). `02a` §4 models it as a **lifecycle with seven edges**. Both are true; the handoff simply never drew the second one.
+
+**Ruling — build the control; it is authorised, not approximated.** `02a:358-372` is the authority for the lifecycle, and W25 built `PATCH /policies/:id/status` against it. A verified capability with no way to reach it is an AP-3 Potemkin feature, so the UI gets:
+
+- **Verb buttons**, one per legal target, rendered from the `allowed` list the API returns — not a status dropdown (selecting a state reads as editing a field; this is a governance action) and not an approval drawer (that needs an actor, and `actorId` is NULL until M4).
+- Approved by the product owner **2026-08-21**, in W26, after this gap stopped the phase under CLAUDE.md 約束 6.
+
+**⚠️ How much of the naming is sourced, precisely.** `02a` §4 labels **exactly one** of the seven edges: `InReview --> Draft: changes requested` (`02a:365`). That verb is therefore transcribed, per 已確認參數 #9. The other six edges carry **no label in the source**, so their verbs are transcriptions of the *target state names* (`Approved` → "Approve", `Published` → "Publish", …), not of procedure vocabulary. This distinction is recorded so a later reader does not assume all six were sourced — **if the company procedure names these transitions, its words replace these.**
+
+**Two existing rules bind this control, and one of them cannot be met yet:**
+
+- §6 (`:165`) — *status is never colour alone*. Satisfied by construction: the verbs are words.
+- §5.1 (`:103`) — *missing-verb buttons not rendered; read-only roles get an explanatory banner, not a disabled form*. ⛔ **Not met, and deliberately not faked.** Role enforcement does not exist yet (M4; `AD-RbacUnenforced-1`), so there is no "missing verb" for anyone — every button renders for every viewer. The rule's own instruction is followed to the extent it can be: the buttons are **not** rendered as disabled, because `:103` rejects exactly that. When M4 lands, the server filters `allowed` by the caller's verbs and this rule is met without a UI change.
+
 ---
 
 ## 5. Confirmed and made concrete by the design
@@ -182,6 +209,7 @@ Accessibility conventions to preserve: **status is never colour alone** (always 
 | 8 | **`data.js` cannot be ported as-is** — the flagship dashboard is keyed by country, which structurally cannot hold 13 OpCos across 11 jurisdictions (Singapore ×2, Hong Kong ×2) (§8) | **Blocking for M8** |
 | 9 | Rebuild the OpCo fixture to the 13-OpCo list: `opcos.js` has `RIN` India, which is out (§8). ⚠️ With China also out, the fixture needs **13 rows, neither RIN nor RCN** | **High** |
 | 10 | ~~Decide how the RM Report register sheet relates to the live register~~ → ✅ **Decided 2026-08-07 (CH-003): versioned snapshot over the live register, not a second store.** Entities in `02a` §3.1 | **Done** |
+| 11 | ~~Decide the control shape for advancing a policy's state — the handoff has none~~ → ✅ **Decided 2026-08-21 (W26): verb buttons driven by the API's `allowed` list.** Full ruling and its limits in **§4.1** | **Done** |
 
 ---
 
