@@ -114,7 +114,9 @@
 
 - [x] `npm run lint -w apps/api` · `npm run type-check -w apps/api` · `npm run test -w apps/api`
       → format **0** · lint **0** · type **0** · api unit **511 / 41**（baseline 507 → **+4**）
-- [ ] ⭐ **api int 未回歸** —— 加欄位到回應形狀可能弄紅對形狀做斷言的 int 測試
+- [x] ⭐ **api int 未回歸** —— 加欄位到回應形狀可能弄紅對形狀做斷言的 int 測試
+      → ✅ **280 / 22 維持**，exit 0（Day 1 收尾 253.5 s · Day 2 複跑 228.9 s）。
+      ⭐ 沒有任何 int 測試對 policy 回應做**窮舉形狀**斷言 ⇒ 加欄位不弄紅它們
   - DoD: **280 / 22 維持**（baseline）；若有紅，先判斷是「測試在測形狀」還是「本片弄壞了行為」
   - Verify: `npm run test:int -w apps/api`
 
@@ -124,54 +126,123 @@
 
 ### 2.1 `client.ts` 的寫入動詞與錯誤型別
 
-- [ ] **`patch<T>(path, body)`**
+- [x] **`patch<T>(path, body)`**
+      → ✅ **刻意不與 `get()` 共用** —— 兩者重疊約 5 行 fetch boilerplate，
+      差在關鍵處：422 在寫入路徑有意義、在讀取路徑沒有。合併只會產生一個
+      「為了讓合併成立而存在」的 method 分支。理由寫在函式註解裡
   - DoD: 本樹第一個打 NestJS 的寫入動詞
-  - DoD: ⛔ **不引入任何 data library** —— `client.ts:16-17` 已就此表態，本片不推翻
+  - DoD: ⛔ **不引入任何 data library** —— `client.ts:16-17` 已就此表態，本片不推翻 → ✅ 零新依賴
   - Verify: `npm run test -w apps/web`
-- [ ] **`ApiRefusedError` 承載 422 的 `{from, to, allowed}`**
-  - DoD: 與既有 `ApiUnavailableError` **並存而非取代**
-  - DoD: 欄位名照抄後端（Day 0 `D-422-shape` 已確認），**不猜**
+- [x] **`ApiRefusedError` 承載 422 的 `{from, to, allowed}`**
+  - DoD: 與既有 `ApiUnavailableError` **並存而非取代** → ✅ 兩個 class 並存，`get()` 行為零變更
+  - DoD: 欄位名照抄後端（Day 0 `D-422-shape` 已確認），**不猜** → ✅ 逐字 `{message, from, to, allowed}`
+  - DoD: ⭐ **每個欄位都 narrow 不 trust** —— 猜錯的欄位名不會失敗，會靜靜讀到 `undefined`，
+        畫面於是渲染「一個沒有提供替代方案的拒絕」。`allowed` 解析不到 ⇒ `[]`，且呼叫端
+        必須把空讀成「伺服器沒有指名」而不是印一份空清單
   - Verify: `npm run test -w apps/web`
-- [ ] **三條映射各有測試**：422 → `ApiRefusedError` · 404 → `null` · 其餘非 ok → throw
+- [x] **三條映射各有測試**：422 → `ApiRefusedError` · 404 → `null` · 其餘非 ok → throw
+      → ✅ `client.test.ts`（**NEW**，7 條）：happy · 422 逐欄位 · 404→null · 500 · 網路失敗 ·
+      **422 body 不是 JSON 仍是 refusal** · **真的送 PATCH**
   - DoD: ⭐ 這是 plan §8 R2 的緩解 —— 本片建的形狀會被之後每個寫入畫面沿用，**不能只測 happy path**
+  - DoD: ⭐ **最後一條讓前六條有意義** —— 前六條在 `patch` 改送 GET 且不帶 body 時**全部照樣通過**
+        （mock 不管被問什麼都照答）。`sends a PATCH` 是唯一把這個檔綁回它自己名字的斷言
   - Verify: `npm run test -w apps/web`
 
 ### 2.2 `policies.ts` 與頁面
 
-- [ ] **`transitionPolicy(id, to)` + `PolicyRow.allowed` 欄位**
-  - DoD: `PolicyRow` 的檔頭仍寫著「本 app 對線路的看法，不是契約」—— 保留那句，本片不建契約層
+- [x] **`transitionPolicy(id, to)` + `PolicyRow.allowed` 欄位**
+      → ✅ `allowed` 是**必填非選填**：API 三個回應處都附，`retired` 帶 `[]` ——
+      空陣列是「後面沒有了」這個**主張**，與缺欄位不是同一件事，不可退化成它
+  - DoD: `PolicyRow` 的檔頭仍寫著「本 app 對線路的看法，不是契約」—— 保留那句，本片不建契約層 → ✅ 零變更
   - Verify: `npm run type-check -w apps/web`
-- [ ] **`page.tsx` 每列依 `allowed` 渲染動詞按鈕**
+- [x] **`page.tsx` 每列依 `allowed` 渲染動詞按鈕**
+      → ✅ 新增**最後一欄**（`policies.col.actions`）。⭐ 刻意加在最後而不是插進 status 欄旁：
+      既有測試以 `td:nth-child(5)` 取狀態徽章，插在中間會靜靜地讓那條斷言改測別的東西
   - DoD: `retired` 的列渲染**零個按鈕**（不是 disabled 按鈕 —— plan §8 R3）
-  - DoD: 按鈕**不得**沿用 `shell.inert`（Day 0 `D-inert-key`）
+        → ✅ 測試斷言該列 `querySelectorAll('button')` **長度為 0**（不是「沒有 enabled 的」）
+  - DoD: 按鈕**不得**沿用 `shell.inert`（Day 0 `D-inert-key`）→ ✅ 按鈕根本沒有 inert 文案；
+        `New policy` 改用**新的** `policies.new.inert`（D4 最小修，見下）
   - Verify: `npm run test -w apps/web`
-- [ ] **第四個頁面狀態 `pending`**
-  - DoD: 送出中的那一列停用它自己的按鈕；其他列不受影響
+- [x] **第四個頁面狀態 `pending`**
+      → ✅ `pending` 存的是 **row id 不是 boolean**，所以「送出中」天生只鎖那一列
+  - DoD: 送出中的那一列停用它自己的按鈕；其他列不受影響 → ✅ 兩者都有斷言
+  - DoD: ⭐ **`data-hov` 要跟著撤掉不只是 disabled** —— W19 量到 disabled 按鈕照樣匹配
+        `[data-hov]:hover`，當時加的守衛沒有涵蓋這個形狀 → ✅ 有專屬斷言
   - Verify: `npm run test -w apps/web`
-- [ ] **成功後就地更新該列（狀態 + 徽章 + `allowed`）**
+- [x] **成功後就地更新該列（狀態 + 徽章 + `allowed`）**
+      → ✅ **整列由回應取代**，不是 patch 一個 `status` 欄位
   - DoD: ⭐ **不需重整** —— W25 checklist 3.2 的同一句 DoD 當時明寫未達成（無控件即無此路徑），本片是它第一次可驗
-  - Verify: 測試斷言更新後的 `allowed` 也換了，不只 status
-- [ ] **三種失敗可辨**
-  - DoD: 422 **要把 `allowed` 顯示出來**（那正是後端附上它的用意）；404 說「不存在或不在你的範疇內」；連不上沿用既有不可用狀態
+        → ✅ 且斷言 `listPolicies` **只被呼叫一次**（沒有偷偷 refetch）
+  - Verify: 測試斷言更新後的 `allowed` 也換了，不只 status → ✅ **N2 中性化證明它在測**（見 §2.z）
+- [x] **三種失敗可辨**
+      → ✅ 三個互斥的 `data-transition-state`：`refused` / `gone` / `unreachable`
+  - DoD: 422 **要把 `allowed` 顯示出來**（那正是後端附上它的用意）
+        → ✅ 每個替代狀態渲染成一個帶 `data-refusal-alternative` 的 chip；
+        `allowed` 為空時改印一句「伺服器沒有指名」而非一排空 chip
+  - DoD: 404 說「不存在或不在你的範疇內」
+        → ⛔ **本格的原文不夠**：`transitionStatus()` 的 404 是**三義**不是兩義 ——
+        第三個是「這列已經不在剛剛讀到的狀態」（compare-and-set 落空）。文案改成三義並排，
+        且**不主張其中任何一個**；測試名字就叫「不宣稱『沒有這筆政策』」
+  - DoD: 連不上沿用既有不可用狀態 → ✅ 沿用中性 surface（與 `policies.source.error.*` 同形），
+        **不發明警示色** —— 被拒絕是伺服器正常運作，紅色會讀成故障
   - Verify: `npm run test -w apps/web`
 
 ### 2.3 i18n（US-6）
 
-- [ ] **6 個動詞 key × 2 locale**
-  - DoD: `en` 與 `zh-Hant` 皆存在且非空
+- [x] **6 個動詞 key × 2 locale** → ✅ 實際落地 **16 個 key × 2 locale**
+      （6 動詞 + `col.actions` + `new.inert` + `transition.*` 5 條 + `actions.noRoleCheck`）
+  - DoD: `en` 與 `zh-Hant` 皆存在且非空 → ✅ parity test 三項全過
   - DoD: ⭐ 用**字面量對照表**（`Record<PolicyStatus, TranslationKey>`）而非模板拼裝 —— plan §8 R8：`i18n.test.ts:143` 的掃描只看得見字面量，拼裝的 key 會**空過**
+        → ✅ 照做，⛔ **但 plan §8 R8 給的理由是錯的，訂正在此**：`:143` 的 regex 是
+        `/\bt\(\s*[A-Za-z0-9_.]+\s*,\s*'([^']+)'\s*\)/g` —— 它匹配的是 **`t(locale, 'key')` 這個呼叫形狀**，
+        不是任意字面量。對照表裡的 `'policies.action.approve'` **同樣掃不到**（既有的 `STATUS`
+        六個狀態 key 也一直掃不到，而那從來沒讓任何東西變紅）。
+        真正擋住錯 key 的是 **TypeScript** —— `TranslationKey = keyof typeof zhHant`，
+        寫錯即編譯失敗；模板拼裝要 `as TranslationKey`，而**那個 cast 正是會抓到它的檢查**。
+        ⇒ 結論不變（用字面量對照表），**理由換掉**。這是「證據要真的支持結論」的直接應用
+  - DoD: ⭐ **六個動詞只有一個有來源** —— `15:116` 的射程收窄寫進 `ACTION` 的註解，
+        不只寫在設計文件裡（讀 code 的人不會去翻 `15`）
   - Verify: `npm run test -w apps/web`（`i18n.test.ts` 三項）
 
 ### 2.y 治理陳述檢查（本片新增使用者可見陳述 ⇒ 適用）
 
-- [ ] **列出本片新增的每一條使用者可見陳述，逐條問「它說的是真的嗎」**
-  - DoD: 逐條裁決 —— 動詞標籤是否名實相符（按 `Approve` 真的會核准？）· 失敗訊息是否誤導 · **有沒有任何 affordance 暗示了權限檢查**（今天沒有）
+- [x] **列出本片新增的每一條使用者可見陳述，逐條問「它說的是真的嗎」**
+      → **16 條逐條裁決；14 條通過，2 條沒通過並已改**
+  - DoD: 逐條裁決 —— 動詞標籤是否名實相符（按 `Approve` 真的會核准？）
+        → ✅ **構造上成立**：按鈕的 `data-transition-to`、`ACTION` 的鍵、送出的 `to`
+        **是同一個值**。名與實由同一個來源產生，不是兩處各寫一次
+  - DoD: 失敗訊息是否誤導
+        → ⛔ **`transition.unreachable` 沒通過**：原文寫「Nothing was changed.」，
+        而網路錯誤可能發生在請求**送達之後**（伺服器已寫入、回應遺失），5xx 亦然。
+        ⇒ 改成「無法從這裡判斷變更是否送達，請重新載入確認伺服器上的實際狀態」。
+        ⭐ 這一條是 gate 全綠、測試全綠、而**陳述本身是假的** —— 只有逐條唸過才會發現
+  - DoD: **有沒有任何 affordance 暗示了權限檢查**（今天沒有）
   - DoD: ⛔ 特別檢查：按鈕**不得**看起來像「只有你有權限才會出現」—— 今天它對所有人出現
+        → ⛔ **沒通過，已補**：檔頭確實寫了「不是權限過濾的」，但**檔頭使用者看不到**，
+        而被誤導的正是使用者 —— 一排治理動詞按每一條 UI 慣例都讀成「你被允許做這些」。
+        ⇒ 新增 `policies.actions.noRoleCheck` **渲染在畫面上**（非註解），
+        與 §4.1:121「deliberately not faked」一致：不假裝有閘，也不假裝沒有這件事
   - Verify: `python scripts/lint/check_fixture_prose.py`（⚠️ 它只看標了 `@record-claim` 的 export，看不見 JSX / i18n 裡的硬編碼陳述 —— 那一半就是這一格）
+        → ✅ `run_all` 內 `fixture-prose` PASS（8 API surface × 13 record-claim；125 檔）
+
+### 2.z ⭐ 中性化（預測寫在執行之前，兩次逐條命中）
+
+- [x] **N1** —— `advance()` 忽略 `to` 參數，永遠送 `policy.allowed[0]`
+      → 預測 **1 紅**（`sends the target its own button names`），實測 **1 failed / 119 passed**，`×` 逐字為該條
+  - DoD: ⭐ 這條中性化存在的理由：**其餘每一條測試都點第一顆按鈕**，所以忽略參數的實作
+        會讓它們**全部照樣綠**。沒有這條，「按鈕送出它自己宣告的目標」從未被驗證過
+- [x] **N2** —— 成功時只更新 `status`，不用回應取代整列
+      → 預測 **1 紅**（`swaps the badge AND the verbs`），實測 **1 failed / 119 passed**，`×` 逐字為該條
+  - DoD: ⭐ 徽章那半仍會過 —— 這正是它危險的地方：畫面看起來完全正確，
+        只有動詞停留在**上一個狀態**的清單，而它們一秒之前確實是對的
 
 ### 2.x Full gate
 
-- [ ] format **0** · lint **0** · type **0** · api unit **≥ 507** · api int **280/22** · web **≥ 104** · build clean · `run_all` **11/11**
+- [x] format **0** · lint **0** · type **0** · api unit **≥ 507** · api int **280/22** · web **≥ 104** · build clean · `run_all` **11/11**
+      → 實測（2026-08-21，**本機**）：format web/api **0** · lint web/api **0** · type web/api **0** ·
+      api unit **511 / 41** · api int **280 / 22** exit 0（228.9 s）· web **120 / 12**（baseline 104 / 11 ⇒ **+16**）·
+      build web **clean**（29 route）· build api **clean** · `run_all` **11/11**
+  - DoD: ⛔ **「全綠」要連「在哪裡綠」一起講** —— 以上全部是**本機**。CI 未跑，見 Day 3 §3.3
 
 ---
 
