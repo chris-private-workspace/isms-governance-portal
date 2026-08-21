@@ -10,46 +10,66 @@
 
 > 完整程序：`docs/rules-on-demand/day0-plan-verify.md`
 
-- [ ] **Prong 1 — path verify**：plan §4 的 16 個路徑逐個確認（NEW 檔不存在；EDIT 檔存在）
+- [x] **Prong 1 — path verify**：plan §4 的 16 個路徑逐個確認（NEW 檔不存在；EDIT 檔存在）
+      → **20/20 如預期**；`client.test.ts` **確為 ABSENT**（NEW 正確）
   - DoD: ⚠️ 特別確認 `apps/web/src/lib/api/client.test.ts` **是否已存在** —— plan 標 NEW，若已存在則改 EDIT
-  - DoD: `CH-048` 編號未被佔用
+  - DoD: `CH-048` 編號未被佔用 → ✅ 最大號為 `CH-047`
   - Verify: `ls docs/03-implementation/changes/ | sort -V | tail -1`
-- [ ] **Prong 2 — content verify**（drift → progress.md）：
-  - [ ] **D-client-single-verb** — `client.ts` 是否仍只 export `get<T>`
+- [x] **Prong 2 — content verify**（drift → progress.md）：**8 條，3 條改變 plan**
+  - [x] **D-client-single-verb** — `client.ts` 是否仍只 export `get<T>`
+        → ✅ **成立**：全檔 export 恰好三個（`ScopedResponse` · `ApiUnavailableError` · `get<T>`），
+        `get` 是唯一的函式 ⇒ **greenfield 0.55 維持，§7 不改**
     - DoD: ⭐ **本片的 greenfield 判定與 calibration class 0.55 全繫於此**；若已有寫入動詞 ⇒ 回到 `pattern-reuse-feature` 並修訂 §7
     - Verify: `grep -n "export .*function" apps/web/src/lib/api/client.ts`
-  - [ ] **D-edge-list** — 從 `transitions.ts` **導出**七條邊，逐條對上 plan §3.4 的六個動詞
+  - [x] **D-edge-list** — 從 `transitions.ts` **導出**七條邊，逐條對上 plan §3.4 的六個動詞
+        → ✅ **7 條**（由 `POLICY_TRANSITIONS` 逐鍵展開，非手數）；六動詞覆蓋七邊成立
+        → ⭐ **D2**：`allowedTargets()` / `canTransition()` / `isTerminal()` / `POLICY_TRANSITION_EDGES` **都已存在** ⇒ API 工作變少
+        → ⛔ **D3**：`:70` 記錄 02a:365 把 `in_review→draft` 命名為 **"changes requested"**，而我發明了「Return to draft」⇒ 違反已確認參數 #9
     - DoD: ⛔ **不手數** —— W25 Day 0 就把七條數成八條（把兩個 pseudostate 算了進去）。要由表導出
     - DoD: 確認「六個動詞覆蓋七條邊」這個宣稱為真（`→in_review` 有兩個來源共用一個動詞）
     - Verify: 讀 `apps/api/src/workflow/transitions.ts:68-76` 原文並列出 `from → to` 全集
-  - [ ] **D-422-shape** — 422 body 的四個欄位名逐字確認
+  - [x] **D-422-shape** — 422 body 的四個欄位名逐字確認 → ✅ `{message, from, to, allowed}`（`policy.controller.ts:161-166`）
     - DoD: `{message, from, to, allowed}` —— 前端錯誤型別要照抄欄位名，猜錯會靜默拿到 undefined
     - Verify: 讀 `apps/api/src/modules/policy/policy.controller.ts:161-166`
-  - [ ] **D-seed-states** — demo 8 筆的狀態分佈
+  - [x] **D-seed-states** — demo 8 筆的狀態分佈
+        → ✅ **12 筆 live，六狀態全覆蓋**（in_review 3 · published 3 · approved 2 · under_revision 2 · draft 1 · **retired 1**），10 筆 DEMO SEED
+        → ⭐ drive-through 能走**完整按鈕矩陣**，含 AC-4 的「retired 零按鈕」
     - DoD: `seed.ts` 直接寫 status（`AD-SeedBypassesRepository-1`）⇒ 記錄哪些列停在守衛產生不出的狀態
     - Verify: 對真 dev DB 查 `SELECT status, count(*) FROM policies GROUP BY status`
-  - [ ] **D-inert-key** — `New policy` 用的 `shell.inert` 是共用 key
+  - [x] **D-inert-key** — `New policy` 用的 `shell.inert` 是共用 key
+        → ⛔ **D4，比 plan 說的嚴重**：**24 個 call site 跨 13 個檔**（plan 只提 `risks/[id]`）
+        → ⛔ 字串逐字是「This port has **no backend** that can perform it」⇒ **本片會讓它在 `/policies` 上當場自相矛盾**
+        → 🚧 **待使用者裁決** —— plan §3.x 明文排除動它，不自行推翻
     - DoD: 確認共用範圍（`AD-SharedInertProseInaccurate-1` 說它也用在 `risks/[id]`）⇒ 本片新按鈕**不得**沿用
     - Verify: `grep -rn "shell.inert" apps/web/src`
-  - [ ] **D-row-not-clickable** — 列仍不可點且測試仍鎖著
+  - [x] **D-row-not-clickable** — 列仍不可點且測試仍鎖著
+        → ✅ `<tr>:433` 只有 `borderBottom`，**無 handler、無父層會吃事件**
+        → 🟡 **D5**：`:425-432` 的註解寫「there is no action here to disable」，**本片會讓它變成 orphan claim**（AP-7）
     - DoD: 新按鈕要在不可點的列裡單獨接收點擊 ⇒ 確認沒有父層 handler 會吃掉事件
     - Verify: 讀 `policies/page.tsx:433` + `policies.test.tsx:150-161`
-  - [ ] **D-i18n-scan-regex** — parity 的原始碼掃描只匹配字面量 key
+  - [x] **D-i18n-scan-regex** — parity 的原始碼掃描只匹配字面量 key
+        → ✅ regex 為 `/\bt\(\s*[A-Za-z0-9_.]+\s*,\s*'([^']+)'\s*\)/g`（`i18n.test.ts:143`）——
+        **只匹配單引號字面量** ⇒ 模板拼裝會空過 ⇒ 用字面量對照表（plan §8 R8 成立）
     - DoD: 確認 `i18n.test.ts:143` 的 regex 形狀 ⇒ 決定動詞 key 用字面量對照表而非模板拼裝（plan §8 R8）
     - Verify: 讀 `apps/web/src/i18n/i18n.test.ts:139-153`
-- [ ] **Prong 2.5 — child component tree**（前端頁面 phase ⇒ **必做**）
+- [x] **Prong 2.5 — child component tree**（前端頁面 phase ⇒ **必做**）
+      → ✅ **乾淨**：只 import 3 個元件（`DemoBadge` · `IconSearch` · `NoSource`），**皆不在寫入路徑上**；
+      **無狀態徽章元件** ⇒ 確認徽章是 inline JSX（`:479-500`），plan §3.4 的「就地更新徽章」成立
   - DoD: `policies/page.tsx` 是單一 557 行元件還是有子元件？狀態徽章是 inline JSX 還是可複用元件？
   - DoD: ⭐ 若徽章其實已抽成元件，plan §3.4 的「就地更新徽章」寫法要改
   - Verify: 讀 `policies/page.tsx` 的元件邊界 + `grep -rn "from './" apps/web/src/app/(app)/policies/`
-- [ ] **Prong 3 — schema verify**：**N/A** —— 本片零 DB 變更（`allowed` 是導出值，非欄位）
-- [ ] **D-baselines** — api unit **507/41** · api int **280/22** · web **104/11** · lint **0** · type **0** · format **0** · build clean · `run_all` **11/11**
+- [x] **Prong 3 — schema verify**：**N/A** —— 本片零 DB 變更（`allowed` 是導出值，非欄位）
+- [x] **D-baselines** — api unit **507/41** · api int **280/22** · web **104/11** · lint **0** · type **0** · format **0** · build clean · `run_all` **11/11**
+      → 實跑確認：`run_all` **11/11** exit 0 · web **104/11** exit 0；api 數字於同一份 code tree 實測（其後只多 docs commit）
   - Verify: 逐項實跑，**不採信 plan 抄來的數字**
-- [ ] **Catalog drift** — progress.md Day-0 表格
-- [ ] **Go/no-go** — 範圍變動 ≤ 20% 繼續 / 20-50% 修訂 §Acceptance + §Workload 並再確認 / > 50% 中止
+- [x] **Catalog drift** — progress.md Day-0 表格（8 條 D1-D8）
+- [x] **Go/no-go** — 範圍變動 ≤ 20% 繼續 / 20-50% 修訂 §Acceptance + §Workload 並再確認 / > 50% 中止
+      → **≤ 20% ⇒ 繼續 Day 1**。D2 縮小範圍 · D3 一行命名 · D5 一段註解 ·
+      🚧 **D4 待裁決**（不阻塞 Day 1 —— 它影響的是 Day 2 的 `page.tsx`）
 
 ### 0.2 Branch
 
-- [ ] `git checkout -b feature/W26-policy-transition-ui`（從 `main` `0f09f27`）
+- [x] `git checkout -b feature/W26-policy-transition-ui`（從 `main` `0f09f27`）
 
 ---
 
